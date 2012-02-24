@@ -1,0 +1,28 @@
+EMSMBuilder Fork
+1. The libraries are distance metric agnostic, you can use your own new distance metric
+without having to change the clustering/assignment code
+2. Dihedral, Contact (residues and/or atoms), hybrid distance metric code
+3. New clustering algorithms (CLARANS / subsampled CLARANS)
+
+MSMBuilder 2.0.4
+1.  Improvements in PCCA, PCCA+ lead to better macrostate definition.
+
+MSMBuilder 2.0.3
+1.  BugFix: In ConvertDataToHDF, the Stride option was not being used for non-FAH style datasets. 
+2.  Fixed unicode strings were causing scipy issues on certain platforms.
+
+MSMBuilder 2.0.2
+
+1.  Fixed issue with AtomIndices in UpdateProjectToHDF
+2.  Using dtype='int' for Assignments, consistent throughout MSMBuilder.
+3.  CalculateImpliedTimescales now allows users to exit through control+C
+4.  Fixed some tabbing issues in MSMLib.py
+
+MSMBuilder 2.0.1
+
+1. Fixed a bug in ConvertProjectToHDF that prevented MSMBuilder from seeing multiple XTC files in a single directory. 
+2. Fixed carriage return issues in UpdateProjectToHDF 
+3. Fixed minor bugs in Project class. 
+4. If Project cannot find its PDB, it also will look in the current directory. This helps when the absolute path of a Project changes. 
+5. Unit tests. 
+6. Removed unnecessary files, reducing the package size to 10MB. 
