@@ -382,73 +382,62 @@ void PrintDimensions(char *title, PyArrayObject *array) {
 
 static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
   /*
-    The all-purpose driver for permutation-invariant RMSD.
-    Function: Align a set of coordinates to a single coordinate
+    The all-purpose routine for permutation-invariant and alternate-indexed RMSD.
+    Written by Lee-Ping Wang, 2012.
+    
+    This routine was written with these two capabilities in mind:
+    1) Permute sets of identical and exchangable atom labels to minimize the RMSD (lets us build MSMs with explicit solvent!)
+    2) Align using one set of atom labels (i.e. protein) and compute the RMSD using another set of labels (i.e. ligand), motivated by Morgan's projects
+    
+    Conceptually there are three different sets of atomic indices:
+    - AtomIndices are the distinguishable atoms used for alignment
+    - PermuteIndices are identical and exchangeable atoms (more than one batch is possible)
+    - AltIndices are the alternate labels used for RMSD when using capability #2
+    
+    Note that I can't use PermuteIndices and AltIndices at the same time because that would just be ridiculous.
+
     There are several ways in which a user might run this:
-    +- If there exists a set of AtomIndices:
-    |  |- Perform alignment using AtomIndices
+    +- If there are AtomIndices:
+    |  |- Perform alignment using AtomIndices; this sets the RMSD values and optionally gets the rotation matrices.
     |  +- If there are no PermuteIndices:
-    |  |  |- Assign the RMSD values to the RMSDOut array
-    |  |  +- If output coordinates are requested:
+    |  |  +- If there are AltIndices:
+    |  |  |  |- Rotate the atoms in AltIndices using the rotation matrix.
+    |  |  |  |- Set the RMSD values by explicitly computing them from pairwise distances.
+    |  |  +- If we want output coordinates:
     |  |  |  |- Rotate the whole frame using the rotation matrix
     |  |  |  |- Assign the rotation matrix to the RotOut array
-    |  |  |  |- Assign the rotated frame to the XYZOut array
     |  +- If there are PermuteIndices:
-    |  |  |- Rotate the A+P Coordinates using the rotation matrix
+    |  |  |- (Considering this): If the estimated final answer is larger than some lower bound, then don't go on.
+    |  |  |- Rotate the atoms in (Atom+Permute)Indices using the rotation matrix
     +- If there are PermuteIndices:
-    |  |- Permute the atomic indices.
-    |  |- Perform alignment using A+P Coordinates
-    |  |- Assign the RMSD values to the RMSDOut array
+    |  |- Permute the atomic indices for each batch in PermuteIndices (This is the bottleneck).
+    |  |- Perform alignment using (Atom+Permute)Indices; this sets the RMSD values and gets the rotation matrices
     |  +- If output coordinates are requested:
     |  |  |- Rotate the whole frame using the rotation matrix
     |  |  |- (If desired) Relabel the frame using the permutations
-    |  |  |- Assign the rotated frame to the XYZOut array
+    +- If output coordinates are requested:
+    |  |- Assign the rotated frame to the XYZOut array
+    |- Assign the RMSD values to the RMSDOut array
     Done!!!
 
-    The number of options:
-  
-    - Whether we want the rotation matrices
-    - Whether we want the aligned coordinates
+    The options (codified in the Usage integer):
     - Whether we have a set of AtomicIndices
+    - Whether we have a set of AltIndices
     - Whether we have a set of PermuteIndices
+    - Whether we want the output coordinates
      
-    The data we need:
+    The arguments:
+    - Input: Flag for usage mode (1 integer)
     - Input: TheoData for the AtomIndices (7 variables)
     - Input: TheoData for the AtomIndices+PermuteAtoms (7 variables)
-    - Input: The mapping of PermuteAtoms -> Trajectory Atoms (1 array) [NECESSARY ONLY FOR RETURNING PERMUTED OUTPUT]
-    - Input: Flag for usage mode (1 integer)
-    - Output: RMSD array   (1 variable, size NShots)
-    - Output: permutations (1 variable, size NShots * NPerms)
-    - Output: coordinates  (1 variable, size NShots * 3 * NAtoms)
+    - Input: The set of PermuteIndices / AltIndices (1 array)
+    - Input: An array of batch sizes in PermuteIndices (1 array)
+    - Output (pointer): Rotation matrices (1 variable, size NShots * 9)
+    - Input/Output (pointer): Entire trajectory (1 array, size NShots * 3 * NAtoms)
+    - Input: The trajectory frame for the reference coordinate (1 array, size 3 * NAtoms)
+    - Output (return): RMSD array  (1 variable, size NShots)
 
-    PyArrayObject *results_, *xyzlist_, *quartets_;
-    int traj_length, num_quartets, four, num_atoms, num_dims;
-    float *results;
-    const float *xyzlist;
-    const long *quartets;
-    if (!PyArg_ParseTuple(args, "O!O!O!",
-            &PyArray_Type, &results_, &PyArray_Type, &xyzlist_, &PyArray_Type, &quartets_)) {
-        return 0;
-    }
-    else {
-        results = (float*) results_->data;
-        xyzlist = (const float*) xyzlist_->data;
-        quartets = (const long*) quartets_->data;
-        
-        traj_length = xyzlist_->dimensions[0];
-        num_atoms = xyzlist_->dimensions[1];
-        num_dims = xyzlist_->dimensions[2];
-        num_quartets = quartets_->dimensions[0];
-        four = quartets_->dimensions[1];
-        
-        if ((num_dims != 3) || (four != 4)) {
-            printf("Incorrect call to dihedrals_from_trajectory_wrap! Aborting");
-            exit(1);
-        }
-        
-        dihedrals_from_traj_float(results, xyzlist, quartets, traj_length, num_atoms, num_quartets);
-    }
-    return Py_BuildValue("d", 0.0);
+    
 
   */
   struct timeval tv;
