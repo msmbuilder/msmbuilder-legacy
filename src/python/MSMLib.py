@@ -35,6 +35,7 @@ import numpy as np
 import multiprocessing
 import sys
 import scipy.optimize
+from collections import defaultdict
 
 from Emsmbuilder import Serializer
 
@@ -846,7 +847,7 @@ def FindSimplexVertices(nClusters, eigVecs):
 
     return mapVertToMicro
 
-def RenumberStates(Assignments):
+def RenumberStates_SLOW(Assignments):
     """Renumber states to be consecutive integers (0, 1, ... , n); useful if some states have 0 counts."""
     A=Assignments
     GoodStates=np.unique(A)
@@ -855,6 +856,32 @@ def RenumberStates(Assignments):
     for i,x in enumerate(GoodStates):
         A[np.where(A==x)]=i
     A[MinusOne]=-1
+
+
+def RenumberStates(Assignments):
+    """Renumber states to be consecutive integers (0, 1, ... , n);
+    useful if some states have 0 counts.
+    
+    Should do the same thing as RenumberStates_SLOW() without using np.where()
+    repeatedly, which can be slow"""
+    
+    unique = list(np.unique(Assignments))
+    if unique[0] == -1:
+        minus_one = np.where(Assignments == -1)
+        unique.pop(0)
+    else:
+        minus_one = []
+    
+    inverse_mapping = defaultdict(lambda: ([], []))
+    for i in xrange(Assignments.shape[0]):
+        for j in xrange(Assignments.shape[1]):
+            inverse_mapping[Assignments[i,j]][0].append(i)
+            inverse_mapping[Assignments[i,j]][1].append(j)
+    
+    for i,x in enumerate(unique):
+        Assignments[inverse_mapping[x]] = i
+    Assignments[minus_one] = -1
+
 
 def TrimHighRMSDToCenters(Ass,RMSD,Epsilon=.25):
     """Null out Assignments where RMSD to cluster center is too high.  If RMSD to cluster center is too high, then we expect large kinetic barriers within a state.  """
