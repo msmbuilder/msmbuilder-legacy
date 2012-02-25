@@ -182,12 +182,6 @@ class LPRMSD(AbstractDistanceMetric):
         # A list of lists of permutable indices
         # A list of nonpermutable indices (aka the AtomIndices)
         # Boolean of whether to do the grid scan
-        xyzout = []
-        rmsd = []
-        ns = len(pt2)
-        #=========================================#
-        #  Begin the permutation-invariant RMSD   #
-        #=========================================#
 
         Usage = 0
         if self.atomindices != None:
@@ -215,10 +209,8 @@ class LPRMSD(AbstractDistanceMetric):
                                               pt2.TDx.XYZData, pt1.TDx.XYZData[index1], pt2.TDx.G, pt1.TDx.G[index1],
                                               pi_flat, pi_lens, RotOut, XYZOut, XYZRef) 
 
-        np.savetxt('RMSD1.txt',RMSDOut)
-        #raw_input()
+        #np.savetxt('RMSD1.txt',RMSDOut)
 
-        print len(RMSDOut)
         if b_xyzout:
             return RMSDOut, XYZOut.transpose(0,2,1)
         else:
