@@ -10,7 +10,7 @@ try:
     from Emsmbuilder import mm
 except:
     pass
-from msmbuilder.DistanceMetric import RMSD
+#from msmbuilder.DistanceMetric import RMSD
 
 def simple_assign(metric, project, generators, assignments_path, distances_path):
     """
@@ -86,8 +86,8 @@ def simple_assign(metric, project, generators, assignments_path, distances_path)
         #    distances[where] = d
         #    assignments[where] = j
         
-        p2traj = RMSD.PrepareData(project.LoadTraj(i)['XYZList'][:, metric.atomindices])
-        p2gens = RMSD.PrepareData(generators['XYZList'][:, metric.atomindices])
+        #p2traj = RMSD.PrepareData(project.LoadTraj(i)['XYZList'][:, metric.atomindices])
+        #p2gens = RMSD.PrepareData(generators['XYZList'][:, metric.atomindices])
         
         for j in range(len(ptraj)):
             d = metric.one_to_all(ptraj, pgens, j)
