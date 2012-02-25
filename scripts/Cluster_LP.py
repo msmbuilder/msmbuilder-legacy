@@ -47,7 +47,7 @@ def main():
     # parse command line options    
     proj = Project.LoadFromHDF(options.projectfn)
     atom_inds = np.loadtxt(options.atomindices, np.int)
-    alt_inds = np.loadtxt(options.altindices, np.int)
+    alt_inds = np.loadtxt(options.altindices, np.int) if os.path.exists(options.altindices) else None
     permute_inds = ReadPermFile(options.permuteatoms) if os.path.exists(options.permuteatoms) else None
     gens_path = os.path.join(options.outdir, "Gens.lh5")
     stride = int(options.stride)
