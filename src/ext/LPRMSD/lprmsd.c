@@ -204,11 +204,11 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
   /**********************************/
   // TheoData for distinguishable atoms
   PyArrayObject *XYZ_id_a_, *XYZ_id_b_, *G_id_a_;
-  int nreal_id=-1,npadded_id=-1,strd_id=-1;
+  int nreal_id=-1,npad_id=-1,strd_id=-1;
   float G_id_b=-1;
   // TheoData for distinguishable+permutable atoms
   PyArrayObject *XYZ_lp_a_, *XYZ_lp_b_, *G_lp_a_;
-  int nreal_lp=-1,npadded_lp=-1,strd_lp=-1;
+  int nreal_lp=-1,npad_lp=-1,strd_lp=-1;
   float G_lp_b=-1;
   // Arrays for permutable indices and permutable atom 'batch' size (i.e. oxygens, hydrogens)
   PyArrayObject *LP_Flat_,*LP_Lens_;
@@ -221,8 +221,8 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
   float msd;
 
   if (!PyArg_ParseTuple(args, "iiiiOOOfiiiOOOfOOOOO", &Usage,
-			&nreal_id, &npadded_id, &strd_id, &XYZ_id_a_, &XYZ_id_b_, &G_id_a_, &G_id_b, 
-			&nreal_lp, &npadded_lp, &strd_lp, &XYZ_lp_a_, &XYZ_lp_b_, &G_lp_a_, &G_lp_b, 
+			&nreal_id, &npad_id, &strd_id, &XYZ_id_a_, &XYZ_id_b_, &G_id_a_, &G_id_b, 
+			&nreal_lp, &npad_lp, &strd_lp, &XYZ_lp_a_, &XYZ_lp_b_, &G_lp_a_, &G_lp_b, 
 			&LP_Flat_, &LP_Lens_, &Rotations_, &XYZ_all_a_, &XYZ_all_b_)) {
     printf("Mao says: Inputs / outputs not correctly specified!\n");
     return NULL;
@@ -240,7 +240,7 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
   int ns = XYZ_id_a_->dimensions[0];
   // Total number of atoms.
   int na_all = XYZ_all_a_->dimensions[2];
-  // Number of distinguishable+permutable atoms (padded)
+  // Number of distinguishable+permutable atoms (pad)
   int na_lp = XYZ_lp_a_->dimensions[2];
   // Number of permutable atom groups
   int n_lp_grps = LP_Lens_->dimensions[0];
@@ -278,12 +278,12 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
     PrintDimensions("XYZ_id_a_", XYZ_id_a_);
     PrintDimensions("XYZ_id_b_", XYZ_id_b_);
     PrintDimensions("G_id_a_", G_id_a_);
-    printf("nreal_id: %i, npadded_id: %i, stride_id: %i\n",nreal_id,npadded_id,strd_id);
+    printf("nreal_id: %i, npad_id: %i, stride_id: %i\n",nreal_id,npad_id,strd_id);
     printf("\n");
     PrintDimensions("XYZ_lp_a_", XYZ_lp_a_);
     PrintDimensions("XYZ_lp_b_", XYZ_lp_b_);
     PrintDimensions("G_lp_a_", G_lp_a_);
-    printf("nreal_lp: %i, npadded_lp: %i, stride_lp: %i\n",nreal_lp,npadded_lp,strd_lp);
+    printf("nreal_lp: %i, npad_lp: %i, stride_lp: %i\n",nreal_lp,npad_lp,strd_lp);
     printf("\n");
     printf("Usage Mode: %i\n",Usage);
     PrintDimensions("Rotations_", Rotations_);
@@ -297,6 +297,7 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
 
   /*********************************/
   /* Initialize internal variables */
+  /*   (Memory is allocated here)  */
   /*********************************/
   // Temporary labels for old and new index
   int Old, New, StartIdx;
@@ -307,9 +308,9 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
   float  *Y_lp_f, *Z_lp_f;
   double *X_all_d, *Y_all_d, *Z_all_d;
   double *X_alt_d, *Y_alt_d;
-  // The 'truestride' for padded XYZ coordinates
-  int true_id = npadded_id*3;
-  int true_lp = npadded_lp*3;
+  // The 'truestride' for pad XYZ coordinates
+  int true_id = npad_id*3;
+  int true_lp = npad_lp*3;
   if (HaveLP) {
     // Create an array from the batch size which points to where the batches start
     // For example [5, 5, 6, 3] -> [0, 5, 10, 16], you know what i mean.
@@ -382,30 +383,39 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
   double RelabelTime = 0.0;
   APCTime = 0.0;
   DistMatTime = 0.0;
-  double msd1 = 0.0;
   float x1, x2, y1, y2, z1, z2;
+
+  /**********************************/
+  /*   Start the RMSD calculation   */
+  /*    Parallelized over frames    */
+  /**********************************/
       
 #pragma omp parallel for private(rot, msd, j, k, p, start, end, Idx, Old, New, x1, x2, y1, y2, z1, z2)
   for (int i = 0; i < ns; i++) 
     {
+      //If there are AtomIndices:
       if (HaveID) {
 	start = get_time_precise();
-	ls_rmsd2_aligned_T_g(nreal_id,npadded_id,strd_id,(XYZ_id_a+i*true_id),XYZ_id_b,G_id_a[i],G_id_b,&msd,(HaveLP || AltIdx || WantXYZ),rot);
-	msd1 = msd;
+	// Perform alignment using AtomIndices; this sets the RMSD values and optionally gets the rotation matrices.
+	ls_rmsd2_aligned_T_g(nreal_id,npad_id,strd_id,(XYZ_id_a+i*true_id),XYZ_id_b,G_id_a[i],G_id_b,&msd,(HaveLP || AltIdx || WantXYZ),rot);
 	time_accumulate(&RMSD1Time,start);
+	// If there are no PermuteIndices:
 	if (!HaveLP) {
-	  if (WantXYZ || AltIdx) {
-	    for (j=0; j<9; j++) {
-	      *(Rotations + i*9 + j) = (float) rot[j];
-	    }
-	    start = get_time_precise();
-	    if (WantXYZ)
-	      cblas_dgemm(101,112,111,3,na_all,3,1.0,rot,3,(X_all_d+i*3*na_all),na_all,0.0,(Y_all_d+i*3*na_all),na_all);
-	    if (AltIdx)
-	      cblas_dgemm(101,112,111,3,totlen,3,1.0,rot,3,(X_alt_d+i*3*totlen),totlen,0.0,(Y_alt_d+i*3*totlen),totlen);
+	  start = get_time_precise();
+	  // If we want output coordinates:
+	  if (WantXYZ) {
+	    // Rotate the whole frame using the rotation matrix
+	    cblas_dgemm(101,112,111,3,na_all,3,1.0,rot,3,(X_all_d+i*3*na_all),na_all,0.0,(Y_all_d+i*3*na_all),na_all);
+	    time_accumulate(&MatrixTime,start);
+	  }
+	  // If there are AltIndices:
+	  if (AltIdx) {
+	    // Rotate the atoms in AltIndices using the rotation matrix.
+	    cblas_dgemm(101,112,111,3,totlen,3,1.0,rot,3,(X_alt_d+i*3*totlen),totlen,0.0,(Y_alt_d+i*3*totlen),totlen);
 	    time_accumulate(&MatrixTime,start);
 	    start = get_time_precise();
 	    msd = 0.0 ;
+	    // Set the RMSD values by explicitly computing them from pairwise distances.
 	    for (j=0; j<lp_lens[0]; j++) {
 	      x2 = Y_alt_d[(i*3+0)*totlen + j];
 	      y2 = Y_alt_d[(i*3+1)*totlen + j];
@@ -422,23 +432,27 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
 	    time_accumulate(&AltRMSDTime,start);
 	  }
 	}
-      }
-      if (HaveLP) {
-	for (j=0; j<9; j++) {
-	  *(Rotations + i*9 + j) = (float) rot[j];
+	// If there are PermuteIndices:
+	// Rotate the atoms in (Atom+Permute)Indices using the rotation matrix
+	else {
+	  cblas_dgemm(101,112,111,3,na_lp,3,1.0,rot,3,(X_lp_d+i*3*na_lp),na_lp,0.0,Y_lp_d+i*3*na_lp,na_lp);
 	}
+      }
+      // If there are PermuteIndices:
+      if (HaveLP) {
 	start = get_time_precise();
-	cblas_dgemm(101,112,111,3,na_lp,3,1.0,rot,3,(X_lp_d+i*3*na_lp),na_lp,0.0,Y_lp_d+i*3*na_lp,na_lp);
 	time_accumulate(&MatrixTime,start);
 	for (k=0; k<na_lp * 3 ; k++) {
 	  Y_lp_f[i*3*na_lp+k] = (float) Y_lp_d[i*3*na_lp+k];
 	}
-
+	// Permute the atomic indices for each batch in PermuteIndices.
 	for (k=0; k<n_lp_grps ; k++) {
 	  start = get_time_precise();
+	  // This calls a subroutine that builds the cost matrix and solves the assignment problem!
 	  drive_permute(lp_lens[k],na_lp,na_id+lp_starts[k],(Y_lp_f+i*3*na_lp),XYZ_lp_b,lp_all+i*totlen+lp_starts[k]);
 	  time_accumulate(&PermuteTime,start);
 	  start = get_time_precise();
+	  // Relabel the atoms according to our brand new permutations
 	  for (p=0; p<lp_lens[k] ; p++) {
 	    Old = na_id + lp_starts[k] + p;
 	    New = na_id + lp_starts[k] + *(lp_all+i*totlen+lp_starts[k]+p) ;
@@ -454,16 +468,18 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
 	  }
 	  time_accumulate(&RelabelTime,start);
 	}
-
 	start = get_time_precise();
-	ls_rmsd2_aligned_T_g(nreal_lp,npadded_lp,strd_lp,(Z_lp_f+i*true_lp),XYZ_lp_b,G_lp_a[i],G_lp_b,&msd,WantXYZ,rot);
+	// Perform alignment using (Atom+Permute)Indices; this sets the RMSD values and gets the rotation matrices
+	ls_rmsd2_aligned_T_g(nreal_lp,npad_lp,strd_lp,(Z_lp_f+i*true_lp),XYZ_lp_b,G_lp_a[i],G_lp_b,&msd,1,rot);
 	time_accumulate(&RMSD2Time,start);
-
+	// If output coordinates are requested:
 	if (WantXYZ) {
+	  // Rotate the whole frame using the rotation matrix
 	  cblas_dgemm(101,112,111,3,na_all,3,1.0,rot,3,(X_all_d+i*3*na_all),na_all,0.0,(Y_all_d+i*3*na_all),na_all);
 	  for (k=0; k<3*na_all ; k++) {
 	    *(Z_all_d+i*3*na_all+k) = *(Y_all_d+i*3*na_all+k);
 	  }
+	  // (If desired) Relabel the frame using the permutations
 	  for (k=0; k<totlen; k++) {
 	    Old = lp_flat[k];
 	    New = lp_all_glob[i*totlen + k];
@@ -473,9 +489,18 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
 	  }
 	}
       }
+      // Assign the RMSD values to the RMSDOut array
       RMSD[i] = sqrtf(msd);
+      if (WantXYZ || AltIdx || HaveLP) {
+	// Assign the rotation matrix to the RotOut array
+	for (j=0; j<9; j++) {
+	  *(Rotations + i*9 + j) = (float) rot[j];
+	}
+      }
     }
 
+  // If output coordinates are requested:
+  // Assign the rotated frames to the XYZOut array
   if (WantXYZ) {
     for (int i=0; i<na_all * ns * 3 ; i++) {
       if (HaveLP) 
