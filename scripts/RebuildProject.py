@@ -5,7 +5,7 @@
 import argparse
 import os
 
-from msmbuilder import Project,CreateMergedTrajectoriesFromFAH
+from Emsmbuilder import Project,CreateMergedTrajectoriesFromFAH
 
 print __doc__
 
