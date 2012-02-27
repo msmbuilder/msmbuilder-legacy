@@ -50,7 +50,7 @@ def main():
     k = int(options.clusters)
     rmsd_cutoff = float(options.rmsdcutoff)
     local_iterations = int(options.localkmediods)
-    global_iteratiobs = int(options.globalkmediods)
+    global_iterations = int(options.globalkmediods)
 
     ArgLib.CheckPath(gens_path)
 
@@ -63,7 +63,7 @@ def main():
     # cluster
     rmsd_metric = RMSD(atom_inds)
     clusterer = HybridKMedoids(rmsd_metric, subsampled, k, rmsd_cutoff,
-                               local_iterations, global_iteratiobs)
+                               local_iterations, global_iterations)
     gens = clusterer.get_generators_as_traj()
 
     # save to disk

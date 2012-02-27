@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""ConvertRepexToMSMBuilder.py: Convert a NetCDF replica exchange database into an MSMBuilder Project.
+"""PCCAPlus.py Use PCCA+ to create a macrostate MSM.
 
 Notes:
 
@@ -9,13 +9,12 @@ You may have to trim the TER and CRYSTAL entries from the PDB file due to MSMBui
 
 import argparse
 import sys
-import os
 
 import scipy.io
 import numpy as np
 
 import ArgLib
-from msmbuilder import Trajectory, Project, CreateMergedTrajectoriesFromFAH,Conformation, Serializer, MSMLib
+from Emsmbuilder import Serializer, MSMLib, NewPCCAPlus
 
 print __doc__
 
@@ -24,18 +23,24 @@ parser.add_argument('-T','--TProb',  help='Filename of input tProb file.')
 parser.add_argument('-a','--Ass',    help='Filename of input Assignments file.')
 parser.add_argument('-w','--OutDir', help='Directory to output results.')
 parser.add_argument('-M','--nMacro', help='Number of Macrostates.')
+parser.add_argument('-F','--FluxCutoff', help='Discard eigenvectors below this flux (default: None).',default=None)
+parser.add_argument('-u','--UsePCCA', help='Use Normal PCCA (default: plus).',default="plus")
 
-def run(macrostates, Assignments, TC,OutDir="./Data/"):
+def run(macrostates, Assignments, TC,OutDir="./Data/",FluxCutoff=None,UsePCCA=False):
 
     MacroAssFilename=OutDir+"/MacroAssignments.h5"
     ArgLib.CheckPath(MacroAssFilename)
 
     MacroMapFilename=OutDir+"/MacroMapping.dat"
     ArgLib.CheckPath(MacroMapFilename)
-    
-    print "Running PCCA+..."
-    MAP = MSMLib.PCCA_Simplex(TC, macrostates, doMinimization=True)
-    
+    if UsePCCA=="plus":
+        print "Running PCCA+..."
+        #MAP = NewPCCAPlus.pcca_plus(TC,macrostates,flux_cutoff=FluxCutoff,do_minimization=False)[3]
+        MAP = NewPCCAPlus.iterative_pcca_plus(TC,macrostates,Assignments,population_cutoff=FluxCutoff,do_minimization=False)[3]
+    else:
+        print "Running PCCA..."
+        MAP = MSMLib.PCCA(TC, macrostates, FluxCutoff=FluxCutoff)
+        
     # MAP the new assignments and save, make sure don't mess up negaitve one's (ie where don't have data)
     MSMLib.ApplyMappingToAssignments(Assignments,MAP)
 
@@ -59,6 +64,11 @@ Output: MacroAssignments.h5, a new assignments HDF file, for the Macro MSM.\n"""
     args = vars(parser.parse_args())
     TFilename=args["TProb"]
     AssFilename=args["Ass"]
+    FluxCutoff=args["FluxCutoff"]
+    UsePCCA=args["UsePCCA"]
+
+    if FluxCutoff!=None:
+        FluxCutoff=float(FluxCutoff)
     
     OutDir=args["OutDir"]
     nMacro=int(args["nMacro"])
@@ -68,4 +78,4 @@ Output: MacroAssignments.h5, a new assignments HDF file, for the Macro MSM.\n"""
 
     TMatrix = scipy.io.mmread(TFilename)
 
-    run(nMacro, Assignments, TMatrix, OutDir=OutDir)
+    run(nMacro, Assignments, TMatrix, OutDir=OutDir,FluxCutoff=FluxCutoff,UsePCCA=UsePCCA)
