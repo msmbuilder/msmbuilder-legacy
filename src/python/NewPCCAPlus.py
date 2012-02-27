@@ -9,10 +9,27 @@ inv=np.linalg.inv
 norm = np.linalg.norm
 tr = np.trace
 
+
+def NormalizeLeftEigenvectors(V):
+    """Normalize the left eigenvectors, such that <v[:,i]/pi, v[:,i]> = 1
+
+    Notes:
+
+    Acts inplace.
+
+    Assumes that V[:,0] is the equilibrium vector and that detailed balance holds.
+    """
+    pi=V[:,0]
+    pi/=pi.sum()
+    
+    for k in xrange(1,V.shape[-1]):
+        x=V[:,k]
+	x/=abs(np.dot(x/pi,x))**.5
+
 def trim_eigenvectors_by_flux(lam, vl, flux_cutoff):
     """Trim eigenvectors that have low equilibrium flux.
     """
-    MSMLib.NormalizeLeftEigenvectors(vl)
+    NormalizeLeftEigenvectors(vl)
 
     N = len(lam)
 
@@ -70,7 +87,7 @@ def pcca_plus(T,N, flux_cutoff=None,do_minimization=True):
     """
     n = T.shape[0]
     lam,vl = MSMLib.GetEigenvectors(T,N)
-    MSMLib.NormalizeLeftEigenvectors(vl)
+    NormalizeLeftEigenvectors(vl)
 
     if flux_cutoff != None:
         lam,vl = trim_eigenvectors_by_flux(lam,vl, flux_cutoff)
@@ -223,7 +240,7 @@ def iterative_pcca_plus(T,N,assignments0 ,population_cutoff=None,do_minimization
     """
     n = T.shape[0]
     lam,vl = MSMLib.GetEigenvectors(T,N)
-    MSMLib.NormalizeLeftEigenvectors(vl)
+    NormalizeLeftEigenvectors(vl)
 
     pi = vl[:,0]
 
