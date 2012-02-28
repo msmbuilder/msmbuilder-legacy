@@ -1,0 +1,13 @@
+README
+
+Last updated: Oct 14, 2011
+
+TODO
+
+* Add functionality to ASA.py to calculate ASA for trajectories as well as Confs -VAV
+
+* Tools to read a Conformation/Trajectory object into OpenMM and build systems.
+  Specifically, I want to be able to evaluate conformations using OpenMM energy functions.
+
+* Tools to convert OpenMM System objects to Confs 
+

@@ -1,0 +1,6 @@
+See Docs/MSMBuilder2Documentation.pdf for complete installation and usage instructions.
+
+To install MSMBuilder:
+
+python setup.py build
+python setup.py install
