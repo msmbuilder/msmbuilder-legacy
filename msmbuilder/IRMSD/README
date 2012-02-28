@@ -1,0 +1,9 @@
+Building rmsdcalc.so should now be done AUTOMATICALLY by the setup.py.  However, we include a Makefile for those who want to use our matrix multiplication library outside of Python.
+
+
+Notes for building rmsdcalc.so:
+
+
+1.  You need python with dev files (In Ubuntu: sudo apt-get install python-dev).
+
+Just edit the Makefile to have correct paths, and type make
