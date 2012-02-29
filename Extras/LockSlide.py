@@ -3,7 +3,27 @@ import numpy as np
 import scipy, scipy.linalg,scipy.optimize,scipy.stats
 import OldCorrelation
 import matplotlib
-from msmbuilder import MSMLib
+from Emsmbuilder import MSMLib
+
+def GetFormat():
+    ColorList=[
+        "#99CC00",
+        "#003300",
+        "#00CC99",
+        "#0000FF",
+        "#6600FF",
+        "#CC0000",
+        "#FF9900",
+        "#FFFF99",
+        "#000000",
+        "#CCCCCC"
+        ]
+    i=0
+    while True:
+        i = (i+1)%len(ColorList)
+        yield ColorList[i]
+
+color_generator = GetFormat()
 
 def FixEntry(M,X,Pi,K0,i,j,Val):
     """Constrain an entry in a rate matrix.
@@ -114,9 +134,9 @@ def PlotRates(KList,LagTimeList,Tau=1,CountsList=None):
         for j in range(NumStates):
             if i > j and KList[0,i,j]> 0:
                 if CountsList==None:
-                    matplotlib.pyplot.plot(Tau*LagTimeList,TauList[:,i,j],label="%d-%d"%(i,j))
+                    matplotlib.pyplot.plot(Tau*LagTimeList,TauList[:,i,j],fmt=color_generator.next(),label="%d-%d"%(i,j))
                 else:
-                    matplotlib.pyplot.errorbar(Tau*LagTimeList,TauList[:,i,j],yerr=TauList[:,i,j]/np.sqrt(CountsList[:,i]),label="%d-%d"%(i,j))
+                    matplotlib.pyplot.errorbar(Tau*LagTimeList,TauList[:,i,j],fmt=color_generator.next(),yerr=TauList[:,i,j]/np.sqrt(CountsList[:,i]),label="%d-%d"%(i,j))
 
     matplotlib.pyplot.yscale('log')
     matplotlib.pyplot.legend(loc=0)
