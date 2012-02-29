@@ -37,9 +37,6 @@ def trim_eigenvectors_by_flux(lam, vl, flux_cutoff):
     flux_list /= flux_list[0]
     KeepInd = np.where(flux_list>=flux_cutoff)[0]
 
-    KeepInd = [0,1,np.argmin(flux_list)]
-    KeepInd = np.array(KeepInd)
-    
     print("Implied timescales (UNITLESS)")
     print(-1/np.log(lam))
     print("Flux")
@@ -48,9 +45,13 @@ def trim_eigenvectors_by_flux(lam, vl, flux_cutoff):
 
     lam = lam[KeepInd]
     vl = vl[:,KeepInd]
+    flux_list = flux_list[KeepInd]
     
     print("After Flux calculation, Implied timescales (UNITLESS):")
     print(-1/np.log(lam))
+
+    print("After Flux calculation, fluxes.")
+    print(flux_list)
 
     return lam, vl
 
@@ -231,7 +232,7 @@ def index_search(vr):
 
 
 
-def iterative_pcca_plus(T,N,assignments0 ,population_cutoff=None,do_minimization=False):
+def iterative_pcca_plus(T,N,assignments0 ,population_cutoff=None,do_minimization=False,LagTime=1):
     """Perform PCCA+.
 
     Inputs:
@@ -268,7 +269,7 @@ def iterative_pcca_plus(T,N,assignments0 ,population_cutoff=None,do_minimization
         assignments=assignments0.copy()
         MSMLib.ApplyMappingToAssignments(assignments,microstate_mapping)
         
-        CMacro = MSMLib.GetCountMatrixFromAssignments(assignments)
+        CMacro = MSMLib.GetCountMatrixFromAssignments(assignments,LagTime=LagTime)
         CMacro, mapping2 = MSMLib.ErgodicTrim(CMacro)
         CMacro = MSMLib.IterativeDetailedBalance(CMacro)
         pi_macro = CMacro.sum(0)
@@ -289,7 +290,7 @@ def iterative_pcca_plus(T,N,assignments0 ,population_cutoff=None,do_minimization
     assignments=assignments0.copy()
     MSMLib.ApplyMappingToAssignments(assignments,microstate_mapping)
     
-    CMacro = MSMLib.GetCountMatrixFromAssignments(assignments)
+    CMacro = MSMLib.GetCountMatrixFromAssignments(assignments,LagTime=LagTime)
     CMacro, mapping2 = MSMLib.ErgodicTrim(CMacro)
     CMacro = MSMLib.IterativeDetailedBalance(CMacro)
     pi_macro = CMacro.sum(0)
