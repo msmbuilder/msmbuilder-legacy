@@ -1,7 +1,6 @@
 import pymc
 import numpy as np
 import scipy, scipy.linalg,scipy.optimize,scipy.stats
-import OldCorrelation
 import matplotlib
 from Emsmbuilder import MSMLib
 
