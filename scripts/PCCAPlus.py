@@ -35,8 +35,7 @@ def run(macrostates, Assignments, TC,OutDir="./Data/",FluxCutoff=None,UsePCCA=Fa
     ArgLib.CheckPath(MacroMapFilename)
     if UsePCCA=="plus":
         print "Running PCCA+..."
-        MAP = NewPCCAPlus.pcca_plus(TC,macrostates,flux_cutoff=FluxCutoff,do_minimization=False)[3]
-        #MAP = NewPCCAPlus.iterative_pcca_plus(TC,macrostates,Assignments,population_cutoff=FluxCutoff,do_minimization=False,LagTime=1)[3]
+        MAP = NewPCCAPlus.pcca_plus(TC,macrostates,flux_cutoff=FluxCutoff,do_minimization=True)[3]
     else:
         print "Running PCCA..."
         MAP = MSMLib.PCCA(TC, macrostates, FluxCutoff=FluxCutoff)
