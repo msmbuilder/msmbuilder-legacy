@@ -14,7 +14,7 @@ import scipy.io
 import numpy as np
 
 import ArgLib
-from Emsmbuilder import Serializer, MSMLib, NewPCCAPlus
+from Emsmbuilder import Serializer, MSMLib, lumping
 
 print __doc__
 
@@ -23,10 +23,10 @@ parser.add_argument('-T','--TProb',  help='Filename of input tProb file.')
 parser.add_argument('-a','--Ass',    help='Filename of input Assignments file.')
 parser.add_argument('-w','--OutDir', help='Directory to output results.')
 parser.add_argument('-M','--nMacro', help='Number of Macrostates.')
-parser.add_argument('-F','--FluxCutoff', help='Discard eigenvectors below this flux (default: None).',default=None)
+parser.add_argument('-F','--flux_cutoff', help='Discard eigenvectors below this flux (default: None).',default=None)
 parser.add_argument('-u','--UsePCCA', help='Use Normal PCCA (default: plus).',default="plus")
 
-def run(macrostates, Assignments, TC,OutDir="./Data/",FluxCutoff=None,UsePCCA=False):
+def run(macrostates, Assignments, TC,OutDir="./Data/",flux_cutoff=None,UsePCCA=False):
 
     MacroAssFilename=OutDir+"/MacroAssignments.h5"
     ArgLib.CheckPath(MacroAssFilename)
@@ -35,12 +35,12 @@ def run(macrostates, Assignments, TC,OutDir="./Data/",FluxCutoff=None,UsePCCA=Fa
     ArgLib.CheckPath(MacroMapFilename)
     if UsePCCA=="plus":
         print "Running PCCA+..."
-        MAP = NewPCCAPlus.pcca_plus(TC,macrostates,flux_cutoff=FluxCutoff,do_minimization=True)[3]
+        MAP = lumping.pcca_plus(TC,macrostates,flux_cutoff=flux_cutoff,do_minimization=True)[3]
     else:
         print "Running PCCA..."
-        MAP = MSMLib.PCCA(TC, macrostates, FluxCutoff=FluxCutoff)
+        MAP = lumping.PCCA(TC, macrostates, flux_cutoff=flux_cutoff)
         
-    # MAP the new assignments and save, make sure don't mess up negaitve one's (ie where don't have data)
+    # MAP the new assignments and save, make sure don't mess up negative one's (ie where don't have data)
     MSMLib.ApplyMappingToAssignments(Assignments,MAP)
 
     np.savetxt(MacroMapFilename,MAP,"%d")
@@ -63,11 +63,11 @@ Output: MacroAssignments.h5, a new assignments HDF file, for the Macro MSM.\n"""
     args = vars(parser.parse_args())
     TFilename=args["TProb"]
     AssFilename=args["Ass"]
-    FluxCutoff=args["FluxCutoff"]
+    flux_cutoff=args["flux_cutoff"]
     UsePCCA=args["UsePCCA"]
 
-    if FluxCutoff!=None:
-        FluxCutoff=float(FluxCutoff)
+    if flux_cutoff!=None:
+        flux_cutoff=float(flux_cutoff)
     
     OutDir=args["OutDir"]
     nMacro=int(args["nMacro"])
@@ -77,4 +77,4 @@ Output: MacroAssignments.h5, a new assignments HDF file, for the Macro MSM.\n"""
 
     TMatrix = scipy.io.mmread(TFilename)
 
-    run(nMacro, Assignments, TMatrix, OutDir=OutDir,FluxCutoff=FluxCutoff,UsePCCA=UsePCCA)
+    run(nMacro, Assignments, TMatrix, OutDir=OutDir,flux_cutoff=flux_cutoff,UsePCCA=UsePCCA)

@@ -28,6 +28,14 @@ def NormalizeLeftEigenvectors(V):
 
 def trim_eigenvectors_by_flux(lam, vl, flux_cutoff):
     """Trim eigenvectors that have low equilibrium flux.
+
+    Notes:
+
+    Assuming that the left eigenvectors are properly pi-normalized,
+    the equilibrium flux contributino of each eigenvector v is given by
+
+    \sum_i v_i^2
+    
     """
     NormalizeLeftEigenvectors(vl)
 
@@ -56,6 +64,8 @@ def trim_eigenvectors_by_flux(lam, vl, flux_cutoff):
     return lam, vl
 
 def get_maps(A):
+    """Helper function for PCCA+ optimization.  Get mappings from the square array A to the flat vector of parameters alpha.
+    """
 
     N = A.shape[0]
     flat_map = []
@@ -74,10 +84,12 @@ def get_maps(A):
     return flat_map,square_map
 
 def to_flat(A,flat_map):
+    """Convert a square matrix A to a flat array alpha."""
     return A[flat_map[:,0],flat_map[:,1]]
 
-def to_square(Alpha, square_map):
-    return Alpha[square_map]
+def to_square(alpha, square_map):
+    """Convert a flat array alpha to a square array A.""" 
+    return alpha[square_map]
 
 def pcca_plus(T,N, flux_cutoff=None,do_minimization=True):
     """Perform PCCA+.
@@ -108,7 +120,7 @@ def pcca_plus(T,N, flux_cutoff=None,do_minimization=True):
 
 
 def opt_soft(vr,N,pi,lam,do_minimization=True):
-    """
+    """Core routine for PCCA+ algorithm.
     """
     n = len(vr[0])
 
@@ -145,7 +157,7 @@ def opt_soft(vr,N,pi,lam,do_minimization=True):
     return A, chi, microstate_mapping
 
 def objective(alpha,vr,square_map,lam):
-    """
+    """Return the PCCA+ objective function.
     """
     n,N=vr.shape
 
@@ -169,7 +181,11 @@ def objective(alpha,vr,square_map,lam):
     X = dot(X, diag(1./A[0]))
     obj = -1*X.sum()
 
-    #if microstate_mapping is degenerate (not enough macrostates), we set obj to infinity
+    """
+    If microstate_mapping is degenerate (not enough macrostates), we set obj to infinity
+    This prevents PCCA+ returning a model with insufficiently many states.
+    """
+    
     if len(np.unique(mapping))!= N:
         obj = np.inf
     
@@ -179,7 +195,7 @@ def objective(alpha,vr,square_map,lam):
 
 
 def fill_A(A,vr):
-    """Make A feasible.
+    """Make A feasible.  
     """
     
     n,N=vr.shape
@@ -205,7 +221,7 @@ def fill_A(A,vr):
 
 
 def index_search(vr):
-    """Find a simplex structure in the data.
+    """Find a simplex structure in the data.  First step in PCCA+ algorithm.
     """
 
     n,N=vr.shape
@@ -233,7 +249,7 @@ def index_search(vr):
 
 
 def iterative_pcca_plus(T,N,assignments0 ,population_cutoff=None,do_minimization=False,LagTime=1):
-    """Perform PCCA+.
+    """Perform PCCA+ but reject macrostates (by discarding eigenvectors) that have small populations.
 
     Inputs:
     T -- transition matrix, csr format.
@@ -299,3 +315,56 @@ def iterative_pcca_plus(T,N,assignments0 ,population_cutoff=None,do_minimization
     print(pi_macro)
 
     return A, chi,vr, microstate_mapping
+
+def PCCA(T,num_macro,tolerance=1E-5,flux_cutoff=None):
+    """Create a lumped model using the PCCA algorithm.  
+
+    Inputs:
+    T -- A transition matrix.  
+    num_macro -- The desired number of states.
+
+    Optional Inputs:
+    tolerance=1E-5 : specifies the numerical cutoff to use when splitting states based on sign.
+
+    Returns a mapping from the Microstate indices to the Macrostate indices.
+    To construct a Macrostate MSM, you then need to map your Assignment data to the new states (e.g. Assignments=MAP[Assignments]).
+    """
+
+    n = T.shape[0]
+    lam,vl = MSMLib.GetEigenvectors(T,num_macro)
+    NormalizeLeftEigenvectors(vl)
+
+    if flux_cutoff != None:
+        lam,vl = trim_eigenvectors_by_flux(lam,vl, flux_cutoff)
+        num_macro = len(lam)
+    
+    pi = vl[:,0]
+
+    vr = vl.copy()
+    for i in range(num_macro):
+        vr[:,i] /= pi
+        vr[:,i] *= np.sign(vr[0,i])
+        vr[:,i] /= np.sqrt(dot(vr[:,i]*pi,vr[:,i]))
+
+    #Remove the stationary eigenvalue and eigenvector.
+    lam = lam[1:]
+    vr = vr[:,1:]
+
+    microstate_mapping = np.zeros(n,'int')
+
+    #Function to calculate the spread of a single eigenvector.
+    spread = lambda x: x.max()-x.min()
+    """
+    1.  Iterate over the eigenvectors, starting with the slowest.
+    2.  Calculate the spread of that eigenvector within each existing macrostate.
+    3.  Pick the macrostate with the largest eigenvector spread.
+    4.  Split the macrostate based on the sign of the eigenvector.  
+    """
+    
+    for i in range(num_macro-1):#Thus, if we want 2 states, we split once.
+        v = vr[:,i]
+        AllSpreads = np.array([spread(v[microstate_mapping==k]) for k in range(i+1)])
+        StateToBeSplit = np.argmax(AllSpreads)
+        microstate_mapping[(microstate_mapping==StateToBeSplit)&(v>=tolerance)] = i+1
+
+    return(microstate_mapping)
