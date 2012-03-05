@@ -927,7 +927,7 @@ class BooleanContact(Vectorized, AbstractDistanceMetric):
             if not len(self.cutoff) == len(contact_d):
                 raise ValueError('cutoff must be a number or match the length of contacts')
     
-        contact = np.zeros_like(contact_d, dtype='bool')
+        contact = np.zeros_like(contact_d).astype(bool)
         for i in xrange(contact_d.shape[1]):
             contact[:, i] = contact_d[:, i] < self.cutoff
         return contact
