@@ -40,6 +40,8 @@ def get_indices(trajectory_or_conformation, angles='phi/psi'):
             indices = np.vstack((indices, _get_indices_phi(trajectory_or_conformation)))
         elif angle == 'psi':
             indices = np.vstack((indices, _get_indices_psi(trajectory_or_conformation)))
+        elif angle == 'omega':
+            indices = np.vstack((indices, _get_indices_omega(trajectory_or_conformation)))
         else:
             raise ValueError("Uncregozied angle type: %s. Only phi, psi and chi are supported" % angle)
     return indices
@@ -174,5 +176,31 @@ def _get_indices_psi(conformation):
             pass
         Indices.append([a0, a1, a2, a3])
         
+    return(np.array(Indices))
+
+def _get_indices_omega(conformation):
+    '''Get the atom indices of the quartets of atoms involved in
+    each of the psi dihedral angles
+    
+    conformation can be a Conformation or a Trajectory object
+    
+    Returns a num_residues x 4 array
+    '''
+
+    NResi = conformation.GetNumberOfResidues()
+    AID = conformation.GetEnumeratedAtomID()
+    RID = conformation.GetEnumeratedResidueID()
+    AName = conformation["AtomNames"]
+    Indices = []
+    for i in range(NResi):
+        try:
+            a0 = np.where((AName == "CA") & (RID == i))[0][0]
+            a1 = np.where((AName == "C") & (RID == i))[0][0]
+            a2 = np.where((AName == "N") & (RID == (i + 1)))[0][0]
+            a3 = np.where((AName == "CA") & (RID == (i + 1)))[0][0]
+        except:
+            pass
+        Indices.append([a0, a1, a2, a3])
+
     return(np.array(Indices))
 
