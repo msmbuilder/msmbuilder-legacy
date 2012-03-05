@@ -35,7 +35,7 @@ def atom_distances(xyzlist, atom_contacts):
     
     # check type
     if xyzlist.dtype != np.float32:
-        xyzlist = xyzlist.float32(xyzlist)
+        xyzlist = np.float32(xyzlist)
     if atom_contacts.dtype != np.int32:
         atom_contacts = np.int32(atom_contacts)
     
@@ -89,7 +89,7 @@ def residue_distances(xyzlist, residue_membership, residue_contacts):
         
     # check type
     if xyzlist.dtype != np.float32:
-        xyzlist = xyzlist.float32(xyzlist)
+        xyzlist = np.float32(xyzlist)
     if residue_contacts.dtype != np.int32:
         residue_contacts = np.int32(residue_contacts)
         
