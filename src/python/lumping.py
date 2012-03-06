@@ -43,6 +43,7 @@ def trim_eigenvectors_by_flux(lam, vl, flux_cutoff):
 
     flux_list = np.array([(vl[:,i]**2).sum() for i in range(N)])
     flux_list /= flux_list.max()
+    flux_list[0] = 1.
     KeepInd = np.where(flux_list>=flux_cutoff)[0]
 
     print("Implied timescales (UNITLESS)")
