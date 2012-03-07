@@ -157,13 +157,25 @@ def opt_soft(vr,N,pi,lam,T,do_minimization=True):
 
     return A, chi, microstate_mapping
 
-def objective(alpha,vr,square_map,lam,T,pi):
+def has_constraint_violation(A,chi,epsilon = 1E-8):
+
+    eqn1 = 1 - A[0,1:].sum()
+    print(eqn1)
+
+    eqn2 = -1* dot(A[:,0],chi.transpose())[1:].min()
+    print eqn2
+
+    if abs(eqn1-eqn2) > epsilon:
+        return True
+
+
+def objective(alpha,vr,square_map,lam,T,pi,fuzzy=False):
     """Return the PCCA+ objective function.
 
     Notes:
 
     We are assuming that you want to optimize the metastability of the resulting
-    crisp lumping.  
+    crisp lumping, rather than fuzzy lumping.
     """
     n,N=vr.shape
 
@@ -175,8 +187,11 @@ def objective(alpha,vr,square_map,lam,T,pi):
     chi_fuzzy = dot(vr,A)
     mapping = np.argmax(chi_fuzzy,1)
 
-    chi = 0.0*chi_fuzzy
-    chi[np.arange(n),mapping] = 1.
+    if fuzzy==False:
+        chi = 0.0*chi_fuzzy
+        chi[np.arange(n),mapping] = 1.
+    else:
+        chi = chi_fuzzy
 
     #Calculate  metastabilty of the lumped model.  Eqn 4.20 in LAA.
     meta = 0.
@@ -194,7 +209,7 @@ def objective(alpha,vr,square_map,lam,T,pi):
     if len(np.unique(mapping))!= N:
         obj = np.inf
     
-    print(-1*obj,"Det = ",np.linalg.det(A))
+    print("f = %f"%(-1*obj))
 
     return obj
 
@@ -210,6 +225,9 @@ def fill_A(A,vr):
     A[1:,0] = -1*A[1:,1:].sum(1)
 
     # compute 1st row of A by maximum condition
+    A[0] = -1*dot(vr[:,1:],A[1:]).min(0)
+
+    """Obsolete code replaced by previous line
     for j in range(N):
 
         A[0,j] = -1*dot(vr[0,1:],A[1:,j])
@@ -218,8 +236,10 @@ def fill_A(A,vr):
             dummy = -1* dot(vr[l,1:],A[1:,j])
             if dummy > A[0,j]:
                 A[0,j] = dummy
+    """
 
-    A /= A[0].sum()#rescale A to be in the feasible set
+    #rescale A to be in the feasible set
+    A /= A[0].sum()
 
     return A
 
