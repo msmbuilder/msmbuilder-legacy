@@ -744,7 +744,7 @@ class BaseFlatClusterer(object):
             checkpoint_callback = lambda i, a: sys.stdout.write('Assigned %d, length %d\n' % (i, len(a)))
         
         lengths = [len(traj['XYZList']) for traj in trajectories]
-        assignments = -1 * np.ones(len(lengths), max(lengths), dtype='int')
+        assignments = -1 * np.ones((len(lengths), max(lengths)), dtype='int')
         new_ptrajs = [self._metric.prepare_trajectory(traj) for traj in trajectories]
         
         pgens = self.ptraj[self.generator_indices]
