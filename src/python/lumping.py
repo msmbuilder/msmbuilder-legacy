@@ -115,12 +115,12 @@ def pcca_plus(T,N, flux_cutoff=None,do_minimization=True):
         vr[:,i] *= np.sign(vr[0,i])
         vr[:,i] /= np.sqrt(dot(vr[:,i]*pi,vr[:,i]))
 
-    A, chi, microstate_mapping = opt_soft(vr,N,pi,lam,do_minimization=do_minimization)
+    A, chi, microstate_mapping = opt_soft(vr,N,pi,lam,T,do_minimization=do_minimization)
 
     return A, chi,vr, microstate_mapping
 
 
-def opt_soft(vr,N,pi,lam,do_minimization=True):
+def opt_soft(vr,N,pi,lam,T,do_minimization=True):
     """Core routine for PCCA+ algorithm.
     """
     n = len(vr[0])
@@ -136,7 +136,7 @@ def opt_soft(vr,N,pi,lam,do_minimization=True):
         flat_map, square_map = get_maps(A)
         alpha = to_flat(1.0*A,flat_map)
 
-        obj = lambda x: objective(x,vr,square_map,lam)
+        obj = lambda x: objective(x,vr,square_map,lam,T,pi)
 
         print("Initial value of objective function: %f"%obj(alpha))
     
@@ -157,8 +157,13 @@ def opt_soft(vr,N,pi,lam,do_minimization=True):
 
     return A, chi, microstate_mapping
 
-def objective(alpha,vr,square_map,lam):
+def objective(alpha,vr,square_map,lam,T,pi):
     """Return the PCCA+ objective function.
+
+    Notes:
+
+    We are assuming that you want to optimize the metastability of the resulting
+    crisp lumping.  
     """
     n,N=vr.shape
 
@@ -167,24 +172,23 @@ def objective(alpha,vr,square_map,lam):
     #make A feasible
     A = fill_A(A, vr)
 
-    chi = dot(vr,A)
-    mapping = np.argmax(chi,1)
+    chi_fuzzy = dot(vr,A)
+    mapping = np.argmax(chi_fuzzy,1)
 
-    """
-    NOTE: IMHO the scaling objective function doesn't work.
-    if which_objective == 'scaling':
-        obj = -1*chi[np.arange(n),mapping].sum()
-       #Calculated using equation 4.19 in LAA 2005 paper.
-    """
+    chi = 0.0*chi_fuzzy
+    chi[np.arange(n),mapping] = 1.
 
-    """Calculated using equation 4.22 in LAA 2005 paper."""
-    X = dot(diag(lam),A**2.)
-    X = dot(X, diag(1./A[0]))
-    obj = -1*X.sum()
+    #Calculate  metastabilty of the lumped model.  Eqn 4.20 in LAA.
+    meta = 0.
+    for i in range(N):
+        meta += dot(T.dot(chi[:,i]),pi*chi[:,i]) / dot(chi[:,i],pi)
+
+    obj = -1*meta
 
     """
     If microstate_mapping is degenerate (not enough macrostates), we set obj to infinity
     This prevents PCCA+ returning a model with insufficiently many states.
+    Should not happen in most cases.
     """
     
     if len(np.unique(mapping))!= N:
@@ -193,7 +197,6 @@ def objective(alpha,vr,square_map,lam):
     print(-1*obj,"Det = ",np.linalg.det(A))
 
     return obj
-
 
 def fill_A(A,vr):
     """Make A feasible.  
@@ -246,76 +249,6 @@ def index_search(vr):
         OrthoSys /= distlist.max()
 
     return index
-
-
-
-def iterative_pcca_plus(T,N,assignments0 ,population_cutoff=None,do_minimization=False,LagTime=1):
-    """Perform PCCA+ but reject macrostates (by discarding eigenvectors) that have small populations.
-
-    Inputs:
-    T -- transition matrix, csr format.
-    N -- desired (maximum) number of macrostates.
-    """
-    n = T.shape[0]
-    lam,vl = MSMLib.GetEigenvectors(T,N)
-    NormalizeLeftEigenvectors(vl)
-
-    pi = vl[:,0]
-
-    vr = vl.copy()
-    for i in range(N):
-        vr[:,i] /= pi
-        vr[:,i] *= np.sign(vr[0,i])
-        vr[:,i] /= np.sqrt(dot(vr[:,i]*pi,vr[:,i]))
-
-    good_indices = [0]
-    unknown_indices = range(1,N)
-    bad_indices = []
-
-    while True:
-        if len(unknown_indices)==0:
-            break
-        print("good = ",good_indices)
-        k = unknown_indices.pop(0)
-        good_indices.append(k)
-
-        vr1=vr[:,good_indices]
-        lam1=lam[good_indices]
-        N1=len(good_indices)
-        A, chi, microstate_mapping = opt_soft(vr1,N1,pi,lam1,do_minimization=do_minimization)
-        assignments=assignments0.copy()
-        MSMLib.ApplyMappingToAssignments(assignments,microstate_mapping)
-        
-        CMacro = MSMLib.GetCountMatrixFromAssignments(assignments,LagTime=LagTime)
-        CMacro, mapping2 = MSMLib.ErgodicTrim(CMacro)
-        CMacro = MSMLib.IterativeDetailedBalance(CMacro)
-        pi_macro = CMacro.sum(0)
-        pi_macro /= pi_macro.sum()
-
-        print(population_cutoff)
-        print(pi_macro)
-        
-        if pi_macro.min() < population_cutoff:
-            print("rejecting %d"%k)
-            good_indices.pop()
-            bad_indices.append(k)        
-
-    vr1=vr[:,good_indices]
-    lam1=lam[good_indices]
-    N1=len(good_indices)
-    A, chi, microstate_mapping = opt_soft(vr1,N1,pi,lam1,do_minimization=do_minimization)
-    assignments=assignments0.copy()
-    MSMLib.ApplyMappingToAssignments(assignments,microstate_mapping)
-    
-    CMacro = MSMLib.GetCountMatrixFromAssignments(assignments,LagTime=LagTime)
-    CMacro, mapping2 = MSMLib.ErgodicTrim(CMacro)
-    CMacro = MSMLib.IterativeDetailedBalance(CMacro)
-    pi_macro = CMacro.sum(0)
-    pi_macro /= pi_macro.sum()
-
-    print(pi_macro)
-
-    return A, chi,vr, microstate_mapping
 
 def PCCA(T,num_macro,tolerance=1E-5,flux_cutoff=None):
     """Create a lumped model using the PCCA algorithm.  
