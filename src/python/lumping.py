@@ -131,6 +131,7 @@ def opt_soft(vr,N,pi,lam,T,do_minimization=True):
     A = vr[index,:]
 
     A = inv(A)
+    A = fill_A(A, vr )
 
     if do_minimization==True:
         flat_map, square_map = get_maps(A)
@@ -157,15 +158,14 @@ def opt_soft(vr,N,pi,lam,T,do_minimization=True):
 
     return A, chi, microstate_mapping
 
-def has_constraint_violation(A,chi,epsilon = 1E-8):
+def has_constraint_violation(A,vr,epsilon = 1E-8):
+    """Check for constraint violations using Eqn 4.25."""
 
-    eqn1 = 1 - A[0,1:].sum()
-    print(eqn1)
-
-    eqn2 = -1* dot(A[:,0],chi.transpose())[1:].min()
-    print eqn2
-
-    if abs(eqn1-eqn2) > epsilon:
+    lhs = 1-A[0,1:].sum()
+    rhs = rhs= dot(vr[:,1:],A[1:,0])
+    rhs = -1*rhs.min()
+    
+    if abs(lhs-rhs) > epsilon:
         return True
 
 
@@ -206,7 +206,8 @@ def objective(alpha,vr,square_map,lam,T,pi,fuzzy=False):
     Should not happen in most cases.
     """
     
-    if len(np.unique(mapping))!= N:
+    if len(np.unique(mapping))!= N or has_constraint_violation(A,vr):
+        print("Warning: constraint violation detected.")
         obj = np.inf
     
     print("f = %f"%(-1*obj))
