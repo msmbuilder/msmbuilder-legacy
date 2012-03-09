@@ -16,7 +16,7 @@ def in_memory_assign(metric, generators, trajectories):
     
     lengths = [len(traj) for traj in trajectories]
     assignments = -1 * np.ones((len(lengths), max(lengths)), dtype='int')
-    pgens = metric.prepare_trajectories(generators)
+    pgens = metric.prepare_trajectory(generators)
     
     for i, traj in enumerate(trajectories):
         ptraj = metric.prepare_trajectory(traj)
