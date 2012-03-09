@@ -10,7 +10,22 @@ try:
     from Emsmbuilder import mm
 except:
     pass
-#from msmbuilder.DistanceMetric import RMSD
+
+def in_memory_assign(metric, generators, trajectories):
+    """This really should be called simple assign -- its the simplest"""
+    
+    lengths = [len(traj) for traj in trajectories]
+    assignments = -1 * np.ones((len(lengths), max(lengths)), dtype='int')
+    pgens = metric.prepare_trajectories(generators)
+    
+    for i, traj in enumerate(trajectories):
+        ptraj = metric.prepare_trajectory(traj)
+        for j in xrange(len(traj)):
+            d = metric.one_to_all(ptraj, pgens, j)
+        assignments[i,j] = np.argmin(d)
+    
+    return assignments
+    
 
 def simple_assign(metric, project, generators, assignments_path, distances_path):
     """
