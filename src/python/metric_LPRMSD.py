@@ -7,7 +7,7 @@ Modified version of RMSD distance metric that does the following:
 
 """
 
-from metrics import AbstractDistanceMetric, RMSD
+from Emsmbuilder.metrics import AbstractDistanceMetric, RMSD
 from Emsmbuilder import _lprmsd
 from Emsmbuilder.Trajectory import Trajectory
 # this is a forked version of the msmbuilder rmsdcalc
@@ -183,6 +183,9 @@ class LPRMSD(AbstractDistanceMetric):
         # A list of nonpermutable indices (aka the AtomIndices)
         # Boolean of whether to do the grid scan
 
+        if not self.atomindices and not self.permuteindices:
+            self.atomindices = np.arange( pt2['XYZList'].shape[1] )
+
         Usage = 0
         if self.atomindices != None:
             Usage += 1000
@@ -263,3 +266,4 @@ class LPRMSD(AbstractDistanceMetric):
         Returns: a vector of distances of length len(indices2)"""
 
         return self._compute_one_to_all(prepared_traj1, prepared_traj2, index1, b_xyzout=False)
+
