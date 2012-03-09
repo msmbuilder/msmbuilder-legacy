@@ -22,7 +22,7 @@ def in_memory_assign(metric, generators, trajectories):
         ptraj = metric.prepare_trajectory(traj)
         for j in xrange(len(traj)):
             d = metric.one_to_all(ptraj, pgens, j)
-        assignments[i,j] = np.argmin(d)
+            assignments[i,j] = np.argmin(d)
     
     return assignments
     
