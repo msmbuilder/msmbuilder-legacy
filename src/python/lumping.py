@@ -9,7 +9,6 @@ inv=np.linalg.inv
 norm = np.linalg.norm
 tr = np.trace
 
-
 def NormalizeLeftEigenvectors(V):
     """Normalize the left eigenvectors, such that <v[:,i]/pi, v[:,i]> = 1
 
@@ -89,10 +88,10 @@ def to_flat(A,flat_map):
     return A[flat_map[:,0],flat_map[:,1]]
 
 def to_square(alpha, square_map):
-    """Convert a flat array alpha to a square array A.""" 
+    """Convert a flat array alpha to a square array A."""
     return alpha[square_map]
 
-def pcca_plus(T,N, flux_cutoff=None,do_minimization=True):
+def pcca_plus(T,N, flux_cutoff=None,do_minimization=True,min_population=0.0):
     """Perform PCCA+.
 
     Inputs:
@@ -115,12 +114,12 @@ def pcca_plus(T,N, flux_cutoff=None,do_minimization=True):
         vr[:,i] *= np.sign(vr[0,i])
         vr[:,i] /= np.sqrt(dot(vr[:,i]*pi,vr[:,i]))
 
-    A, chi, microstate_mapping = opt_soft(vr,N,pi,lam,T,do_minimization=do_minimization)
+    A, chi, microstate_mapping = opt_soft(vr,N,pi,lam,T,do_minimization=do_minimization,min_population=min_population)
 
     return A, chi,vr, microstate_mapping
 
 
-def opt_soft(vr,N,pi,lam,T,do_minimization=True):
+def opt_soft(vr,N,pi,lam,T,do_minimization=True,use_anneal=True,min_population=0.0):
     """Core routine for PCCA+ algorithm.
     """
     n = len(vr[0])
@@ -137,13 +136,16 @@ def opt_soft(vr,N,pi,lam,T,do_minimization=True):
         flat_map, square_map = get_maps(A)
         alpha = to_flat(1.0*A,flat_map)
 
-        obj = lambda x: objective(x,vr,square_map,lam,T,pi)
+        obj = lambda x: -1*objective(x,vr,square_map,lam,T,pi,objective_function="crispness",min_population=min_population)
 
         print("Initial value of objective function: %f"%obj(alpha))
-    
+
+        alpha = scipy.optimize.anneal(obj,alpha,lower=0.0,maxiter=1,schedule="boltzmann",dwell=1000,feps=1E-3,boltzmann=2.0,T0=1.0)[0]
+
         alpha = scipy.optimize.fmin(obj,alpha,full_output=True,xtol=1E-4,ftol=1E-4,maxfun=5000,maxiter=100000)[0]
 
-        print("Final value of objective function: %f"%obj(alpha))
+        print("*********")
+        print("Final values.\n crispness = %f"%(-1*obj(alpha)))
 
         A = to_square(alpha,square_map)
 
@@ -168,14 +170,17 @@ def has_constraint_violation(A,vr,epsilon = 1E-8):
     if abs(lhs-rhs) > epsilon:
         return True
 
-
-def objective(alpha,vr,square_map,lam,T,pi,fuzzy=False):
+def objective(alpha,vr,square_map,lam,T,pi,barrier_penalty=20000.,objective_function="crispness",min_population=0.):
     """Return the PCCA+ objective function.
 
-    Notes:
+    Notes: three choices of objective_function:
 
-    We are assuming that you want to optimize the metastability of the resulting
-    crisp lumping, rather than fuzzy lumping.
+    crispness: try to make crisp state decompostion (recommended)
+
+    metastability: try to make metastable fuzzy state decomposition
+
+    crisp_metastability: try to make the resulting crisp msm metastable
+
     """
     n,N=vr.shape
 
@@ -187,30 +192,34 @@ def objective(alpha,vr,square_map,lam,T,pi,fuzzy=False):
     chi_fuzzy = dot(vr,A)
     mapping = np.argmax(chi_fuzzy,1)
 
-    if fuzzy==False:
+    if objective_function=="crisp_metastability":
         chi = 0.0*chi_fuzzy
         chi[np.arange(n),mapping] = 1.
-    else:
-        chi = chi_fuzzy
 
-    #Calculate  metastabilty of the lumped model.  Eqn 4.20 in LAA.
-    meta = 0.
-    for i in range(N):
-        meta += dot(T.dot(chi[:,i]),pi*chi[:,i]) / dot(chi[:,i],pi)
+    if objective_function in ["crisp_metastability","metastability"]:
+        #Calculate  metastabilty of the lumped model.  Eqn 4.20 in LAA.
+        meta = 0.
+        for i in range(N):
+            meta += dot(T.dot(chi[:,i]),pi*chi[:,i]) / dot(chi[:,i],pi)
+        
+        obj = meta
 
-    obj = -1*meta
+    if objective_function == "crispness":
+        #Calculate the crispness defined by Roeblitz Doctoral thesis.
+        obj = tr(dot(diag(1./A[0]),dot(A.transpose(),A)))
 
     """
-    If microstate_mapping is degenerate (not enough macrostates), we set obj to infinity
+    If microstate_mapping is degenerate (not enough macrostates), we increase obj
     This prevents PCCA+ returning a model with insufficiently many states.
-    Should not happen in most cases.
+    We also do this if the macrostate populations are too low.
     """
-    
-    if len(np.unique(mapping))!= N or has_constraint_violation(A,vr):
+
+    pi_macro = np.array([pi[mapping==i].sum() for i in range(N)])
+    if len(np.unique(mapping))!= N or has_constraint_violation(A,vr) or pi_macro.min() < min_population:
         print("Warning: constraint violation detected.")
-        obj = np.inf
-    
-    print("f = %f"%(-1*obj))
+        obj -= barrier_penalty
+
+    print("f = %f"%(obj))
 
     return obj
 
