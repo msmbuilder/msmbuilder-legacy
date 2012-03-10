@@ -24,9 +24,10 @@ parser.add_argument('-a','--Ass',    help='Filename of input Assignments file.')
 parser.add_argument('-w','--OutDir', help='Directory to output results.')
 parser.add_argument('-M','--nMacro', help='Number of Macrostates.')
 parser.add_argument('-F','--flux_cutoff', help='Discard eigenvectors below this flux (default: None).',default=None)
+parser.add_argument('-P','--min_population', help='Require PCCA+ states to have minimum population (default: 0.0).',default=0.0)
 parser.add_argument('-u','--UsePCCA', help='Use Normal PCCA (default: plus).',default="plus")
 
-def run(macrostates, Assignments, TC,OutDir="./Data/",flux_cutoff=None,UsePCCA=False):
+def run(macrostates, Assignments, TC,OutDir="./Data/",flux_cutoff=None,UsePCCA=False,min_population=0.0):
 
     MacroAssFilename=OutDir+"/MacroAssignments.h5"
     ArgLib.CheckPath(MacroAssFilename)
@@ -35,15 +36,18 @@ def run(macrostates, Assignments, TC,OutDir="./Data/",flux_cutoff=None,UsePCCA=F
     ArgLib.CheckPath(MacroMapFilename)
     if UsePCCA=="plus":
         print "Running PCCA+..."
-        MAP = lumping.pcca_plus(TC,macrostates,flux_cutoff=flux_cutoff,do_minimization=True)[3]
+        A, chi,vr, MAP = lumping.pcca_plus(TC,macrostates,flux_cutoff=flux_cutoff,do_minimization=True,min_population=min_population)
+        np.savetxt(OutDir+"/Chi.dat",chi)
+        np.savetxt(OutDir+"/A.dat",A)
     else:
         print "Running PCCA..."
         MAP = lumping.PCCA(TC, macrostates, flux_cutoff=flux_cutoff)
         
     # MAP the new assignments and save, make sure don't mess up negative one's (ie where don't have data)
-    MSMLib.ApplyMappingToAssignments(Assignments,MAP)
 
     np.savetxt(MacroMapFilename,MAP,"%d")
+
+    MSMLib.ApplyMappingToAssignments(Assignments,MAP)
     Serializer.SaveData(MacroAssFilename,Assignments)
     
     print "Wrote: %s, %s"%(MacroAssFilename,MacroMapFilename)
@@ -61,20 +65,21 @@ more robust but more computationally intesive.
 Output: MacroAssignments.h5, a new assignments HDF file, for the Macro MSM.\n"""
 
     args = vars(parser.parse_args())
-    TFilename=args["TProb"]
-    AssFilename=args["Ass"]
-    flux_cutoff=args["flux_cutoff"]
-    UsePCCA=args["UsePCCA"]
+    TFilename = args["TProb"]
+    AssFilename = args["Ass"]
+    flux_cutoff = args["flux_cutoff"]
+    UsePCCA = args["UsePCCA"]
+    min_population = float(args["min_population"])
 
-    if flux_cutoff!=None:
-        flux_cutoff=float(flux_cutoff)
+    if flux_cutoff != None:
+        flux_cutoff = float(flux_cutoff)
     
-    OutDir=args["OutDir"]
-    nMacro=int(args["nMacro"])
+    OutDir = args["OutDir"]
+    nMacro = int(args["nMacro"])
     print sys.argv
 
-    Assignments=Serializer.LoadData(AssFilename)
+    Assignments = Serializer.LoadData(AssFilename)
 
     TMatrix = scipy.io.mmread(TFilename)
 
-    run(nMacro, Assignments, TMatrix, OutDir=OutDir,flux_cutoff=flux_cutoff,UsePCCA=UsePCCA)
+    run(nMacro, Assignments, TMatrix, OutDir=OutDir,flux_cutoff=flux_cutoff,UsePCCA=UsePCCA,min_population=min_population)
