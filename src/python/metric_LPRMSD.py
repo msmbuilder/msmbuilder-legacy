@@ -183,7 +183,7 @@ class LPRMSD(AbstractDistanceMetric):
         # A list of nonpermutable indices (aka the AtomIndices)
         # Boolean of whether to do the grid scan
 
-        if not self.atomindices and not self.permuteindices:
+        if self.atomindices == None and self.permuteindices == None:
             self.atomindices = np.arange( pt2['XYZList'].shape[1] )
 
         Usage = 0
