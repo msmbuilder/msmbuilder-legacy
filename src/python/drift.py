@@ -74,6 +74,24 @@ def square_drift(metric, trajectories, tau):
     return output
 
 
+def get_epsilon_neighborhoods(metric,ptraj,tau):
+
+    output = []
+    N = len(ptraj)
+    for i in xrange(N):
+        print i,
+        if i < tau:
+            print "1"
+            output.append( metric.one_to_many(ptraj,ptraj,i,[i+tau])[0] )
+        elif i > N-tau:
+            print "2"
+            output.append( metric.one_to_many(ptraj,ptraj,i,[i-tau])[0] )
+        else:
+            print "3"
+            output.append( metric.one_to_many(ptraj,ptraj,i,[i-tau,i+tau]).max() )
+    
+    return output
+
 def hitting_time(metric, trajectory, epsilon):
     """
     For each frame in trajectories, determine the time it takes to go more
@@ -138,3 +156,4 @@ def __typecheck_tau(tau):
         raise TypeError('Taus must be all integers.')
     
     return tau
+
