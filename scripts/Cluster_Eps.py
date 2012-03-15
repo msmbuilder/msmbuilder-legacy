@@ -48,7 +48,7 @@ def main():
     gens_path = os.path.join(options.outdir, "Gens.lh5")
     stride = int(options.stride)
     k = int(options.clusters)
-    rmsd_cutoff = float(options.rmsdcutoff)
+    time_cutoff = float(options.timecutoff)
     local_iterations = int(options.localkmediods)
     global_iteratiobs = int(options.globalkmediods)
 
@@ -63,7 +63,7 @@ def main():
         
     # cluster
     rmsd_metric = RMSD(atom_inds)
-    clusterer = KCenters(rmsd_metric, traj_list, k, time_cutoff=int(rmsd_cutoff/stride),use_drift=True )
+    clusterer = KCenters(rmsd_metric, traj_list, k, time_cutoff=int(time_cutoff/stride),use_drift=True )
     gens = clusterer.get_generators_as_traj()
 
     # save to disk
