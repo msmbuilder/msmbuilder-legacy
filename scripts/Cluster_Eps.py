@@ -38,7 +38,7 @@ def main():
     """
 
     arglist=["projectfn", "clusters", "stride", "atomindices",
-             "globalkmediods", "localkmediods", "rmsdcutoff","outdir"]
+             "globalkmediods", "localkmediods", "timecutoff","outdir"]
     options = ArgLib.parse(arglist)
     print sys.argv
 
