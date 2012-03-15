@@ -79,15 +79,11 @@ def get_epsilon_neighborhoods(metric,ptraj,tau):
     output = []
     N = len(ptraj)
     for i in xrange(N):
-        print i,
         if i < tau:
-            print "1"
             output.append( metric.one_to_many(ptraj,ptraj,i,[i+tau])[0] )
-        elif i > N-tau:
-            print "2"
+        elif i >= N-tau:
             output.append( metric.one_to_many(ptraj,ptraj,i,[i-tau])[0] )
         else:
-            print "3"
             output.append( metric.one_to_many(ptraj,ptraj,i,[i-tau,i+tau]).max() )
     
     return output
