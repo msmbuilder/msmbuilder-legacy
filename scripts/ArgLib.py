@@ -119,6 +119,8 @@ A={
 
 'tmat': ('-T', '--matrix', 'Transition matrix to build a model from, in scipy sparse format (.mtx). Default: Data/tProb.mtx', 'Data/tProb.mtx'),
 
+'timecutoff': ('--t-cut','--time-cutoff','Time cutoff to use in determining the epsilon neighborhood. This is in units of frames.', None),
+
 'stride': ('-u', '--subsample', 'Integer number to subsample by. Every "u-th" frame will be taken from the data and used. Default: 1', '1'),
 
 'starting': ('-U', '--starting', 'Vector of states in the starting/reactants/unfolded ensemble. Default: U_states.dat', 'U_states.dat'),
