@@ -87,6 +87,7 @@ import warnings
 from collections import defaultdict, namedtuple
 from numbers import Number
 from Emsmbuilder import _distance_wrap
+from Emsmbuilder.Serializer import Serializer
 #from Emsmbuilder import drift
 from Emsmbuilder.geometry import dihedral as _dihedralcalc
 from Emsmbuilder.geometry import contact as _contactcalc
@@ -1290,6 +1291,33 @@ class DriftMetric(AbstractDistanceMetric):
     NOT MATHEMATICALLY A METRIC BECAUSE IT DOES NOT NECESSARILY SATISFY THE TRIANGLE INEQUALITY. It
     is however, a similarity criterian, and this problem will likely not cause any issues in the 
     clustering process."""
+
+    class DriftTrajectory(Serializer):
+        def __init__( self, trajectory, DriftMetricInst, lengths=None):
+
+            def chop_object( obj, lengths ):
+                if len(obj) != np.sum(lengths): raise Exception('Lengths do not correspond to this data.')
+                sum = 0
+                out = []
+                for i in xrange( len(lengths) ):
+                    out.append( obj[ sum : sum + lengths[i] ] )
+                return out
+
+            self['base_ptraj'] = DriftMetricInst.base_metric.prepare_trajectory(trajectory)
+            if lengths==None:
+                self['epsilons'] = get_epsilon_neighborhoods( DriftMetricInst.base_metric, self['base_ptraj'], DriftMetricInst.tau )
+            else:
+                if isinstance( trajectory, np.ndarray ):
+                    self['epsilons'] = np.concatenate([ get_epsilon_neighborhoods( DriftMetricInst.base_metric, segment, DriftMetricInst.tau )
+                                                     for segment in chop_object( self['base_ptraj'], lengths ) ])
+                else:
+                    self['epsilons'] = np.concatenate([ get_epsilon_neighborhoods( DriftMetricInst.base_metric,
+                                                     self.base_metric.prepare_trajectory( segment ), DriftMetricInst.tau ) for segment
+                                                     in chop_object( trajectory, lengths ) ])
+
+        def __len__( self ):
+            return len( self['base_ptraj'] )
+
     def __init__(self, base_metric, tau):
         """Initialize the metric with its base metric and tau to use to calculate the drifts."""
         self.tau = int(tau)
@@ -1297,28 +1325,7 @@ class DriftMetric(AbstractDistanceMetric):
 
     def prepare_trajectory(self, trajectory, lengths=None):
 
-        def chop_object( obj, lengths ):
-            if len(obj) != np.sum(lengths): raise Exception('Lengths do not correspond to this data.')
-            sum = 0
-            out = []
-            for i in xrange( len(lengths) ):
-                out.append( obj[ sum : sum + lengths[i] ] )
-            return out
-
-        ptraj = {}
-        ptraj['base_ptraj'] = self.base_metric.prepare_trajectory(trajectory)
-        if lengths==None:
-            ptraj['epsilons'] = get_epsilon_neighborhoods( self.base_metric, ptraj['base_ptraj'], self.tau )
-        else:
-            if isinstance( trajectory, np.ndarray ):
-                ptraj['epsilons'] = np.concatenate([ get_epsilon_neighborhoods( self.base_metric, segment, self.tau ) 
-                                                     for segment in chop_object( ptraj['base_ptraj'], lengths ) ])
-            else:
-                ptraj['epsilons'] = np.concatenate([ get_epsilon_neighborhoods( self.base_metric, 
-                                                     self.base_metric.prepare_trajectory( segment ), self.tau ) for segment
-                                                     in chop_object( trajectory, lengths ) ])
-
-        return ptraj
+        return self.DriftTrajectory( trajectory, self, lengths=lengths )
 
     def one_to_many(self, prepared_traj1, prepared_traj2, index1, indices2):
         """Compute the distance from prepared_traj1[index1] to each of the indices2
