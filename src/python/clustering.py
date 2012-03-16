@@ -242,7 +242,7 @@ def _kcenters_eps(metric, trajList, k=None, time_cutoff=None, seed=0, verbose=Tr
     eps_list = np.concatenate( [ drift.get_epsilon_neighborhoods( metric, p, tau=time_cutoff ) for p in ptrajList ] )
     if np.any( eps_list == 0 ):
         print "There is a conformation with an epsilon == 0... Saving epsilons to epsilons.dat and quitting"
-        np.savetxt(eps_list)
+        np.savetxt('epsilons.dat',eps_list)
         sys.exit()
     del ptrajList
     ptraj = metric.prepare_trajectory( concatenate_trajectories( trajList ) )
