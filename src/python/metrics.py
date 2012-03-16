@@ -87,6 +87,7 @@ import warnings
 from collections import defaultdict, namedtuple
 from numbers import Number
 from Emsmbuilder import _distance_wrap
+#from Emsmbuilder import drift
 from Emsmbuilder.geometry import dihedral as _dihedralcalc
 from Emsmbuilder.geometry import contact as _contactcalc
 from Emsmbuilder.geometry import rg as _rgcalc
@@ -173,6 +174,19 @@ else:
     cdist = scipy.spatial.distance.cdist
 #print 'in metrics library, USE_FAST_CDIST is set to', USE_FAST_CDIST
 
+def get_epsilon_neighborhoods(metric,ptraj,tau):
+
+    output = []
+    N = len(ptraj)
+    for i in xrange(N):
+        if i < tau:
+            output.append( metric.one_to_many(ptraj,ptraj,i,[i+tau])[0] )
+        elif i >= N-tau:
+            output.append( metric.one_to_many(ptraj,ptraj,i,[i-tau])[0] )
+        else:
+            output.append( metric.one_to_many(ptraj,ptraj,i,[i-tau,i+tau]).max() )
+
+    return np.array( output )
 
 class AbstractDistanceMetric(object):
     """Abstract base class for distance metrics. All distance metrics should
@@ -1270,3 +1284,77 @@ class HybridPNorm(Hybrid):
             distances = d if distances is None else distances + (self.weights[i]*d)
             print 'got %s' % i
         return distances**(1.0 / self.p)
+
+class DriftMetric(AbstractDistanceMetric):
+    """This class is used for normalizing another metric by its drift at some time. NOTE: THIS IS
+    NOT MATHEMATICALLY A METRIC BECAUSE IT DOES NOT NECESSARILY SATISFY THE TRIANGLE INEQUALITY. It
+    is however, a similarity criterian, and this problem will likely not cause any issues in the 
+    clustering process."""
+    def __init__(self, base_metric, tau):
+        """Initialize the metric with its base metric and tau to use to calculate the drifts."""
+        self.tau = int(tau)
+        self.base_metric = base_metric
+
+    def prepare_trajectory(self, trajectory, lengths=None):
+
+        def chop_object( obj, lengths ):
+            if len(obj) != np.sum(lengths): raise Exception('Lengths do not correspond to this data.')
+            sum = 0
+            out = []
+            for i in xrange( len(lengths) ):
+                out.append( obj[ sum : sum + lengths[i] ] )
+            return out
+
+        ptraj = {}
+        ptraj['base_ptraj'] = self.base_metric.prepare_trajectory(trajectory)
+        if lengths==None:
+            ptraj['epsilons'] = get_epsilon_neighborhoods( self.base_metric, ptraj['base_ptraj'], self.tau )
+        else:
+            if isinstance( trajectory, np.ndarray ):
+                ptraj['epsilons'] = np.concatenate([ get_epsilon_neighborhoods( self.base_metric, segment, self.tau ) 
+                                                     for segment in chop_object( ptraj['base_ptraj'], lengths ) ])
+            else:
+                ptraj['epsilons'] = np.concatenate([ get_epsilon_neighborhoods( self.base_metric, 
+                                                     self.base_metric.prepare_trajectory( segment ), self.tau ) for segment
+                                                     in chop_object( trajectory, lengths ) ])
+
+        return ptraj
+
+    def one_to_many(self, prepared_traj1, prepared_traj2, index1, indices2):
+        """Compute the distance from prepared_traj1[index1] to each of the indices2
+        frames of prepared_traj2"""
+        
+        distances = self.base_metric.one_to_many( prepared_traj1['base_ptraj'], prepared_traj2['base_ptraj'], index1, indices2 )
+ 
+        eps1 = prepared_traj1['epsilons'][ index1 ]
+        eps2 = prepared_traj2['epsilons'][ indices2 ]
+        if eps2.shape == ():
+            eps2 = [ eps2 ]
+        min_eps = np.array([ min(eps1,eps2[i]) for i in xrange( len(eps2) ) ])
+
+        return distances / min_eps
+
+    def one_to_all(self, prepared_traj1, prepared_traj2, index1):
+        """Compute the distance from prepared_traj1[index1] to each of the frames in
+        prepared_traj2"""
+        
+        distances = self.base_metric.one_to_all( prepared_traj1['base_ptraj'], prepared_traj2['base_ptraj'], index1 )
+
+        eps1 = prepared_traj1['epsilons'][ index1 ]
+        eps2 = prepared_traj2['epsilons']
+
+        min_eps = np.array([ min(eps1,eps2[i]) for i in xrange( len(eps2) ) ])
+        
+        return distances / min_eps
+
+    def all_pairwise(self, prepared_traj):
+        """Calculate condensed distance metric of all pairwise distances"""
+        
+        traj_length = len(prepared_traj['base_ptraj'])
+        output = -1 * np.ones(traj_length * (traj_length - 1) / 2)
+        p = 0
+        for i in range(traj_length):
+            cmp_indices = np.arange(i + 1, traj_length)
+            output[p: p + len(cmp_indices)] = self.one_to_many(prepared_traj, prepared_traj, i, cmp_indices)
+            p += len(cmp_indices)
+        return output
