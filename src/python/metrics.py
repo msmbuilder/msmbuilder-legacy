@@ -80,6 +80,7 @@ from Emsmbuilder import _rmsdcalc # this is a forked version of the msmbuilder r
 # with a new method that does the one_to_many efficiently inside the c code
 # since python array slicing can be really slow. Big speedup using this
 # for the drift calculation
+import copy
 import numpy as np
 import itertools
 import scipy.spatial.distance
@@ -1289,10 +1290,11 @@ class HybridPNorm(Hybrid):
 class DriftMetric(AbstractDistanceMetric):
     """This class is used for normalizing another metric by its drift at some time. NOTE: THIS IS
     NOT MATHEMATICALLY A METRIC BECAUSE IT DOES NOT NECESSARILY SATISFY THE TRIANGLE INEQUALITY. It
-    is however, a similarity criterian, and this problem will likely not cause any issues in the 
+    is however, a similarity criterion, and this problem will likely not cause any issues in the 
     clustering process."""
 
     class DriftTrajectory(Serializer):
+
         def __init__( self, trajectory, DriftMetricInst, lengths=None):
 
             def chop_object( obj, lengths ):
@@ -1302,18 +1304,21 @@ class DriftMetric(AbstractDistanceMetric):
                 for i in xrange( len(lengths) ):
                     out.append( obj[ sum : sum + lengths[i] ] )
                 return out
-
-            self['base_ptraj'] = DriftMetricInst.base_metric.prepare_trajectory(trajectory)
+            tempDict = {}
+            tempDict['base_ptraj'] = copy.copy( DriftMetricInst.base_metric.prepare_trajectory(trajectory) )
             if lengths==None:
-                self['epsilons'] = get_epsilon_neighborhoods( DriftMetricInst.base_metric, self['base_ptraj'], DriftMetricInst.tau )
+                tempDict['epsilons'] = copy.copy( get_epsilon_neighborhoods( DriftMetricInst.base_metric, tempDict['base_ptraj'], DriftMetricInst.tau ) )
             else:
                 if isinstance( trajectory, np.ndarray ):
-                    self['epsilons'] = np.concatenate([ get_epsilon_neighborhoods( DriftMetricInst.base_metric, segment, DriftMetricInst.tau )
-                                                     for segment in chop_object( self['base_ptraj'], lengths ) ])
+                    tempDict['epsilons'] = np.concatenate([ get_epsilon_neighborhoods( DriftMetricInst.base_metric, segment, DriftMetricInst.tau )
+                                                     for segment in chop_object( tempDict['base_ptraj'], lengths ) ])
                 else:
-                    self['epsilons'] = np.concatenate([ get_epsilon_neighborhoods( DriftMetricInst.base_metric,
+                    tempDict['epsilons'] = np.concatenate([ get_epsilon_neighborhoods( DriftMetricInst.base_metric,
                                                      self.base_metric.prepare_trajectory( segment ), DriftMetricInst.tau ) for segment
                                                      in chop_object( trajectory, lengths ) ])
+            super( DriftMetric.DriftTrajectory, self).__init__(tempDict)
+            #self = copy.copy( tempDict )
+            print "init",self
 
         def __len__( self ):
             return len( self['base_ptraj'] )
@@ -1322,11 +1327,12 @@ class DriftMetric(AbstractDistanceMetric):
             if isinstance(key, int) or isinstance(key, slice) or isinstance(key,np.ndarray):
                 if isinstance(key, int):
                     key = [key]
-                newtraj = copy.copy(self)
+                newTraj = copy.copy(self)
                 newTraj['base_ptraj'] = newTraj['base_ptraj'][key]
                 newTraj['epsilons'] = newTraj['epsilons'][key]
-                return newtraj
-
+                return newTraj
+            else:
+                return super(DriftMetric.DriftTrajectory,self).__getitem__(key)
 
     def __init__(self, base_metric, tau):
         """Initialize the metric with its base metric and tau to use to calculate the drifts."""
@@ -1335,7 +1341,10 @@ class DriftMetric(AbstractDistanceMetric):
 
     def prepare_trajectory(self, trajectory, lengths=None):
 
-        return self.DriftTrajectory( trajectory, self, lengths=lengths )
+        p = self.DriftTrajectory( trajectory, self, lengths=lengths )
+        print self
+        print "prep", p
+        return p
 
     def one_to_many(self, prepared_traj1, prepared_traj2, index1, indices2):
         """Compute the distance from prepared_traj1[index1] to each of the indices2
