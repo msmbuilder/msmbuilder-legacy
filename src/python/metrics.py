@@ -1318,6 +1318,16 @@ class DriftMetric(AbstractDistanceMetric):
         def __len__( self ):
             return len( self['base_ptraj'] )
 
+        def __getitem__(self, key):
+            if isinstance(key, int) or isinstance(key, slice) or isinstance(key,np.ndarray):
+                if isinstance(key, int):
+                    key = [key]
+                newtraj = copy.copy(self)
+                newTraj['base_ptraj'] = newTraj['base_ptraj'][key]
+                newTraj['epsilons'] = newTraj['epsilons'][key]
+                return newtraj
+
+
     def __init__(self, base_metric, tau):
         """Initialize the metric with its base metric and tau to use to calculate the drifts."""
         self.tau = int(tau)
