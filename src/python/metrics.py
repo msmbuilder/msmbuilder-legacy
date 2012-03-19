@@ -1318,7 +1318,6 @@ class DriftMetric(AbstractDistanceMetric):
                                                      in chop_object( trajectory, lengths ) ])
             super( DriftMetric.DriftTrajectory, self).__init__(tempDict)
             #self = copy.copy( tempDict )
-            print "init",self
 
         def __len__( self ):
             return len( self['base_ptraj'] )
@@ -1341,10 +1340,7 @@ class DriftMetric(AbstractDistanceMetric):
 
     def prepare_trajectory(self, trajectory, lengths=None):
 
-        p = self.DriftTrajectory( trajectory, self, lengths=lengths )
-        print self
-        print "prep", p
-        return p
+        return self.DriftTrajectory( trajectory, self, lengths=lengths )
 
     def one_to_many(self, prepared_traj1, prepared_traj2, index1, indices2):
         """Compute the distance from prepared_traj1[index1] to each of the indices2
