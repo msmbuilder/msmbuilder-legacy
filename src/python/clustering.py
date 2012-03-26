@@ -200,81 +200,6 @@ def _assign(metric, ptraj, generator_indices):
         assignments[closer] = m
     return assignments, distances
 
-def _kcenters_eps(metric, trajList, k=None, time_cutoff=None, seed=0, verbose=True):
-    """Run kcenters clustering algorithm.
-    
-    Terminates either when *k* clusters have been identified, or when every data
-    is clustered better than *distance_cutoff*.
-    
-    Arguments:
-    metric - An instance of AbstractDistanceMetric capable of handling the prepared
-             trajectory ptraj
-    ptraj - A prepared trajectory, returned by the action of the preceding metric
-            on a msmbuilder trajectory
-    k - number of desired clusters, or None. (int or None)
-    distance_cutoff - Stop identifying new clusters once the distance of every data
-                      to its cluster center falls below this value. (float or None)
-    seed - index of the frame to use as the first cluster center. (int)
-   
-    Returns:
-    center indices, assignments and distances
-    """
-
-    if not isinstance( trajList, list ):
-        raise ValueError("I need a list of trajectories. This function will concatenate them.")
-    if k is None and time_cutoff is None:
-        raise ValueError("I need some cutoff criterion! both k and distance_cutoff can't both be none")
-    if k is None and time_cutoff <= 0:
-        raise ValueError("With k=None you need to supply a legit distance_cutoff")
-    if time_cutoff is None:
-        # set it below anything that can ever be reached
-        time_cutoff = -1
-    if k is None:
-        # set k to be the highest 32bit integer
-        k = sys.maxint
-
-    if verbose:
-        printer = sys.stdout
-    else:
-        printer = open('/dev/null', 'w')
-    ptrajList = [ metric.prepare_trajectory( t ) for t in trajList ] 
-    print >> printer, 'Calculating the epsilon neighborhoods for each point.'
-    eps_list = np.concatenate( [ drift.get_epsilon_neighborhoods( metric, p, tau=time_cutoff ) for p in ptrajList ] )
-    if np.any( eps_list == 0 ):
-        print "There is a conformation with an epsilon == 0... Saving epsilons to epsilons.dat and quitting"
-        np.savetxt('epsilons.dat',eps_list)
-        sys.exit()
-    del ptrajList
-    ptraj = metric.prepare_trajectory( concatenate_trajectories( trajList ) )
-
-    distance_list = np.inf * np.ones(len(ptraj), dtype=np.float32)
-    assignments = -1 * np.ones(len(ptraj), dtype=np.int32)
-    comp_list = np.inf * np.ones(len(ptraj), dtype=np.float32)
-    generator_indices = []
-    for i in xrange(k):
-        print >> printer, 'Finding generator %d' % i, 'Maximum relative distance: %f' % np.max(comp_list)
-        new_ind = seed if i == 0 else np.argmax(comp_list)
-        if np.all( comp_list <= 1 ):
-            break
-        new_distance_list = metric.one_to_all(ptraj, ptraj, new_ind)
-        new_gen_eps = eps_list[ new_ind ] 
-        new_min_eps_list = np.array([ np.min( (new_gen_eps, r_eps) ) for r_eps in eps_list ])
-        new_comp_list = new_distance_list / new_min_eps_list
-
-        updated_indices = np.where(new_comp_list < comp_list)[0]
-        distance_list[updated_indices] = new_distance_list[updated_indices]
-        assignments[updated_indices] = new_ind
-
-        comp_list[updated_indices] = new_comp_list[updated_indices]
-        
-       # gen_eps_list = eps_list[assignments]
-       # min_eps_list = np.array( [ min(g_eps,r_eps) for (g_eps,r_eps) in zip(gen_eps_list,eps_list) ] )
-       # comp_list = new_distance_list / min_eps_list
-        generator_indices.append(new_ind)
-        print new_ind
-    return np.array(generator_indices), assignments, distance_list
-
-
 def _kcenters(metric, ptraj, k=None, distance_cutoff=None, seed=0, verbose=True):
     """Run kcenters clustering algorithm.
     
@@ -856,7 +781,7 @@ class BaseFlatClusterer(object):
 
 
 class KCenters(BaseFlatClusterer):
-    def __init__(self, metric, trajectories, k=None, distance_cutoff=None, seed=0, time_cutoff=None, use_drift=False):
+    def __init__(self, metric, trajectories, k=None, distance_cutoff=None, seed=0):
         """'Run kcenters clustering algorithm.
         
         Terminates either when *k* clusters have been identified, or when every data
@@ -878,10 +803,8 @@ class KCenters(BaseFlatClusterer):
         #print self.ptraj.dtype
         #print type(metric)
         #sys.exit(1)
-        if use_drift:
-            gi, asgn, dl = _kcenters_eps( metric, trajectories, k, time_cutoff=time_cutoff, seed=seed )
-        else:
-            gi, asgn, dl = _kcenters(metric, self.ptraj, k, distance_cutoff, seed)
+        gi, asgn, dl = _kcenters(metric, self.ptraj, k, distance_cutoff, seed)
+
         self.generator_indices = gi
         self.assignments = asgn
         self.distances = dl

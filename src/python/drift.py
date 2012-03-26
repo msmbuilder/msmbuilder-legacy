@@ -3,7 +3,7 @@ Compute the drift in trajectories under different distance metrics
 using new distance_metrics.py code
 """
 import numpy as np
-from Emsmbuilder.metrics import AbstractDistanceMetric
+#from Emsmbuilder.metrics import AbstractDistanceMetric
 
 
 def _drift_single_trajectory(metric, trajectory, tau):
@@ -31,8 +31,8 @@ def _drift_single_trajectory(metric, trajectory, tau):
     """
     # make sure tau is a 1D numpy array of positive ints, or make it into one
     tau = __typecheck_tau(tau)
-    if not isinstance(metric, AbstractDistanceMetric):
-        raise TypeError('metric must be an instance of AbstractDistanceMetric. you supplied a %s' % metric)
+ #   if not isinstance(metric, AbstractDistanceMetric):
+ #       raise TypeError('metric must be an instance of AbstractDistanceMetric. you supplied a %s' % metric)
     
     traj_length = trajectory['XYZList'].shape[0]
     ptraj = metric.prepare_trajectory(trajectory)
