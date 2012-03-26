@@ -59,7 +59,7 @@ A={
 
 'mincounts': ('-C', '--mincounts', 'Dictate that each state has a minimum number of counts. If there are states with fewer counts, merge them into other states in a greedy kinetic manner until the minimum number of counts is reached. Default: 0.', '0'),
 
-'clustcutoff': ('--c-cut','--cluster-cutoff','Generic cutoff to pass to a clustering script. NOTE: This is usually a number in (0,1] for some metrics. Be sure you know what the metric requires. For example, Cluster_PCA.py multiplies this number by the total variance in the dataset to pass to the K-Centers clustering',None)
+'clustcutoff': ('--c-cut','--cluster-cutoff','Generic cutoff to pass to a clustering script. NOTE: This is usually a number in (0,1] for some metrics. Be sure you know what the metric requires. For example, Cluster_PCA.py multiplies this number by the total variance in the dataset to pass to the K-Centers clustering',None),
 
 'discard': ('-d', '--discard', 'Number of trajectories to discard from the beginning of every XTC. Default: 0.', '0'),
 
