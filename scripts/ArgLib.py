@@ -103,6 +103,8 @@ A={
 
 'procs': ('-P', '--procs', 'Number of physical processors/nodes to use. Default: 1', '1'),
 
+'pcaobject': ('--pca','--pca-object','PCA object created by mdp-toolkits.',None),
+
 'whichqueue': ('-q', '--whichqueue', 'Which PBS queue to use for jobs. Default: "long"', 'long'),
 
 'trajlist': ('-Q', '--trajlist', 'Path to MSMBuilder1-style trajlist.', None),
