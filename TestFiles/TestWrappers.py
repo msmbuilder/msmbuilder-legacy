@@ -50,6 +50,7 @@ from Emsmbuilder import Project
 from Emsmbuilder import Trajectory
 from Emsmbuilder import Conformation
 from Emsmbuilder import Serializer
+from Emsmbuilder import MSMLib
 
 ### Local Imports ###
 #from Emsmbuilder.scripts import Assign
@@ -219,13 +220,25 @@ class TestWrappers(unittest.TestCase):
         A  = Serializer.LoadData(os.path.join(WorkingDir,"Data", "Assignments.Fixed.h5"))
         PCCA.run(NumMacroStates, A, TC, os.path.join(WorkingDir, 'Data'))
 
+        mm   = np.loadtxt(os.path.join(WorkingDir, "Data", "MacroMapping.dat"),'int')
+        mm_r = np.loadtxt(os.path.join(ReferenceDir, "Data", "MacroMapping.dat"),'int')
+
         ma   = Serializer.LoadData(os.path.join(WorkingDir, "Data", "MacroAssignments.h5"))
         ma_r = Serializer.LoadData(os.path.join(ReferenceDir, "Data", "MacroAssignments.h5"))
-        numpy.testing.assert_array_almost_equal(ma, ma_r)
 
-        mm   = np.loadtxt(os.path.join(WorkingDir, "Data", "MacroMapping.h5"))
-        mm_r = np.loadtxt(os.path.join(ReferenceDir, "Data", "MacroMapping.h5"))
-        numpy.testing.assert_array_almost_equal(mm, mm_r)
+        num_macro = NumMacroStates
+        permutation_mapping = np.zeros(num_macro,'int')
+        #The order of macrostates might be different between the reference and new lumping.
+        #We therefore find a permutation to match them.
+        for i in range(num_macro):
+            j = np.where(mm==i)[0][0]
+            permutation_mapping[i] = mm_r[j]
+
+        mm_permuted = permutation_mapping[mm]
+        MSMLib.ApplyMappingToAssignments(ma,permutation_mapping)
+        
+        numpy.testing.assert_array_almost_equal(mm_permuted, mm_r)
+        numpy.testing.assert_array_almost_equal(ma, ma_r)
 
     def test_k_CalculateProjectRMSD(self):
         #C1 = Conformation.Conformation.LoadFromPDB(PDBFn)
