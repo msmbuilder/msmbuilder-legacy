@@ -643,7 +643,7 @@ class ContinuousContact(Vectorized, AbstractDistanceMetric):
         self.contacts = contacts
         
         scheme = scheme.lower()
-        if not scheme in ['ca', 'center', 'closest-heavy']:
+        if not scheme in ['ca', 'closest', 'closest-heavy']:
             raise ValueError('Unrecognized scheme')
         
         self.scheme = scheme
