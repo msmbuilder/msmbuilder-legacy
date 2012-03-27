@@ -76,13 +76,13 @@ class TestWrappers(unittest.TestCase):
 
     def assert_trajectories_equal(self, t1, t2):
         """ asserts that two MSMBuilder trajectories are equivalent """
-        numpy.testing.assert_array_equal( t1["AtomID"], t2["AtomID"] )
-        numpy.testing.assert_array_equal( t1["AtomNames"], t2["AtomNames"] )
-        numpy.testing.assert_array_equal( t1["ChainID"], t2["ChainID"] )
-        self.assertEqual( t1["IndexList"], t2["IndexList"] )
-        numpy.testing.assert_array_equal( t1["ResidueID"], t2["ResidueID"] )
-        numpy.testing.assert_array_equal( t1["ResidueNames"], t2["ResidueNames"] )
-        numpy.testing.assert_array_almost_equal( t1["XYZList"], t2["XYZList"] )
+        numpy.testing.assert_array_equal(t1["AtomID"], t2["AtomID"])
+        numpy.testing.assert_array_equal(t1["AtomNames"], t2["AtomNames"])
+        numpy.testing.assert_array_equal(t1["ChainID"], t2["ChainID"])
+        self.assertEqual(t1["IndexList"], t2["IndexList"])
+        numpy.testing.assert_array_equal(t1["ResidueID"], t2["ResidueID"])
+        numpy.testing.assert_array_equal(t1["ResidueNames"], t2["ResidueNames"])
+        numpy.testing.assert_array_almost_equal(t1["XYZList"], t2["XYZList"])
 
     def test_a_ConvertDataToHDF(self):
         os.chdir(WorkingDir)
@@ -92,17 +92,17 @@ class TestWrappers(unittest.TestCase):
         
         r_P1 = Project.Project.LoadFromHDF(os.path.abspath(os.path.join('..', ReferenceDir, ProjectFn)))
         
-        #self.assertEqual( P1['ConfFilename'], r_P1['ConfFilename'] )
-        self.assertEqual( P1['NumTrajs'], r_P1['NumTrajs'] )
-        self.assertEqual( P1['TrajFileBaseName'], r_P1['TrajFileBaseName'] )
+        #self.assertEqual(P1['ConfFilename'], r_P1['ConfFilename'])
+        self.assertEqual(P1['NumTrajs'], r_P1['NumTrajs'])
+        self.assertEqual(P1['TrajFileBaseName'], r_P1['TrajFileBaseName'])
 
         """The following assert removed by KAB 12-12-11 because it was broken by
         recent changes to the path conventions in Project files.
-        self.assertEqual( P1['TrajFilePath'], r_P1['TrajFilePath'] )
+        self.assertEqual(P1['TrajFilePath'], r_P1['TrajFilePath'])
         """
         
-        self.assertEqual( P1['TrajFileType'], r_P1['TrajFileType'] )
-        numpy.testing.assert_array_equal( P1['TrajLengths'], r_P1['TrajLengths'] )
+        self.assertEqual(P1['TrajFileType'], r_P1['TrajFileType'])
+        numpy.testing.assert_array_equal(P1['TrajLengths'], r_P1['TrajLengths'])
         
     def test_b_CreateAtomIndices(self):
         output = "AtomIndices.dat"
@@ -139,8 +139,8 @@ class TestWrappers(unittest.TestCase):
         r_AssignmentsRMSD = Serializer.LoadData(ReferenceDir +"/Data/Assignments.h5.RMSD")
         
         
-        numpy.testing.assert_array_equal( Assignments, r_Assignments )
-        numpy.testing.assert_array_equal( AssignmentsRMSD, r_AssignmentsRMSD )
+        numpy.testing.assert_array_equal(Assignments, r_Assignments)
+        numpy.testing.assert_array_equal(AssignmentsRMSD, r_AssignmentsRMSD)
         
     
     def test_e_BuildMSM(self):
@@ -196,10 +196,10 @@ class TestWrappers(unittest.TestCase):
 
         args = ("Data/Assignments.h5", "Data/Assignments.h5.RMSD", MinState,MaxState)
         #Note this one RETURNS a value, not saves it to disk.
-        cr=CalculateClusterRadii.run( args ) #recall that this one bundles stuff
+        cr=CalculateClusterRadii.run(args) #recall that this one bundles stuff
         time.sleep(10) # we have to wait a little to get results
         cr_r = np.loadtxt(ReferenceDir +"/ClusterRadii.dat")
-        numpy.testing.assert_array_almost_equal( cr, cr_r )
+        numpy.testing.assert_array_almost_equal(cr, cr_r)
 
     def test_i_CalculateRMSD(self):
         #C1   = Conformation.Conformation.LoadFromPDB(PDBFn)
@@ -211,21 +211,21 @@ class TestWrappers(unittest.TestCase):
         
         cr   = np.loadtxt(outpath)
         cr_r = np.loadtxt(os.path.join(ReferenceDir, "RMSD.dat"))
-        numpy.testing.assert_array_almost_equal( cr, cr_r )
+        numpy.testing.assert_array_almost_equal(cr, cr_r)
 
     def test_j_PCCA(self):
 
-        TC = scipy.io.mmread("Data/tProb.mtx")
-        A  = Serializer.LoadData("Data/Assignments.Fixed.h5")
-        PCCA.run(NumMacroStates, A, TC)
+        TC = scipy.io.mmread(os.path.join(WorkingDir,"Data", "tProb.mtx"))
+        A  = Serializer.LoadData(os.path.join(WorkingDir,"Data", "Assignments.Fixed.h5"))
+        PCCA.run(NumMacroStates, A, TC, os.path.join(WorkingDir, 'Data'))
 
-        ma   = Serializer.LoadData("Data/MacroAssignments.h5")
-        ma_r = Serializer.LoadData(ReferenceDir +"/Data/MacroAssignments.h5")
-        numpy.testing.assert_array_almost_equal( ma, ma_r )
+        ma   = Serializer.LoadData(os.path.join(WorkingDir, "Data", "MacroAssignments.h5"))
+        ma_r = Serializer.LoadData(os.path.join(ReferenceDir, "Data", "MacroAssignments.h5"))
+        numpy.testing.assert_array_almost_equal(ma, ma_r)
 
-        mm   = np.loadtxt("Data/MacroMapping.dat")
-        mm_r = np.loadtxt(ReferenceDir +"/Data/MacroMapping.dat")
-        numpy.testing.assert_array_almost_equal( mm, mm_r )
+        mm   = np.loadtxt(os.path.join(WorkingDir, "Data", "MacroMapping.h5"))
+        mm_r = np.loadtxt(os.path.join(ReferenceDir, "Data", "MacroMapping.h5"))
+        numpy.testing.assert_array_almost_equal(mm, mm_r)
 
     def test_k_CalculateProjectRMSD(self):
         #C1 = Conformation.Conformation.LoadFromPDB(PDBFn)
@@ -238,7 +238,7 @@ class TestWrappers(unittest.TestCase):
         
         r0=Serializer.LoadData(ReferenceDir+"/RMSD.h5")
         r1=Serializer.LoadData(WorkingDir+"/RMSD.h5")
-        numpy.testing.assert_array_almost_equal( r0,r1, err_msg="Error: Project RMSDs disagree!")
+        numpy.testing.assert_array_almost_equal(r0,r1, err_msg="Error: Project RMSDs disagree!")
         
     def test_z_Cleanup(self):
         """Are we removing all unittest files? """+str(DeleteWhenFinished)
