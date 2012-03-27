@@ -11,7 +11,7 @@ import argparse
 import os
 import numpy as np
 
-from msmbuilder import Trajectory, Project, CreateMergedTrajectoriesFromFAH,Conformation
+from Emsmbuilder import Trajectory, Project, CreateMergedTrajectoriesFromFAH,Conformation
 import netCDF4 as netcdf
 import sys
 import os
