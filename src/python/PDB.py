@@ -1963,7 +1963,10 @@ class REMARK:
         """
         record = string.strip(line[0:6])
         if record == "REMARK":
-            self.remarkNum = int(string.strip(line[7:10]))
+            try:
+                self.remarkNum = int(string.strip(line[7:10]))
+            except ValueError:
+                self.remarkNum = None
             self.remarkDict = {}
             remarkText = line[11:70]
             if self.remarkNum == 1:
