@@ -12,7 +12,7 @@ import numpy
 import scipy.sparse
 import datetime # time and date
 
-from msmbuilder import MSMLib
+from Emsmbuilder import MSMLib
 
 from pymbar import pymbar # for MBAR analysis
 import pymbar.timeseries as timeseries # for timeseries analysis

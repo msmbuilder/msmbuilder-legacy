@@ -17,7 +17,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 import numpy as np
-from msmbuilder import MSMLib
+from Emsmbuilder import MSMLib
     
 def Correlation(x,Normalize=True,MaxTime=np.inf):
     """Calculate the (auto) correlation function of an sequence of observables x.
