@@ -17,39 +17,36 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-import sys
+import sys, os
 import scipy.io
 from numpy import savetxt
 
 from Emsmbuilder import Serializer
 from Emsmbuilder import MSMLib
+from Emsmbuilder import lumping
 
 import ArgLib
 
-def run(macrostates, Assignments, TC, Simplex=False,OutDir="./Data/"):
+def run(macrostates, Assignments, TC, OutDir="./Data/"):
 
-    MacroAssFilename=OutDir+"/MacroAssignments.h5"
+    MacroAssFilename = os.path.join(OutDir, "MacroAssignments.h5")
     ArgLib.CheckPath(MacroAssFilename)
 
-    MacroMapFilename=OutDir+"/MacroMapping.dat"
+    MacroMapFilename = os.path.join(OutDir, "MacroMapping.dat")
     ArgLib.CheckPath(MacroMapFilename)
     
 
-    # Calculate transition prob. and counts matricies
-    if Simplex:
-        print "Running PCCA+..."
-        MAP = MSMLib.PCCA_Simplex(TC, macrostates, doMinimization=False)
-    else:
-        print "Running PCCA..."
-        MAP = MSMLib.PCCA(TC,macrostates)
+    print "Running PCCA..."
+    MAP = lumping.PCCA(TC,macrostates)
 
-    # MAP the new assignments and save, make sure don't mess up negaitve one's (ie where don't have data)
+    # MAP the new assignments and save, make sure don't
+    # mess up negaitve one's (ie where don't have data)
     MSMLib.ApplyMappingToAssignments(Assignments,MAP)
 
     savetxt(MacroMapFilename,MAP,"%d")
     Serializer.SaveData(MacroAssFilename,Assignments)
     
-    print "Wrote: %s, %s"%(MacroAssFilename,MacroMapFilename)
+    print "Wrote: {af}, {mf}".format(af=MacroAssFilename, mf=MacroMapFilename)
     return
 
 
@@ -58,12 +55,12 @@ if __name__ == "__main__":
 \nApplies the PCCA algorithm to lump your microstates into macrostates. You may
 specify a transition matrix if you wish - this matrix is used to determine the
 dynamics of the microstate model for lumping into kinetically relevant
-macrostates. Also, you can specify to use the simplex verision (PCCA+), which is
-more robust but more computationally intesive.
+macrostates. See also the PCCAPlus.py script for the simplex version (PCCA+) of
+the algorithm.
 
 Output: MacroAssignments.h5, a new assignments HDF file, for the Macro MSM.\n"""
 
-    arglist=["macrostates", "assignments", "tmat", "outdir"] # TJL disabled "simplex"
+    arglist=["macrostates", "assignments", "tmat", "outdir"]
     options=ArgLib.parse(arglist, Custom=[("assignments", "Path to assignments file. Default: Data/Assignments.Fixed.h5", "Data/Assignments.Fixed.h5")])
     print sys.argv
 
@@ -71,10 +68,4 @@ Output: MacroAssignments.h5, a new assignments HDF file, for the Macro MSM.\n"""
     macrostates = int(options.macrostates)
     TMatrix = scipy.io.mmread(str(options.tmat))
 
-    # TJL 9/2/11:
-    # PCCA+ (i.e. simplex version) appears to not be robust. We have disabled this feature
-    #if options.simplex == 'simplex': simplex = True
-    #else: simplex = False
-    simplex = False
-
-    run(macrostates, Assignments, TMatrix, Simplex=simplex, OutDir=options.outdir)
+    run(macrostates, Assignments, TMatrix, OutDir=options.outdir)
