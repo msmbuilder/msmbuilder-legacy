@@ -176,20 +176,6 @@ else:
     cdist = scipy.spatial.distance.cdist
 #print 'in metrics library, USE_FAST_CDIST is set to', USE_FAST_CDIST
 
-def get_epsilon_neighborhoods(metric,ptraj,tau):
-
-    output = []
-    N = len(ptraj)
-    for i in xrange(N):
-        if i < tau:
-            output.append( metric.one_to_many(ptraj,ptraj,i,[i+tau])[0] )
-        elif i >= N-tau:
-            output.append( metric.one_to_many(ptraj,ptraj,i,[i-tau])[0] )
-        else:
-            output.append( metric.one_to_many(ptraj,ptraj,i,[i-tau,i+tau]).max() )
-
-    return np.array( output )
-
 class AbstractDistanceMetric(object):
     """Abstract base class for distance metrics. All distance metrics should
     inherit from this abstract class.
