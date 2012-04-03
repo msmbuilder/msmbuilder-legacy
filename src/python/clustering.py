@@ -948,4 +948,41 @@ class HybridKMedoids(BaseFlatClusterer):
         self.assignments = assignments
         self.distances = distances
         
-
+#class KMeans(object):
+#    def __init__(self, metric, trajectories, k, num_iters=1):
+#        if not isinstance(metric, metrics.Vectorized):
+#            raise TypeError('KMeans can only be used with Vectorized metrics')
+#        if not metric.metric in ['euclidean', 'cityblock']:
+#            raise TypeError('KMeans can only be used with euclidean or cityblock.')
+#
+#        self._traj_lengths = [len(traj['XYZList']) for traj in trajectories]
+#        self._concatenated = concatenate_trajectories(trajectories)
+#        self.ptraj = metric.prepare_trajectory(self._concatenated)
+#
+#        if metric.metric == 'euclidean':
+#            d = 'e'
+#        elif metric.metric == 'cityblock':
+#            d = 'b'
+#        else:
+#            raise Exception('!')
+#        
+#        # seed with kcenters
+#        indices, assignments, distances, = _kcenters(metric, self.ptraj, k=k, verbose=False)
+#        ptraj_index_to_gens_traj_index = np.zeros(len(self.ptraj))
+#        for i, g in enumerate(indices):
+#            ptraj_index_to_gens_traj_index[g] = i
+#        assignments = ptraj_index_to_gens_traj_index[assignments]
+#
+#        # now run kmeans
+#        import Pycluster
+#        assignments, error, nfound = Pycluster.kcluster(self.ptraj, nclusters=k, npass=num_iters, dist=d, initialid=assignments)
+#
+#        self._assignments = assignments
+#
+#        
+#    def get_assignments(self):
+#        assgn_list = split(self._assignments, self._traj_lengths)
+#        output = -1 * np.ones((len(self._traj_lengths), max(self._traj_lengths)), dtype='int')
+#        for i, traj_assign in enumerate(assgn_list):
+#            output[i][0:len(traj_assign)] = traj_assign
+#        return output

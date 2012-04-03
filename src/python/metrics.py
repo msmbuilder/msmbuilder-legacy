@@ -228,7 +228,7 @@ class AbstractDistanceMetric(object):
         traj_length = len(prepared_traj)
         output = -1 * np.ones(traj_length * (traj_length - 1) / 2)
         p = 0
-        for i in range(traj_length):
+        for i in xrange(traj_length):
             cmp_indices = np.arange(i + 1, traj_length)
             output[p: p + len(cmp_indices)] = self.one_to_many(prepared_traj, prepared_traj, i, cmp_indices)
             p += len(cmp_indices)
@@ -420,12 +420,17 @@ class RMSD(AbstractDistanceMetric):
     
     def _square_all_pairwise(self, prepared_traj):
         """Reference implementation of all_pairwise"""
+        warnings.warn('This is HORRIBLY inefficient. This operation really needs to be done directly in C')
         traj_length = prepared_traj.XYZData.shape[0]
         output = np.empty((traj_length, traj_length))
         for i in xrange(traj_length):
             output[i] = self.one_to_all(prepared_traj, prepared_traj, i)
         return output
-
+        
+    
+    #def all_pairwise(self, prepared_traj):
+    #    warnings.warn('This is HORRIBLY inefficient. This operation really needs to be done directly in C')
+    #    return scipy.spatial.distance.squareform(self._square_all_pairwise(prepared_traj))
 
 class Vectorized(AbstractDistanceMetric):
     """This is a subclass of AbstractDistanceMetric for computing distances in

@@ -1,23 +1,25 @@
 #!/usr/bin/env python
-"""RebuildProject.py: Search for local trajectories and create a ProjectInfo.h5 file.
-
-"""
-import argparse
+#"""RebuildProject.py: #
+#
+#"""
+#import argparse
 import os
 
-from Emsmbuilder import Project,CreateMergedTrajectoriesFromFAH
+from Emsmbuilder import Project,
+from Emsmbuilder import CreateMergedTrajectoriesFromFAH
+from Emsmbuilder import arglib
 
-print __doc__
 
-parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument('-s','--PDBFN', help='Template PDB Filename', default="native.pdb")
-parser.add_argument('-f','--filetype', help='Filetype of trajectories to use.', default=".lh5")
-parser.add_argument('-p','--projectfn', help='Filename of Project to output.', default="ProjectInfo.h5")
-args = vars(parser.parse_args())
+parser = arglib.ArgumentParser(description="Search for local trajectories and create a ProjectInfo.h5 file.")
+parser.add_argument('pdb')
+parser.add_argument('filetype', description='Filetype of trajectories to use.', default='.lh5')
+parser.add_argument('project', description='Filename of Project to putput', default='ProjectInfo.h5', type=str)
+args = parser.parse_args()
 
-ProjectFilename=args["projectfn"]
-PDBFilename=args["PDBFN"]
-FileType=args["filetype"]
-
-if not os.path.exists(ProjectFilename):
-        P1=Project.CreateProjectFromDir(Filename=ProjectFilename,ConfFilename=PDBFilename,TrajFileType=FileType)
+if not os.path.exists(args.project):
+    Project.CreateProjectFromDir(Filename=args.project,
+                                 ConfFilename=args.pdb,
+                                 TrajFileType=args.filetype)
+    print 'Created %s' % args.project
+else:
+    print '%s already exists.' % args.project

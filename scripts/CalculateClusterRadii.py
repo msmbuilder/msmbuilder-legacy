@@ -23,8 +23,7 @@ import sys
 import multiprocessing
 import numpy
 
-import ArgLib
-
+from Emsmbuilder import arglib
 from Emsmbuilder import Serializer
 
 def run(args):
@@ -34,12 +33,7 @@ def run(args):
     RMSDs = Serializer.LoadData(rmsdFn)
     RMSDs = RMSDs.flatten()
 
-    # Check Output
-    if os.path.exists("ClusterRadii.dat"):
-        print "Error: 'ClusterRadii.dat' already exists! Exiting."
-        sys.exit(1)
-
-    NumStates=Assignments.max()+1
+    NumStates = Assignments.max() + 1
     radii = numpy.zeros(NumStates)
 
     for i in range(MinState, MaxState):
@@ -51,49 +45,47 @@ def run(args):
     return radii
 
 if __name__ == "__main__":
-    print """
-\nCalculates the cluster radius for all clusters in the model. Here, we define
+    
+    parser = arglib.ArgumentParser(description="""
+Calculates the cluster radius for all clusters in the model. Here, we define
 radius is simply the average RMSD of all conformations in a cluster to its
 generator. Does this by taking averaging the distance of each assigned state to
 its generator.
 
+Note that this script is not yet equipped to handle different distance metrics
+(other than RMSD)
+
 Output: A flat txt file, 'ClusterRadii.dat', the average RMSD distance to the
-generator in nm.\n"""
-
-    arglist=["assignments", "assrmsd", "procs", "output"]
-    options=ArgLib.parse(arglist, Custom=[("assignments", "Path to assignments file. Default: Data/Assignments.Fixed.h5", "Data/Assignments.Fixed.h5")])
-    print sys.argv
-
-    if options.output == 'NoOutputSet': output = "ClusterRadii.dat"
-    else: output = options.output
-
-    # Check Output
-    if os.path.exists(output):
-        print "Error:", output, "already exists! Exiting."
-        sys.exit(1)
-
-    nProc = int(options.procs)
-    print "Running on %d processors" % nProc
-    Assignments = Serializer.LoadData(options.assignments)
-
+generator in nm.""")
+    parser.add_argument('assignments', type=str, default='Data/Assignments.Fixed.h5')
+    parser.add_argument('assignments_rmsd', description='''Path to assignment
+        RMSD file.''', default='Data/Assignments.h5.RMSD')
+    parser.add_argument('procs', description="""Number of physical processors/cores
+        to use""", default=1, type=int)
+    parser.add_argument('output', default='ClusterRadii.dat')
+    args = parser.parse_args()
+    arglib.die_if_path_exists(args.output)
+    
+    
     MinStates = []
     MaxStates = []
-    NumStates=Assignments.max()+1
-    StateRange = NumStates/nProc
-    for k in range(nProc):
-        print "Partition:", k, "Range:", k*StateRange, (k+1)*StateRange-1
-        MinStates.append( k*StateRange )
-        MaxStates.append( (k+1)*StateRange-1 )
+    NumStates = Serializer.LoadData(args.assignments).max() + 1
+    StateRange = NumStates / args.procs
+    for k in range(args.procs):
+        print "Partition:", k, "Range:", k * StateRange, (k + 1) * StateRange - 1
+        MinStates.append(k*StateRange)
+        MaxStates.append((k + 1) * StateRange - 1)
     MaxStates[-1] = NumStates #Ensure that we go to the end
 
-    pool = multiprocessing.Pool(processes=nProc)
-    input = zip(nProc*[options.assignments], nProc*[options.assrmsd], MinStates, MaxStates)
+    pool = multiprocessing.Pool(processes=args.procs)
+    input = zip(args.procs*[args.assignments], args.procs*[args.assignments_rmsd], MinStates, MaxStates)
     result = pool.map_async(run, input)
     result.wait()
     radii = result.get()
 
-    print radii
+    #print radii
     radii = numpy.array(radii).sum(axis=0)
     assert len(radii) == NumStates
-    numpy.savetxt(output, radii)
-    print "Wrote:", output
+
+    numpy.savetxt(args.output, radii)
+    print "Wrote:", args.output

@@ -24,19 +24,13 @@ import numpy as np
 import os
 import scipy.io
 
-from Emsmbuilder import TransitionPathTheory
+from Emsmbuilder import transition_path_theory
 from Emsmbuilder import Serializer
+from Emsmbuilder import arglib
 
-import ArgLib
+def run(NFlux, A, B, n):
 
-def run(NFlux, A, B, n, output):
-
-    # Check output isn't taken
-    if os.path.exists(output):
-        print "Error: File %s already exists! Exiting." % output
-        sys.exit(1)
-
-    (Paths, Bottlenecks, Fluxes) = TransitionPathTheory.DijkstraTopPaths(A, B, NFlux, NumPaths=n, NodeWipe=False)
+    (Paths, Bottlenecks, Fluxes) = transition_path_theory.DijkstraTopPaths(A, B, NFlux, NumPaths=n, NodeWipe=False)
 
     # We have to pad the paths with -1s to make a square array
     maxi = 0 # the maximum path length
@@ -46,39 +40,35 @@ def run(NFlux, A, B, n, output):
     for i, path in enumerate(Paths):
         PaddedPaths[i,:len(path)] = np.array(path)
     
-    print "Saving %s..." % output
-    fdata = Serializer.Serializer( {'Paths': PaddedPaths,
-                                    'Bottlenecks': np.array(Bottlenecks),
-                                    'Fluxes': np.array(Fluxes)} )
-    fdata.SaveToHDF(output)
-
-    return
+    
+    return PaddedPaths, np.array(Bottlenecks), np.array(Fluxes)
 
 if __name__ == "__main__":
-    print """\nFinds the highest flux paths through an MSM.
-    Returns: an HDF5 file (default: Paths.h5), which contains three items:
-    (1) The highest flux pathways (a list of ints)
-    (2) The bottlenecks in these pathways (a list of 2-tuples)
-    (3) The flux of each pathway
-    \nPaths.h5 can be read by RenderPaths.py which generates a .dot file capturing these paths.
-    """
-    arglist=["number", "tmat", "starting", "ending", "output"]
-    options=ArgLib.parse(arglist, Custom=[
-        ("tmat", "Net Flux matrix from DoTPT.py. Default: NFlux.mtx", "NFlux.mtx"),
-        ("number", "The number of pathways you want to retrieve.", None),
-        ("output", "Name of the output file. Default: Paths.h5", "NoOutputSet")])
-    print sys.argv
+    parser = arglib.ArgumentParser(description=
+"""Finds the highest flux paths through an MSM.
+Returns: an HDF5 file (default: Paths.h5), which contains three items:
+(1) The highest flux pathways (a list of ints)
+(2) The bottlenecks in these pathways (a list of 2-tuples)
+(3) The flux of each pathway
 
-    if options.output == 'NoOutputSet': output = "Paths.h5"
-    else: output = options.output
-
-    n=int(options.number)
-    NFlux=scipy.io.mmread(str(options.tmat))
-
-    T = scipy.io.mmread(str(options.tmat))
-    F = np.loadtxt(options.ending, int)
-    U = np.loadtxt(options.starting, int)
-
+Paths.h5 can be read by RenderPaths.py which generates a .dot file capturing these paths.""")
+    
+    parser.add_argument('number', description='''Number of pathways you want
+        to retreive''', type=int)
+    parser.add_argument('flux_matrix', description='Net flux matrix from DoTPT.py',
+        default='NFlux.mtx', type=scipy.io.mmread)
+    parser.add_argument('starting', description='''Vector of states in the
+        starting/reactants/unfolded ensemble.''', default='U_states.dat',
+        type=arglib.LoadTxtType(dtype=int))
+    parser.add_argument('ending', description='''Vector of states in the
+        ending/products/folded ensemble.''', default='F_states.dat',
+        type=arglib.LoadTxtType(dtype=int))
+    parser.add_argument('output', default='Paths.h5')
+    args = parser.parse_args()
+    
+    F = args.ending
+    U = args.starting
+    
     # deal with case where have single start or end state
     if F.shape == ():
         tmp = np.zeros(1, dtype=int)
@@ -88,5 +78,11 @@ if __name__ == "__main__":
         tmp = np.zeros(1, dtype=int)
         tmp[0] = int(U)
         U = tmp.copy()
-
-    run(NFlux, U, F, n, output)
+    
+    arglib.die_if_path_exists(args.output)
+    paths, bottlenecks, fluxes = run(args.flux_matrix, U, F, args.number)
+    
+    Serializer({'Paths': paths,
+                           'Bottlenecks': bottlenecks,
+                           'fluxes': fluxes}).SaveToHDF(args.output)
+    print '\nSaved to %s' % args.output

@@ -17,36 +17,15 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-import os, sys
 import numpy as np
-
-from Emsmbuilder.Project import Project
-from Emsmbuilder.Trajectory import Trajectory
-from Emsmbuilder.scripts import ArgLib
+from Emsmbuilder import Trajectory
 from Emsmbuilder.metrics import RMSD
-from Emsmbuilder.utils import format_block
+from Emsmbuilder import arglib
 
-def main():
-    print format_block("""Takes a trajectory (the input data, 'INPUT') and a PDB, and calculates the
-    RMSD between every frame of the trajectory and PDB for the atoms specified in
-    the atom indicies file. Note that trajectory can be any trajectory-like format,
-    including generators and random conformation files. Output: a flat file vector
-    of RMSDs, in nm. Note that MSMBuilder's RMSD calculator is highly optimized, so
-    this calculation should be rapid.
-    Output: RMSD.dat, a flat text file of the RMSDs.""")
-    
-    arglist = ["PDBfn", "input", "atomindices", "output", "projectfn"]
-    options = ArgLib.parse(arglist, Custom=[("input", "The path to a trajectory type (e.g. XRandomConfs.lh5) to calculate the RMSD of. Calculates the RMSD between all snapshots of the trajectory and the PDB file, and output a flat text file of floats in the same order as the snapshots in the trajectory. Units are nm!", None),
-                                            ("output", "Flat text file for the output", "RMSD.dat")])
-    print sys.argv
-    if os.path.exists(options.output):
-        print "Error: File %s already exists! Exiting." % options.output
-        sys.exit(1)
-    
-    project = Project.LoadFromHDF(options.projectfn)
-    pdb = Trajectory.LoadFromPDB(options.PDBfn)
-    traj = Trajectory.LoadTrajectoryFile(options.input,Conf=project.Conf)
-    atom_indices = np.loadtxt(options.atomindices, np.int)
+def run(project, pdb, traj_fn, atom_indices):
+
+    #project = Project.LoadFromHDF(options.projectfn)
+    traj = Trajectory.LoadTrajectoryFile(traj_fn,Conf=project.Conf)
     
     # you could replace this with your own metric if you like
     metric = RMSD(atom_indices)
@@ -55,8 +34,30 @@ def main():
     ptraj = metric.prepare_trajectory(traj)
     distances = metric.one_to_all(ppdb, ptraj, 0)
     
-    np.savetxt(options.output, distances)
+    return distances
     
     
 if __name__ == '__main__':
-    main()
+    parser = arglib.ArgumentParser("""Takes a trajectory (the input data,
+'INPUT') and a PDB, and calculates the RMSD between every frame of the trajectory
+and PDB for the atoms specified in the atom indicies file. Note that trajectory
+can be any trajectory-like format, including generators and random conformation 
+files. Output: a flat file vector of RMSDs, in nm. Note that MSMBuilder's RMSD
+calculator is highly optimized, so this calculation should be rapid. Output: 
+RMSD.dat, a flat text file of the RMSDs.""")
+    parser.add_argument('pdb', type=arglib.TrajectoryType)
+    parser.add_argument('input', description='Path to a trajectory-like file')
+    parser.add_argument('project')
+    parser.add_argument('atom_indices', description='Indices of atoms to compare',
+        type=arglib.LoadTxtType(dtype=int), default='AtomIndices.dat')
+    parser.add_argument('output', description='Flat text file for the output',
+        default='RMSD.dat')
+    args = parser.parse_args()
+    
+    arglib.die_if_path_exists(args.output)
+    
+    distances = run(args.project, args.pdb, args.input, args.atom_indices)
+    print 'Saving Output: %s' % args.output
+    np.savetxt(args.output, distances)
+
+

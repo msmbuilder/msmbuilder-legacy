@@ -20,7 +20,7 @@
 
 import os, sys
 import numpy as np
-from Emsmbuilder.scripts import ArgLib
+from Emsmbuilder import old_ArgLib
 from Emsmbuilder.Project import Project
 from Emsmbuilder.clustering import KCenters, HybridKMedoids, deterministic_subsample
 from Emsmbuilder.metric_LPRMSD import LPRMSD, LPTraj, ReadPermFile
@@ -29,19 +29,11 @@ from Emsmbuilder import Serializer
 import itertools
 
 def main():
-    print """
-    \nClusters data based on RMSD. Implements k-centers algorithm, followed by
-    hybrid k-medoids to clean up data.
-
-    Output: Generators in a Trajectory format (Gens.lh5).\n
-
-    To use other distance metrics or clustering algorithms, modify this script
-    or see the examples
-    """
+    print """Clusters data based on LPRMSD"""
 
     arglist=["projectfn", "clusters", "stride", "atomindices", "altindices", "permuteatoms",
              "globalkmediods", "localkmediods", "rmsdcutoff","outdir"]
-    options = ArgLib.parse(arglist)
+    options = old_ArgLib.parse(arglist)
     print sys.argv
 
     # parse command line options    
@@ -56,7 +48,7 @@ def main():
     local_iterations = int(options.localkmediods)
     global_iteratiobs = int(options.globalkmediods)
 
-    ArgLib.CheckPath(gens_path)
+    old_ArgLib.CheckPath(gens_path)
 
     # load up all the trajectories
     trajs = [proj.LoadTraj(i) for i in range(proj['NumTrajs'])]

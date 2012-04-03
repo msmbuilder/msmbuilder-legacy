@@ -21,9 +21,9 @@ import sys
 import numpy
 import scipy.io
 
-import ArgLib
+from Emsmbuilder import old_ArgLib
 
-from msmbuilder import Serializer, MSMLib
+from Emsmbuilder import Serializer, MSMLib
 
 def EstimateUnSym(Counts,Assignments):
     """Implements the following protocol:
@@ -96,7 +96,7 @@ def run(Assignments, Symmetrize='MLE', OutDir="./Data/"):
     FnPops   =OutDir+"/Populations.dat"
     outputlist=[FnTProb,FnTCounts,FnTUnSym,FnMap,FnAss,FnPops]
     for output in outputlist:
-        ArgLib.CheckPath(output)
+        old_ArgLib.CheckPath(output)
   
     # Scan trajectory assignments and count transitions
     NumStates=max(Assignments.flatten())+1
@@ -146,7 +146,7 @@ file.
 Assignments.Fixed.h5, tCounts.UnSym.mtx\n\n"""
 
     arglist=["assignments", "symmetrize", "outdir"]
-    options=ArgLib.parse(arglist)
+    options=old_ArgLib.parse(arglist)
     print sys.argv
     
     Assignments=Serializer.LoadData(options.assignments)

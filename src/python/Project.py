@@ -22,22 +22,24 @@
 import os
 import numpy as np
 
-from Emsmbuilder import Conformation, Serializer, Trajectory
+from Emsmbuilder import Conformation
+from Emsmbuilder.Serializer import Serializer
+from Emsmbuilder.Trajectory import Trajectory
 from Emsmbuilder import clustering
 
-def GetUniqueRandomIntegers(MaxN,NumInt):
-    """Get random numbers, with replacement."""
-    x=np.random.random_integers(0,MaxN,NumInt)
-    while len(np.unique(x))<NumInt:
-        x2=np.random.random_integers(0,MaxN,NumInt-len(np.unique(x)))
-        x=np.concatenate((np.unique(x),x2))
-    return(x)
+#def GetUniqueRandomIntegers(MaxN,NumInt):
+#    """Get random numbers, with replacement."""
+#    x=np.random.random_integers(0,MaxN,NumInt)
+#    while len(np.unique(x))<NumInt:
+#        x2=np.random.random_integers(0,MaxN,NumInt-len(np.unique(x)))
+#        x=np.concatenate((np.unique(x),x2))
+#    return(x)
 
-class Project(Serializer.Serializer):
+class Project(Serializer):
     """The Project class controls access to a collection of trajectories."""
     
     def __init__(self,S=dict()):#TrajLengths,TrajFilePath,TrajFileBaseName,TrajFileType,ConfFilename):
-        Serializer.Serializer.__init__(self,S)
+        Serializer.__init__(self,S)
         if 'SerializerFilename' in S:
             self['ProjectRootDir'] = os.path.abspath(os.path.dirname(S['SerializerFilename']))
         else:
@@ -65,17 +67,73 @@ class Project(Serializer.Serializer):
             print("Could not find %s; trying current directory."%self["ConfFilename"])
             self.Conf=Conformation.Conformation.LoadFromPDB(os.path.basename(self["ConfFilename"]))
     
+    @classmethod   
+    def CountLocalTrajectories(cls, TrajFilePath, TrajFileBaseName, TrajFileType):
+        """In the current Project directory, look in the Trajectories Subdirectory and find the maximum N such that trj0.h5, trj1.h5, ..., trj[N-1].h5 all exist."""
+
+        Unfinished=True
+        i=0 
+
+        while Unfinished:
+            filename = os.path.join(TrajFilePath, TrajFileBaseName + str(i) + TrajFileType)
+            if os.path.exists(filename):
+                i += 1
+            else:
+                Unfinished=False
+        return i
+
+    @classmethod
+    def CreateProjectFromDir(cls, Filename="ProjectInfo.h5", TrajFilePath="./Trajectories/",
+                             TrajFileBaseName="trj", TrajFileType=".h5", ConfFilename=None,
+                             RunList=None, CloneList=None, NumGensList=None):
+        """By default, the files should be of the form ./Trajectories/trj0.h5 ... ./Trajectories/trj[n].h5.
+           Use optional arguments to change path, names, and filetypes."""
+
+        if ConfFilename!=None:
+            Conf=Conformation.Conformation.LoadFromPDB(ConfFilename)
+
+        NumTraj = cls.CountLocalTrajectories(TrajFilePath,TrajFileBaseName,TrajFileType)
+        if NumTraj==0:
+            print "No data found!  ERROR"
+            return
+        else: print "Found %d trajectories" % NumTraj
+
+        LenList=[]
+        for i in range(NumTraj):
+            f = os.path.join(TrajFilePath, TrajFileBaseName + str(i) + TrajFileType)
+            LenList.append(Trajectory.LoadTrajectoryFile(f,JustInspect=True,Conf=Conf)[0])
+
+        DictContainer={"TrajLengths":np.array(LenList),"TrajFilePath":TrajFilePath,"TrajFileBaseName":TrajFileBaseName,"TrajFileType":TrajFileType,"ConfFilename":ConfFilename}
+        if RunList!=None:
+            DictContainer["RunList"]=RunList
+        if CloneList!=None:
+            DictContainer["CloneList"]=CloneList
+        if NumGensList!=None:
+            DictContainer["NumGensList"]=NumGensList
+        Project = cls(DictContainer)
+        if Filename!=None:
+            Project.SaveToHDF(Filename)
+        
+        try:
+            os.mkdir("./Data")
+        except OSError:
+            pass
+            
+        return Project
+    
     def GetNumTrajectories(self):
         """Return the number of trajectories in this project."""
         return(self["TrajLengths"].shape[0])
     
-    def GetTrajFilename(self,TrajNumber):
+    def GetTrajFilename(self, TrajNumber):
         """Returns the filename of the Nth trajectory."""
-        return(GetTrajFilename(self["TrajFilePath"],self["TrajFileBaseName"],self["TrajFileType"],TrajNumber))
-    
-    def LoadTraj(self,i):
+        return os.path.join(self['TrajFilePath'], self['TrajFileBaseName'] + str(TrajNumber) +
+                            self['TrajFileType'])
+
+        
+    def LoadTraj(self, i, stride=1):
         """Return a trajectory object of the ith trajectory."""
-        return Trajectory.Trajectory.LoadTrajectoryFile(self.GetTrajFilename(i),Conf=self.Conf)
+        return Trajectory.LoadTrajectoryFile(self.GetTrajFilename(i),Conf=self.Conf)[::stride]
     
     def EnumTrajs(self):
         """Convenience method: return an iterator over the trajectories (a generator)
@@ -88,12 +146,12 @@ class Project(Serializer.Serializer):
         
         """
         for i in xrange(self['NumTrajs']):
-            yield Trajectory.Trajectory.LoadTrajectoryFile(self.GetTrajFilename(i), Conf=self.Conf)
+            yield Trajectory.LoadTrajectoryFile(self.GetTrajFilename(i), Conf=self.Conf)
         
     
     def ReadFrame(self,WhichTraj,WhichFrame):
         """Read a single frame of a single trajectory."""
-        return(Trajectory.Trajectory.ReadFrame(self.GetTrajFilename(WhichTraj),WhichFrame,Conf=self.Conf))
+        return(Trajectory.ReadFrame(self.GetTrajFilename(WhichTraj),WhichFrame,Conf=self.Conf))
     
     def EvaluateObservableAcrossProject(self,f,Stride=1,ByTraj=False,ResultDim=None):
         """Evaluate an observable function f for every conformation in a dataset.  Assumes that f returns a float.  Also initializes a matrix as negative ones and fills in f(X[i,j]) where X[i,j] is the jth conformation of the ith trajectory.  If ByTraj==True, evalulate f(R1) for each trajectory R1 in the dataset.  This allows you to dramatically speed up certain observable calculations."""
@@ -249,110 +307,29 @@ class Project(Serializer.Serializer):
         RandIndices=ConfIndices[R2]
         Trj=self.GetConformations(RandIndices)
         return(Trj["XYZList"])
-    
-    def SavePDBs(self,Ass,OutDir,NumConf,States=None):
-        """Get random conformations from each state, then save them in directory OutDir.  Returns a Trajectory containing the conformations."""
-        NumStates=max(Ass.flatten())+1
-        try:
-            os.mkdir(OutDir)
-        except:
-            pass
-        R1=self.GetEmptyTrajectory()
-        R2=self.GetEmptyTrajectory()
-
-        if States==None:
-            States=xrange(NumStates)
-    
-        for i in States:
-            print(i)
-            Outfile=OutDir+"/State%d-%d.pdb"%(i, NumConf-1)
-            if os.path.exists(Outfile):
-                print "  already done, skipping"
-                continue
-            R1["XYZList"]=self.GetRandomConfsFromState(Ass,i,NumConf)
-            for j in xrange(NumConf):
-                Outfile=OutDir+"/State%d-%d.pdb"%(i,j)
-                print("Saving State %d Conf %d as %s"%(i,j,Outfile))
-                R2["XYZList"]=np.array([R1["XYZList"][j]])
-                R2.SaveToPDB(Outfile)
-        return(R1)
-    
 
 
-def CountLocalTrajectories(TrajFilePath,TrajFileBaseName,TrajFileType):
-    """In the current Project directory, look in the Trajectories Subdirectory and find the maximum N such that trj0.h5, trj1.h5, ..., trj[N-1].h5 all exist."""
-
-    Unfinished=True
-    i=0 
-
-    while Unfinished:
-        filename=GetTrajFilename(TrajFilePath,TrajFileBaseName,TrajFileType,i)
-        if os.path.exists(filename):
-            i += 1
-        else:
-            Unfinished=False
-    return i
-
-def CreateProjectFromDir(Filename="ProjectInfo.h5",TrajFilePath="./Trajectories/", TrajFileBaseName="trj",TrajFileType=".h5",ConfFilename=None,RunList=None,CloneList=None,NumGensList=None):
-    """By default, the files should be of the form ./Trajectories/trj0.h5 ... ./Trajectories/trj[n].h5.
-       Use optional arguments to change path, names, and filetypes."""
-
-    if ConfFilename!=None:
-        Conf=Conformation.Conformation.LoadFromPDB(ConfFilename)
-
-    NumTraj=CountLocalTrajectories(TrajFilePath,TrajFileBaseName,TrajFileType)
-    if NumTraj==0:
-        print "No data found!  ERROR"
-        return
-    else: print "Found %d trajectories" % NumTraj
-
-    LenList=[]
-    for i in range(NumTraj):
-        f=GetTrajFilename(TrajFilePath,TrajFileBaseName,TrajFileType,i)
-        LenList.append(Trajectory.Trajectory.LoadTrajectoryFile(f,JustInspect=True,Conf=Conf)[0])
-
-    DictContainer={"TrajLengths":np.array(LenList),"TrajFilePath":TrajFilePath,"TrajFileBaseName":TrajFileBaseName,"TrajFileType":TrajFileType,"ConfFilename":ConfFilename}
-    if RunList!=None:
-        DictContainer["RunList"]=RunList
-    if CloneList!=None:
-        DictContainer["CloneList"]=CloneList
-    if NumGensList!=None:
-        DictContainer["NumGensList"]=NumGensList
-    P1=Project(DictContainer)
-    if Filename!=None:
-        P1.SaveToHDF(Filename)
-    try:
-        os.mkdir("./Data")
-    except OSError:
-        pass
-    return P1
-
-def GetTrajFilename(TrajFilePath,TrajFileBaseName,TrajFileType,TrajNumber):
-    """This is a helper function to construct a filename for a trajectory file."""
-    x=TrajFilePath+"/"+TrajFileBaseName+str(TrajNumber)+TrajFileType
-    return(x)
-
-def MergeMultipleAssignments(AssList,RMSDList,WhichTrajList):
-    """Take a set of Assignment, RMSDList, and WhichTrajList arrays return one big array for each of Assignments, RMSDList, and WhichTrajs.  Used to merge parallelized assignment runs on clusters."""
-    AssArray=[]
-    RMSDArray=[]
-    WhichTrajsArray=[]
-    for i in range(len(AssList)):
-        print(i,WhichTrajList[i],AssList[i])
-        AssArray.append(AssList[i])
-        RMSDArray.append(RMSDList[i])
-        WhichTrajsArray.append(np.array(WhichTrajList[i]).reshape((-1)))
-
-
-    AssArray=np.vstack(AssArray)
-    RMSDArray=np.vstack(RMSDArray)
-    WhichTrajsArray=np.concatenate(WhichTrajsArray).flatten()
-    
-    Ind=np.argsort(WhichTrajsArray)
-
-    AssArray=AssArray[Ind]
-    RMSDArray=RMSDArray[Ind]
-    WhichTrajsArray=WhichTrajsArray[Ind]
-    
-    return(AssArray,RMSDArray,WhichTrajsArray)
+#def MergeMultipleAssignments(AssList,RMSDList,WhichTrajList):
+#    """Take a set of Assignment, RMSDList, and WhichTrajList arrays return one big array for each of Assignments, RMSDList, and WhichTrajs.  Used to merge parallelized assignment runs on clusters."""
+#    AssArray=[]
+#    RMSDArray=[]
+#    WhichTrajsArray=[]
+#    for i in range(len(AssList)):
+#        print(i,WhichTrajList[i],AssList[i])
+#        AssArray.append(AssList[i])
+##        RMSDArray.append(RMSDList[i])
+#        WhichTrajsArray.append(np.array(WhichTrajList[i]).reshape((-1)))#
+##
+#
+#    AssArray=np.vstack(AssArray)
+#    RMSDArray=np.vstack(RMSDArray)
+#    WhichTrajsArray=np.concatenate(WhichTrajsArray).flatten()
+#    
+#    Ind=np.argsort(WhichTrajsArray)
+#
+#    AssArray=AssArray[Ind]
+#    RMSDArray=RMSDArray[Ind]
+#    WhichTrajsArray=WhichTrajsArray[Ind]
+#    
+#    return(AssArray,RMSDArray,WhichTrajsArray)
 

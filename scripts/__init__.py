@@ -29,7 +29,6 @@ Copyright 2011 Stanford University
 
 # list of all the modules (files) that are part of msmbuilder scripts
 __all__ = [
-"ArgLib",
 "Assign",
 "BuildMSM",
 "CalculateClusterRadii",

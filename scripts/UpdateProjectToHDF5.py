@@ -24,11 +24,10 @@ import numpy
 from Emsmbuilder import CreateMergedTrajectoriesFromFAH
 from Emsmbuilder import Serializer
 from Emsmbuilder import Project
+from Emsmbuilder import arglib
 
-import ArgLib
 
-
-def run(atomindicesFn, pdbFn, oldDir, datatype):
+def run(atomindicesFn, pdbFn, trajlistFn, datatype):
     print "WARNING: This script assumes you have already removed duplicate frames from your input trajectories if they exist."
 
     # check directory structure
@@ -46,7 +45,7 @@ def run(atomindicesFn, pdbFn, oldDir, datatype):
 
     # get list of trajectories
     trajList = []
-    f = open(options.trajlist, 'r')
+    f = open(trajlistFn, 'r')
     for line in f:
         traj = line.strip()
         trajList.append(traj)
@@ -132,18 +131,19 @@ def run(atomindicesFn, pdbFn, oldDir, datatype):
         P1=Project.CreateProjectFromDir(ConfFilename=pdbFn,TrajFileType="."+datatype)
 
 if __name__ == "__main__":
-    print """
+    parser = arglib.ArgumentParser(description="""
     Convert msmbuilder v0.1 and v1.0.1 style assignments to the v2 and hdf5 format.
     Also creates a ProjectInfo.h5 file.
 
     Notes:
     If you input atomindices to subselect atoms, you will need to create a new AtomIndices file for
-    the clustering stages.  This because the atom numbers will change upon sub-selection.
-    """
+    the clustering stages.  This because the atom numbers will change upon sub-selection.""")
+    parser.add_argument('atom_indices', 'Path to atom indices file for RMSD')
+    parser.add_argument('pdb')
+    parser.add_argument('trajlist', description='Path to MSMBuilder1-style trajlist')
+    parser.add_argument('datatype', description='Format to store data in.',
+        choices=['lh5', 'h5', 'xtc'], default='lh5')
+    args = parser.parse_args()
 
-    arglist = ["atomindices", "PDBfn", "trajlist", "datatype"]
-    options = ArgLib.parse(arglist)
-    print sys.argv
-
-    run(options.atomindices, options.PDBfn, options.trajlist, options.datatype)
+    run(args.atom_indices, args.pdb, args.trajlist, args.datatype)
   

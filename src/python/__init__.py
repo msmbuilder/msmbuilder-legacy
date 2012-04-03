@@ -51,3 +51,7 @@ __all__ = [
 "mm"
 ]
 
+from Project import Project
+from Trajectory import Trajectory
+from Serializer import Serializer
+from Conformation import Conformation

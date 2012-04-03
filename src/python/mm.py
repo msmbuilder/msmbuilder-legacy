@@ -1,222 +1,276 @@
-import Queue
-from collections import deque
+import sys
+from abc import abstractmethod
+from mpi4py import MPI as _MPI
 import time
-from mpi4py import MPI
+import numpy as np
+from Queue import Queue
 import threading
+_COMM = _MPI.COMM_WORLD
+_RANK = _COMM.rank
+_SIZE = _COMM.size
+
+def _kill_workers():
+    for i in xrange(1, _SIZE):
+        _COMM.isend(Job(method='die').msg, dest=i, tag=0)
 
 
-comm = MPI.COMM_WORLD
-rank = comm.rank
-size = comm.size
-node = MPI.Get_processor_name()
-
-# tags
-INIT = 1
-JOB_MSG = 2
-RESULT = 3
-ABORT = 4
-MAP_DONE = 5
-__initialization_args = None
-
-class JobQueueEmpty(Exception):
-    def __init__(self, outstanding_procs):
-        self.outstanding_procs = outstanding_procs
+class _Reciever(threading.Thread):
+    def __init__(self, inbox, worker_list):
+        threading.Thread.__init__(self)
+        self.daemon = True
+        self.inbox = inbox
+        self.worker_list = worker_list
+        self.start()
         
-class AsyncResults(object):
-    def __init__(self, map_results_q, max_size):
-        self._map_results_q = map_results_q
-        self._max_size = max_size
-        self._results = [None] * self._max_size
-        self._slots_filled = 0
-        
-    def finished(self):
-        '''Have all the results been returned (by the last call to get
-        or get_nowait)'''
-        return self._slots_filled == self._max_size
-        
-    def get(self, block=True, timeout=None):
-        if block and timeout is None:
-            while self._slots_filled < self._max_size:
-                # item should be a 2 elem tuple. 1st is index,
-                # second is result
-                item = self._map_results_q.get(block=True)
-                self._results[item[0]] = item[1]
-                self._slots_filled += 1
-        elif block and timeout is not None:
-            start_time = time.time()
-            while self._slots_filled < self._max_size:
-                used_up = time.time() - start_time
-                remaining = max(timeout - used_up, 0)
-                try:
-                    item = self._map_results_q.get(block=True, timeout=remaining)
-                    self._results[item[0]] = item[1]
-                    self._slots_filled += 1
-                except Queue.Empty:
-                    break
-        elif not block:
-            while self._slots_filled < self._max_size:
-                try:
-                    item = self._map_results_q.get_nowait()
-                    self._results[item[0]] = item[1]
-                    self._slots_filled += 1
-                except Queue.Empty:
-                    break
-                    
-        return self._results
+    def run(self):
+        status = _MPI.Status()
+        while True:
+            if _COMM.Iprobe(source=_MPI.ANY_SOURCE, tag=1, status=status):
+                i = status.Get_source()
+                val, id, mailbox = _COMM.recv(source=i, tag=_MPI.ANY_TAG)
 
-
-
-def map(method, iterable):
-    length = len(iterable)
-    map_results_q = Queue.Queue()
-    root_job_q = Queue.Queue()
-    root_results_q = Queue.Queue()
-    threading.Thread(target=_map_control, args=(method, iterable, map_results_q, root_job_q, root_results_q)).start()
-    
-    _root_worker(method, root_job_q, root_results_q)
-    
-    async = AsyncResults(map_results_q, length)
-    results = async.get() # this blocks
-    
-    return results
-    
-
-
-def initialize_workers(args):
-    global __initialization_args
-    for i in range(1, size):
-        comm.send(msg, dest=i, tag=INIT)
-        
-    # this global is for communicating to the root worker
-    __initialization_args = args
-
-
-def _map_control(method, iterable, map_results_q, root_job_q, root_results_q, root_worker=True):
-    '''Job control'''
-    
-    iterable = deque(iterable)
-    try:
-        # This is a counter that gets dispatched with
-        # each job so that the results can be put back in the right place
-        # in the results array
-        job_id = 0
-        outstanding_procs = [False] * size # Which procs are runnning?
-        
-        # Send the first job to each process
-        if root_worker:
-            start = 0
-        else:
-            start = 1
-            
-        for i in xrange(start, size):
-            if len(iterable) == 0:
-                raise JobQueueEmpty(outstanding_procs)
-            if i == 0:
-                root_job_q.put((job_id, method, JOB_MSG, iterable.pop()))
+                self.worker_list[i] = True
+                mb = getattr(self, mailbox)
+                mb.put((val, id))
             else:
-                comm.send((job_id, method, JOB_MSG, iterable.pop()), dest=i, tag=JOB_MSG)
-            job_id += 1
-            outstanding_procs[i] = True
-            
-        while True:
-            for i in xrange(0, size):
-                if i == 0:
-                    if root_worker:
-                        try:
-                            recvd_id, msg = root_results_q.get_nowait()
-                            map_results_q.put_nowait((recvd_id, msg)) # return resultts
-                            if len(iterable) == 0:
-                                outstanding_procs[0] = False
-                                raise JobQueueEmpty(outstanding_procs)
-                            root_job_q.put((job_id, method, JOB_MSG, iterable.pop()))
-                            job_id += 1
-                        except Queue.Empty:
-                            pass
-                elif comm.Iprobe(source=i, tag=JOB_DONE):
-                    # Remove the results message from the queue
-                    # and add it to the results array
-                    recvd_id, msg = comm.recv(source=i, tag=JOB_DONE)
-                    map_results_q.put_nowait((recvd_id, msg))
-                    
-                    if len(iterable) == 0:
-                        outstanding_procs[i] = False
-                        raise JobQueueEmpty(outstanding_procs)
-                        
-                    # send this worker the next job from the queue                        
-                    comm.send((job_id, method, JOB_MSG, iterable.pop()), dest=i, tag=JOB_MSG)
-                    job_id += 1
-                    
-    except JobQueueEmpty as e:
-        # Now that we've emptied the Queue, wait on all the workers
-        outstanding_procs = e.outstanding_procs
+                time.sleep(0.05)
         
-        if root_worker:
-            if outstanding_procs[0]:
-                recvd_id, msg = root_results_q.get()
-                map_results_q.put_nowait((recvd_id, msg))
-                outstanding_procs[0] = False
-                
+
+class _Sender(threading.Thread):
+    def __init__(self, outbox, worker_list):
+        threading.Thread.__init__(self)
+        self.daemon = True
+        self.outbox = outbox
+        self.worker_list = worker_list
+        self.start()
+        
+    def run(self):
         while True:
-            for i in xrange(1, size):
-                if comm.Iprobe(source=i, tag=JOB_DONE):
-                    recvd_id, msg = comm.recv(source=i, tag=JOB_DONE)
-                    map_results_q.put_nowait((recvd_id, msg))
-                    outstanding_procs[i] = False
-            if outstanding_procs == [False] * size:
+            job = self.outbox.get()
+            target = job.target
+            
+            if target is None:
+                target = self.worker_list.first_true()
+            else:
+                if not 1 <= target < _SIZE:
+                    raise ValueError(('{target} must be greater than '
+                                      'than 0 and less than {size}'.format(
+                                target=target, size=_SIZE)))
+        
+            #print 'sending t={target}, m={msg}'.format(target=target, msg=job.msg)
+            self.worker_list[target] = False
+            _COMM.isend(job.msg, dest=target, tag=0)
+
+class _AvailableList(object):
+    def __init__(self, size):
+        self._list = [True] * size
+        self._list[0] = None
+        self.lock = threading.Lock()
+        self.on_set = threading.Event()
+
+    def acquire(self):
+        self.lock.acquire()
+
+    def release(self):
+        self.lock.release()
+
+    def __getitem__(self, i):
+        self.lock.acquire()
+        val = self._list[i]
+        self.lock.release()
+        return val
+
+    def __setitem__(self, key, val):
+        self.lock.acquire()
+        self._list[key] = val
+        self.on_set.set()
+        self.lock.release()
+    
+    def _first_true(self):
+        self.lock.acquire()
+        val = None
+        for i, elem in enumerate(self._list):
+            if elem:
+                val = i
                 break
-                
-        # Send the map_done command to the root worker
-        if root_worker:
-            root_job_q.put(None, None, MAP_DONE, None)
+        if val is None:
+            self.on_set.clear()
+        self.lock.release()
+        return val
 
-def _map_worker(worker_cls):
-    while True:
-        if comm.Iprobe(source=0, tag=INIT):
-            args = comm.recv(source=0, tag=INIT)
-            worker = worker_cls(*args)
+    def first_true(self):
+        val = self._first_true()
+        while val is None:
+            self.on_set.wait()
+            val = self._first_true()
+        return val
 
-        if comm.Iprobe(source=0, tag=JOB_MSG):
-            job_id, method, args = comm.recv(source=0, tag=INIT)
-            result = getattr(worker, method)(*args)
-            comm.send((job_id, result), dest=0, tag=JOB_DONE)
-            
-        if comm.Iprobe(source=0, tag=ABORT):
-            sys.exit(1)
-
-        time.sleep(0.1)
-
-
-def _root_worker(worker_cls, job_q, results_q):
-    global __initialization_args, __worker_cls
-    print 'root worker seeing init_args', __initialization_args
-    worker = __worker_cls(*__initialization_args)
-    while True:
-        j = job_q.get()
-        job_id, method, tag, args = j
+class Job(object):
+    def __init__(self, method, target=None, args=None, kwargs=None,
+                 id=0, mailbox='inbox'):
+        if args is None:
+            args = ()
+        if kwargs is None:
+            kwargs = {}
         
-        if tag == MAP_DONE:
-            break
-        else:
-            result = getattr(worker, method)(*args)
-            results_q.put((job_id, result))
+        self.method = method
+        self.target = target
+        self.args = args
+        self.kwargs = kwargs
+        self.id = int(id)
+        self.mailbox = mailbox
+    
+    @property
+    def msg(self):
+        return (self.method, self.args, self.kwargs, self.id, self.mailbox)
 
-        time.sleep(0.1)
+    def __repr__(self):
+        return str((self.target, self.msg))
 
-def kill_workers():
-    # send all the abort signals to each of the workers
-    for i in xrange(1, size):
-        comm.send(0, dest=i, tag=ABORT)
 
-def start(main, worker_cls):
-    if rank == 0:
-        global __worker_cls
-        __worker_cls = worker_cls
+class BaseMaster(object):
+    def __init__(self, **kwargs):
+        self.inbox = Queue()
+        self.outbox = Queue()
+        self.worker_list = _AvailableList(_SIZE)
+        self._reciever = _Reciever(self.inbox, self.worker_list)
+        self._sender = _Sender(self.outbox, self.worker_list)
+        self.__dict__.update(kwargs)
+        
+        self.run()
+        
+    def run(self):
+        raise NotImplementedError('You must implement your own run method')
+
+    def enqueue(self, method, *args, **kwargs):
+        self.outbox.put(Job(method=method, args=args,
+                            kwargs=kwargs))
+    
+    @property
+    def workers(self):
+        return xrange(1, _SIZE)
+
+    def send(self, target, method, *args, **kwargs):
+        self.outbox.put(Job(target=target, method=method,
+                            args=args, kwargs=kwargs))
+
+    def log(self, msg):
+        print 'Master: {time}: {msg}'.format(time=time.strftime('%m/%d/%y [%l:%M:%S]'), msg=msg)
+        
+    def map(self, method, *args, **kwargs):
+        length = None
+
+        mailbox = 'box_%d' % np.random.randint(sys.maxint)
+        setattr(self._reciever, mailbox, Queue())
+        q = getattr(self._reciever, mailbox)
+
+        for e in args:
+            if length is None: length = len(e)
+            assert len(e) == length, 'same length!'
+        for k in kwargs.keys():
+            if length is None: length = len(kwargs[k])
+            assert len(kwargs[k]) == length, 'same length!'
+        
+        def job(i):
+            jargs = tuple([args[k][i] for k in range(len(args))])
+            jkwargs = {}
+            for k in kwargs.keys():
+                jkwargs[k] = kwargs[k][i]
+            id = np.random.randint(sys.maxint)
+            return Job(method=method, args=jargs, kwargs=jkwargs,
+                       id=id, mailbox=mailbox)
+        
+        jobs = [job(i) for i in range(length)]
+        ids = np.array([job.id for job in jobs])
+        results = [None for job in jobs]
+        num_returned = 0
+        
+        for j in jobs:
+            self.outbox.put(j)
+        
+        while num_returned < length:
+            val, id = q.get()
+            i = np.where(id == ids)[0][0]
+            results[i] = val
+            num_returned += 1
+        
+        delattr(self._reciever, mailbox)
+        return results
+
+    
+class BaseWorker(object):
+    def _recv(self):
+        method, args, kwargs, id, mailbox = _COMM.recv(source=0)
+        if method == 'die':
+            _COMM.send((None, None, None), tag=1)
+            sys.exit(0)
+        
         try:
-            main()
+            func = getattr(self, method)
+            val = func(*args, **kwargs)
+        except Exception as e:
+            val = e
+
+        _COMM.isend((val, id, mailbox), tag=1)
+
+    def __init__(self, **kwargs):
+        self.rank = _RANK
+        self.__dict__.update(kwargs)
+        while True:
+            self._recv()
+
+    def log(self, msg):
+        msg = str(msg).strip()
+        if len(msg) > 0:
+            print 'Worker {r}/{s}: {time}: {msg}'.format(time=time.strftime('%m/%d/%y [%l:%M:%S]'), msg=msg,
+                r = self.rank, s=_SIZE)
+                
+
+def start(master, worker, master_kwargs=None, worker_kwargs=None):
+    if master_kwargs is None:
+        master_kwargs = {}
+    if worker_kwargs is None:
+        worker_kwargs = {}
+
+    if _SIZE < 2:
+        raise RuntimeError('Execute me with mpirun and more than 1 process!')
+    if not issubclass(master, BaseMaster):
+        raise TypeError('arg1 must be a subclass of BaseMaster')
+    if not issubclass(worker, BaseWorker):
+        raise TypeError('arg2 must be a subclass of BaseWorker')
+    
+    if _RANK == 0:
+        try:
+            m = master(**master_kwargs)
         except:
-            kill_workers()
+            _kill_workers()
             raise
         finally:
-            kill_workers()
+            _kill_workers()
+
     else:
-        _map_worker(worker_cls)
+        w = worker(**worker_kwargs)
+        
+
+if __name__ == '__main__':
+    class Master1(BaseMaster):
+        def run(self):
+            for w in self.workers:
+                self.send(w, 'setup', 10)                
+            
+            print self.map('m', [1,2,3,4,5])
+            
+
+    class Worker1(BaseWorker):
+        def setup(self, val):
+            print 'setup on rank={rank}'.format(rank=self.rank)
+            self.val = val
+            time.sleep(2)
+                    
+        def m(self, i):
+            print 'm on rank={rank}'.format(rank=self.rank)
+            return i**2  * self.val
+            
+    start(Master1, Worker1)
+
+    
