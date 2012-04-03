@@ -10,6 +10,7 @@ import tables
 import tempfile
 import unittest
 
+from Emsmbuilder.Serializer import Filter
 from Emsmbuilder import Serializer
 import numpy as np
 
@@ -35,7 +36,7 @@ class TestSerializer(unittest.TestCase):
         """Write Data to an HDF5 file as a compressed CArray."""
         hdfFile = tables.File(Filename1, 'a')
         #The filter is the same used to save MSMB2 data
-        hdfFile.createCArray("/", "Data", tables.Float32Atom(),Data.shape,filters=Serializer.Filter)
+        hdfFile.createCArray("/", "Data", tables.Float32Atom(),Data.shape,filters=Filter)
         hdfFile.root.Data[:]=Data[:]
         hdfFile.flush()
         hdfFile.close()

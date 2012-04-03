@@ -22,47 +22,48 @@ import os
 import numpy
 import scipy.io
 
-from Emsmbuilder import TransitionPathTheory
+from Emsmbuilder.transition_path_theory import GetBCommittors
+from Emsmbuilder.transition_path_theory import GetFCommittors
+from Emsmbuilder.transition_path_theory import GetNetFlux
 
-import ArgLib
+from Emsmbuilder import arglib
 
 def run(TC, Uv, Fv, Populations):
 
-    # Check output isn't taken
-    output_flist = ["BCommittors.dat", "FCommittors.dat", "NFlux.mtx"]
-    for output in output_flist:
-        if os.path.exists(output):
-            print "Error: File %s already exists! Exiting." % output
-            sys.exit(1)
-
     # Get committors and flux
     print "Getting committors and flux..."
-    Bc = TransitionPathTheory.GetBCommittors(Uv, Fv, TC, Populations, maxiter=100000, X0=None, Dense=False)
+    Bc = GetBCommittors(Uv, Fv, TC, Populations, maxiter=100000, X0=None, Dense=False)
     print "Calculated reverse committors."
-    Fc = TransitionPathTheory.GetFCommittors(Uv, Fv, TC, maxiter=100000, X0=None, Dense=False)
+    Fc = GetFCommittors(Uv, Fv, TC, maxiter=100000, X0=None, Dense=False)
     print "Calculated forward committors."
-    NFlux = TransitionPathTheory.GetNetFlux(Populations, Fc, Bc, TC)
+    NFlux = GetNetFlux(Populations, Fc, Bc, TC)
     print "Calculated net flux."
-
-    numpy.savetxt("BCommittors.dat", Bc)
-    numpy.savetxt("FCommittors.dat", Fc)
-    scipy.io.mmwrite("NFlux.mtx", NFlux)
-    print "Wrote: BCommittors.dat, FCommittors.dat, NFlux.mtx"
+    
+    return Bc, Fc, NFlux
 
 if __name__ == "__main__":
-    print """\nCalculates a number of kinetic transition properties of a given MSM. Returns:
-    (1) FCommittors.dat - the forward committors of the MSM (numpy savetxt)
-    (2) BCommittors.dat - the backward committors (numpy savetxt)
-    (3) NFlux.mtx - the net flux matrix (scipy sparse fmt)\n
-    """
-    arglist=["tmat", "starting", "ending", "populations"]
-    options=ArgLib.parse(arglist)
-    print sys.argv
-
-    T = scipy.io.mmread(str(options.tmat))
-    U = numpy.loadtxt(options.starting, int)
-    F = numpy.loadtxt(options.ending, int)
-    Pops = numpy.loadtxt(options.populations)
+    parser = arglib.ArgumentParser(description=
+"""Calculates a number of kinetic transition properties of a given MSM. Returns:
+(1) FCommittors.dat - the forward committors of the MSM (numpy savetxt)
+(2) BCommittors.dat - the backward committors (numpy savetxt)
+(3) NFlux.mtx - the net flux matrix (scipy sparse fmt)""")
+    parser.add_argument('tProb')
+    parser.add_argument('starting', description='''Vector of states in the
+        starting/reactants/unfolded ensemble.''', default='U_states.dat',
+        type=arglib.LoadTxtType(dtype=int))
+    parser.add_argument('ending', description='''Vector of states in the
+        ending/products/folded ensemble.''', default='F_states.dat',
+        type=arglib.LoadTxtType(dtype=int))
+    parser.add_argument('populations', description='''State equilibrium populations
+        file, in numpy .dat format.''', default='Data/Populations.dat',
+        type=arglib.LoadTxtType())
+    parser.add_argument('output_dir', default='.')
+    args = parser.parse_args()
+    
+    T = args.tProb
+    U = args.starting
+    F = args.ending
+    Pops = args.populations
 
     # deal with case where have single start or end state
     if U.shape == ():
@@ -74,4 +75,14 @@ if __name__ == "__main__":
         tmp[0] = int(F)
         F = tmp.copy()
 
-    run(T, U, F, Pops)
+    # Check output isn't taken
+    output_list = ["BCommittors.dat", "FCommittors.dat", "NFlux.mtx"]
+    output_flist = [os.path.join(args.output_dir, f) for f in output_list]
+    arglib.die_if_path_exists(output_flist)
+    
+    Bc, Fc, NFlux = run(T, U, F, Pops)
+    
+    numpy.savetxt(output_flist[0], Bc)
+    numpy.savetxt(output_flist[1], Fc)
+    scipy.io.mmwrite(output_flist[2], NFlux)
+    print "Wrote: %s" % ', '.join(output_flist)

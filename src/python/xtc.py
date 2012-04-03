@@ -182,7 +182,7 @@ class XTCReader:
         else:
             self._filenames = filenames[:]#Want to copy the list so as not to destroy it.
 
-        print(self._filenames)
+        #print(self._filenames)
         self.natoms = number_of_atoms(self._filenames[0])
         self._allcoords = np.empty([self.natoms,3],dtype='single',order='C')
         if self._atomindices != None:

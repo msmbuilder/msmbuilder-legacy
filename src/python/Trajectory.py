@@ -24,12 +24,17 @@ import os
 import tables
 import numpy as np
 
-from Emsmbuilder import PDB, Conformation, Serializer, xtc, dcd
+from Emsmbuilder import PDB
+from Emsmbuilder import Conformation
+from Emsmbuilder.Serializer import Serializer
+from Emsmbuilder import xtc
+from Emsmbuilder import dcd
+
 
 MAXINT16=32766
 
 
-def ConvertToLossyIntegers(X,Precision):
+def _ConvertToLossyIntegers(X,Precision):
     """Implementation of the lossy compression used in Gromacs XTC using the pytables library.  Convert 32 bit floats into 16 bit integers.  These conversion functions have been optimized for memory use.  Further memory reduction would require an in-place astype() operation, which one could create using ctypes."""
     if np.max(X)*float(Precision)< MAXINT16 and np.min(X)*float(Precision) > -MAXINT16:
         X*=float(Precision)
@@ -42,7 +47,7 @@ def ConvertToLossyIntegers(X,Precision):
         print("Data range too large for int16: try removing center of mass motion, check for 'blowing up, or just use .h5 or .xtc format.'")
     return(Rounded)
 
-def ConvertFromLossyIntegers(X,Precision):
+def _ConvertFromLossyIntegers(X,Precision):
     """Implementation of the lossy compression used in Gromacs XTC using the pytables library.  Convert 16 bit integers into 32 bit floats."""
     X2=X.astype("float32")
     X2/=float(Precision)
@@ -93,8 +98,8 @@ class Trajectory(Conformation.ConformationBaseClass):
         Serializer.CheckIfFileExists(Filename)
         key="XYZList"
         X=self.pop(key)
-        Serializer.Serializer.SaveToHDF(self,Filename)
-        Rounded=ConvertToLossyIntegers(X,Precision)
+        Serializer.SaveToHDF(self,Filename)
+        Rounded=_ConvertToLossyIntegers(X,Precision)
         self[key]=Rounded
         Serializer.SaveEntryAsCArray(self[key],key,Filename=Filename)
         self[key]=X
@@ -161,7 +166,7 @@ class Trajectory(Conformation.ConformationBaseClass):
         return(Trajectory(PDB.LoadPDB(Filename,AllFrames=True)))
     
     @classmethod
-    def LoadFromXTC(cls,XTCFilenameList,PDBFilename=None,Conf=None,PreAllocate=True,JustInspect=False):       
+    def LoadFromXTC(cls,XTCFilenameList,PDBFilename=None,Conf=None,PreAllocate=True,JustInspect=False):
         """Create a Trajectory from a Filename."""
         if PDBFilename!=None:
             A=Trajectory.LoadFromPDB(PDBFilename)
@@ -181,7 +186,7 @@ class Trajectory(Conformation.ConformationBaseClass):
                     ConfShape=np.shape(c.coords)
                 i=i+1
             Shape=np.array((i,ConfShape[0],ConfShape[1]))
-            return(Shape)            
+            return(Shape)
         return(A)
     @classmethod
 
@@ -248,7 +253,7 @@ class Trajectory(Conformation.ConformationBaseClass):
     def LoadFromHDF(cls,Filename,JustInspect=False):
         """Load a conformation that was previously saved as HDF."""
         if not JustInspect:
-            S=Serializer.Serializer.LoadFromHDF(Filename)
+            S=Serializer.LoadFromHDF(Filename)
             A=cls(S)
             return(A)
         else:
@@ -260,9 +265,9 @@ class Trajectory(Conformation.ConformationBaseClass):
     def LoadFromLHDF(cls,Filename,JustInspect=False,Precision=1000):
         """Load a conformation that was previously saved as HDF."""
         if not JustInspect:
-            S=Serializer.Serializer.LoadFromHDF(Filename)
+            S=Serializer.LoadFromHDF(Filename)
             A=cls(S)
-            A["XYZList"]=ConvertFromLossyIntegers(A["XYZList"],Precision)
+            A["XYZList"]=_ConvertFromLossyIntegers(A["XYZList"],Precision)
             return(A)
         else:
             F1=tables.File(Filename)
@@ -291,7 +296,7 @@ class Trajectory(Conformation.ConformationBaseClass):
         F1=tables.File(TrajFilename)
         XYZ=F1.root.XYZList[WhichFrame]
         F1.close()
-        XYZ=ConvertFromLossyIntegers(XYZ,Precision)
+        XYZ=_ConvertFromLossyIntegers(XYZ,Precision)
         return(XYZ)
     @classmethod
     def ReadFrame(cls,TrajFilename,WhichFrame,Conf=None):

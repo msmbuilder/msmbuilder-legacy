@@ -22,8 +22,14 @@ import os
 from numpy import array,argmax
 import string
 
+from Emsmbuilder import utils
 from Emsmbuilder import Trajectory, Conformation, Project
 from Emsmbuilder.metrics import RMSD
+import multiprocessing
+try:
+    from deap import dtm
+except:
+    pass
 
 def CreateMergedTrajectoriesFromFAH(PDBFilename,DataDir,NumRuns,NumClones,InFilenameRoot="frame",OutFilenameRoot="trj",OutDir="./Trajectories",OutFileType=".lh5",WhichRunsClones=None,Stride=1,NamingConvention=0,AtomIndices=None,Usetrjcat=False,MaxRMSD=7,DiscardHighRMSD=True,MaxGen=100000,MinGen=0,DiscardFirstN=0,trjcatFlags=["-cat"],ProjectFilename="ProjectInfo.ph5",CenterConformations=True,SkipTrajCat=False):
     """Create an MSMBuilder Project from a FAH project, making fragmented trajectories (generations) whole.
@@ -152,20 +158,20 @@ def ConvertRunClone(Run,Clone,TrajNumber,Conf1,DataDir,RunList,CloneList,NumGens
     if not os.path.exists(OutFilename):
         if SkipTrajCat==False:
             if Usetrjcat==False:
-                try: Traj=Trajectory.Trajectory.LoadFromXTC(FilenameList,Conf=Conf1)  # Try to skip bad trajs
+                try: Traj=Trajectory.LoadFromXTC(FilenameList,Conf=Conf1)  # Try to skip bad trajs
                 except IOError:
                     corrupted_xtcs = True
                     xtc_ind = 1
                     while corrupted_xtcs:
                         print "WARNING: Found corrupted XTC: %s" % FilenameList[-xtc_ind]
                         print "Attempting to recover by discarding this %d-to-last frame..." % xtc_ind
-                        try: Traj=Trajectory.Trajectory.LoadFromXTC(FilenameList[:-xtc_ind], Conf=Conf1)
+                        try: Traj=Trajectory.LoadFromXTC(FilenameList[:-xtc_ind], Conf=Conf1)
                         except IOError: xtc_ind += 1 
                         else: corrupted_xtcs = False
             else:
                 CMD="trjcat -f %s %s"%(string.join(FilenameList),string.join(trjcatFlags))
                 os.system(CMD)
-                Traj=Trajectory.Trajectory.LoadFromXTC("trajout.xtc",PDBFilename=PDBFilename)
+                Traj=Trajectory.LoadFromXTC("trajout.xtc",PDBFilename=PDBFilename)
                 os.remove("trajout.xtc")
             Traj["XYZList"]=Traj["XYZList"][DiscardFirstN::Stride]
             if AtomIndices!=None:
@@ -184,7 +190,7 @@ def ConvertRunClone(Run,Clone,TrajNumber,Conf1,DataDir,RunList,CloneList,NumGens
         else:
             CMD="trjcat -f %s %s"%(string.join(FilenameList),string.join(trjcatFlags))
             os.system(CMD)
-            Traj=Trajectory.Trajectory.LoadFromXTC("trajout.xtc",PDBFilename=PDBFilename)
+            Traj=Trajectory.LoadFromXTC("trajout.xtc",PDBFilename=PDBFilename)
             os.remove("trajout.xtc")
     else:
         print("Already Found File %s; skipping"%OutFilename)
@@ -195,7 +201,7 @@ def ConvertRunClone(Run,Clone,TrajNumber,Conf1,DataDir,RunList,CloneList,NumGens
 
 def CreateMergedTrajectories(PDBFilename,ListOfXTCList,OutFilenameRoot="trj",
                              OutDir="./Trajectories",OutFileType=".lh5",Stride=1,
-                             AtomIndices=None,InFileType=".xtc"):
+                             AtomIndices=None,InFileType=".xtc", parallel=None):
     """Create Merged Trajectories from a list of xtcs.
 
     Inputs:
@@ -215,14 +221,28 @@ def CreateMergedTrajectories(PDBFilename,ListOfXTCList,OutFilenameRoot="trj",
     except OSError:
         print("ERROR: the directory %s already exists.  Exiting!"%OutDir)
         return
-    for i in range(len(ListOfXTCList)):
-        FilenameList=ListOfXTCList[i]
+    
+
+    if parallel == 'multiprocessing':
+        pool = multiprocessing.Pool()
+        mymap = pool.map
+    elif parallel == 'dtm':
+        mymap = dtm.map
+    else:
+        mymap = map
+        
+    mymap(_ConvertFilenameList, utils.uneven_zip(ListOfXTCList, range(len(ListOfXTCList)),
+        [PDBFilename], [InFileType], [OutDir], [OutFilenameRoot], [OutFileType], [Stride], [AtomIndices]))
+    
+def _ConvertFilenameList(args):
+        FilenameList, i, PDBFilename, InFileType, OutDir, OutFilenameRoot, OutFileType, Stride, AtomIndices = args
+        #FilenameList=ListOfXTCList[i]
         if len(FilenameList)>0:
-            print(FilenameList)
-            if InFileType=='.dcd': # TG should auto-switch instead
-                Traj=Trajectory.Trajectory.LoadFromDCD(FilenameList,PDBFilename=PDBFilename)
+            print FilenameList
+            if InFileType =='.dcd': # TG should auto-switch instead
+                Traj=Trajectory.LoadFromDCD(FilenameList,PDBFilename=PDBFilename)
             else:
-                Traj=Trajectory.Trajectory.LoadFromXTC(FilenameList,PDBFilename=PDBFilename)
+                Traj=Trajectory.LoadFromXTC(FilenameList,PDBFilename=PDBFilename)
             Traj["XYZList"]=Traj["XYZList"][::Stride]
             if AtomIndices!=None:
                 Traj.RestrictAtomIndices(AtomIndices)

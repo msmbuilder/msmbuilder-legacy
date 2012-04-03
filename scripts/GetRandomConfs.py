@@ -22,44 +22,50 @@ import os
 
 from Emsmbuilder import Project
 from Emsmbuilder import Serializer
+from Emsmbuilder import arglib
 
-import ArgLib
-
-def run(P1, Assignments, NumConfsPerState, output):
-
-    # Check output paths
-    if os.path.exists(output):
-        print "Error: File %s already exists! Exiting." % output
-        sys.exit(1)
-
-    NumStates=max(Assignments.flatten())+1
-    print "Pulling", NumConfsPerState, "for each of", NumStates
-    RandomConfs=P1.GetRandomConfsFromEachState(Assignments,NumStates,NumConfsPerState)
-    RandomConfs.SaveToLHDF(output)
-    RandomConfs.SaveToPDB(output+".pdb")
+def run(project, assignments, num_confs_per_state, output, format):
+    arglib.die_if_path_exists(output)
+    num_states = max(assignments.flatten()) + 1
+    print "Pulling", num_confs_per_state, "for each of", num_states
+    random_confs = project.GetRandomConfsFromEachState(assignments, num_states, num_confs_per_state)
+    
+    if format == 'pdb':
+        random_confs.SaveToPDB(output)
+    elif format == 'lh5':
+        random_confs.SaveToLHDF(output)
+    elif format == 'xtc':
+        random_confs.SaveToXTC(output)
+    else:
+        raise ValueError('Unrecognized format')
     print "Wrote output to:", output
 
     return
 
 
 if __name__ == "__main__":
-    print """
-\nPulls a certain number of random conformations from each cluster. Returns these
-as an HDF5 file that contains one long chain of these conformations that looks
+    parser = arglib.ArgumentParser(description="""
+Pulls a certain number of random conformations from each cluster. Returns these
+as an HDF5/PDB/XTC file that contains one long chain of these conformations that looks
 like a Trajectory. If you selected to sample N conformations from each cluster,
-the first N conformations are from cluster 0, the next N from cluster 1, etc.\n"""
+the first N conformations are from cluster 0, the next N from cluster 1, etc.
 
-    print "Output default: XRandomConfs.lh5, where X=Number of Conformations.\n"
-    arglist=["projectfn", "assignments", "conformations", "output"]
-    options=ArgLib.parse(arglist, Custom=[
-        ("output","The name of the RandomConfs trajectory (.lh5) to write. XRandomConfs.lh5, where X=Number of Conformations.", "NoOutputSet"),
-        ("assignments", "Path to assignments file. Default: Data/Assignments.Fixed.h5", "Data/Assignments.Fixed.h5")])
-    if options.output=='NoOutputSet': output='%sRandomConfs.lh5' % options.conformations
-    else: output=options.output
-    print sys.argv
+Output default: XRandomConfs.lh5, where X=Number of Conformations.""")
+    parser.add_argument('project')
+    parser.add_argument('assignments', default='Data/Assignments.Fixed.h5')
+    parser.add_argument('output', description="""The name of the RandomConfs
+        trajectory (.lh5) to write. XRandomConfs.lh5, where X=Number of
+        Conformations.""", default='XRandomConfs')
+    parser.add_argument('conformations_per_state', description='''Number of
+        conformations to randomly sample from your data per state''', type=int)
+    parser.add_argument('format', description='''Format to output the data in. Note
+        that the PDB format is uncompressed and not efficient. For XTC, you can view
+        the trajectory using your project's topology file''', default='lh5',
+        choices=['pdb', 'xtc', 'lh5'])    
+    args = parser.parse_args()
+    
+    if args.output == 'XRandomConfs':
+            args.output = '%dRandomConfs.%s' % (args.conformations_per_state, args.format)
 
-    P1=Project.Project.LoadFromHDF(options.projectfn)
-    Assignments=Serializer.LoadData(options.assignments)
-    NumConfsPerState=int(options.conformations)
-
-    run(P1, Assignments, NumConfsPerState, output)
+    run(args.project, args.assignments['Data'], args.conformations_per_state,
+        args.output, args.format)

@@ -19,53 +19,78 @@
 
 import sys, os
 import scipy.io
-from numpy import savetxt
+import numpy as np
 
 from Emsmbuilder import Serializer
 from Emsmbuilder import MSMLib
 from Emsmbuilder import lumping
+from Emsmbuilder import arglib
 
-import ArgLib
+float_or_none = lambda s: None if s.lower() == 'none' else float(s)
 
-def run(macrostates, Assignments, TC, OutDir="./Data/"):
-
-    MacroAssFilename = os.path.join(OutDir, "MacroAssignments.h5")
-    ArgLib.CheckPath(MacroAssFilename)
-
-    MacroMapFilename = os.path.join(OutDir, "MacroMapping.dat")
-    ArgLib.CheckPath(MacroMapFilename)
-    
+def run_pcca(num_macrostates, assignments, tProb, output_dir):
+    MacroAssignmentsFn = os.path.join(output_dir, "MacroAssignments.h5")
+    MacroMapFn = os.path.join(output_dir, "MacroMapping.dat")
+    arglib.die_if_path_exists([MacroAssignmentsFn, MacroMapFn])
 
     print "Running PCCA..."
-    MAP = lumping.PCCA(TC,macrostates)
+    MAP = lumping.PCCA(tProb, num_macrostates)
 
     # MAP the new assignments and save, make sure don't
     # mess up negaitve one's (ie where don't have data)
-    MSMLib.ApplyMappingToAssignments(Assignments,MAP)
+    MSMLib.ApplyMappingToAssignments(assignments, MAP)
 
-    savetxt(MacroMapFilename,MAP,"%d")
-    Serializer.SaveData(MacroAssFilename,Assignments)
+    np.savetxt(MacroMapFn, MAP, "%d")
+    Serializer.SaveData(MacroAssignmentsFn,assignments)
     
-    print "Wrote: {af}, {mf}".format(af=MacroAssFilename, mf=MacroMapFilename)
-    return
+    print "Wrote: {af}, {mf}".format(af=MacroAssignmentsFn, mf=MacroMapFn)
+    
+def run_pcca_plus(num_macrostates, assignments, tProb, output_dir, flux_cutoff=0.0, min_population=0.0):
+    MacroAssignmentsFn = os.path.join(output_dir, "MacroAssignments.h5")
+    MacroMapFn = os.path.join(output_dir, "MacroMapping.dat")
+    ChiFn = os.path.join(output_dir, 'Chi.dat')
+    AFn = os.path.join(output_dir, 'A.dat')
+    arglib.die_if_path_exists([MacroAssignmentsFn, MacroMapFn, ChiFn, AFn])
+    
+    print "Running PCCA+..."
+    A, chi, vr, MAP = lumping.pcca_plus(tProb, num_macrostates, flux_cutoff=flux_cutoff,
+        do_minimization=True, min_population=min_population)
+
+    MSMLib.ApplyMappingToAssignments(assignments, MAP)    
+
+    np.savetxt(ChiFn, chi)
+    np.savetxt(AFn, A)
+    np.savetxt(MacroMapFn, MAP,"%d")
+    Serializer.SaveData(MacroAssignmentsFn, assignments)
+    print '\nWrote %s' % ', '.join([ChiFn, AFn, MacroMapFn, MacroAssignmentsFn])
 
 
 if __name__ == "__main__":
-    print """
-\nApplies the PCCA algorithm to lump your microstates into macrostates. You may
+    parser = arglib.ArgumentParser(description="""
+Applies the (f)PCCA(+) algorithm to lump your microstates into macrostates. You may
 specify a transition matrix if you wish - this matrix is used to determine the
 dynamics of the microstate model for lumping into kinetically relevant
-macrostates. See also the PCCAPlus.py script for the simplex version (PCCA+) of
-the algorithm.
+macrostates.
 
-Output: MacroAssignments.h5, a new assignments HDF file, for the Macro MSM.\n"""
-
-    arglist=["macrostates", "assignments", "tmat", "outdir"]
-    options=ArgLib.parse(arglist, Custom=[("assignments", "Path to assignments file. Default: Data/Assignments.Fixed.h5", "Data/Assignments.Fixed.h5")])
-    print sys.argv
-
-    Assignments=Serializer.LoadData(options.assignments)
-    macrostates = int(options.macrostates)
-    TMatrix = scipy.io.mmread(str(options.tmat))
-
-    run(macrostates, Assignments, TMatrix, OutDir=options.outdir)
+Output: MacroAssignments.h5, a new assignments HDF file, for the Macro MSM.""")
+    parser.add_argument('assignments', default='Data/Assignments.Fixed.h5')
+    parser.add_argument('num_macrostates', type=int)
+    parser.add_argument('tProb')
+    parser.add_argument('output_dir')
+    parser.add_argument('algorithm', description='Which algorithm to use', choices=['PCCA', 'PCCA+'], default='PCCA')
+    parser.add_argument_group('Extra PCCA+ Options')
+    parser.add_argument('flux_cutoff', description='''Discard eigenvectors below
+        this flux''', default='None', type=float_or_none)
+    parser.add_argument('min_population', description='''Require PCCA+ states to
+        have minimum population''', default=0.0, type=float)
+    
+    args = parser.parse_args()
+    
+    
+    if args.algorithm == 'PCCA':
+        run_pcca(args.num_macrostates, args.assignments['Data'], args.tProb, args.output_dir)
+    elif args.algorithm == 'PCCA+':
+        run_pcca_plus(args.num_macrostates, args.assignments['Data'], args.tProb, args.output_dir,
+                      args.flux_cutoff, args.min_population)
+    else:
+        raise Exception()

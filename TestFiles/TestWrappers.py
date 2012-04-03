@@ -89,9 +89,9 @@ class TestWrappers(unittest.TestCase):
         os.chdir(WorkingDir)
         shutil.copy(PDBFn,"./")
         ConvertDataToHDF.run(ProjectFn, PDBFn, TutorialDir+"/XTC", "file", 0, 0, 1,1000000)
-        P1 = Project.Project.LoadFromHDF(ProjectFn)
+        P1 = Project.LoadFromHDF(ProjectFn)
         
-        r_P1 = Project.Project.LoadFromHDF(os.path.abspath(os.path.join('..', ReferenceDir, ProjectFn)))
+        r_P1 = Project.LoadFromHDF(os.path.abspath(os.path.join('..', ReferenceDir, ProjectFn)))
         
         #self.assertEqual(P1['ConfFilename'], r_P1['ConfFilename'])
         self.assertEqual(P1['NumTrajs'], r_P1['NumTrajs'])
@@ -106,35 +106,35 @@ class TestWrappers(unittest.TestCase):
         numpy.testing.assert_array_equal(P1['TrajLengths'], r_P1['TrajLengths'])
         
     def test_b_CreateAtomIndices(self):
-        output = "AtomIndices.dat"
-        CreateAtomIndices.run(PDBFn, 'minimal', output)
-        AInd=np.loadtxt("AtomIndices.dat", int)
+        AInd = CreateAtomIndices.run(PDBFn, 'minimal')
+        np.savetxt("AtomIndices.dat", AInd, "%d")
         r_AInd=np.loadtxt(ReferenceDir + "/AtomIndices.dat", int)
         numpy.testing.assert_array_equal(AInd, r_AInd)
 
     def test_c_Cluster(self):
         # We need to be sure to skip the stochastic k-mediods
-        cmd = "Cluster_E.py -r %s -p %s -u %s -i %s -G %s -m %s" % (RMSDCutoff, ProjectFn, Stride, "AtomIndices.dat", GlobalKMedoids, LocalKMedoids)
+        cmd = "Cluster.py -p {project} -S {stride} rmsd -a {atomindices} kcenters -d {rmsdcutoff}".format(project=ProjectFn, stride=Stride, atomindices="AtomIndices.dat", rmsdcutoff=RMSDCutoff)
+        print cmd
+
         os.system(cmd)
         
         try:
-            os.remove('./Data/Assignments.h5')
-            os.remove('./Data/Assignments.h5.RMSD')
+            os.remove(os.path.join(WorkingDir, 'Data', 'Assignments.h5'))
+            os.remove(os.path.join(WorkingDir, 'Data', 'Assignments.h5.distances'))
         except:
             pass
 
         
-        G   = Trajectory.Trajectory.LoadTrajectoryFile(GensPath)
-        r_G = Trajectory.Trajectory.LoadTrajectoryFile(ReferenceDir +'/'+ GensPath)
+        G   = Trajectory.LoadTrajectoryFile(GensPath)
+        r_G = Trajectory.LoadTrajectoryFile(ReferenceDir +'/'+ GensPath)
         self.assert_trajectories_equal(G, r_G)
 
     def test_d_Assign(self):
-        cmd = "Assign_E.py -p %s -g %s -i %s -w %s" % (ProjectFn, GensPath, "AtomIndices.dat", "./Data")
+        cmd = "Assign.py -p %s -g %s -o %s rmsd -a %s" % (ProjectFn, GensPath, "./Data", "AtomIndices.dat")
         os.system(cmd)
         
-        
         Assignments       = Serializer.LoadData("./Data/Assignments.h5")
-        AssignmentsRMSD   = Serializer.LoadData("./Data/Assignments.h5.RMSD")
+        AssignmentsRMSD   = Serializer.LoadData("./Data/Assignments.h5.distances")
         
         r_Assignments     = Serializer.LoadData(ReferenceDir +"/Data/Assignments.h5")
         r_AssignmentsRMSD = Serializer.LoadData(ReferenceDir +"/Data/Assignments.h5.RMSD")
@@ -187,15 +187,15 @@ class TestWrappers(unittest.TestCase):
 
     def test_g_GetRandomConfs(self):
         # This one is tricky since it is stochastic...
-        P1 = Project.Project.LoadFromHDF(ProjectFn)
+        P1 = Project.LoadFromHDF(ProjectFn)
         Assignments = Serializer.LoadData("Data/Assignments.Fixed.h5")
-        GetRandomConfs.run(P1, Assignments, NumRandomConformations, "2RandomConfs.lh5")
-        Trajectory.Trajectory.LoadTrajectoryFile("2RandomConfs.lh5")
+        GetRandomConfs.run(P1, Assignments, NumRandomConformations, "2RandomConfs.lh5", 'lh5')
+        Trajectory.LoadTrajectoryFile("2RandomConfs.lh5")
         # Kyle: you may have a good idea for the efficient testing of this
 
     def test_h_CalculateClusterRadii(self):
 
-        args = ("Data/Assignments.h5", "Data/Assignments.h5.RMSD", MinState,MaxState)
+        args = ("Data/Assignments.h5", "Data/Assignments.h5.distances", MinState,MaxState)
         #Note this one RETURNS a value, not saves it to disk.
         cr=CalculateClusterRadii.run(args) #recall that this one bundles stuff
         time.sleep(10) # we have to wait a little to get results
@@ -204,11 +204,11 @@ class TestWrappers(unittest.TestCase):
 
     def test_i_CalculateRMSD(self):
         #C1   = Conformation.Conformation.LoadFromPDB(PDBFn)
-        #Traj = Trajectory.Trajectory.LoadTrajectoryFile("Data/Gens.lh5")
+        #Traj = Trajectory.LoadTrajectoryFile("Data/Gens.lh5")
         #AInd = np.loadtxt("AtomIndices.dat", int)
         #CalculateRMSD.run(C1, Traj, AInd, "RMSD.dat")
         outpath = os.path.join(WorkingDir, "RMSD.dat")
-        os.system('CalculateRMSD.py -s %s -I %s -i %s -o %s -p %s' % (PDBFn, "Data/Gens.lh5", "AtomIndices.dat", outpath, ProjectFn))
+        os.system('CalculateRMSD.py -s %s -i %s -a %s -o %s -p %s' % (PDBFn, "Data/Gens.lh5", "AtomIndices.dat", outpath, ProjectFn))
         
         cr   = np.loadtxt(outpath)
         cr_r = np.loadtxt(os.path.join(ReferenceDir, "RMSD.dat"))
@@ -218,7 +218,7 @@ class TestWrappers(unittest.TestCase):
 
         TC = scipy.io.mmread(os.path.join(WorkingDir,"Data", "tProb.mtx"))
         A  = Serializer.LoadData(os.path.join(WorkingDir,"Data", "Assignments.Fixed.h5"))
-        PCCA.run(NumMacroStates, A, TC, os.path.join(WorkingDir, 'Data'))
+        PCCA.run_pcca(NumMacroStates, A, TC, os.path.join(WorkingDir, 'Data'))
 
         mm   = np.loadtxt(os.path.join(WorkingDir, "Data", "MacroMapping.dat"),'int')
         mm_r = np.loadtxt(os.path.join(ReferenceDir, "Data", "MacroMapping.dat"),'int')
@@ -241,12 +241,12 @@ class TestWrappers(unittest.TestCase):
         numpy.testing.assert_array_almost_equal(ma, ma_r)
 
     def test_k_CalculateProjectRMSD(self):
-        #C1 = Conformation.Conformation.LoadFromPDB(PDBFn)
-        #P1 = Project.Project.LoadFromHDF(ProjectFn)
+        #C1 = Conformation.LoadFromPDB(PDBFn)
+        #P1 = Project.LoadFromHDF(ProjectFn)
         #AInd=np.loadtxt("AtomIndices.dat", int)
         #CalculateProjectRMSD.run(C1,P1,AInd,"RMSD.h5")
         outpath = os.path.join(WorkingDir, "RMSD.h5")
-        os.system('CalculateProjectRMSD.py -s %s -i %s -o %s -p %s' % (PDBFn, "AtomIndices.dat", outpath, ProjectFn))
+        os.system('CalculateProjectRMSD.py -s %s -a %s -o %s -p %s' % (PDBFn, "AtomIndices.dat", outpath, ProjectFn))
         
         
         r0=Serializer.LoadData(ReferenceDir+"/RMSD.h5")

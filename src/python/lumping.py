@@ -83,7 +83,7 @@ def get_maps(A):
 
     return flat_map,square_map
 
-def to_flat(A,flat_map):
+def to_flat(A, flat_map):
     """Convert a square matrix A to a flat array alpha."""
     return A[flat_map[:,0],flat_map[:,1]]
 
@@ -91,7 +91,7 @@ def to_square(alpha, square_map):
     """Convert a flat array alpha to a square array A."""
     return alpha[square_map]
 
-def pcca_plus(T,N, flux_cutoff=None,do_minimization=True,min_population=0.0):
+def pcca_plus(T, N, flux_cutoff=None, do_minimization=True, min_population=0.0):
     """Perform PCCA+.
 
     Inputs:
@@ -114,12 +114,12 @@ def pcca_plus(T,N, flux_cutoff=None,do_minimization=True,min_population=0.0):
         vr[:,i] *= np.sign(vr[0,i])
         vr[:,i] /= np.sqrt(dot(vr[:,i]*pi,vr[:,i]))
 
-    A, chi, microstate_mapping = opt_soft(vr,N,pi,lam,T,do_minimization=do_minimization,min_population=min_population)
+    A, chi, microstate_mapping = opt_soft(vr, N, pi, lam, T, do_minimization=do_minimization, min_population=min_population)
 
     return A, chi,vr, microstate_mapping
 
 
-def opt_soft(vr,N,pi,lam,T,do_minimization=True,use_anneal=True,min_population=0.0):
+def opt_soft(vr, N, pi, lam, T, do_minimization=True, use_anneal=True, min_population=0.0):
     """Core routine for PCCA+ algorithm.
     """
     n = len(vr[0])

@@ -18,15 +18,12 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 import sys
-import numpy
+import numpy as np
 
 from Emsmbuilder import Conformation
+from Emsmbuilder import arglib
 
-import ArgLib
-
-def run(PDBfn, atomtype, output):
-  print(output)
-  ArgLib.CheckPath(output)
+def run(PDBfn, atomtype):
   
   # dictionaries with residue types as keys and list of atoms to keep for given residue as entries
   toKeepDict = {
@@ -121,32 +118,39 @@ def run(PDBfn, atomtype, output):
     pass
   else: print "Error: Cannot understand atom type:", atomtype; sys.exit(1)
 
-  C1=Conformation.Conformation.LoadFromPDB(PDBfn)
+  C1 = Conformation.LoadFromPDB(PDBfn)
 
-  if atomtype!= "all":
-    IndicesToKeep=GrabSpecificAtoms(C1,toKeepDict)
+  if atomtype != "all":
+    IndicesToKeep = GrabSpecificAtoms(C1,toKeepDict)
   else:
-    IndicesToKeep=numpy.arange(C1.GetNumberOfAtoms())
-  numpy.savetxt(output,IndicesToKeep,"%d")
+    IndicesToKeep = np.arange(C1.GetNumberOfAtoms())
+  
+  return IndicesToKeep
 
 def GrabSpecificAtoms(C1,toKeepDict):
   IndicesToKeep=[]
   for k,CurrentIndices in enumerate(C1["IndexList"]):
-    Residue=C1["ResidueNames"][CurrentIndices[0]]
-    DesiredAtoms=toKeepDict[Residue]
-    IndicesRelativeToCurrentResidue=numpy.where(numpy.in1d(C1["AtomNames"][CurrentIndices],DesiredAtoms)==True)[0]
-    IndicesToKeep.extend(numpy.array(CurrentIndices)[IndicesRelativeToCurrentResidue])
-  IndicesToKeep=numpy.array(IndicesToKeep,'int')
+      Residue = C1["ResidueNames"][CurrentIndices[0]]
+      DesiredAtoms = toKeepDict[Residue]
+      IndicesRelativeToCurrentResidue = np.where(np.in1d(C1["AtomNames"][CurrentIndices],DesiredAtoms)==True)[0]
+      IndicesToKeep.extend(np.array(CurrentIndices)[IndicesRelativeToCurrentResidue])
+  IndicesToKeep = np.array(IndicesToKeep,'int')
   return(IndicesToKeep)
   
 if __name__ == "__main__":
-  print "\nCreates an atom indices file from a PDB.\n"
+  parser = arglib.ArgumentParser(description="Creates an atom indices file from a PDB.")
+  parser.add_argument('pdb')
+  parser.add_argument('output', default='AtomIndices.dat')
+  parser.add_argument('atom_type', description='''Atoms to include in index file.
+    One of four options: (1) minimal (CA, CB, C, N, O, recommended), (2) heavy,
+    (3) alpha (carbons), or (4) all.  Use "all" in cases where protein
+    nomenclature may be inapproprate, although you may want to define your own
+    indices in such situations.''', choices=['minimal', 'heavy', 'alpha', 'all'],
+    default='minimal')
+  args = parser.parse_args()
+  arglib.die_if_path_exists(args.output)
 
-  arglist=["PDBfn", "output", "atomtype"]
-  options=ArgLib.parse(arglist)
-  print sys.argv
-
-  if options.output == "NoOutputSet": output = "AtomIndices.dat"
-  else: output = options.output
-
-  run(options.PDBfn, options.atomtype, output)
+  indices = run(args.pdb, args.atom_type)
+  
+  np.savetxt(args.output, indices, '%d')
+  print 'Wrote %s' % args.output

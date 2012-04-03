@@ -6,56 +6,11 @@ from Emsmbuilder.Serializer import Serializer
 from Emsmbuilder.Trajectory import Trajectory
 from Emsmbuilder.clustering import _clarans, empty_trajectory_like
 from Emsmbuilder.utils import uneven_zip
-try:
-    from Emsmbuilder import mm
-except:
-    pass
+from Emsmbuilder import mm
+import portalocker
 
-def in_memory_assign(metric, generators, trajectories):
-    """This really should be called simple assign -- its the simplest"""
-
-    lengths = [len(traj) for traj in trajectories]
-    assignments = -1 * np.ones((len(lengths), max(lengths)), dtype='int')
-    distances = -1 * np.ones((len(lengths), max(lengths)), dtype='float32')
-    pgens = metric.prepare_trajectory(generators)
-
-    for i, traj in enumerate(trajectories):
-        ptraj = metric.prepare_trajectory(traj)
-        for j in xrange(len(traj)):
-            d = metric.one_to_all(ptraj, pgens, j)
-            assignments[i,j] = np.argmin(d)
-            distances[i,j] = d[assignments[i,j]]
-
-    return assignments, distances
-    
-
-def simple_assign(metric, project, generators, assignments_path, distances_path):
-    """
-    Assign each of the frames in each of the trajectories in the supplied project to
-    their closest generator (frames of the trajectory "generators") using the supplied
-    distance metric.
-    
-    assignments_path and distances_path should be the filenames of to h5 files in which the
-    results are/will be stored. The results are stored along the way as they are computed,
-    and if this method is killed halfway through execution, you can restart it and it
-    will not have lost its place (i.e. checkpointing)
-    """
-    
-    #import hashlib
-    #print "Generators xyzlist hash", hashlib.sha1(generators['XYZList']).hexdigest()
-    
-    
-    pgens = metric.prepare_trajectory(generators)
-    
-    #print 'PGens XYZData hash', hashlib.sha1(pgens.XYZData).hexdigest()
-    
-    
-    
-    num_gens = len(pgens)
-    num_trajs = project['NumTrajs']
-    longest = max(project['TrajLengths'])
-    
-    # setup tmp files
+def _setup_containers(assignments_path, distances_path, num_trajs, longest):
+    "helper method"
     assignments_tmp = assignments_path + '.tmp'
     distances_tmp = distances_path + '.tmp'
     if os.path.exists(assignments_tmp):
@@ -67,7 +22,6 @@ def simple_assign(metric, project, generators, assignments_path, distances_path)
     all_assignments = -1 * np.ones((num_trajs, longest), dtype=np.int)
     
     if os.path.exists(assignments_path) and os.path.exists(distances_path):
-        print assignments_path
         s = Serializer.LoadFromHDF(assignments_path)
         t = Serializer.LoadFromHDF(distances_path)
         all_distances = s['Data']
@@ -85,6 +39,45 @@ def simple_assign(metric, project, generators, assignments_path, distances_path)
                     'completed_trajectories': completed_trajectories
                     }).SaveToHDF(assignments_path)
         Serializer({'Data': all_distances}).SaveToHDF(distances_path)
+        
+    return assignments_tmp, distances_tmp, all_assignments, all_distances, completed_trajectories
+
+
+def assign_in_memory(metric, generators, trajectories):
+    """This really should be called simple assign -- its the simplest"""
+
+    lengths = [len(traj) for traj in trajectories]
+    assignments = -1 * np.ones((len(lengths), max(lengths)), dtype='int')
+    distances = -1 * np.ones((len(lengths), max(lengths)), dtype='float32')
+    pgens = metric.prepare_trajectory(generators)
+
+    for i, traj in enumerate(trajectories):
+        ptraj = metric.prepare_trajectory(traj)
+        for j in xrange(len(traj)):
+            d = metric.one_to_all(ptraj, pgens, j)
+            assignments[i,j] = np.argmin(d)
+            distances[i,j] = d[assignments[i,j]]
+
+    return assignments, distances
+    
+
+def assign_with_checkpoint(metric, project, generators, assignments_path, distances_path):
+    """Assign each of the frames in each of the trajectories in the supplied project to
+    their closest generator (frames of the trajectory "generators") using the supplied
+    distance metric.
+    
+    assignments_path and distances_path should be the filenames of to h5 files in which the
+    results are/will be stored. The results are stored along the way as they are computed,
+    and if this method is killed halfway through execution, you can restart it and it
+    will not have lost its place (i.e. checkpointing)"""
+    pgens = metric.prepare_trajectory(generators)
+    
+    num_gens = len(pgens)
+    num_trajs = project['NumTrajs']
+    longest = max(project['TrajLengths'])
+    
+    assignments_tmp, distances_tmp, all_assignments, all_distances, completed_trajectories = _setup_containers(assignments_path,
+        distances_path, num_trajs, longest)
     
     for i in xrange(project['NumTrajs']):
         if completed_trajectories[i]:
@@ -96,39 +89,11 @@ def simple_assign(metric, project, generators, assignments_path, distances_path)
         distances = -1 * np.ones(len(ptraj), dtype=np.float32)
         assignments = -1 * np.ones(len(ptraj), dtype=np.int)
         
-        #for j in xrange(num_gens):
-        #    d = metric.one_to_all(pgens, ptraj, j)
-        #    where = np.where(d < distances)[0]
-        #    
-        #    distances[where] = d
-        #    assignments[where] = j
-        
-        #p2traj = RMSD.PrepareData(project.LoadTraj(i)['XYZList'][:, metric.atomindices])
-        #p2gens = RMSD.PrepareData(generators['XYZList'][:, metric.atomindices])
-        
         for j in range(len(ptraj)):
             d = metric.one_to_all(ptraj, pgens, j)
             ind = np.argmin(d)
             assignments[j] = ind
             distances[j] = d[ind]
-            
-
-            #d2 = RMSD.GetFastMultiDistance(p2traj, p2gens, j)
-            #np.testing.assert_array_equal(d, d2)
-        
-            #if i == 1 and j == 35:
-            #    print '1,35'
-            #    print "dist %.10f" % distances[35]
-            #    print 'assign ', assignments[35]
-            #    print 'ind ', ind
-            #    import hashlib
-            #    print 'atomindices hash', hashlib.sha1(metric.atomindices).hexdigest()
-            #    print 'ptraj ', hashlib.sha1(ptraj.XYZData).hexdigest()
-            #    print 'pgens ', hashlib.sha1(pgens.XYZData).hexdigest()
-            #    print 'p2gens', hashlib.sha1(p2gens.XYZData).hexdigest()
-            #    print '\n d[38]=%.10f' % d[38]
-            #    print '\nd2[38]=%.10f' % d2[38]
-            #    return (0,0)
             
         all_distances[i, 0:len(ptraj)] = distances
         all_assignments[i, 0:len(ptraj)] = assignments
@@ -149,48 +114,61 @@ def simple_assign(metric, project, generators, assignments_path, distances_path)
 ## ###################### ###################### #####################
 
 
-class MasterAssigner(object):
-    def __init__(self, metric, gens, project, checkpoint_dir):
-        self.metric = metric
-        self.gens = gens
-        self.pgens = self.metric.prepare_trajectory(gens)
-        self.checkpoint_dir = checkpoint_dir
-        self.project = project
+class MasterAssigner(mm.BaseMaster):
+    def run(self):
         
-        #if triangle_inq:
-        self._setup_triange()
-  
-    def _setup_triange(self):
+        assignments_tmp, distances_tmp, a0, a1, completed_trajectories = _setup_containers(self.assignments_path,
+            self.distances_path, self.project['NumTrajs'], max(self.project['TrajLengths']))
+        del a0, a1
+        
+        if self.use_triangle:
+            method = 'assign_triangle'
+            self._setup_triangle()
+            raise NotImplementedError('Sorry!')
+        else:
+            method = 'assign_notriangle'
+            for w in self.workers:
+                self.send(w, 'setup', self.project, self.metric, self.gensfn, assignments_tmp, distances_tmp,
+                                      self.assignments_path, self.distances_path, self.lock)
+        
+        self.pgens = self.metric.prepare_trajectory(Trajectory.LoadTrajectoryFile(self.gensfn))
+        trajs_to_run = []
+        for i,t in enumerate(completed_trajectories):
+            if t:
+                self.log('Skipping trajectory %d -- already assigned' % i)
+            else:
+                trajs_to_run.append(i)
+            
+        if len(trajs_to_run) > 0:
+            self.map(method, trajs_to_run)
+        
+        self.log('Finished')
+        
+    def _setup_triangle(self):
         metagens_k = 24
         metagens_i = _clarans(self.metric, self.pgens, metagens_k, num_local_minima=5, max_neighbors=5, local_swap=True, verbose=True)[0]
         self.tfilter = TriangleFilter(self.metric, metagens_i, self.gens)
         self.metagens = empty_trajectory_like(self.gens)
         self.metagens['XYZList'] = self.gens['XYZList'][metagens_i]
-        
-    def assign(self, simple=True):
-        mm.initialize_workers((self.project, self.metric, self.gens, self.tfilter, self.metagens, self.checkpoint_dir))
-        jobs = [(i,) for i in range(self.project['NumTrajs'])]
-        if simple:
-            mm.map('assign_simple', jobs)
-        else:
-            mm.map('assign', jobs)
-        
-        
 
-class SlaveAssigner(object):
-    def __init__(self, project, metric, gens, tfilter, metagens, checkpoint_dir):
+class WorkerAssigner(mm.BaseWorker):
+    def setup(self, project, metric, gensfn, assignments_tmp, distances_tmp, assignments_path, distances_path, lock):
         self.project = project
         self.metric = metric
-        self.pgens = metric.prepare_trajectory(gens)
-        self.pmetagens = metric.prepare_trajectory(metagens)
-        self.tfilter = tfilter
-        self.checkpoint_dir = checkpoint_dir
-        
-    def assign(self, traj_index):
-        print 'assigning %s' % traj_index
+        self.pgens = metric.prepare_trajectory(Trajectory.LoadTrajectoryFile(gensfn))
+        self.assignments_tmp = assignments_tmp
+        self.distances_tmp = distances_tmp
+        self.assignments_path = assignments_path
+        self.distances_path = distances_path
+        self.lock = lock
+        self.log('\nset up on rank={rank}\n'.format(rank=self.rank))
+    
+    def assign_triangle(self, traj_index):
+        self.log('assigning %s' % traj_index)
         traj = self.project.LoadTraj(traj_index)
         ptraj = self.metric.prepare_trajectory(traj)
         traj_length = len(ptraj)
+        self.log('traj length: %s' % traj_length)
         recent_assignments = RotatingCache(5)
         assignments = np.zeros(traj_length, 'int')
         distances = np.zeros(traj_length, 'float32')
@@ -229,15 +207,15 @@ class SlaveAssigner(object):
         
         s = Serializer({'assignments': assignments, 'distances': distances,
                                   'traj_index': traj_index})
-        checkpoint_filename = os.path.join(self.checkpoint_dir, 'trj_%d.chk' % traj_index)
+        checkpoint_filename = os.path.join(self.chkpt_dir, 'trj_%d.chk' % traj_index)
         s.SaveToHDF(checkpoint_filename)
     
-    def assign_simple(self, traj_index):
-        print 'assigning %s' % traj_index
+    def assign_notriangle(self, traj_index):
+        self.log('Assigning %s' % traj_index)
+        
         traj = self.project.LoadTraj(traj_index)
         ptraj = self.metric.prepare_trajectory(traj)
         traj_length = len(ptraj)
-        recent_assignments = RotatingCache(5)
         assignments = np.zeros(traj_length, 'int')
         distances = np.zeros(traj_length, 'float32')
         
@@ -245,10 +223,20 @@ class SlaveAssigner(object):
             d = self.metric.one_to_all(ptraj, self.pgens, i)
             assignments[i] = np.argmin(d)
             distances[i] = d[assignments[i]]
-        s = Serializer({'assignments': assignments, 'distances': distances,
-                        'traj_index': traj_index})
-        checkpoint_filename = os.path.join(self.checkpoint_dir, 'trj_%d.chk' % traj_index)
-        s.SaveToHDF(checkpoint_filename)
+
+        lock_object = open(self.lock, 'r+')
+        portalocker.lock(lock_object, portalocker.LOCK_EX)
+        all_assignments = Serializer.LoadFromHDF(self.assignments_path)
+        all_assignments['Data'][traj_index] = assignments
+        all_distances = Serializer.LoadFromHDF(self.distances_path)
+        all_distances['Data'][traj_index] = distances
+        all_assignments['completed_trajectories'][traj_index] = True
+        all_assignments.SaveToHDF(self.assignments_tmp)
+        all_distances.SaveToHDF(self.distances_tmp)
+        os.rename(self.assignments_tmp, self.assignments_path)
+        os.rename(self.distances_tmp, self.distances_path)
+        lock_object.close()
+
         
 class TriangleFilter(object):
     def __init__(self, metric, centers_i, traj):

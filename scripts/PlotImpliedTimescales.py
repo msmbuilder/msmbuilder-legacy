@@ -20,23 +20,22 @@
 from pylab import *
 from numpy import loadtxt
 import sys
+from Emsmbuilder import arglib
 
-import ArgLib
 
-print """
+
+parser = arglib.ArgumentParser(description="""
 \nPlots data generated from CalculateImpliedTimescales.py. You may want to use
 this as a template for a pylab session
 
-*** THIS IS A TEMPLATE ONLY ***\n"""
+We recommend modifying this script for your own purposes""")
+parser.add_argument('input', description='Path to ImpledTimescales.dat',
+    type=arglib.LoadTxtType(dtype=float), default='ImpliedTimescales.dat')
+parser.add_argument('dt', description='Time between snapshots in your data',
+    default=1, type=float)
+args = parser.parse_args()
 
-arglist=["input", "dt"]
-options=ArgLib.parse(arglist)
-print sys.argv
-
-lagTimes = loadtxt(options.input)
-dt = float(options.dt)
-
-scatter(lagTimes[:,0]*dt, lagTimes[:,1]*dt)
+scatter(args.input[:,0] * args.dt, args.input[:,1] * args.dt)
 yscale('log')
 title('Relaxation Timescales versus Lagtime')
 xlabel('Lag Time')

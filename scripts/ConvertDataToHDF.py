@@ -23,8 +23,12 @@ import glob
 
 from Emsmbuilder import CreateMergedTrajectoriesFromFAH
 from Emsmbuilder import Project
+try:
+    from deap import dtm
+except:
+    pass
 
-import ArgLib
+from Emsmbuilder.arglib import ArgumentParser
 
 # TG 25 jul 2011 from http://code.activestate.com/recipes/285264-natural-string-sorting/
 def keynat(string):
@@ -47,7 +51,7 @@ def keynat(string):
             r.append(c)
     return r
 
-def run(projectfn, PDBfn, InputDir, source, discard, mingen, stride, rmsd_cutoff):
+def run(projectfn, PDBfn, InputDir, source, discard, mingen, stride, rmsd_cutoff, parallel='None'):
 
     # Check output paths
     if not os.path.exists("Trajectories"): print "Making directory 'Trajectories' to contain output."
@@ -84,7 +88,7 @@ def run(projectfn, PDBfn, InputDir, source, discard, mingen, stride, rmsd_cutoff
         print "Loading data:"
         print Flist
         CreateMergedTrajectoriesFromFAH.CreateMergedTrajectories(PDBfn, Flist, 
-                           OutFileType=".lh5", InFileType=itype,Stride=stride)
+                           OutFileType=".lh5", InFileType=itype,Stride=stride, parallel=parallel)
 
 
 
@@ -118,30 +122,59 @@ def run(projectfn, PDBfn, InputDir, source, discard, mingen, stride, rmsd_cutoff
 
 
 if __name__ == "__main__":
-    print """
-\nMerges individual XTC files into continuous lossy HDF5 (.lh5) trajectories. Can
-take either data from a FAH project (PROJECT/RUN*/CLONE*/frame*.xtc) or from a
-directory containing one directory for each trajectory, with all the relevant XTCs
-inside that directory (PROJECT/TRAJ*/frame*.xtc).
+    parser = ArgumentParser(description="""Merges individual XTC files into continuous lossy
+    HDF5 (.lh5) trajectories. Can take either data from a FAH project
+    (PROJECT/RUN*/CLONE*/frame*.xtc) or from a directory containing one directory
+    for each trajectory, with all the relevant XTCs inside that directory 
+    (PROJECT/TRAJ*/frame*.xtc). Output: A 'Trajectories' directory containing
+    all the merged lh5 files, and a project info file containing information
+    MSMBuilder uses in subsequent calculations.""")
 
-Output: A 'Trajectories' directory containing all the merged lh5 files, and a
-project info file containing information MSMBuilder uses in subsequent
-calculations.\n"""
-
-    arglist=["projectfn", "PDBfn", "input", "source", "discard", "mingen", "stride", "rmsdcutoff" ]
-    options=ArgLib.parse(arglist,  Custom=[
-        ("input", "Path to the parent directory containing subdirectories with MD (.xtc) data. See the description above for the appropriate formatting for directory architecture.", None),
-        ("rmsdcutoff", "A safe-guard that discards any structure with and RMSD higher than the specified value (in nanometers, w/r/t the input PDB file). Pass -1 to disable this feature Default: -1 (off)", "-1")])
-    print sys.argv
-
-    ProjectFilename=options.projectfn
-    PDBFilename=options.PDBfn
-
-    rmsd_cutoff=float(options.rmsdcutoff)
+    parser.add_argument('project', type=str)
+    parser.add_argument('pdb')
+    parser.add_argument('input_dir', description='''Path to the parent directory
+        containing subdirectories with MD (.xtc) data. See the description above
+        for the appropriate formatting for directory architecture.''')
+    parser.add_argument('source', description='''Data source: "file", "file_dcd" or
+        "FAH". This is the style of trajectory data that gets fed into MSMBuilder.
+        If a file, then it requires each trajectory be housed in a separate directory
+        like (PROJECT/TRAJ*/frame*.xtc). If FAH, then standard FAH-style directory
+        architecture is required.''', default='file', choices=['fah', 'file'])
+    parser.add_argument('discard', description='''Number of frames to discard from the
+        end of XTC files. MSMb2 will disregard the last x frames from each XTC.
+        NOTE: This has changed from MSMb1.''', type=int, default=0)
+    parser.add_argument('mingen', description='''Minimum number of XTC frames 
+        required to include data in Project.  Used to discard extremely short 
+        trajectories.  Only allowed in conjunction with source = 'FAH'.''',
+        default=0, type=int)
+    parser.add_argument('stride', description='''Integer number to subsample by.
+        Every "u-th" frame will be taken from the data and converted to msmbuilder
+        format''', default=1, type=int)
+    parser.add_argument('rmsd_cutoff', description='''A safe-guard that discards any
+        structure with and RMSD higher than the specified value (in nanometers,
+         with respect to the input PDB file). Pass -1 to disable this feature''',
+         default=-1, type=float)
+    parser.add_argument('parallel', description='''Run the conversion in parallel.
+    multiprocessing launches multiple python interpreters to use all of your cores.
+    dtm uses mpi, and requires python's "deap" module to be installed. To execute the
+    code over mpi using dtm, you need to start the command with mpirun -np <num_procs>.
+    Note that in many circumstates, the conversion done by this script is IO bound,
+    not CPU bound, so parallelism can actually be detrememtal.''', default='None',
+        choices=['None', 'multiprocessing', 'dtm'])
+    args = parser.parse_args()
+    
+    rmsd_cutoff = args.rmsd_cutoff
     if rmsd_cutoff<=0.:
         rmsd_cutoff=1000.
     else:
         print "WARNING: Will discard any frame that is %f nm from the PDB conformation..." % rmsd_cutoff
-
-    run( ProjectFilename, PDBFilename, options.input, options.source,
-         int(options.discard), int(options.mingen), int(options.stride), rmsd_cutoff )
+    
+    if args.parallel != 'None' and args.source != 'file':
+        raise NotImplementedError('Sorry. At this point parallelism is only implemented for file-style')
+    
+    if args.parallel == 'dtm':
+        dtm.start(run, args.project, args.pdb, args.input_dir, args.source, args.discard,
+            args.mingen, args.stride, rmsd_cutoff, args.parallel)
+    else:
+        run(args.project, args.pdb, args.input_dir, args.source, args.discard,
+            args.mingen, args.stride, rmsd_cutoff, args.parallel)

@@ -19,31 +19,13 @@
 
 import os, sys
 import numpy as np
-from Emsmbuilder.Project import Project
-from Emsmbuilder.Trajectory import Trajectory
 from Emsmbuilder.metrics import RMSD
+from Emsmbuilder import Trajectory
 from Emsmbuilder import Serializer
-from Emsmbuilder.utils import format_block
-from Emsmbuilder.scripts import ArgLib
+from Emsmbuilder import arglib
 
 
-def main():
-    print format_block("""
-    Calculate the RMSD between an input PDB and all conformations in your
-    project.  Output as a HDF5 file (load using Serializer.LoadData()):
-    default Data/RMSD.h5""")
-    
-    arglist = ["PDBfn", "atomindices", "output", "projectfn"]
-    options = ArgLib.parse(arglist, Custom=[("output", "Output file name. Output is an .h5 file with RMSD entries corresponding to the Assignments.h5 file.", "./RMSD.h5")])
-    print sys.argv
-    if os.path.exists(options.output):
-        print "Error: File %s already exists! Exiting." % options.output
-        sys.exit(1)
-    
-    project = Project.LoadFromHDF(options.projectfn)
-    pdb = Trajectory.LoadTrajectoryFile(options.PDBfn)
-    atom_indices = np.loadtxt(options.atomindices, np.int)
-    
+def run(project, pdb, atom_indices):    
     distances = -1 * np.ones((project['NumTrajs'], max(project['TrajLengths'])))
     rmsd = RMSD(atom_indices)
     ppdb = rmsd.prepare_trajectory(pdb)
@@ -53,8 +35,25 @@ def main():
         d = rmsd.one_to_all(ppdb, ptraj, 0)
         distances[i, 0:len(d)] = d
     
-    Serializer.SaveData(options.output, distances)
+    return distances
     
     
 if __name__ == '__main__':
-    main()
+    parser = arglib.ArgumentParser(description="""
+Calculate the RMSD between an input PDB and all conformations in your project.
+Output as a HDF5 file (load using Serializer.LoadData())""")
+    parser.add_argument('pdb', type=arglib.TrajectoryType)
+    parser.add_argument('atom_indices', description='Indices of atoms to compare',
+        type=arglib.LoadTxtType(dtype=int), default='AtomIndices.dat')
+    parser.add_argument('output', description='''Output file name. Output is an
+        .h5 file with RMSD entries corresponding to the Assignments.h5 file.''',
+        default='Data/RMSD.h5')
+    parser.add_argument('project')
+    args = parser.parse_args()
+    
+    arglib.die_if_path_exists(args.output)
+    
+    distances = run(args.project, args.pdb, args.atom_indices)
+    
+    print 'Saving', args.output
+    Serializer.SaveData(args.output, distances)
