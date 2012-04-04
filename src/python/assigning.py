@@ -68,7 +68,7 @@ def assign_in_memory(metric, generators, trajectories):
     return assignments, distances
     
 
-def assign_with_checkpoint(metric, project, generators, assignments_path, distances_path):
+def assign_with_checkpoint(metric, project, generators, assignments_path, distances_path, checkpoint_every_traj=1):
     """Assign each of the frames in each of the trajectories in the supplied project to
     their closest generator (frames of the trajectory "generators") using the supplied
     distance metric.
@@ -105,12 +105,13 @@ def assign_with_checkpoint(metric, project, generators, assignments_path, distan
         all_distances[i, 0:len(ptraj)] = distances
         all_assignments[i, 0:len(ptraj)] = assignments
         completed_trajectories[i] = True
-        Serializer({'Data': all_assignments,
-                    'completed_trajectories': completed_trajectories
-                    }).SaveToHDF(assignments_tmp)
-        Serializer({'Data': all_distances}).SaveToHDF(distances_tmp)
-        os.rename(assignments_tmp, assignments_path)
-        os.rename(distances_tmp, distances_path)
+        if i+1 % checkpoint_every_traj:
+            Serializer({'Data': all_assignments,
+                        'completed_trajectories': completed_trajectories
+                        }).SaveToHDF(assignments_tmp)
+            Serializer({'Data': all_distances}).SaveToHDF(distances_tmp)
+            os.rename(assignments_tmp, assignments_path)
+            os.rename(distances_tmp, distances_path)
     
     return all_assignments, all_distances
 
