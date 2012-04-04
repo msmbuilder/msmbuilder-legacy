@@ -364,13 +364,12 @@ def GetImpliedTimescalesHelper(args):
 
     Counts=GetCountMatrixFromAssignments(Assignments,NumStates,LagTime=LagTime,Slide=Slide)
         
-        # Apply ergodic trim if requested
+    # Apply ergodic trim if requested
     if Trim: Counts, MAP = ErgodicTrim(Counts) # TJL 5/9/11, previously AD
 
-        # Apply a symmetrization scheme (TJL 8/3/11)
+    # Apply a symmetrization scheme (TJL 8/3/11)
     if Symmetrize == 'MLE':
             Counts = IterativeDetailedBalance(Counts, Prior=0.0)
-
     elif Symmetrize == 'MLE-TNC':
         Counts = EstimateReversibleCountMatrix(Counts, Prior=0.0)       
     elif Symmetrize == 'Transpose':
