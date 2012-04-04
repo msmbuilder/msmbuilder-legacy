@@ -6,8 +6,12 @@ from Emsmbuilder.Serializer import Serializer
 from Emsmbuilder.Trajectory import Trajectory
 from Emsmbuilder.clustering import _clarans, empty_trajectory_like
 from Emsmbuilder.utils import uneven_zip
-from Emsmbuilder import mm
-import portalocker
+try:
+    from Emsmbuilder import mm
+    import portalocker
+except:
+    pass
+
 
 def _setup_containers(assignments_path, distances_path, num_trajs, longest):
     "helper method"
