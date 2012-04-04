@@ -685,48 +685,6 @@ def Tarjan(graph):
 
     return(components)
 
-
-def RecursiveTarjan(graph):
-    """Find the strongly connected components in a graph using Tarjan's algorithm.(OBSOLETE)
-    
-    Inputs:
-    graph  -- a dictionary mapping node names to lists of successor nodes.
-
-    Notes:
-    Public domain code originally by Paul Harrison.
-    Most users will want to call the ErgodicTrim() function rather than directly calling Tarjan().
-    This code has been replaced by a nonrecursive version.  Using this recursive version may lead
-    segmenatation faults when python exceeds its allocated stack space.
-        """
-
-    result = [ ]
-    stack = [ ]
-    low = { }
-        
-    def visit(node):
-        if node in low: return
-    
-        num = len(low)
-        low[node] = num
-        stack_pos = len(stack)
-        stack.append(node)
-    
-        for successor in graph.getrow(node).nonzero()[1]:
-            visit(successor)
-            low[node] = min(low[node], low[successor])
-        
-        if num == low[node]:
-            component = tuple(stack[stack_pos:])
-            del stack[stack_pos:]
-            result.append(component)
-            for item in component:
-                low[item] = graph.nnz
-    
-    for node in xrange(graph.shape[0]):
-        visit(node)
-    
-    return result
-
 def ErgodicTrim(Counts,Assignments=None):
     """Use Tarjan's Algorithm to find maximal strongly connected subgraph.
     
