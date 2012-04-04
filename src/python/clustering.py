@@ -4,8 +4,10 @@ import copy
 import types
 import random
 import numpy as np
-try: import fastcluster
-except: print "Cannot import fastcluster."
+try:
+    import fastcluster
+except:
+    print "Cannot import fastcluster."
 import scipy.cluster.hierarchy
 
 

@@ -5,7 +5,7 @@
 #import argparse
 import os
 
-from Emsmbuilder import Project,
+from Emsmbuilder import Project
 from Emsmbuilder import CreateMergedTrajectoriesFromFAH
 from Emsmbuilder import arglib
 
