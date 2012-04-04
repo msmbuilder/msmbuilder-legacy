@@ -40,7 +40,6 @@ from collections import defaultdict
 from Emsmbuilder import Serializer
 
 eig=scipy.linalg.eig
-sys.setrecursionlimit(200000)#The recursion limit is necessary for using the Tarjan algorithm, which is recursive and often requires quite a few iterations.
 DisableErrorChecking=False#Set this value to true (MSMLib.DisableErrorChecking=True) to ignore Eigenvector calculation errors.  Useful if you need to process disconnected data.
 MinimumAllowedNumEig=5
 
@@ -835,72 +834,6 @@ def EnforceCounts(Assignments,LagTime=1,MinCounts=3):
         
     RenumberStates(Assignments)
     
-def IterativeDetailedBalanceWithPrior(Counts,Alpha,NumIter=1000):
-    """Use MLE to Estimate symmetric (e.g. reversible) count matrix from the unsymmetric counts.
-
-    Inputs:
-    Counts -- Sparse CSR matrix of counts.
-
-    Keyword Arguments:
-    NumIter -- Maximum number of iterations.  Default: 10000000
-    TerminationEpsilon -- Terminate when |Pi^{k+1}-Pi^{k}| < epsilon.  Default: 1E-10
-    Prior -- Add prior counts to EVERY transition. 
-
-    Notes:
-    1.  Also known as the Boxer method.
-    2.  This tends to be very slow, due to the calculations using the prior counts.
-    3.  The prior is handled implicitly during calculations, so no dense matrices are stored.
-    4.  ReconstructDense() can be used to reconstruct a dense matrix using the results of this.
-    
-    """
-    NumStates=Counts.shape[0]
-
-    S=Counts+Counts.transpose()
-    N=np.array(Counts.sum(1)).flatten()
-    Na=N+NumStates*Alpha
-
-    NS=np.array(S.sum(1)).flatten()
-    NS/=NS.sum()
-    Ind=np.argmax(NS)
-
-    NZX,NZY=np.array(S.nonzero())
-
-    Q=S.copy()
-    XS=np.array(Q.sum(0)).flatten()
-
-    for k in xrange(NumIter):
-        print(k,NS[Ind],XS[Ind])
-        V=Na/XS
-        Q.data[:]=S.data/(V[NZX]+V[NZY])
-
-        RS=np.zeros(NumStates)
-        for a in xrange(NumStates):
-            RS+=1./(V+V[a])
-
-        RS*=2.*Alpha
-        QS=np.array(Q.sum(0)).flatten()
-
-        XS=RS+QS
-        XS/=XS.sum()
-        
-    return(Q,V,XS)
-
-def ReconstructDense(Q,V,Alpha):
-    """Reconstruct a dense count matrix from output of IterativeDetailedBalanceWithPrior.
-
-    Notes:
-    1.  After you reconstruct the dense matrix, you could possible re-sparsify it by discarding all counts less than some threshold, e.g.
-
-    X[where(X<Epsilon)]=0.
-    X=scipy.sparse.csr_matrix(X)
-    """
-    
-    X=Q.toarray()
-    NumStates=X.shape[0]
-    for i in xrange(NumStates):
-        for j in xrange(NumStates):
-            X[i,j]+=2*Alpha/(V[i]+V[j])
-    return(X)
 
 def IterativeDetailedBalance(Counts,NumIter=10000000,TerminationEpsilon=1E-10,Prior=0.):
     """Use MLE to Estimate symmetric (e.g. reversible) count matrix from the unsymmetric counts.
