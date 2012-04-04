@@ -10,6 +10,9 @@ try:
     from Emsmbuilder import mm
     import portalocker
 except:
+    class mm():
+        class BaseWorker(): pass
+        class BaseMaster(): pass
     pass
 
 
