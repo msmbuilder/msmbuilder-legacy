@@ -55,7 +55,7 @@ if __name__ == "__main__":
 \nCalculates the implied timescales of a set of assigned data, up to
 the argument 'lagtime'. Returns: ImpliedTimescales.dat, a flat file that
 contains all the lag times.\n""")
-    parser.add_argument('assignments')
+    parser.add_argument('assignments', type=str)
     parser.add_argument('lagtime', description="""The lagtime range to calculate.
         Pass two ints as X,Y with NO WHITESPACE, where X is the lowest
         timescale you want and Y is the biggest. EG: '-l 5,50'.""")
