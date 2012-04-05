@@ -58,20 +58,6 @@ def EstimateSym(Counts,Assignments):
 def EstimateMLE(Counts,Assignments,Prior=0.):
     """Implements the following protocol:
     1.  Use Tarjan's algorithm to find maximal (strongly) ergodic subgraph.
-    2.  Estimate (via MLE) a reversible transition (TC) and count matrix (ReversibleCounts).
-    3.  Calculate populations from row sums of count matrix.
-    """
-    CountsAfterTrimming,Mapping = MSMLib.ErgodicTrim(Counts)
-    MSMLib.ApplyMappingToAssignments(Assignments,Mapping)
-    ReversibleCounts = MSMLib.IterativeDetailedBalance(CountsAfterTrimming,Prior=Prior)
-    TC = MSMLib.EstimateTransitionMatrix(ReversibleCounts)
-    Populations = np.array(ReversibleCounts.sum(0)).flatten()
-    Populations /= Populations.sum()
-    return (CountsAfterTrimming, ReversibleCounts, TC, Populations, Mapping)
-
-def EstimateMLE_TNC(Counts,Assignments,Prior=0.):
-    """Implements the following protocol:
-    1.  Use Tarjan's algorithm to find maximal (strongly) ergodic subgraph.
     2.  Estimate (via MLE-TNC) a reversible transition (TC) and count matrix (ReversibleCounts).
     3.  Calculate populations from row sums of count matrix.
     """
@@ -83,7 +69,7 @@ def EstimateMLE_TNC(Counts,Assignments,Prior=0.):
     Populations /= Populations.sum()
     return (CountsAfterTrimming, ReversibleCounts, TC, Populations,Mapping)
 
-def run(LagTime, Assignments, Symmetrize='MLE', MinCounts=0, Prior=0.0, OutDir="./Data/"):
+def run(LagTime, Assignments, Symmetrize='MLE', Prior=0.0, OutDir="./Data/"):
 
     OldAss   = Assignments
 
@@ -96,11 +82,6 @@ def run(LagTime, Assignments, Symmetrize='MLE', MinCounts=0, Prior=0.0, OutDir="
     outputlist = [FnTProb, FnTCounts, FnTUnSym, FnMap, FnAss, FnPops]
     arglib.die_if_path_exists(outputlist)
   
-    # Enforce Counts
-    if MinCounts:
-        print "Enforcing that each state has %d observed transitions" % MinCounts 
-        MSMLib.EnforceCounts(Assignments,LagTime=LagTime,MinCounts=MinCounts)
-
     # Scan trajectory assignments and count transitions
     NumStates = max(Assignments.flatten()) + 1
     Counts = MSMLib.GetCountMatrixFromAssignments(Assignments, NumStates, LagTime=LagTime, Slide=True)
@@ -113,8 +94,6 @@ def run(LagTime, Assignments, Symmetrize='MLE', MinCounts=0, Prior=0.0, OutDir="
         CountsAfterTrimming, ReversibleCounts, TC, Populations, Mapping = EstimateSym(Counts, Assignments)
     elif Symmetrize == "MLE":
         CountsAfterTrimming, ReversibleCounts, TC, Populations, Mapping = EstimateMLE(Counts, Assignments, Prior = Prior)
-    elif Symmetrize == "MLE-TNC":
-        CountsAfterTrimming, ReversibleCounts, TC, Populations, Mapping = EstimateMLE_TNC(Counts, Assignments, Prior = Prior)
     else:
         print "ERROR: Could not understand symmetrization method:", Symmetrize
         sys.exit(1)
@@ -154,11 +133,7 @@ Assignments.Fixed.h5, tCounts.UnSym.mtx""")
         dynamics. We recommend maximum likelihood estimation (MLE) when tractable,
         else try Transpose. It is strongly recommended you read the documentation
         surrounding this choice.""", default='MLE',
-        choices=['MLE', 'MLE-TNC', 'Transpose', 'None'])
-    parser.add_argument('mincounts', description='''Dictate that each state has
-        a minimum number of counts. If there are states with fewer counts, merge
-        them into other states in a greedy kinetic manner until the minimum
-        number of counts is reached.''', default=0, type=int)
+        choices=['MLE', 'Transpose', 'None'])
     parser.add_argument('lagtime', description='''Lag time to use in model (in
         number of snapshots. EG, if you have snapshots every 200ps, and set the
         lagtime=50, you'll get a model with a lagtime of 10ns)''', type=int)
