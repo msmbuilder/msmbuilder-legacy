@@ -993,7 +993,7 @@ def EstimateReversibleCountMatrix(C, Prior=0., InitialGuess = None):
     rise to an observed transition count matrix C, as well as the gradient
     d -log L / d X_ij."""
 
-        assert np.alltrue(Xupdata > 0)
+        assert np.alltrue(Xupdata > 0)        
 
         Xup = scipy.sparse.csr_matrix((Xupdata, (row,col)), shape=(N,N))                    # Xup is the upper triagonal (inluding the main diagonal) of the symmetric count matrix
         X = Xup + Xup.T - scipy.sparse.spdiags(Xup.diagonal(),0,Xup.shape[0],Xup.shape[1])  # X is the complete symmetric count matrix
@@ -1019,92 +1019,92 @@ def EstimateReversibleCountMatrix(C, Prior=0., InitialGuess = None):
 
         gradient = np.array(gradient[row,col]).reshape(-1)
 
-    #   print  "max g:", np.max(gradient), "min g:", np.min(gradient), "|g|^2", (gradient*gradient).sum(), "g * X", (gradient*Xupdata).sum()
+        #print  "max g:", np.max(gradient), "min g:", np.min(gradient), "|g|^2", (gradient*gradient).sum(), "g * X", (gradient*Xupdata).sum()
         return -logL, -gradient
 
-        # current implementation only for sparse matrices
-        # if given a dense matrix, sparsify it, and turn the result back to a dense array
-        if not scipy.sparse.isspmatrix(C):
-            return EstimateReversibleCountMatrix(scipy.sparse.csr_matrix(C), Prior=Prior, InitialGuess=InitialGuess).toarray()
+    # current implementation only for sparse matrices
+    # if given a dense matrix, sparsify it, and turn the result back to a dense array
+    if not scipy.sparse.isspmatrix(C):
+        return EstimateReversibleCountMatrix(scipy.sparse.csr_matrix(C), Prior=Prior, InitialGuess=InitialGuess).toarray()
 
-        N = C.shape[0]
-        assert C.shape[1] == N, "Count matrix is not square, but has shape " + str(C.shape)
+    N = C.shape[0]
+    assert C.shape[1] == N, "Count matrix is not square, but has shape " + str(C.shape)
 
-        C = C.tocsr()
-        C.eliminate_zeros()
-        if (Prior is not None) and (Prior != 0):        # add prior if necessary
-            PriorMatrix=(C+C.transpose()).tocsr()
-            PriorMatrix.data*=0.
-            PriorMatrix.data+=Prior
-            C=C+PriorMatrix
-            print("Added prior value of %f to count matrix" % Prior)
+    C = C.tocsr()
+    C.eliminate_zeros()
+    if (Prior is not None) and (Prior != 0):        # add prior if necessary
+        PriorMatrix=(C+C.transpose()).tocsr()
+        PriorMatrix.data*=0.
+        PriorMatrix.data+=Prior
+        C=C+PriorMatrix
+        print("Added prior value of %f to count matrix" % Prior)
 
-        # initial guess for symmetric count matrix
-        if InitialGuess is None:
-            X0 = 0.5 * (C + C.T)
-        else:
-            X0 = scipy.sparse.csr_matrix(0.5 * (InitialGuess + InitialGuess.T))  # this guarantees that the initial guess is indeed symmetric (and sparse)
-        initialLogLikelihood = logLikelihood(C, EstimateTransitionMatrix(X0))
+    # initial guess for symmetric count matrix
+    if InitialGuess is None:
+        X0 = 0.5 * (C + C.T)
+    else:
+        X0 = scipy.sparse.csr_matrix(0.5 * (InitialGuess + InitialGuess.T))  # this guarantees that the initial guess is indeed symmetric (and sparse)
+    initialLogLikelihood = logLikelihood(C, EstimateTransitionMatrix(X0))
 
-        # due to symmetry, we degrees of freedom for minimization are only the elments in the upper triangle of the matrix X (incl. main diagonal)
-        X0up = scipy.sparse.triu(X0).tocoo()
-        row = X0up.row
-        col = X0up.col
+    # due to symmetry, we degrees of freedom for minimization are only the elments in the upper triangle of the matrix X (incl. main diagonal)
+    X0up = scipy.sparse.triu(X0).tocoo()
+    row = X0up.row
+    col = X0up.col
 
-        # the variables used during minimization are those X_ij (i <= j) for which either C_ij or C_ji is greater than zero
-        # those X_ij can be arbitrariliy small, but they must be positive
-        # the function minimizer requires an inclusive bound, so we use some very small number instead of zero
-        # (without loss of generality, b/c we can always multiply all X_ij by some large number without changing the likelihood)
-        lower_bound = 1.E-10
-        bounds = [[lower_bound, np.inf]] * len(X0up.data)
+    # the variables used during minimization are those X_ij (i <= j) for which either C_ij or C_ji is greater than zero
+    # those X_ij can be arbitrariliy small, but they must be positive
+    # the function minimizer requires an inclusive bound, so we use some very small number instead of zero
+    # (without loss of generality, b/c we can always multiply all X_ij by some large number without changing the likelihood)
+    lower_bound = 1.E-10
+    bounds = [[lower_bound, np.inf]] * len(X0up.data)
 
-        # Here comes the main loop
-        # In principle, we would have to run the function minimizer only once. But in practice, minimization may fail
-        # if the gradient term becomes too large, or minimization is slow if the gradient is too small.
-        # Every so often, we therefore rescale the parameters X_ij so that the gradient is of resonable magnitude
-        # (which does not affect the likelihood). This empirical procedure includes two parameters: the rescaling
-        # frequency and the target value. In principles, these choices should not affect the outcome of the maximization.
-        rescale_every = 500
-        rescale_target = 1.
+    # Here comes the main loop
+    # In principle, we would have to run the function minimizer only once. But in practice, minimization may fail
+    # if the gradient term becomes too large, or minimization is slow if the gradient is too small.
+    # Every so often, we therefore rescale the parameters X_ij so that the gradient is of resonable magnitude
+    # (which does not affect the likelihood). This empirical procedure includes two parameters: the rescaling
+    # frequency and the target value. In principles, these choices should not affect the outcome of the maximization.
+    rescale_every = 500
+    rescale_target = 1.
 
-        Xupdata = X0up.data
-        maximizationrun = 1
-        totalnumberoffunctionevaluations = 0
+    Xupdata = X0up.data
+    maximizationrun = 1
+    totalnumberoffunctionevaluations = 0
+    negative_logL, negative_gradient = negativeLogLikelihoodFromCountEstimatesSparse(Xupdata, row, col, N, C)
+    print "Log-Likelihood of intial guess for reversible transition probability matrix:", -negative_logL
+    while maximizationrun <= 1000:
+        # rescale the X_ij so that the magnitude of the gradient is 1
+        gtg = (negative_gradient*negative_gradient).sum()
+        scalefactor = np.sqrt(gtg / rescale_target)
+        Xupdata[:] *= scalefactor
+
+        # now run the minimizer
+        Xupdata, nfeval, rc = scipy.optimize.fmin_tnc(negativeLogLikelihoodFromCountEstimatesSparse, Xupdata, args=(row, col, N, C), bounds=bounds, approx_grad=False, maxfun=rescale_every, disp=0)
+        totalnumberoffunctionevaluations += nfeval
         negative_logL, negative_gradient = negativeLogLikelihoodFromCountEstimatesSparse(Xupdata, row, col, N, C)
-        print "Log-Likelihood of intial guess for reversible transition probability matrix:", -negative_logL
-        while maximizationrun <= 1000:
-            # rescale the X_ij so that the magnitude of the gradient is 1
-            gtg = (negative_gradient*negative_gradient).sum()
-            scalefactor = np.sqrt(gtg / rescale_target)
-            Xupdata[:] *= scalefactor
-
-            # now run the minimizer
-            Xupdata, nfeval, rc = scipy.optimize.fmin_tnc(negativeLogLikelihoodFromCountEstimatesSparse, Xupdata, args=(row, col, N, C), bounds=bounds, approx_grad=False, maxfun=rescale_every, disp=0)
-            totalnumberoffunctionevaluations += nfeval
-            negative_logL, negative_gradient = negativeLogLikelihoodFromCountEstimatesSparse(Xupdata, row, col, N, C)
-            print "Log-Likelihood after", totalnumberoffunctionevaluations, "function evaluations:", -negative_logL
-            if rc in (0,1,2):
-                break    # Converged
-            elif rc in (3,4):
-                pass     # Not converged, keep going
-            else:
-                raise RuntimeError, "Likelihood maximization caused internal error (code " + str(rc) + "): " + str(scipy.optimize.tnc.RCSTRINGS[rc])
-            maximizationrun += 1
+        print "Log-Likelihood after", totalnumberoffunctionevaluations, "function evaluations:", -negative_logL
+        if rc in (0,1,2):
+            break    # Converged
+        elif rc in (3,4):
+            pass     # Not converged, keep going
         else:
-            print "Warning: maximum could not be obtained."
-        print  "Result of last maximization run (run " + str(maximizationrun) + "):", scipy.optimize.tnc.RCSTRINGS[rc]
+            raise RuntimeError, "Likelihood maximization caused internal error (code " + str(rc) + "): " + str(scipy.optimize.tnc.RCSTRINGS[rc])
+        maximizationrun += 1
+    else:
+        print "Warning: maximum could not be obtained."
+    print  "Result of last maximization run (run " + str(maximizationrun) + "):", scipy.optimize.tnc.RCSTRINGS[rc]
 
-        Xup = scipy.sparse.coo_matrix((Xupdata, (row,col)), shape=(N,N))    
-        X = Xup + Xup.T - scipy.sparse.spdiags(Xup.diagonal(),0,Xup.shape[0],Xup.shape[1])    # reconstruct full symmetric matrix from upper triangle part
+    Xup = scipy.sparse.coo_matrix((Xupdata, (row,col)), shape=(N,N))    
+    X = Xup + Xup.T - scipy.sparse.spdiags(Xup.diagonal(),0,Xup.shape[0],Xup.shape[1])    # reconstruct full symmetric matrix from upper triangle part
 
-        finalLogLikelihood = logLikelihood(C, EstimateTransitionMatrix(X))
-        print "Log-Likelihood of final reversible transition probability matrix:", finalLogLikelihood
-        print "Likelihood ratio:", np.exp(finalLogLikelihood - initialLogLikelihood)
+    finalLogLikelihood = logLikelihood(C, EstimateTransitionMatrix(X))
+    print "Log-Likelihood of final reversible transition probability matrix:", finalLogLikelihood
+    print "Likelihood ratio:", np.exp(finalLogLikelihood - initialLogLikelihood)
 
-        # some  basic consistency checks
-        if not np.alltrue(np.isfinite(X.data)):
-            raise RuntimeError, "The obtained symmetrized count matrix is not finite."
-        if not np.alltrue(X.data > 0):
-            raise RuntimeError, "The obtained symmetrized count matrix is not strictly positive for all observed transitions, the smallest element is " + str(np.min(X.data))
+    # some  basic consistency checks
+    if not np.alltrue(np.isfinite(X.data)):
+        raise RuntimeError, "The obtained symmetrized count matrix is not finite."
+    if not np.alltrue(X.data > 0):
+        raise RuntimeError, "The obtained symmetrized count matrix is not strictly positive for all observed transitions, the smallest element is " + str(np.min(X.data))
 
-        return X
+    return X
