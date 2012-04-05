@@ -368,8 +368,6 @@ def GetImpliedTimescalesHelper(args):
 
     # Apply a symmetrization scheme (TJL 8/3/11)
     if Symmetrize == 'MLE':
-            Counts = IterativeDetailedBalance(Counts, Prior=0.0)
-    elif Symmetrize == 'MLE-TNC':
         Counts = EstimateReversibleCountMatrix(Counts, Prior=0.0)       
     elif Symmetrize == 'Transpose':
         Counts = 0.5*(Counts + Counts.transpose())
@@ -530,20 +528,6 @@ def GetCountMatrixFromAssignments(Assignments,NumStates=None,LagTime=1,Slide=Tru
             C=C+GetTransitionCountMatrixSparse(A,NumStates,LagTime=LagTime,slidingwindow=Slide)#.tolil()
     return(C)
 
-def GetDistributionsOverTime(Ass,n):
-    """Calculate raw populations as a function of time; used  to compare raw and MSM populations."""
-    n1,n2=Ass.shape
-    X=np.zeros((n2,n),dtype='float32')
-    for i in range(n2):
-        print(i)
-        for j in range(n1):
-            x=Ass[j,i]
-            if x > -1:
-                X[i,x]+=1.
-                X[i]=X[i]/sum(X[i])
-    return(X)
-
-
 def ApplyMappingToAssignments(Assignments,Mapping):
     """Remap the states in an assignments file according to a mapping.  Useful after performing PCCA or Ergodic Trimming."""
     A=Assignments
@@ -563,17 +547,6 @@ def ApplyMappingToVector(V, Mapping):
         NV = V[np.where(Mapping != -1)[0]] 
         print "Mapping %d elements --> %d" % (len(V), len(NV))
         return NV
-
-def RenumberStates_SLOW(Assignments):
-    """Renumber states to be consecutive integers (0, 1, ... , n); useful if some states have 0 counts."""
-    A=Assignments
-    GoodStates=np.unique(A)
-    if GoodStates[0]==-1: GoodStates=GoodStates[1:]
-    MinusOne=np.where(A==-1)
-    for i,x in enumerate(GoodStates):
-        A[np.where(A==x)]=i
-    A[MinusOne]=-1
-
 
 def RenumberStates(Assignments):
     """Renumber states to be consecutive integers (0, 1, ... , n);
@@ -598,16 +571,6 @@ def RenumberStates(Assignments):
     for i,x in enumerate(unique):
         Assignments[inverse_mapping[x]] = i
     Assignments[minus_one] = -1
-
-
-def TrimHighRMSDToCenters(Ass,RMSD,Epsilon=.25):
-    """Null out Assignments where RMSD to cluster center is too high.  If RMSD to cluster center is too high, then we expect large kinetic barriers within a state.  """
-    r=RMSD
-    x0,x1=np.where(r>Epsilon)
-    WhichTrajs=np.unique(x0)
-    for i in WhichTrajs:
-        y=min(x1[np.where(x0==i)])
-        Ass[i,y:]=-1
 
 def Tarjan(graph):
     """ Find the strongly connected components in a graph using Tarjan's algorithm.
@@ -721,212 +684,6 @@ def ErgodicTrim(Counts,Assignments=None):
     
     return(X,Mapping)
 
-def UpdateAssignmentsAndCounts(Assignments,Counts,D,XS,NewState,State):
-    """Updates the count matrix, self-transition probabilities, row sums, and assignments after lumping State into NewState.  REQUIRES SYMMETRIC COUNTS. Used in EnforceMetastability and EnforceCounts."""
-
-    Assignments[np.where(Assignments==State)]=NewState
-
-    Counts[NewState,NewState]+=(Counts[State,State]+2*Counts[NewState,State])
-    Counts[State,State]=0.
-    Counts[State,NewState]=0.
-    Counts[NewState,State]=0.
-
-    nz=np.array(Counts[State,:].nonzero()).transpose()
-    for i,(x,y) in enumerate(nz):
-        if y!=NewState:
-            Counts[NewState,y]+=Counts[State,y]
-            Counts[y,NewState]+=Counts[State,y]
-            Counts[State,y]=0.
-            Counts[y,State]=0.
-
-    XS[NewState]=XS[State]+XS[NewState]
-    XS[State]=100000000.0
-
-    D[State]=1.
-    D[NewState]=Counts[NewState,NewState]/XS[NewState]
-    
-def EnforceMetastability(Assignments,DesiredNumStates,LagTime=1):
-    """Merge states that are highly unstable to ensure that all states have self-transition probabilities of 0.5 or greater.  Merging occurs only between neighbors.  States are chosen to be merged in order of metastability."""
-
-    NumStates=max(Assignments.flatten())+1
-    NumMergeAttempts=NumStates-DesiredNumStates
-    Counts=GetCountMatrixFromAssignments(Assignments,NumStates,LagTime=LagTime,Slide=True)
-    Counts=Counts+Counts.transpose()
-    
-    XS=np.array((Counts).sum(1)).flatten()
-    D=Counts.diagonal()/XS
-    D[np.where(XS==0.)]=1.
-
-    for CounterInt in xrange(NumMergeAttempts):
-
-        i=np.argmin(D)
-
-        Neighbors=np.array(Counts[:,i].nonzero())[0]
-
-        M=np.zeros(Neighbors.shape)
-        for k, j in enumerate(Neighbors):
-            if j!=i:
-                M[k]=(Counts[i,i]+Counts[j,j]+2*Counts[i,j])/(XS[i]+XS[j])
-        j=Neighbors[np.argmax(M)]#Pick the state to lump by seeing which one results in the most metastable lumped state.  Heuristic #1        
-        print("Iter %d.  Merging States %d,%d.  Old Metastabilities: %f, %f."%(CounterInt,i,j,D[i],D[j]))
-        UpdateAssignmentsAndCounts(Assignments,Counts,D,XS,i,j)
-        
-    RenumberStates(Assignments)
-
-def EnforceCounts(Assignments,LagTime=1,MinCounts=3):
-    """Merge states with few counts to improve statistics.
-
-    Notes:
-    1.  Find the state with lowest counts.
-    2.  Determine its neighbors.
-    3.  Lump state with neighbor that it is most connected to.
-
-    By reducing the number of states, this can improve statistics and avoid negative eigenvalues.
-    """
-
-    NumStates=max(Assignments.flatten())+1
-    Counts=GetCountMatrixFromAssignments(Assignments,NumStates,LagTime=LagTime,Slide=True)
-    Counts=0.5*(Counts+Counts.transpose())
-    Counts=Counts.tolil()
-    X=np.array((Counts).sum(1)).flatten()
-    
-    D=Counts.diagonal()/X
-    D[np.where(X==0.)]=1.
-
-    k=0
-    while True:
-        k+=1
-        i=np.argmin(X)
-        if X[i] >= MinCounts:
-            break
-        Neighbors=np.array(Counts[:,i].nonzero())[0]
-        NbrCounts=np.zeros(Neighbors.shape)
-        for L,n in enumerate(Neighbors):
-            if n!=i:
-                NbrCounts[L]=Counts[n,i]
-            
-        XNb=X[Neighbors].copy()
-        XNb[np.where(Neighbors==i)]=10000000.
-
-        #Find the neighbor with most counts betwen i and j
-        try:
-            Relativej=np.argmax(NbrCounts)
-        except ValueError:#This means that NbrCounts is empty.  Thus, state has NO neighbors.
-            print("Warning: state %d was completely empty."%i)
-            Counts[i,i]=100000000.
-            continue
-
-        #Next, we look at ALL neighbors with the same number of counts  Cij as the maximum (e.g. just as kinetically related as relativej).
-        EquivalentRelativej=np.where(NbrCounts==NbrCounts[Relativej])[0]
-
-        #We pick j to be neighbor with the Maximal connectivity but the poorest statistics.  The statistics filter is applied only as a "tiebreaker"
-        #to ensure that if possible, states that already have good statistics do NOT get things lumped into them.  
-        RelativeRelativej=np.argmin(XNb[EquivalentRelativej])
-        Relativej=EquivalentRelativej[RelativeRelativej]
-        
-        j=Neighbors[Relativej]
-        print("Iter %d.  Merging States %d,%d., %d %d"%(k,i,j,X[i],X[j]))
-        if X[i]+X[j] > 10000.:
-            Counts=Counts.tolil()
-        UpdateAssignmentsAndCounts(Assignments,Counts,D,X,i,j)
-        if X[i]+X[j] > 10000.:
-            Counts=Counts.tocsr()
-        
-    RenumberStates(Assignments)
-    
-
-def IterativeDetailedBalance(Counts,NumIter=10000000,TerminationEpsilon=1E-10,Prior=0.):
-    """Use MLE to Estimate symmetric (e.g. reversible) count matrix from the unsymmetric counts.
-
-    Inputs:
-    Counts -- Sparse CSR matrix of counts.
-
-    Keyword Arguments:
-    NumIter -- Maximum number of iterations.  Default: 10000000
-    TerminationEpsilon -- Terminate when |Pi^{k+1}-Pi^{k}| < epsilon.  Default: 1E-10
-    Prior -- Add prior counts to stencil of symmetrized counts.  
-
-    Notes:
-    1.  Also known as the Boxer method.
-    2.  Requires strongly ergodic counts as input, otherwise will simply focus on sink.
-    """
-    # make sure that count matrix is properly formatted, sparse CSR matrix without zeros
-    if not scipy.sparse.isspmatrix(Counts):
-        Counts = scipy.sparse.csr_matrix(Counts)
-    Counts = Counts.asformat("csr").asfptype()
-    Counts.eliminate_zeros()
-    
-    if (Prior is not None) and (Prior != 0):
-        PriorMatrix=(Counts+Counts.transpose()).tocsr()
-        PriorMatrix.data*=0.
-        PriorMatrix.data+=Prior
-        Counts=Counts+PriorMatrix
-        print("Added prior value of %f to count matrix" % Prior)
-    
-    S=Counts+Counts.transpose()
-    N=np.array(Counts.sum(1)).flatten()
-    Na=N
-
-    NS=np.array(S.sum(1)).flatten()
-    NS/=NS.sum()
-    Ind=np.argmax(NS)
-
-    NZX,NZY=np.array(S.nonzero())
-
-    Q=S.copy()
-    XS=np.array(Q.sum(0)).flatten()
-
-    for k in xrange(NumIter):
-        Old=XS
-        V=Na/XS
-        Q.data[:]=S.data/(V[NZX]+V[NZY])
-        QS=np.array(Q.sum(0)).flatten()
-        
-        XS=QS
-        XS/=XS.sum()
-        PiDiffNorm=np.linalg.norm(XS-Old)
-        print(k,NS[Ind],XS[Ind],PiDiffNorm)
-        if PiDiffNorm< TerminationEpsilon:
-            break
-
-    Q/=Q.sum()
-    Q*=Counts.sum()
-    return(Q)
-
-def EnforceTrimEstimate(Assignments,LagTime=1,MinCounts=0,Slide=True,BoxerIter=1000000,Prior=0.0):
-    """Enforce a minimum number of counts, trim the data, and estimate transition matrix.
-
-    Inputs:
-    Assignments -- A numpy matrix of assignments
-
-    Keyword Arguments:
-    LagTime -- The LagTime used to estimate Count matrix.  Default: 0
-    MinCounts -- Enforce a minimum number of counts in each state.  Default: 0
-    Slide -- Use sliding window when estimating counts.  Default: True
-    BoxerIter -- Maximum number of iterations when calculating MLE.  Default: 1000000
-    Prior -- Add Prior counts in stencil of symmetrized counts.  Default: 0
-
-    Notes:
-    1.  Merge states with low counts to ensure good statistics.
-    2.  Apply Tarjan's algorithm to find the maximal strongly connected subgraph.
-    3.  Use reversible MLE estimator to estimate a normalized symmetric count matrix.
-    Operates in place (destructively) on the Assignments input.
-    """
-
-    EnforceCounts(Assignments,LagTime=LagTime,MinCounts=MinCounts)
-
-    NumStates=max(Assignments.flatten())+1
-    Counts=GetCountMatrixFromAssignments(Assignments,NumStates,LagTime=LagTime,Slide=Slide)
-    NumStates=Counts.shape[0]
-    Counts=Counts
-
-    UnSymmetrizedCounts,Mapping=ErgodicTrim(Counts)
-        
-    ApplyMappingToAssignments(Assignments,Mapping)
-    
-    ReversibleCounts=IterativeDetailedBalance(UnSymmetrizedCounts,NumIter=BoxerIter,Prior=Prior)
-
-    return(ReversibleCounts,UnSymmetrizedCounts,Mapping)
 
 def logLikelihood(C, P):
     """Returns the log of the likelihood of an observed count matrix C given a transition matrix P.
@@ -1107,4 +864,8 @@ def EstimateReversibleCountMatrix(C, Prior=0., InitialGuess = None):
     if not np.alltrue(X.data > 0):
         raise RuntimeError, "The obtained symmetrized count matrix is not strictly positive for all observed transitions, the smallest element is " + str(np.min(X.data))
 
+    #normalize X to have correct total number of counts
+    X /= X.sum()
+    X *= C.sum()
+    
     return X

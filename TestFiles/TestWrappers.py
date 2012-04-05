@@ -169,6 +169,11 @@ class TestWrappers(unittest.TestCase):
         r_C = scipy.io.mmread(ReferenceDir +"/Data/tCounts.mtx")
         D=(C-r_C).data
         Z=0.*D
+
+        D /= r_C.sum()#KAB 4-5-2012.  We want the normalized counts to agree at 7 decimals
+        #normalizing makes this test no longer depend on an arbitrary scaling factor (the total number of counts)
+        #the relative number of counts in the current and reference models DOES matter, however.
+        
         numpy.testing.assert_array_almost_equal(D,Z, err_msg="tCounts.mtx incorrect")
 
         # Test transition matrix
@@ -183,7 +188,7 @@ class TestWrappers(unittest.TestCase):
         CalculateImpliedTimescales.run(MinLagtime, MaxLagtime, LagtimeInterval, NumEigen, "Data/Assignments.Fixed.h5",Symmetrize, 1, "ImpliedTimescales.dat")
         ImpTS   = np.loadtxt("ImpliedTimescales.dat")
         r_ImpTS = np.loadtxt(ReferenceDir +"/ImpliedTimescales.dat")
-        numpy.testing.assert_array_almost_equal(ImpTS,r_ImpTS)
+        numpy.testing.assert_array_almost_equal(ImpTS,r_ImpTS,decimal=4)
 
     def test_g_GetRandomConfs(self):
         # This one is tricky since it is stochastic...
