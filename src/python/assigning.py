@@ -68,7 +68,7 @@ def assign_in_memory(metric, generators, trajectories):
     return assignments, distances
     
 
-def assign_with_checkpoint(metric, project, generators, assignments_path, distances_path, checkpoint_every_traj=1):
+def assign_with_checkpoint(metric, project, generators, assignments_path, distances_path, checkpoint=1):
     """Assign each of the frames in each of the trajectories in the supplied project to
     their closest generator (frames of the trajectory "generators") using the supplied
     distance metric.
