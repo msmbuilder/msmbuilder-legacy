@@ -39,8 +39,8 @@ except:
     sys.exit()
 
 d=netcdf.Dataset(CDFFilename)
-R1=Trajectory.Trajectory.LoadFromPDB(PDBFilename)
-C1=Conformation.Conformation.LoadFromPDB(PDBFilename)
+R1=Trajectory.LoadFromPDB(PDBFilename)
+C1=Conformation.LoadFromPDB(PDBFilename)
 
 #Find index to exclude solvent residues
 r=R1["ResidueNames"]
