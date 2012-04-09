@@ -17,9 +17,11 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
+from msmbuilder_version import version
+
 LicenseString="""--------------------------------------------------------------------------------
 
-MSMBuilder version 2.0.0
+MSMBuilder version %s
 
 See file AUTHORS for a list of MSMBuilder contributors.
 
@@ -34,5 +36,5 @@ modify it under the terms of the GNU General Public License
 as published by the Free Software Foundation; either version 2
 of the License, or (at your option) any later version.
 
---------------------------------------------------------------------------------"""
+--------------------------------------------------------------------------------"""%version
 
