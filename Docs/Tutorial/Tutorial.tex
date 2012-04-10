@@ -176,25 +176,25 @@ ConvertDataToHDF.py  -s native.pdb -i XTC -t 3
   Cluster.py rmsd hierarchical -h -m ward
 \end{verbatim}
 
-\subsection{Assign data to states}
+\subsubsection{Assign data to states}
 
 \begin{verbatim}
-Assign.py 
+AssignHierarchical.py -H Data/Zmatrix.h5 -n 100
 \end{verbatim}
 
-6.   Validate model with relaxation timescales.
-First, we calculate the relaxation timescales for a sequence of lagtimes:
+\subsubsection{Validate model with relaxation timescales.}
+We calculate the relaxation timescales for a sequence of lagtimes $\{1, 2, ..., 50\}$:
+\begin{verbatim}
+CalculateImpliedTimescales.py -l 1,25 -X 1
+\end{verbatim}
 
-CalculateImpliedTimescales.py -l 1,50 -X 1
+Next, we use python to plot the results, specifying the lagtime between frames (3 ps):  
 
-Next, we use python to plot the results.  
+\begin{verbatim}
+PlotImpliedTimescales.py -d 3. 
+\end{verbatim}
 
- PlotImpliedTimescales.py -I ImpliedTimescales.dat  -t 1. 
-
-
-Note that in this example, relaxation timescales and lagtimes are plotted in units of [ps]; your own data may have different units.
-
-7.   Construct MSM at appropriate lagtime
+\subsubsection{Construct MSM at appropriate lagtime}
 The plotted relaxation timescales suggest that the three slow timescales are reasonable flat at a lagtime of 3 timesteps [ps].  Thus, we construct an MSM using that lagtime:
 
 BuildMSM.py -l 3
