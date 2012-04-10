@@ -72,7 +72,7 @@ contains all the lag times.\n""")
         dynamics. We recommend maximum likelihood estimation (MLE) when tractable,
         else try Transpose. It is strongly recommended you read the documentation
         surrounding this choice.""", default='MLE',
-        choices=['MLE', 'MLE-TNC', 'Transpose', 'None'])
+        choices=['MLE', 'Transpose', 'None'])
     args = parser.parse_args()
 
     LagTimes = args.lagtime.split(',')
