@@ -168,10 +168,11 @@ Here, $PREFIX$ is the base directory of your msmbuilder installation.
 
 \subsubsection{Create an MSMBuilder Project}
 \begin{verbatim}
-ConvertDataToHDF.py  -s native.pdb -i XTC -t 3
+ConvertDataToHDF.py  -s native.pdb -i XTC
 \end{verbatim}
 
 \subsubsection{Cluster your data}
+WARNING: this step requires a minimum of 3.0 GB of memory for storing a matrix of pairwise RMSD.
 \begin{verbatim}
   Cluster.py rmsd hierarchical -h -m ward
 \end{verbatim}
@@ -185,19 +186,23 @@ AssignHierarchical.py -H Data/Zmatrix.h5 -n 100
 \subsubsection{Validate model with relaxation timescales.}
 We calculate the relaxation timescales for a sequence of lagtimes $\{1, 2, ..., 50\}$:
 \begin{verbatim}
-CalculateImpliedTimescales.py -l 1,25 -X 1
+CalculateImpliedTimescales.py -l 1,25 -i 1
 \end{verbatim}
 
-Next, we use python to plot the results, specifying the lagtime between frames (3 ps):  
+Next, we use python to plot the results, specifying the lagtime between frames (1 ps):  
 
 \begin{verbatim}
-PlotImpliedTimescales.py -d 3. 
+PlotImpliedTimescales.py -d 1. 
 \end{verbatim}
 
 \subsubsection{Construct MSM at appropriate lagtime}
 The plotted relaxation timescales suggest that the three slow timescales are reasonable flat at a lagtime of 3 timesteps [ps].  Thus, we construct an MSM using that lagtime:
 
-BuildMSM.py -l 3
+\begin{verbatim}
+BuildMSM.py -l 3 
+\end{verbatim}
+
+
 
 At this point, MSMBuilder has written the following files into your ./Data/ directory:
 
