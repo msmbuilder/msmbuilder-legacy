@@ -103,7 +103,19 @@ def buildKeywordDictionary():
     setupKeywords["package_data"]      = {
         "msmbuilder"                   : ["AUTHORS","COPYING"]
                                          }
-    setupKeywords["data_files"]        = []
+    setupKeywords["data_files"]        = [
+        (
+        "share/msmbuilder_tutorial/",[
+        "Tutorial/AtomIndices.dat",
+        "Tutorial/native.pdb",
+        "Tutorial/Phi.h5",
+        "Tutorial/Psi.h5",
+        "Tutorial/PlotDihedrals.py"
+        ]),
+        (
+        "share/msmbuilder_tutorial/",["Tutorial/XTC.tar"]
+         )
+                                          ]
     setupKeywords["ext_modules"]       = [IRMSD, LPRMSD, XTC, DCD, DISTANCE, DIHEDRAL, CONTACT, RG]
     setupKeywords["platforms"]         = ["Linux", "Mac OS X", "Windows"]
     setupKeywords["description"]       = "Python Code for Building Markov State Models."
@@ -136,7 +148,6 @@ def main():
 
 if __name__ == '__main__':
     main()
-
 
 
 
