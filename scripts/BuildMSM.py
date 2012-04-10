@@ -144,5 +144,5 @@ Assignments.Fixed.h5, tCounts.UnSym.mtx""")
     args = parser.parse_args()
     
     
-    run(args.lagtime, args.assignments['Data'], args.symmetrize, args.mincounts, args.prior,
+    run(args.lagtime, args.assignments['Data'], args.symmetrize, args.prior,
         args.output_dir)
