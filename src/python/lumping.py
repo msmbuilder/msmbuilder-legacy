@@ -91,7 +91,7 @@ def to_square(alpha, square_map):
     """Convert a flat array alpha to a square array A."""
     return alpha[square_map]
 
-def pcca_plus(T, N, flux_cutoff=None, do_minimization=True, min_population=0.0):
+def pcca_plus(T, N, flux_cutoff=None, do_minimization=True, min_population=0.0,objective_function = "crisp_metastability"):
     """Perform PCCA+.
 
     Inputs:
@@ -114,12 +114,12 @@ def pcca_plus(T, N, flux_cutoff=None, do_minimization=True, min_population=0.0):
         vr[:,i] *= np.sign(vr[0,i])
         vr[:,i] /= np.sqrt(dot(vr[:,i]*pi,vr[:,i]))
 
-    A, chi, microstate_mapping = opt_soft(vr, N, pi, lam, T, do_minimization=do_minimization, min_population=min_population)
+    A, chi, microstate_mapping = opt_soft(vr, N, pi, lam, T, do_minimization=do_minimization, min_population=min_population,objective_function=objective_function)
 
     return A, chi,vr, microstate_mapping
 
 
-def opt_soft(vr, N, pi, lam, T, do_minimization=True, use_anneal=True, min_population=0.0):
+def opt_soft(vr, N, pi, lam, T, do_minimization=True, use_anneal=True, min_population=0.0,objective_function="crisp_metastability"):
     """Core routine for PCCA+ algorithm.
     """
     n = len(vr[0])
@@ -136,7 +136,7 @@ def opt_soft(vr, N, pi, lam, T, do_minimization=True, use_anneal=True, min_popul
         flat_map, square_map = get_maps(A)
         alpha = to_flat(1.0*A,flat_map)
 
-        obj = lambda x: -1*objective(x,vr,square_map,lam,T,pi,objective_function="crispness",min_population=min_population)
+        obj = lambda x: -1*objective(x,vr,square_map,lam,T,pi,objective_function=objective_function,min_population=min_population)
 
         print("Initial value of objective function: %f"%obj(alpha))
 
@@ -145,7 +145,7 @@ def opt_soft(vr, N, pi, lam, T, do_minimization=True, use_anneal=True, min_popul
         alpha = scipy.optimize.fmin(obj,alpha,full_output=True,xtol=1E-4,ftol=1E-4,maxfun=5000,maxiter=100000)[0]
 
         print("*********")
-        print("Final values.\n crispness = %f"%(-1*obj(alpha)))
+        print("Final values.\n f = %f"%(-1*obj(alpha)))
 
         A = to_square(alpha,square_map)
 
@@ -170,7 +170,7 @@ def has_constraint_violation(A,vr,epsilon = 1E-8):
     if abs(lhs-rhs) > epsilon:
         return True
 
-def objective(alpha,vr,square_map,lam,T,pi,barrier_penalty=20000.,objective_function="crispness",min_population=0.):
+def objective(alpha,vr,square_map,lam,T,pi,barrier_penalty=20000.,objective_function="crisp_metastability",min_population=0.):
     """Return the PCCA+ objective function.
 
     Notes: three choices of objective_function:
@@ -192,9 +192,16 @@ def objective(alpha,vr,square_map,lam,T,pi,barrier_penalty=20000.,objective_func
     chi_fuzzy = dot(vr,A)
     mapping = np.argmax(chi_fuzzy,1)
 
-    if objective_function=="crisp_metastability":
+    possible_objective_functions = ["crispness","crisp_metastability","metastability"]
+    
+    if objective_function not in possible_objective_functions:
+        raise Exception("objective_function must be one of ",possible_objective_functions)
+    
+    if objective_function == "crisp_metastability":
         chi = 0.0*chi_fuzzy
         chi[np.arange(n),mapping] = 1.
+    elif objective_function == "metastability":
+        chi = chi_fuzzy
 
     if objective_function in ["crisp_metastability","metastability"]:
         #Calculate  metastabilty of the lumped model.  Eqn 4.20 in LAA.
