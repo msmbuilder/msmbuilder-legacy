@@ -45,7 +45,7 @@ def run_pcca(num_macrostates, assignments, tProb, output_dir):
     
     print "Wrote: {af}, {mf}".format(af=MacroAssignmentsFn, mf=MacroMapFn)
     
-def run_pcca_plus(num_macrostates, assignments, tProb, output_dir, flux_cutoff=0.0, min_population=0.0):
+def run_pcca_plus(num_macrostates, assignments, tProb, output_dir, flux_cutoff=0.0, min_population=0.0,objective_function="crispness",do_minimization=True):
     MacroAssignmentsFn = os.path.join(output_dir, "MacroAssignments.h5")
     MacroMapFn = os.path.join(output_dir, "MacroMapping.dat")
     ChiFn = os.path.join(output_dir, 'Chi.dat')
@@ -54,7 +54,7 @@ def run_pcca_plus(num_macrostates, assignments, tProb, output_dir, flux_cutoff=0
     
     print "Running PCCA+..."
     A, chi, vr, MAP = lumping.pcca_plus(tProb, num_macrostates, flux_cutoff=flux_cutoff,
-        do_minimization=True, min_population=min_population)
+        do_minimization=do_minimization, min_population=min_population,objective_function=objective_function)
 
     MSMLib.ApplyMappingToAssignments(assignments, MAP)    
 
@@ -83,6 +83,10 @@ Output: MacroAssignments.h5, a new assignments HDF file, for the Macro MSM.""")
         this flux''', default='None', type=float_or_none)
     parser.add_argument('min_population', description='''Require PCCA+ states to
         have minimum population''', default=0.0, type=float)
+    parser.add_argument('objective_function', description='''Minimize which PCCA+
+        objective function (crisp_metastability, metastability, or crispness)''',
+                        default="crisp_metastability")
+    parser.add_argument('do_minimization', description='Use PCCA+ minimization', default=True,type=bool)
     
     args = parser.parse_args()
     
@@ -91,6 +95,6 @@ Output: MacroAssignments.h5, a new assignments HDF file, for the Macro MSM.""")
         run_pcca(args.num_macrostates, args.assignments['Data'], args.tProb, args.output_dir)
     elif args.algorithm == 'PCCA+':
         run_pcca_plus(args.num_macrostates, args.assignments['Data'], args.tProb, args.output_dir,
-                      args.flux_cutoff, args.min_population)
+                      args.flux_cutoff, args.min_population,objective_function=args.objective_function,do_minimization=args.do_minimization)
     else:
         raise Exception()

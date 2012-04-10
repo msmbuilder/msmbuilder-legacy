@@ -49,9 +49,10 @@ Note: please use a 64 bit version of python (and thus of MSMBuilder).  On certai
 \subsection{Download and Install MSMBuilder}
 
 Download MSMBuilder, unzip, move to the msmbuilder directory.  Install using setup.py:
-
+\begin{verbatim}
 python setup.py build
 python setup.py install
+\end{verbatim}
 
 You may need root privileges during the install step; alternatively, you can specify an alternative install path via --prefix=XXX.  If you performed the install step with “--prefix=XXX”, you need to ensure that
 
@@ -168,38 +169,39 @@ Here, $PREFIX$ is the base directory of your msmbuilder installation.
 
 \subsubsection{Create an MSMBuilder Project}
 \begin{verbatim}
-ConvertDataToHDF.py  -s native.pdb -i XTC -t 3
+ConvertDataToHDF.py  -s native.pdb -i XTC
 \end{verbatim}
 
-
 \subsubsection{Cluster your data}
+WARNING: this step requires a minimum of 3.0 GB of memory for storing a matrix of pairwise RMSD.
+\begin{verbatim}
+Cluster.py rmsd hierarchical -h -m ward
+\end{verbatim}
 
-Here we use
+\subsubsection{Assign data to states}
 
-Note: we are using a 0.3 Å clustering diameter, which is appropriate for alanine dipeptide.  The follow protocol uses the default scheme of clustering using k-centers with desired clustering diameter, followed by 10 iterations of a local hybrid k-medoids.  Other protocols are possible; see Cluster.py -h for details.
+\begin{verbatim}
+AssignHierarchical.py -H Data/Zmatrix.h5 -n 100
+\end{verbatim}
 
-Cluster.py  -r 0.03
+\subsubsection{Validate model with relaxation timescales.}
+We calculate the relaxation timescales for a sequence of lagtimes $\{1, 2, ..., 50\}$:
+\begin{verbatim}
+CalculateImpliedTimescales.py -l 1,25 -i 1 -o Data/ImpliedTimescales.dat
+\end{verbatim}
 
-5.   Assign data to states:
+Next, we use python to plot the results, specifying the lagtime between frames (1 ps):  
 
-Assign.py
+\begin{verbatim}
+PlotImpliedTimescales.py -d 1. -i Data/ImpliedTimescales.dat
+\end{verbatim}
 
-6.   Validate model with relaxation timescales.
-First, we calculate the relaxation timescales for a sequence of lagtimes:
-
-CalculateImpliedTimescales.py -l 1,50 -X 1
-
-Next, we use python to plot the results.  
-
- PlotImpliedTimescales.py -I ImpliedTimescales.dat  -t 1. 
-
-
-Note that in this example, relaxation timescales and lagtimes are plotted in units of [ps]; your own data may have different units.
-
-7.   Construct MSM at appropriate lagtime
+\subsubsection{Construct MSM at appropriate lagtime}
 The plotted relaxation timescales suggest that the three slow timescales are reasonable flat at a lagtime of 3 timesteps [ps].  Thus, we construct an MSM using that lagtime:
 
-BuildMSM.py -l 3
+\begin{verbatim}
+BuildMSM.py -l 3 
+\end{verbatim}
 
 At this point, MSMBuilder has written the following files into your ./Data/ directory:
 
@@ -222,59 +224,65 @@ Mapping.dat contains a mapping of the original microstate numbering to the “fi
 
 Populations.dat contains the maximum likelihood estimated reversible equilibrium populations.  
 
-8.  Examine structural, equilibrium, and kinetic properties of MSM
+\subsubsection{Construct a Macrostate MSM}
 
-First, let’s use a tiny Python script to determine the 10 most populated states in our model:
+Spectral cluster methods such as PCCA+ can be used to construct metastable models with a minimal number of states.  First, we need to construct a microstate model with a short lagtime.  The short lagtime is necessary because PCCA+ tries to create macrostates that are long-lived, or metastable.  At long lagtimes, states become less and less metastable.  
 
-python -c "from numpy import *;Pops=loadtxt('./Data/Populations.dat');Ind=argsort(Pops)[-5:];print(Ind);print(Pops[Ind])"
+\begin{verbatim}
+ BuildMSM.py -l 1 -o Lagtime1
+\end{verbatim}
 
-My model gives the following states and populations.  Note that your results may differ due to the random search in k-medoids clustering. 
+Our previous examination of the relaxation timescales suggested that there were 3 slow processes, so we choose to build a model with 4 macroscopic states.  
 
-[ 52 153 102 104 135]
-[ 0.02064257  0.02078313  0.02212851  0.02295181  0.02321285]
+\begin{verbatim}
+PCCA.py -n 4 -a Lagtime1/Assignments.Fixed.h5 -t Lagtime1/tProb.mtx -o Macro4/ -A PCCA+
+\end{verbatim}
 
-Let’s extract 3 random conformations from each of these states:
-
-SavePDBs.py -c 3 -H  52 153 102 104 135 -a Data/Assignments.Fixed.h5
-
-Now, let’s view them in Pymol:
-
-pymol PDBs/State*.pdb
-
-Because of its small size, structures of alanine dipeptide look quite similar in pymol.  For larger proteins, however, visualization in Pymol often shows distinctive structural features of each MSM state.  
-
-9.  Construct and validate a macroscopic MSM
-Spectral cluster methods such as PCCA and PCCA+ can be used to construct models with a minimal number of states.  This can be useful for building intuition on the underlying equilibrium and kinetic properties.  
-Note: macroscopic MSMs tend to have reduced kinetic fidelity, so they may be less appropriate for quantitative kinetic predictions.  
-
-In general, we find that PCCA works best for shorter lagtimes; this is likely due to the fact that the amount of available statistics decreases as lagtime increases.  Thus, we construct an MSM with the shortest possible lagtime, 1 (here in ps).
-
-BuildMSM.py -l 1 -w Model1
-
-Our examination of the relaxation timescales suggested that there were 3 slow processes, so we choose to build a model with 4 macroscopic states:
-
-PCCA.py -M 4 -a Model1/Assignments.Fixed.h5 -T Model1/tProb.mtx -w Model1/
-
-As before, we calculate and plot the relaxation timescales:
-
-CalculateImpliedTimescales.py -l 1,50 -X 1 -a Model1/MacroAssignments.h5 -o MacrostateRelaxationTimescales.dat -e 3
-
-PlotImpliedTimescales.py -I MacrostateRelaxationTimescales.dat  -t 1.
-
-Note that the slowest timescales are not flat until the lagtime reaches ~5 ps; this highlights the reduction in kinetic accuracy inherent in model reduction.  
+\subsubsection{Examining the macrostate decomposition}
 
 It is known that the relevant degrees of freedom for alanine dipeptide are the phi and psi backbone angles.  Thus, it is useful to examine (phi,psi), which we have pre-calculated for you.
 
-cp ~/msmbuilder/Tutorial/Phi.h5 ./
-cp ~/msmbuilder/Tutorial/Psi.h5 ./
-cp ~/msmbuilder/Tutorial/PlotDihedrals.py ./
+\begin{verbatim}
+./PlotDihedrals.py Macro4/MacroAssignments.h5
+\end{verbatim}
 
-python PlotDihedrals.py ./Model1/MacroAssignments.h5
+You should see the following graph:
+\begin{center}
+\includegraphics[width=6.7cm]{figures/Macro4}
+\end{center}
 
-You should see the following graphs:
 
+Thus, the PCCA algorithm has automatically identified the key basins of alanine dipeptide.  The black lines correspond to the $\beta, PP_{II}, \alpha_R, \alpha_L$ and $\gamma$ conformational basins, as estimated previously (Sosnick, 2005).  If we want a model that is less coarse grained, we can build a macrostate MSM with more states.  If, for example, we had used 5 states, we would produce a Ramachandran plot that also captures the barrier between the $\beta$ and $PP_{II}$ basins.  
 
-Thus, the PCCA algorithm has automatically identified the key basins of alanine dipeptide.  If we want a model that is less coarse grained, we can build a macrostate MSM with more states.  If, for example, we had used 8 states, we would produce a Ramachandran plot like the following:
+\includegraphics[width=6.7cm]{figures/Macro5}
+
+In general, PCCA and PCCA+ are best applied to capturing long-lived, metastable states.  Thus, for this system, applying PCCA+ to construct models with more than 5 states may not produce useful models.  This is because alanine dipeptide only contains four eigenvalues that are significantly slower than the data resolution of 1 ps.  
+
+\subsubsection{Calculate Macrostate Implied Timescales}
+
+\begin{verbatim}
+CalculateImpliedTimescales.py -l 1,25 -i 1 -o Macro4/ImpliedTimescales.dat -a Macro4/MacroAssignments.h5 -e 3
+PlotImpliedTimescales.py -i Macro4/ImpliedTimescales.dat -d 1
+\end{verbatim}
+
+When using PCCA+, always verify two things:
+
+\begin{enumerate}
+ \item The state decomposition makes physical sense
+ \item The macrostate implied timescales ``follow'' the microstate implied timescales
+\end{enumerate}
+
+The second point is important to check because occasionally, PCCA+ will lead to a degenerate solution.
+
+\subsubsection{Estimate a converged rate matrix using SCRE}
+
+In the macrostate implied timescales, the slowest implied timescale converges at approximately 10 ps, while the third timescale converges as 5 ps.  Furthermore, the third timescale is aliased at lagtimes starting with 13 ps; lagtimes longer than 13 ps will not accurately capture the dynamics of this relaxation.  This suggests that this system might benefit from estimating rates using SCRE and multiple lagtimes.  
+
+To build an SCRE model, we first construct a macrostate transition matrix with lagtime 1.  
+
+\begin{verbatim}
+ BuildMSM.py -l 1 -a Macro4/MacroAssignments.h5 -o Macro4/
+\end{verbatim}
 
 \newpage
 

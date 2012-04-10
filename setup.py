@@ -110,7 +110,9 @@ def buildKeywordDictionary():
         "Tutorial/native.pdb",
         "Tutorial/Phi.h5",
         "Tutorial/Psi.h5",
-        "Tutorial/PlotDihedrals.py"
+        "Tutorial/PlotDihedrals.py",
+        "Tutorial/PlotMacrostateImpliedTimescales.py",
+        "Tutorial/GetRates-SCRE.py"
         ]),
         (
         "share/msmbuilder_tutorial/",["Tutorial/XTC.tar"]

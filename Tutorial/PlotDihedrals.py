@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # This file is part of MSMBuilder.
 #
 # Copyright 2011 Stanford University
@@ -19,7 +19,7 @@
 """Creates Ramachandran plot from raw dipeptide data and macroscopic MSM."""
 from pylab import *
 from numpy import loadtxt
-from msmbuilder import Serializer
+from Emsmbuilder import Serializer
 from matplotlib import *
 from matplotlib.pyplot import *
 import sys
@@ -37,13 +37,14 @@ psi=Serializer.LoadData("./Psi.h5")
 
 NumStates=Ass.max()+1
 
+"""
 hexbin(phi.flatten(),psi.flatten())
 title("Ramachandran plot of raw alanine dipeptide data.")
 xlabel(r"$\phi$")
 ylabel(r"$\psi$")
 axis([-180,180,-180,180])
-
 figure()
+"""
 
 w=lambda x: where(Ass==x)
 LabelList=[",",".",'o',"<","s","*","h","+","D"]
@@ -58,7 +59,7 @@ for i in range(NumStates):
 	print(i)
 	PlotIthState(i)
 
-title("Ramachandran plot of alanine dipeptide MSM.")
+title("Alanine Dipeptide Macrostates")
 xlabel(r"$\phi$")
 ylabel(r"$\psi$")
 axis([-180,180,-180,180])
@@ -66,5 +67,12 @@ import matplotlib.font_manager
 prop = matplotlib.font_manager.FontProperties(size=8.0)
 legend(loc=0,labelspacing=0.075,prop=prop,scatterpoints=1,markerscale=0.5,numpoints=1)
 
+plot([-180,0],[50,50],'k')
+plot([-180,0],[-100,-100],'k')
+plot([0,180], [100,100],'k')
+plot([0,180], [-50,-50],'k')
+plot([0,0],[-180,180],'k')
+plot([-100,-100],[50,180],'k')
+plot([-100,-100],[-180,-100],'k')
 show()
 
