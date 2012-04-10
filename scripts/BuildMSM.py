@@ -58,7 +58,7 @@ def EstimateSym(Counts,Assignments):
 def EstimateMLE(Counts,Assignments,Prior=0.):
     """Implements the following protocol:
     1.  Use Tarjan's algorithm to find maximal (strongly) ergodic subgraph.
-    2.  Estimate (via MLE-TNC) a reversible transition (TC) and count matrix (ReversibleCounts).
+    2.  Estimate (via MLE) a reversible transition (TC) and count matrix (ReversibleCounts).
     3.  Calculate populations from row sums of count matrix.
     """
     CountsAfterTrimming,Mapping = MSMLib.ErgodicTrim(Counts)
