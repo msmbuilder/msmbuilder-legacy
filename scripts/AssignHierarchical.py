@@ -31,11 +31,12 @@ if __name__ == "__main__":
     parser.add_argument('assignments', type=str)
     args = parser.parse_args()
     
-    k = args.num_states if args.num_states != 'none' else None
-    d = args.cutoff_distance if args.num_states != 'none' else None
+    k = int(args.num_states) if args.num_states != 'none' else None
+    d = float(args.cutoff_distance) if args.cutoff_distance != 'none' else None
     if k is None and d is None:
         print >> sys.stderr, '%s: Error: You need to supply either a number of states or a cutoff distance' % (os.path.split(sys.argv[0])[1])
         sys.exit(1)
+    arglib.die_if_path_exists(args.assignments)
     
     assignments = args.hierarichal_clustering_zmatrix.get_assignments(k=k, cutoff_distance=d)
     
