@@ -28,7 +28,8 @@ def get_indices(trajectory_or_conformation, angles='phi/psi'):
         angles = angles.lower()
         angles = angles.replace('/', ' ').replace('-', ' ').split()
     try:
-        angles = [angle.lower() for angle in angles]
+        angles = sorted([angle.lower() for angle in angles])
+
     except:
         raise ValueError("I can't parse %s. Please supply a string like phi/psi" % str(angles))
     indices = np.zeros((0,4), dtype=int)  
