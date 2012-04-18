@@ -62,7 +62,7 @@ class Serializer(dict):
                 for x in data:
                     F.getNode(loc,key).append(x)
                 continue
-            self.SaveEntryAsCArray(np.array(data),key,F0=F,loc=loc)
+            self.SaveEntryAsEArray(np.array(data),key,F0=F,loc=loc)
         F.flush()
         F.close()
     

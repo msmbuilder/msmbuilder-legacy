@@ -32,7 +32,7 @@ from Emsmbuilder import dcd
 
 
 MAXINT16=32766
-
+default_precision = 1000
 
 def _ConvertToLossyIntegers(X,Precision):
     """Implementation of the lossy compression used in Gromacs XTC using the pytables library.  Convert 32 bit floats into 16 bit integers.  These conversion functions have been optimized for memory use.  Further memory reduction would require an in-place astype() operation, which one could create using ctypes."""
@@ -93,7 +93,7 @@ class Trajectory(Conformation.ConformationBaseClass):
     def __len__(self):
         return len(self['XYZList'])
     
-    def SaveToLHDF(self,Filename,Precision=1000):
+    def SaveToLHDF(self,Filename,Precision=default_precision):
         """Save a Trajectory instance to a Lossy HDF File.  First, remove the XYZList key because it should be written using the special CArray operation.  This file format is roughly equivalent to an XTC and should comparable file sizes but with better IO performance."""
         Serializer.CheckIfFileExists(Filename)
         key="XYZList"
@@ -101,10 +101,10 @@ class Trajectory(Conformation.ConformationBaseClass):
         Serializer.SaveToHDF(self,Filename)
         Rounded=_ConvertToLossyIntegers(X,Precision)
         self[key]=Rounded
-        Serializer.SaveEntryAsCArray(self[key],key,Filename=Filename)
+        Serializer.SaveEntryAsEArray(self[key],key,Filename=Filename)
         self[key]=X
         
-    def SaveToXTC(self,Filename,Precision=1000):
+    def SaveToXTC(self,Filename,Precision=default_precision):
         """Take a Trajectory instance and dump the coordinates to XTC"""
         Serializer.CheckIfFileExists(Filename)
         XTCFile=xtc.XTCWriter(Filename)
@@ -131,7 +131,7 @@ class Trajectory(Conformation.ConformationBaseClass):
             Answer[i] += "\n"
         with open(Filename,'w') as f: f.writelines(Answer)
 
-    def Save(self,Filename,Precision=1000):
+    def Save(self,Filename,Precision=default_precision):
         """Auto-detect format and save."""
         extension = os.path.splitext(Filename)[1]
         
@@ -262,7 +262,7 @@ class Trajectory(Conformation.ConformationBaseClass):
             F1.close()
             return(Shape)        
     @classmethod
-    def LoadFromLHDF(cls,Filename,JustInspect=False,Precision=1000):
+    def LoadFromLHDF(cls,Filename,JustInspect=False,Precision=default_precision):
         """Load a conformation that was previously saved as HDF."""
         if not JustInspect:
             S=Serializer.LoadFromHDF(Filename)
@@ -291,7 +291,7 @@ class Trajectory(Conformation.ConformationBaseClass):
         F1.close()
         return(XYZ)
     @classmethod
-    def ReadLHDF5Frame(cls,TrajFilename,WhichFrame,Precision=1000.):
+    def ReadLHDF5Frame(cls,TrajFilename,WhichFrame,Precision=default_precision):
         """Read a single frame from Lossy LHDF5 trajectory file without loading file into memory."""
         F1=tables.File(TrajFilename)
         XYZ=F1.root.XYZList[WhichFrame]
@@ -336,3 +336,27 @@ class Trajectory(Conformation.ConformationBaseClass):
             
         else:
             raise IOError("File: %s. I don't understand the extension '%s'" % (Filename, extension))
+
+    @classmethod
+    def AppendFramesToFile(cls,filename,XYZList,precision=default_precision):
+        """Append an array of XYZ data to an existing .h5 or .lh5 file.
+        """
+
+        extension = os.path.splitext(filename)[1]
+
+        if extension in [".h5", ".lh5"]:
+            File = tables.File(filename,"a")
+        else:
+            raise(Exception("File must be .h5 or .lh5"))
+
+        if not File.root.XYZList.shape[1:] == XYZList.shape[1:]:
+            raise(Exception("Error: data cannot be appended to trajectory due to incorrect shape."))
+        
+        if extension == ".h5":
+            File.root.XYZList.append(XYZList)
+
+        elif extension == ".lh5":
+            z = _ConvertToLossyIntegers(XYZList,precision)
+            File.root.XYZList.append(z)
+        File.flush()
+        File.close()
