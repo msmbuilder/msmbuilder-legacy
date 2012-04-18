@@ -30,46 +30,15 @@ free. All you have to do is define a prepare_trajectory() fuction.
 
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-==-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-This should be an (almost) drop in replacement for
-msmbuilder's DistanceMetic.py, but I think it is much
-easier to extend.
+This should be documented better somewhere, because it will cause cryptic
+errors if you don't do it. Whatever data structure you return from
+prepare_trajectory() needs to support slice sytax. If you return an array or
+something, then this is no problem, but if you create your own object to hold
+the data that prepare_trajectory() returns, you need to add a __getitem__(),
+ __setitem__() and __len__() methods. See the RMSD.TheoData object for an example. Also, if you're not familiar with this side of python these docs 
+(http://docs.python.org/reference/datamodel.html#emulating-container-types)
+are pretty good. Only __getitem__, __setitem__ and __len__ are necessary.
 
-Changes (combared to msmbuilder.DistanceMetric):
-(1) Moved all the RMSD specific code in DistanceMetric.py
-    into the RMSD class. (TheoData stuff). I also
-    eliminated the TheoData getters and setters because this is python and
-    everything is public / we're all consenting adults.
-(2) All distance metrics now inherit from the abstract base
-    class AbstractDistanceMetric, and define (at minimum) the
-    methods prepare_trajectory(), one_to_many() and one_to_all()
-(3) Dihedral and Contact implement the same interface
-    as RMSD
-(4) Dihedral and Contact share code by subclassing
-    Vectorized, which lets you use any distance metric on vectors
-    (euclidean, manhattan, chebychev, pnorm, etc) that you like. All
-    that Dihedral and Contact have to actually implement
-    themselves is their prepare_trajectory function which processes the
-    trajectory into a bunch of vectors.
-(5) So, anyone can really easily make a new Vectorized. All you have to
-    do is put the code that prepares the vectors into a function called
-    prepare_trajectory and put that into a class that subclasses Vectorized.
-    Furthermore, if you would like to set the default metric used to not be
-    euclidean (for instance in Contact since the prepared_trajectories are
-    boolean vectors, you dont want euclidean to be the default), you set the
-    the class variable 'default_scipy_metric' to be whatever you like.
-    Thats all there is to it!
-    
-    
-#=#=#=#+#+#+#+#+#+#+#+#+#+#+#+#+#
-ALSO:
-    This should be documented better somewhere, because it will cause cryptic
-    errors if you don't do it. Whatever data structure you return from prepare_trajectory()
-    needs to support slice sytax. If you return an array or something, then this is
-    no problem, but if you create your own object to hold the data that prepare_trajectory()
-    returns, you need to add a __getitem__(), __setitem__() and __len__() methods. See the
-    RMSD.TheoData object below. Also, if you're not familiar with this side of python,
-    these docs (http://docs.python.org/reference/datamodel.html#emulating-container-types)
-    are pretty good. Only __getitem__, __setitem__ and __len__ are necessary.
 #=#=#=#+#+#+#+#+#+#+#+#+#+#+#+#+#
 """
 
@@ -94,8 +63,10 @@ from Emsmbuilder.geometry import dihedral as _dihedralcalc
 from Emsmbuilder.geometry import contact as _contactcalc
 from Emsmbuilder.geometry import rg as _rgcalc
 #######################################################
-# Toggle to use fast (no typechecking, so unsafe too)
-# version of cdist. Also parallelized with OMP pragmas
+# Toggle to use faster (no typechecking, so unsafe too)
+# version of scipy.spatial.distance.cdist which is 
+# parallelized with OMP pragmas. This is used for most
+# of the Vectorized methods
 #######################################################
 USE_FAST_CDIST = True
 #USE_FAST_CDIST = False
@@ -283,33 +254,7 @@ class RMSD(AbstractDistanceMetric):
                 self.G = G
                 self.NumAtoms = NumAtoms
                 self.NumAtomsWithPadding = XYZData.shape[2]
-        
-        
-        # IMO, getters and setters are unpythonic and should be avoided. Given
-        # the python maxim that "we're all consenting adults", and the public-ness
-        # of the variables anyways, these are just bloat. With that in mind, if
-        # you're going to modify the self.G and self.XYZData instance variables
-        # directly, make sure you know what you're doing. If you modify them
-        # in an unexpected way, the code will segfault. It will not throw an
-        # informative python exception, so be careful.
-        
-        #def GetData(self):
-        #    """Returns the XYZ coordinate data stored."""
-        #    return(self.XYZData)
-        #    
-        #def GetG(self):
-        #    """Return the matrix magnitudes stored."""
-        #    return(self.G)
-        #    
-        #def SetData(self, XYZData, G):
-        #    """Modify the data in self.
-        #    
-        #    Notes:
-        #    For performance, this is done WITHOUT error checking.
-        #    Only swap in data that is compatible (in shape) with previous data.
-        #    """
-        #    self.XYZData=XYZData
-        #    self.G=G
+            
         
         def __getitem__(self, key):
             # to keep the dimensions right, we make everything a slice
@@ -335,7 +280,7 @@ class RMSD(AbstractDistanceMetric):
             """Remove the center of mass from conformations.  Inplace to minimize mem. use."""
             
             for ci in xrange(XYZList.shape[0]):
-                X=XYZList[ci].astype('float64')#To improve the accuracy of RMSD, it can help to do certain calculations in double precision.  This is _not_ one of those operations IMHO.
+                X=XYZList[ci].astype('float64')#To improve the accuracy of RMSD, it can help to do certain calculations in double precision.
                 X-=X.mean(0)
                 XYZList[ci]=X.astype('float32')
             return
@@ -426,12 +371,8 @@ class RMSD(AbstractDistanceMetric):
         for i in xrange(traj_length):
             output[i] = self.one_to_all(prepared_traj, prepared_traj, i)
         return output
-        
     
-    #def all_pairwise(self, prepared_traj):
-    #    warnings.warn('This is HORRIBLY inefficient. This operation really needs to be done directly in C')
-    #    return scipy.spatial.distance.squareform(self._square_all_pairwise(prepared_traj))
-
+    
 class Vectorized(AbstractDistanceMetric):
     """This is a subclass of AbstractDistanceMetric for computing distances in
     an arbitrary vector space under a WIDE VARIETY of vector distance metrics
@@ -554,7 +495,7 @@ class Vectorized(AbstractDistanceMetric):
         entry contains the distance between prepared_traj[i] and prepared_traj[j].
         See the documentation on scipy.spatial.distance.pdist for more details."""
         
-        # NOTE: Provide a faster pdist implementation using openmp
+        # TODO: Provide a faster pdist implementation using openmp
         out = scipy.spatial.distance.pdist(prepared_traj, metric=self.metric, p=self.p)
         return out
 
@@ -728,123 +669,9 @@ class ContinuousContact(Vectorized, AbstractDistanceMetric):
             #    print
             output = _contactcalc.residue_distances(xyzlist, residue_membership, contacts)
         else:
-            raise ValueError('This is not supposed to happend!')
+            raise ValueError('This is not supposed to happen!')
             
         return np.double(output)
-            
-    def DEPRECIATEDprepare_trajectory(self, trajectory):
-        """Prepare a trajectory for distance calculations based on the contact map.
-        Each frame in the trajectory will be represented by a vector where
-        each entries represents the distance between two residues in the structure.
-        Depending on what contacts you pick to use, this can be a 'native biased' 
-        picture or not.
-        
-        THIS VERSION IS PURE PYTHON, DEATHLY SLOW, BUT IS USEFUL AS A REFERENCE
-        IMPLEMENTATION
-        
-        Also note that the 'all' contacts option here uses all n choose 2 possible
-        contacts, and does not ingnore contacts between residues i and i+1 or i
-        and i+2
-        """
-        
-        traj_length = len(trajectory['XYZList'])
-        num_residues = trajectory.GetNumberOfResidues()
-        
-        
-        # get all pairs of residues if you supply none
-        if self.contacts == 'all':
-            contacts = np.empty((num_residues * (num_residues - 1) / 2, 2), dtype='int')
-            p = 0
-            for i in range(num_residues):
-                for j in range(i+1, num_residues):
-                    # THE RESIDUEIDs start at 1
-                    contacts[p] = [i+1,j+1]
-                    p += 1
-            del p
-        else:
-            num, width = self.contacts.shape
-            contacts = self.contacts
-            if not width == 2:
-                raise ValueError('contacts must be width 2')
-            if not (0 <= len(np.unique(contacts)) < num_residues):
-                raise ValueError('contacts refers to residues')
-       
-        # done with checks
-        
-        prepared_traj = np.zeros((traj_length, len(contacts)), dtype='float')
-        
-        # mappings that go from residue indices to certain atom indices
-        involved_residues = np.unique(contacts)
-        #print 'involved_residues', involved_residues
-        residue_to_inds = defaultdict(lambda : [])
-        residue_to_heavy_inds = defaultdict(lambda : [])
-        residue_to_CA = {}
-        for i in xrange(trajectory.GetNumberOfAtoms()):
-            #print 'i', i, trajectory.GetNumberOfAtoms()
-            #print trajectory['ResidueID'][i]
-            if trajectory['ResidueID'][i] in involved_residues:
-                residue_to_inds[trajectory['ResidueID'][i]].append(i)
-                
-                if trajectory['AtomNames'][i] == 'CA':
-                    residue_to_CA[trajectory['ResidueID'][i]] = i
-                
-                #print 'traj[ResidueId][%d] = %s' % (i, trajectory['ResidueID'][i])
-                
-                if not trajectory['AtomNames'][i].lstrip('0123456789').startswith('H'):
-                    residue_to_heavy_inds[trajectory['ResidueID'][i]].append(i)
-        
-        if not set(residue_to_heavy_inds.keys()) == set(involved_residues):
-            raise Exception("One of the residues doesnt have any heavy atoms? Sometimes this happens if the residue numbering starts at 0 -- it's supposed to start at 1")
-     
-        
-        # do each scheme
-        if self.scheme == 'ca':
-            for i in xrange(traj_length):
-                for j in range(len(contacts)):
-                    ind1 = residue_to_CA[contacts[j, 0]]
-                    ind2 = residue_to_CA[contacts[j, 1]]
-                    prepared_traj[i, j] = scipy.spatial.distance.euclidean(trajectory['XYZList'][i, ind1],
-                                                                   trajectory['XYZList'][i, ind2])
-                                                                           
-        elif self.scheme == 'center':
-            for i in xrange(traj_length):
-                centers = {} #np.zeros((len(involved_residues), 3), dtype='float')
-                for j in involved_residues:
-                    centers[j] = np.mean(trajectory['XYZList'][i, residue_to_inds[j]], axis=0)
-                
-                for j in range(len(contacts)):
-                    #print '%s to %s' % (str(centers[contacts[j, 0]]), str(centers[contacts[j, 1 ]]))
-                    prepared_traj[i, j] = scipy.spatial.distance.euclidean(centers[contacts[j, 0]], centers[contacts[j, 1]])
-                
-        elif self.scheme == 'closest':
-            for i in xrange(traj_length):
-                for j in range(len(contacts)):
-                    inds1 = residue_to_inds[contacts[j, 0]]
-                    inds2 = residue_to_inds[contacts[j, 1]]
-                    all_dists = scipy.spatial.distance.cdist(trajectory['XYZList'][i, inds1], trajectory['XYZList'][i, inds2])
-                    prepared_traj[i,j] = np.min(all_dists)
-            
-        elif self.scheme == 'closest-heavy':
-            print 'Residue to heavy inds'
-            for row in residue_to_heavy_inds.values():
-                print row   
-                for col in row:
-                    print "%s-%s" % (trajectory['AtomNames'][col], trajectory['ResidueID'][col]),
-                print
-            for i in xrange(traj_length):
-                for j in range(len(contacts)):
-                    inds1 = residue_to_heavy_inds[contacts[j, 0]]
-                    inds2 = residue_to_heavy_inds[contacts[j, 1]]
-                    all_dists = scipy.spatial.distance.cdist(trajectory['XYZList'][i, inds1], trajectory['XYZList'][i, inds2])
-                    print "frame %d" % i
-                    print "contact %d-%d" % (contacts[j,0], contacts[j,1])
-                    print "inds1, inds2: (%s) (%s)" % (str(inds1), str(inds2))
-                    prepared_traj[i,j] = np.min(all_dists)
-            
-        else:
-            raise Exception('This is not supposed to happen')
-        
-        return np.array(prepared_traj)
     
 
 class BooleanContact(Vectorized, AbstractDistanceMetric):
@@ -993,10 +820,9 @@ class ProtLigRMSD(AbstractDistanceMetric):
     taken as an RMSD between only the ligand_indices.
     
     Note that this is a pure python implementation, so it's not going to be
-    blazingly fast.
-    
-    Coded by Morgan Lawrenz, refactored to fit into the metrics package
-    by Robert McGibbon
+    fast.
+
+    The same functionality can be done using the LPRMSD module.
     """
     
     def __init__(self, protein_indices, ligand_indices, pdb):
@@ -1010,6 +836,7 @@ class ProtLigRMSD(AbstractDistanceMetric):
         in the conformation should be directly equal to the number of atoms in
         protein_indices, and they should be corresponding.
         """
+        warnings.warn('Depricated. Consider usings LPRMSD')
         self.protein_indices = protein_indices
         self.ligand_indices = ligand_indices
         if 'XYZ' in pdb:
@@ -1177,16 +1004,15 @@ class Hybrid(AbstractDistanceMetric):
         if not len(self.weights) == self.num:
             raise ValueError()
         
+
     def prepare_trajectory(self, trajectory):
-        #return [self.base_metrics[i].prepare_trajectory(trajectory) for i in range(self.num)]
         prepared = (m.prepare_trajectory(trajectory) for m in self.base_metrics)
         return self.HybridPreparedTrajectory(*prepared)
     
+
     def one_to_many(self, prepared_traj1, prepared_traj2, index1, indices2):
         distances = None
         for i in range(self.num):
-            #d = self.base_metrics[i].one_to_many(prepared_traj1[i], prepared_traj2[i],
-            #                                                index1, indices2)
             d = self.base_metrics[i].one_to_many(prepared_traj1.datas[i], prepared_traj2.datas[i], index1, indices2)
             if distances is None:
                 distances = self.weights[i] * d
@@ -1194,6 +1020,7 @@ class Hybrid(AbstractDistanceMetric):
                 distances += self.weights[i] * d
         return distances
     
+
     def one_to_all(self, prepared_traj1, prepared_traj2, index1):
         distances = None
         for i in range(self.num):
@@ -1203,20 +1030,8 @@ class Hybrid(AbstractDistanceMetric):
             else:
                 distances += self.weights[i] * d
         return distances
-        
-    #def all_pairwise_old(self, prepared_traj):
-    #    """Calculate condensed distance metric of all pairwise distances"""
-    #    
-    #    traj_length = len(prepared_traj)
-    #    output = np.empty(traj_length * (traj_length - 1) / 2)
-    #    for i in range(traj_length):
-    #        cmp_indices = np.arange(i + 1, traj_length)
-    #        d = self.one_to_many(prepared_traj, prepared_traj, i, cmp_indices)
-    #        #print len(cmp_indices)
-    #        #print len(d)
-    #        output[i: i + len(cmp_indices)] = d
-    #    return output
     
+
     def all_pairwise(self, prepared_traj):
         """Calculate condensed distance metric of all pairwise distances"""
         distances = None
