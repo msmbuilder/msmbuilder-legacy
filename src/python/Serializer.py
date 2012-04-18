@@ -27,7 +27,11 @@ import os
 import scipy.sparse
 import numpy as np
 
-Filter=tables.Filters(complevel=9,complib='blosc',shuffle=True)
+try:
+    Filter=tables.Filters(complevel=9,complib='blosc',shuffle=True)
+except:
+    print("Warning: missing BLOSC, no compression will used.")
+    Filter = tables.Filters()
 
 class Serializer(dict):
     """A generic class for dumping dictionaries of data onto disk
