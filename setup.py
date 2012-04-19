@@ -150,11 +150,13 @@ def main():
           if requirement == 'deap':
               print >> sys.stderr, "\nthe 'deap' package contains python tools for MPI"
               print >> sys.stderr, 'it can be installed with "easy_install deap"'
+              print >> sys.stderr, 'it is not required.'
           if requirement == 'fastcluster':
               print >> sys.stderr, "\nthe 'fastcluster' package contains fast implementations"
               print >> sys.stderr, 'of hierarchical clustering algorithms.'
               print >> sys.stderr, 'it can be downloaded from http://cran.r-project.org/web/packages/fastcluster/'
               print >> sys.stderr, '(get the download called "package source")'
+              print >> sys.stderr, 'it is not required.'
 
 if __name__ == '__main__':
     main()
