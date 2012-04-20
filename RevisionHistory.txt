@@ -1,3 +1,12 @@
+MSMBuilder 2.5.0
+1. The libraries are distance metric agnostic, you can use your own new distance metric
+without having to change the clustering/assignment code
+2. Dihedral, Contact (residues and/or atoms), hybrid distance metric code
+3. New clustering algorithms (CLARANS / subsampled CLARANS)
+4. Flux-based PCCA+.
+5. Hierarchical Clustering.
+6. SCRE rate matrix estimation.
+
 MSMBuilder 2.0.4
 1.  Improvements in PCCA, PCCA+ lead to better macrostate definition.
 

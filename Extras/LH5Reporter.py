@@ -1,18 +1,13 @@
 """
-lh5reporter.py: Output a trajectory in MSMBuilder LH5 format.
+LH5reporter.py: Output a trajectory in MSMBuilder LH5 format.
 
 This class is for use with the Python OpenMM App.  This class allows OpenMM to directly write an MSMBuilder2 LH5 Trajectory.
 
-Example:
+Example: After preparing a simulation in OpenMM, the following code allows OpenMM to directly write to a *h5 file.
 
-#You need to prepare an OpenMM simulation first.
-
-R1=Trajectory.Trajectory.LoadFromPDB("native.pdb")
-simulation.reporters.append(LH5Reporter.LH5Reporter("Trajectories/trj0.lh5", 2000,R1))
-
+R1=Trajectory.Trajectory.LoadFromPDB('native.pdb')
+simulation.reporters.append(LH5Reporter.LH5Reporter('Trajectories/trj0.lh5', 2000,R1))
 """
-__author__ = "Peter Eastman"
-__version__ = "1.0"
 
 import simtk.openmm as mm
 import simtk.unit as units
