@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=pdflatex 2011.4.11)  10 APR 2012 13:25
+This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=pdflatex 2011.4.11)  20 APR 2012 13:04
 entering extended mode
  %&-line parsing enabled.
 **Tutorial.tex
@@ -293,18 +293,18 @@ Package: subfigure 2002/03/15 v2.1.5 subfigure package
 ) (./Tutorial.aux)
 \openout1 = `Tutorial.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 9.
-LaTeX Font Info:    ... okay on input line 9.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 9.
-LaTeX Font Info:    ... okay on input line 9.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 9.
-LaTeX Font Info:    ... okay on input line 9.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 9.
-LaTeX Font Info:    ... okay on input line 9.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 9.
-LaTeX Font Info:    ... okay on input line 9.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 9.
-LaTeX Font Info:    ... okay on input line 9.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 12.
+LaTeX Font Info:    ... okay on input line 12.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 12.
+LaTeX Font Info:    ... okay on input line 12.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 12.
+LaTeX Font Info:    ... okay on input line 12.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 12.
+LaTeX Font Info:    ... okay on input line 12.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 12.
+LaTeX Font Info:    ... okay on input line 12.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 12.
+LaTeX Font Info:    ... okay on input line 12.
 
 (/usr/share/texmf/tex/context/base/supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
@@ -320,118 +320,115 @@ LaTeX Font Info:    ... okay on input line 9.
 \everyMPtoPDFconversion=\toks18
 )
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <14.4> on input line 11.
+(Font)              <14.4> on input line 14.
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <7> on input line 11.
-
-
-LaTeX Warning: No \author given.
-
-[1
+(Font)              <7> on input line 14.
+ [1
 
 {/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}]
-LaTeX Font Info:    Try loading font information for OMS+cmr on input line 27.
+LaTeX Font Info:    Try loading font information for OMS+cmr on input line 30.
 
 (/usr/share/texmf-texlive/tex/latex/base/omscmr.fd
 File: omscmr.fd 1999/05/25 v2.5h Standard LaTeX font definitions
 )
 LaTeX Font Info:    Font shape `OMS/cmr/m/n' in size <12> not available
-(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 27.
- [2] [3]
-Overfull \hbox (2.8974pt too wide) in paragraph at lines 90--94
-\OT1/cmr/m/n/12 sim-i-lar to ( 10X) the de-sired lag-time of your even-tual mod
-el (over-subsampling
+(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 30.
+ [2] [3] [4]
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <12> on input line 103.
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <8> on input line 103.
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <6> on input line 103.
+ [5] [6]
+Overfull \hbox (1.03206pt too wide) in paragraph at lines 157--158
+[]\OT1/cmr/m/n/12 You can dis-card eigen-vec-tors based on their equi-lib-rium 
+flux (fPCCA+). 
  []
 
-[4] [5]
-Overfull \hbox (10.12651pt too wide) in paragraph at lines 135--136
-\OT1/cmr/m/n/12 Perron Cluster-Cluster Anal-y-sis (PCCA) clus-ters Mi-crostates
- into Macrostates.
- []
-
-[6]
-LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <12> on input line 168.
-LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <8> on input line 168.
-LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <6> on input line 168.
- [7]
-Overfull \hbox (54.60022pt too wide) in paragraph at lines 191--191
+[7] [8]
+Overfull \hbox (54.60022pt too wide) in paragraph at lines 215--215
 []\OT1/cmtt/m/n/12 CalculateImpliedTimescales.py -l 1,25 -i 1 -o Data/ImpliedTi
 mescales.dat[] 
  []
 
+<figures/microstate_timescales.pdf, id=34, 587.19376pt x 442.65375pt>
+File: figures/microstate_timescales.pdf Graphic file (type pdf)
 
-Overfull \hbox (3.40843pt too wide) in paragraph at lines 206--207
+<use figures/microstate_timescales.pdf> [9]
+Overfull \hbox (3.40843pt too wide) in paragraph at lines 234--235
 []\OT1/cmr/m/n/12 At this point, MSM-Builder has writ-ten the fol-low-ing files
  into your ./Data/
  []
 
-[8]
-Overfull \hbox (0.64456pt too wide) in paragraph at lines 229--230
+[10 <./figures/microstate_timescales.pdf>]
+Overfull \hbox (0.64456pt too wide) in paragraph at lines 258--259
 \OT1/cmr/m/n/12 Spectral clus-ter meth-ods such as PCCA+ can be used to con-str
 uct metastable
  []
 
 
-Overfull \hbox (147.22527pt too wide) in paragraph at lines 239--239
-[]\OT1/cmtt/m/n/12 PCCA.py -n 4 -a Lagtime1/Assignments.Fixed.h5 -t Lagtime1/tP
-rob.mtx -o Macro4/ -A PCCA+[] 
+Overfull \hbox (73.12523pt too wide) in paragraph at lines 268--268
+[]\OT1/cmtt/m/n/12 PCCA.py -n 4 -a L1/Assignments.Fixed.h5 -t L1/tProb.mtx -o M
+acro4/ -A PCCA+[] 
  []
 
-<figures/Macro4.pdf, id=33, 587.19376pt x 442.65375pt>
+<figures/Macro4.pdf, id=72, 587.19376pt x 442.65375pt>
 File: figures/Macro4.pdf Graphic file (type pdf)
 
-<use figures/Macro4.pdf> [9]
-<figures/Macro5.pdf, id=37, 587.19376pt x 442.65375pt>
+<use figures/Macro4.pdf> [11]
+<figures/Macro5.pdf, id=76, 587.19376pt x 442.65375pt>
 File: figures/Macro5.pdf Graphic file (type pdf)
 
-<use figures/Macro5.pdf>
-Overfull \hbox (283.07533pt too wide) in paragraph at lines 266--266
+<use figures/Macro5.pdf> [12 <./figures/Macro4.pdf>]
+Overfull \hbox (66.95023pt too wide) in paragraph at lines 297--297
 []\OT1/cmtt/m/n/12 CalculateImpliedTimescales.py -l 1,25 -i 1 -o Macro4/Implied
-Timescales.dat -a Macro4/MacroAssignments.h5 -e 3[] 
+Timescales.dat[] 
  []
 
-[10 <./figures/Macro4.pdf> <./figures/Macro5.pdf>]
-Overfull \hbox (27.51233pt too wide) in paragraph at lines 272--273
+
+Overfull \hbox (27.51233pt too wide) in paragraph at lines 304--305
 []\OT1/cmr/m/n/12 The macrostate im-plied timescales ``fol-low'' the mi-crostat
 e im-plied timescales 
  []
 
-<figures/SCRE.pdf, id=113, 578.16pt x 433.62pt>
+[13 <./figures/Macro5.pdf>]
+<figures/SCRE.pdf, id=156, 587.19376pt x 442.65375pt>
 File: figures/SCRE.pdf Graphic file (type pdf)
- <use figures/SCRE.pdf> [11 <./figures/SCRE.pdf>]
-Overfull \hbox (73.12523pt too wide) in paragraph at lines 307--307
+ <use figures/SCRE.pdf>
+[14] [15 <./figures/SCRE.pdf>]
+Overfull \hbox (73.12523pt too wide) in paragraph at lines 370--370
 [] \OT1/cmtt/m/n/12 #004: H5Z.c line 1095 in H5Z_pipeline(): required filter is
  not registered[] 
  []
 
 
-Overfull \hbox (55.4788pt too wide) in paragraph at lines 309--313
+Overfull \hbox (55.4788pt too wide) in paragraph at lines 372--376
 \OT1/cmr/m/n/12 R1=Trajectory.Trajectory.LoadFromLHDF(Filename) R1.SaveToLHDF(N
 ewFilename) 
  []
 
-[12] [13] (./Tutorial.aux) ) 
+[16] (./Tutorial.bbl) [17] (./Tutorial.aux) ) 
 Here is how much of TeX's memory you used:
- 1311 strings out of 493911
- 15902 string characters out of 1155272
- 67832 words of memory out of 3000000
- 4592 multiletter control sequences out of 15000+50000
- 8977 words of font info for 32 fonts, out of 3000000 for 9000
+ 1324 strings out of 493911
+ 16158 string characters out of 1155272
+ 67894 words of memory out of 3000000
+ 4600 multiletter control sequences out of 15000+50000
+ 9324 words of font info for 33 fonts, out of 3000000 for 9000
  706 hyphenation exceptions out of 8191
- 25i,6n,24p,724b,245s stack positions out of 5000i,500n,10000p,200000b,50000s
-</usr/share/texmf-texlive/fonts/type1/public/amsfon
-ts/cm/cmbx12.pfb></usr/share/texmf-texlive/fonts/type1/public/amsfonts/cm/cmmi1
-2.pfb></usr/share/texmf-texlive/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/
-share/texmf-texlive/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/share/texmf-
-texlive/fonts/type1/public/amsfonts/cm/cmr17.pfb></usr/share/texmf-texlive/font
-s/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/texmf-texlive/fonts/type1/pub
-lic/amsfonts/cm/cmtt12.pfb>
-Output written on Tutorial.pdf (13 pages, 922001 bytes).
+ 25i,6n,24p,510b,245s stack positions out of 5000i,500n,10000p,200000b,50000s
+</usr/share/texmf-texlive/fonts/ty
+pe1/public/amsfonts/cm/cmbx12.pfb></usr/share/texmf-texlive/fonts/type1/public/
+amsfonts/cm/cmmi12.pfb></usr/share/texmf-texlive/fonts/type1/public/amsfonts/cm
+/cmmi8.pfb></usr/share/texmf-texlive/fonts/type1/public/amsfonts/cm/cmr12.pfb><
+/usr/share/texmf-texlive/fonts/type1/public/amsfonts/cm/cmr17.pfb></usr/share/t
+exmf-texlive/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/share/texmf-texlive/
+fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/texmf-texlive/fonts/type1
+/public/amsfonts/cm/cmti12.pfb></usr/share/texmf-texlive/fonts/type1/public/ams
+fonts/cm/cmtt12.pfb>
+Output written on Tutorial.pdf (17 pages, 999830 bytes).
 PDF statistics:
- 180 PDF objects out of 1000 (max. 8388607)
+ 232 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 500000)
- 16 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 21 words of extra memory for PDF output out of 10000 (max. 10000000)
 
