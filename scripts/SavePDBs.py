@@ -25,6 +25,8 @@ import numpy as np
 import random
 
 def run(project, assignments, conformations_per_state, states, output_dir):
+    if states == "all":
+        states = np.arange(assignments.max()+1)
     
     inverse_assignments = defaultdict(lambda: [])
     for i in xrange(assignments.shape[0]):
@@ -84,3 +86,4 @@ to use GetRandomConfs.py""")
     
     run(args.project, args.assignments['Data'], args.conformations_per_state,
          args.states, args.output_dir)
+
