@@ -72,7 +72,7 @@ USE_FAST_CDIST = True
 #USE_FAST_CDIST = False
 #######################################################
 
-def fast_cdist(XA, XB, metric='euclidean', p=2):
+def fast_cdist(XA, XB, metric='euclidean', p=2, V=None, VI=None):
     """The same code as scipy.spatial.distance.cdist, except with less typechecking
     so this might throw a segfault, but oh well
     """
@@ -107,8 +107,38 @@ def fast_cdist(XA, XB, metric='euclidean', p=2):
         _distance_wrap.cdist_chebyshev_wrap(XA, XB, dm)
     elif metric == 'minkowski':
         _distance_wrap.cdist_minkowski_wrap(XA, XB, dm, p)
-    elif metric == 'wminkowski':
-        _distance_wrap.cdist_weighted_minkowski_wrap(XA, XB, dm)
+    #elif metric == 'wminkowski':
+    #    _distance_wrap.cdist_weighted_minkowski_wrap(XA, XB, dm)
+    elif metric == 'seuclidean':
+        if V is not None:
+            V = np.asarray(V, order='c')
+            if type(V) != np.ndarray:
+                raise TypeError('Variance vector V must be a numpy array')
+            if V.dtype != np.double:
+                raise TypeError('Variance vector V must contain doubles.')
+            if len(V.shape) != 1:
+                raise ValueError('Variance vector V must be '
+                                 'one-dimensional.')
+            if V.shape[0] != n:
+                raise ValueError('Variance vector V must be of the same '
+                                 'dimension as the vectors on which the '
+                                 'distances are computed.')
+            # The C code doesn't do striding.
+            [VV] = scipy.spatial.distance._copy_arrays_if_base_present([_convert_to_double(V)])
+        else:
+            raise ValueError('You need to supply V')
+        _distance_wrap.cdist_seuclidean_wrap(XA, XB, VV, dm)
+    elif metric == 'mahalanobis':
+        if VI is not None:
+            VI = scipy.spatial.distance._convert_to_double(np.asarray(VI, order='c'))
+            if type(VI) != np.ndarray:
+                raise TypeError('VI must be a numpy array.')
+            if VI.dtype != np.double:
+                raise TypeError('The array must contain 64-bit floats.')
+            [VI] = scipy.spatial.distance._copy_arrays_if_base_present([VI])
+        else:
+            raise ValueError('You must supply VI')
+        _distance_wrap.cdist_mahalanobis_wrap(XA, XB, VI, dm)
     elif metric == 'cosine':
         normsA = np.sqrt(np.sum(XA * XA, axis=1))
         normsB = np.sqrt(np.sum(XB * XB, axis=1))
@@ -143,7 +173,6 @@ def fast_cdist(XA, XB, metric='euclidean', p=2):
 if USE_FAST_CDIST:
     cdist = fast_cdist
 else:
-    import scipy.spatial.distance
     cdist = scipy.spatial.distance.cdist
 #print 'in metrics library, USE_FAST_CDIST is set to', USE_FAST_CDIST
 
@@ -405,12 +434,14 @@ class Vectorized(AbstractDistanceMetric):
                                'correlation', 'cosine', 'euclidean', 'minkowski',
                                'sqeuclidean','dice', 'kulsinki', 'matching',
                                'rogerstanimoto', 'russellrao', 'sokalmichener',
-                               'sokalsneath', 'yule']
+                               'sokalsneath', 'yule', 'seuclidean', 'mahalanobis']
     
-    def __init__(self, metric='euclidean', p=2):
+    def __init__(self, metric='euclidean', p=2, V=None, VI=None):
         self._validate_scipy_metric(metric)
         self.metric = metric
         self.p = p
+        self.V = V
+        self.VI = VI
         
     
     def _validate_scipy_metric(self, metric):
@@ -446,7 +477,8 @@ class Vectorized(AbstractDistanceMetric):
         
         if not isinstance(index1, int):
             raise TypeError('index1 must be of type int.')
-        out2 = cdist(prepared_traj2, prepared_traj1[[index1]], metric=self.metric, p=self.p)
+        out2 = cdist(prepared_traj2, prepared_traj1[[index1]], metric=self.metric, p=self.p,
+                     V=self.V, VI=self.VI)
         return out2[:,0]
         
     
@@ -461,7 +493,8 @@ class Vectorized(AbstractDistanceMetric):
         Returns: a 2D array of shape len(prepared_traj1) * len(prepared_traj2)"""
         
         
-        out = cdist(prepared_traj1[indices1], prepared_traj2[indices2], metric=self.metric, p=self.p)
+        out = cdist(prepared_traj1[indices1], prepared_traj2[indices2], metric=self.metric,
+                    p=self.p, V=self.V, VI=self.VI)
         return out
         
     def all_to_all(self, prepared_traj1, prepared_traj2):
@@ -481,7 +514,8 @@ class Vectorized(AbstractDistanceMetric):
             (why?) then you can always use scipy.spatial.distance.squareform()
             on the output of all_pairwise()""".replace('\n', ' ')))
             
-        out = cdist(prepared_traj1, prepared_traj2, metric=self.metric, p=self.p)
+        out = cdist(prepared_traj1, prepared_traj2, metric=self.metric, p=self.p,
+                    V=self.V, VI=self.VI)
         return out                                        
         
     def all_pairwise(self, prepared_traj):
@@ -496,7 +530,8 @@ class Vectorized(AbstractDistanceMetric):
         See the documentation on scipy.spatial.distance.pdist for more details."""
         
         # TODO: Provide a faster pdist implementation using openmp
-        out = scipy.spatial.distance.pdist(prepared_traj, metric=self.metric, p=self.p)
+        out = scipy.spatial.distance.pdist(prepared_traj, metric=self.metric, p=self.p,
+                    V=self.V, VI=self.VI)
         return out
 
 
@@ -506,10 +541,10 @@ class Dihedral(Vectorized, AbstractDistanceMetric):
     
     allowable_scipy_metrics = ['braycurtis', 'canberra', 'chebyshev', 'cityblock',
                                'correlation', 'cosine', 'euclidean', 'minkowski',
-                               'sqeuclidean']
+                               'sqeuclidean', 'seuclidean', 'mahalanobis']
     
-    def __init__(self, metric='euclidean', p=2, angles='phi/psi'):
-        super(Dihedral, self).__init__(metric, p)
+    def __init__(self, metric='euclidean', p=2, angles='phi/psi', V=None, VI=None):
+        super(Dihedral, self).__init__(metric, p, V, VI)
         self.angles = angles
     
     def __repr__(self):
