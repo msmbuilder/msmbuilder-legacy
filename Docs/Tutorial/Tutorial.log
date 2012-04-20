@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=pdflatex 2011.4.11)  20 APR 2012 13:12
+This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=pdflatex 2011.4.11)  20 APR 2012 16:25
 entering extended mode
  %&-line parsing enabled.
 **Tutorial.tex
@@ -28,6 +28,10 @@ File: size12.clo 2007/10/19 v1.4h Standard LaTeX file (size option)
 \abovecaptionskip=\skip41
 \belowcaptionskip=\skip42
 \bibindent=\dimen102
+)
+(/usr/share/texmf-texlive/tex/latex/psnfss/mathpazo.sty
+Package: mathpazo 2005/04/12 PSNFSS-v9.2a Palatino w/ Pazo Math (D.Puga, WaS) 
+\symupright=\mathgroup4
 )
 (/usr/share/texmf-texlive/tex/latex/base/inputenc.sty
 Package: inputenc 2008/03/30 v1.1d Input encoding file
@@ -293,136 +297,179 @@ Package: subfigure 2002/03/15 v2.1.5 subfigure package
 ) (./Tutorial.aux)
 \openout1 = `Tutorial.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 12.
-LaTeX Font Info:    ... okay on input line 12.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 12.
-LaTeX Font Info:    ... okay on input line 12.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 12.
-LaTeX Font Info:    ... okay on input line 12.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 12.
-LaTeX Font Info:    ... okay on input line 12.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 12.
-LaTeX Font Info:    ... okay on input line 12.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 12.
-LaTeX Font Info:    ... okay on input line 12.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 14.
+LaTeX Font Info:    ... okay on input line 14.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 14.
+LaTeX Font Info:    ... okay on input line 14.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 14.
+LaTeX Font Info:    ... okay on input line 14.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 14.
+LaTeX Font Info:    ... okay on input line 14.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 14.
+LaTeX Font Info:    ... okay on input line 14.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 14.
+LaTeX Font Info:    ... okay on input line 14.
+LaTeX Font Info:    Try loading font information for OT1+pplx on input line 14.
+
+
+(/usr/share/texmf-texlive/tex/latex/psnfss/ot1pplx.fd
+File: ot1pplx.fd 2004/09/06 font definitions for OT1/pplx.
+)
+\big@size=\dimen107
 
 (/usr/share/texmf/tex/context/base/supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
 \scratchcounter=\count92
-\scratchdimen=\dimen107
+\scratchdimen=\dimen108
 \scratchbox=\box26
 \nofMPsegments=\count93
 \nofMParguments=\count94
 \everyMPshowfont=\toks17
 \MPscratchCnt=\count95
-\MPscratchDim=\dimen108
+\MPscratchDim=\dimen109
 \MPnumerator=\count96
 \everyMPtoPDFconversion=\toks18
 )
-LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <14.4> on input line 14.
-LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <7> on input line 14.
+LaTeX Font Info:    Try loading font information for OML+zplm on input line 16.
+
+ (/usr/share/texmf-texlive/tex/latex/psnfss/omlzplm.fd
+File: omlzplm.fd 2002/09/08 Fontinst v1.914 font definitions for OML/zplm.
+)
+LaTeX Font Info:    Try loading font information for OMS+zplm on input line 16.
+
+
+(/usr/share/texmf-texlive/tex/latex/psnfss/omszplm.fd
+File: omszplm.fd 2002/09/08 Fontinst v1.914 font definitions for OMS/zplm.
+)
+LaTeX Font Info:    Try loading font information for OMX+zplm on input line 16.
+
+
+(/usr/share/texmf-texlive/tex/latex/psnfss/omxzplm.fd
+File: omxzplm.fd 2002/09/08 Fontinst v1.914 font definitions for OMX/zplm.
+)
+LaTeX Font Info:    Try loading font information for OT1+zplm on input line 16.
+
+
+(/usr/share/texmf-texlive/tex/latex/psnfss/ot1zplm.fd
+File: ot1zplm.fd 2002/09/08 Fontinst v1.914 font definitions for OT1/zplm.
+)
+LaTeX Font Info:    Font shape `OT1/pplx/bx/n' in size <17.28> not available
+(Font)              Font shape `OT1/pplx/b/n' tried instead on input line 18.
  [1
 
 {/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}]
-LaTeX Font Info:    Try loading font information for OMS+cmr on input line 31.
+LaTeX Font Info:    Font shape `OT1/pplx/bx/n' in size <14.4> not available
+(Font)              Font shape `OT1/pplx/b/n' tried instead on input line 31.
+LaTeX Font Info:    Try loading font information for OMS+pplx on input line 33.
 
-(/usr/share/texmf-texlive/tex/latex/base/omscmr.fd
-File: omscmr.fd 1999/05/25 v2.5h Standard LaTeX font definitions
-)
-LaTeX Font Info:    Font shape `OMS/cmr/m/n' in size <12> not available
-(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 31.
- [2] [3] [4]
-LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <12> on input line 113.
-LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <8> on input line 113.
-LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <6> on input line 113.
+LaTeX Font Info:    No file OMSpplx.fd. on input line 33.
+
+
+LaTeX Font Warning: Font shape `OMS/pplx/m/n' undefined
+(Font)              using `OMS/cmsy/m/n' instead
+(Font)              for symbol `textbullet' on input line 33.
+
+[2] [3] [4]
+LaTeX Font Info:    Font shape `OT1/pplx/bx/n' in size <12> not available
+(Font)              Font shape `OT1/pplx/b/n' tried instead on input line 88.
  [5]
-Overfull \hbox (54.60022pt too wide) in paragraph at lines 136--136
+Overfull \hbox (13.4277pt too wide) in paragraph at lines 135--136
+\OT1/pplx/m/n/12 We cal-cu-late the re-lax-ation timescales for a se-quence of 
+lag-times $\OMS/zplm/m/n/12 f\OT1/pplx/m/n/12 1, 2, ..., 25\OMS/zplm/m/n/12 g$\
+OT1/pplx/m/n/12 : 
+ []
+
+
+Overfull \hbox (54.60022pt too wide) in paragraph at lines 138--138
 []\OT1/cmtt/m/n/12 CalculateImpliedTimescales.py -l 1,25 -i 1 -o Data/ImpliedTi
 mescales.dat[] 
  []
 
-<figures/microstate_timescales.pdf, id=23, 587.19376pt x 442.65375pt>
+<figures/microstate_timescales.pdf, id=22, 587.19376pt x 442.65375pt>
 File: figures/microstate_timescales.pdf Graphic file (type pdf)
 
 <use figures/microstate_timescales.pdf> [6]
-Overfull \hbox (3.40843pt too wide) in paragraph at lines 155--156
-[]\OT1/cmr/m/n/12 At this point, MSM-Builder has writ-ten the fol-low-ing files
- into your ./Data/
+Overfull \hbox (2.15271pt too wide) in paragraph at lines 169--170
+[]\OT1/pplx/m/n/12 tCounts.UnSym.mtx con-tains the raw counts of the er-godic d
+ata. These
  []
 
 [7 <./figures/microstate_timescales.pdf>]
-Overfull \hbox (73.12523pt too wide) in paragraph at lines 189--189
+Overfull \hbox (0.38075pt too wide) in paragraph at lines 173--174
+[]\OT1/pplx/m/n/12 tProb.mtx con-tains the max-i-mum like-li-hood es-ti-mated t
+ran-si-tion prob-
+ []
+
+
+Overfull \hbox (0.38074pt too wide) in paragraph at lines 177--178
+[]\OT1/pplx/m/n/12 Populations.dat con-tains the max-i-mum like-li-hood es-ti-m
+ated re-versible
+ []
+
+
+Overfull \hbox (73.12523pt too wide) in paragraph at lines 191--191
 []\OT1/cmtt/m/n/12 PCCA.py -n 4 -a L1/Assignments.Fixed.h5 -t L1/tProb.mtx -o M
 acro4/ -A PCCA+[] 
  []
 
-<figures/Macro4.pdf, id=62, 587.19376pt x 442.65375pt>
+<figures/Macro4.pdf, id=61, 587.19376pt x 442.65375pt>
 File: figures/Macro4.pdf Graphic file (type pdf)
 
 <use figures/Macro4.pdf> [8]
-<figures/Macro5.pdf, id=66, 587.19376pt x 442.65375pt>
+<figures/Macro5.pdf, id=65, 587.19376pt x 442.65375pt>
 File: figures/Macro5.pdf Graphic file (type pdf)
 
 <use figures/Macro5.pdf> [9 <./figures/Macro4.pdf>]
-Overfull \hbox (66.95023pt too wide) in paragraph at lines 218--218
+Overfull \hbox (66.95023pt too wide) in paragraph at lines 220--220
 []\OT1/cmtt/m/n/12 CalculateImpliedTimescales.py -l 1,25 -i 1 -o Macro4/Implied
 Timescales.dat[] 
  []
 
-
-Overfull \hbox (27.51233pt too wide) in paragraph at lines 225--226
-[]\OT1/cmr/m/n/12 The macrostate im-plied timescales ``fol-low'' the mi-crostat
-e im-plied timescales 
- []
-
 [10 <./figures/Macro5.pdf>]
-<figures/SCRE.pdf, id=145, 587.19376pt x 442.65375pt>
+<figures/SCRE.pdf, id=144, 587.19376pt x 442.65375pt>
 File: figures/SCRE.pdf Graphic file (type pdf)
  <use figures/SCRE.pdf>
-[11] [12 <./figures/SCRE.pdf>] [13] [14]
-Overfull \hbox (1.03206pt too wide) in paragraph at lines 352--353
-[]\OT1/cmr/m/n/12 You can dis-card eigen-vec-tors based on their equi-lib-rium 
-flux (fPCCA+). 
+[11] [12 <./figures/SCRE.pdf>] [13] [14] [15]
+Overfull \hbox (16.35468pt too wide) in paragraph at lines 354--355
+[]\OT1/pplx/m/n/12 You can dis-card eigen-vec-tors based on their equi-lib-rium
+ flux (fPCCA+). 
  []
 
-[15]
-Overfull \hbox (73.12523pt too wide) in paragraph at lines 371--371
+[16]
+Overfull \hbox (73.12523pt too wide) in paragraph at lines 373--373
 [] \OT1/cmtt/m/n/12 #004: H5Z.c line 1095 in H5Z_pipeline(): required filter is
  not registered[] 
  []
 
 
-Overfull \hbox (55.4788pt too wide) in paragraph at lines 373--377
-\OT1/cmr/m/n/12 R1=Trajectory.Trajectory.LoadFromLHDF(Filename) R1.SaveToLHDF(N
-ewFilename) 
+Overfull \hbox (113.75978pt too wide) in paragraph at lines 375--379
+\OT1/pplx/m/n/12 Tra-jec-tory R1=Trajectory.Trajectory.LoadFromLHDF(Filename) R
+1.SaveToLHDF(NewFilename) 
  []
 
-[16] (./Tutorial.bbl [17]) [18] (./Tutorial.aux) ) 
+[17] (./Tutorial.bbl [18]) [19] (./Tutorial.aux)
+
+LaTeX Font Warning: Some font shapes were not available, defaults substituted.
+
+ ) 
 Here is how much of TeX's memory you used:
- 1329 strings out of 493911
- 16225 string characters out of 1155272
- 67906 words of memory out of 3000000
- 4605 multiletter control sequences out of 15000+50000
- 9324 words of font info for 33 fonts, out of 3000000 for 9000
+ 1487 strings out of 493911
+ 18425 string characters out of 1155272
+ 68405 words of memory out of 3000000
+ 4726 multiletter control sequences out of 15000+50000
+ 28728 words of font info for 75 fonts, out of 3000000 for 9000
  706 hyphenation exceptions out of 8191
  25i,6n,24p,510b,245s stack positions out of 5000i,500n,10000p,200000b,50000s
-</usr/share/texmf-texlive/fon
-ts/type1/public/amsfonts/cm/cmbx12.pfb></usr/share/texmf-texlive/fonts/type1/pu
-blic/amsfonts/cm/cmmi12.pfb></usr/share/texmf-texlive/fonts/type1/public/amsfon
-ts/cm/cmmi8.pfb></usr/share/texmf-texlive/fonts/type1/public/amsfonts/cm/cmr12.
-pfb></usr/share/texmf-texlive/fonts/type1/public/amsfonts/cm/cmr17.pfb></usr/sh
-are/texmf-texlive/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/share/texmf-tex
-live/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/texmf-texlive/fonts/
-type1/public/amsfonts/cm/cmti12.pfb></usr/share/texmf-texlive/fonts/type1/publi
-c/amsfonts/cm/cmtt12.pfb>
-Output written on Tutorial.pdf (18 pages, 1003203 bytes).
+{/usr/share/texmf-texlive/fonts/enc/dvips/base/8r.enc}</usr/share/texmf-texli
+ve/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/share/texmf-texlive/fonts/typ
+e1/public/amsfonts/cm/cmsy10.pfb></usr/share/texmf-texlive/fonts/type1/public/a
+msfonts/cm/cmtt12.pfb></usr/share/texmf-texlive/fonts/type1/public/mathpazo/fpl
+mri.pfb></usr/share/texmf-texlive/fonts/type1/urw/palatino/uplb8a.pfb></usr/sha
+re/texmf-texlive/fonts/type1/urw/palatino/uplr8a.pfb></usr/share/texmf-texlive/
+fonts/type1/urw/palatino/uplri8a.pfb>
+Output written on Tutorial.pdf (19 pages, 983783 bytes).
 PDF statistics:
- 235 PDF objects out of 1000 (max. 8388607)
+ 232 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 500000)
  21 words of extra memory for PDF output out of 10000 (max. 10000000)
 

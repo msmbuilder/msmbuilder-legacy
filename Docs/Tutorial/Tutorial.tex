@@ -1,5 +1,7 @@
 \documentclass[12pt]{article}
 \bibliographystyle{plain}
+
+\usepackage[sc]{mathpazo}
 \usepackage[utf8]{inputenc}
 \usepackage{graphicx}
 \usepackage{subfigure}
@@ -193,7 +195,7 @@ PCCA.py -n 4 -a L1/Assignments.Fixed.h5 -t L1/tProb.mtx -o Macro4/ -A PCCA+
 It is known that the relevant degrees of freedom for alanine dipeptide are the phi and psi backbone angles.  Thus, it is useful to examine (phi,psi), which we have pre-calculated for you.
 
 \begin{verbatim}
-./PlotDihedrals.py Macro4/MacroAssignments.h5
+python PlotDihedrals.py Macro4/MacroAssignments.h5
 \end{verbatim}
 
 You should see the following graph:
@@ -211,8 +213,7 @@ In general, PCCA and PCCA+ are best applied to capturing long-lived, metastable 
 \subsubsection{Calculate Macrostate Implied Timescales}
 
 \begin{verbatim}
-CalculateImpliedTimescales.py -l 1,25 -i 1 -o Macro4/ImpliedTimescales.dat 
--a Macro4/MacroAssignments.h5 -e 3
+CalculateImpliedTimescales.py -l 1,25 -i 1 -o Macro4/ImpliedTimescales.dat -a Macro4/MacroAssignments.h5 -e 3
 
 PlotImpliedTimescales.py -i Macro4/ImpliedTimescales.dat -d 1
 \end{verbatim}
@@ -256,12 +257,12 @@ In practice, the script will prompt the user to select a maximum lagtime.  The s
 25
 14
 
-Note that on the last iteration, the user is asked only to select a lagtime.  
+Note that on the last iteration, the user is asked only to select a lagtime.  Also note that your choices may be different because of differences in the macrostate definitions; the PCCA+ minimization uses a non-deterministic simulated annealing.
 
 Finally, we compare the fixed-lagtime and SCRE estimates of implied timescales:
 
 \begin{verbatim}
- ./PlotMacrostateImpliedTimescales.py
+ python PlotMacrostateImpliedTimescales.py
 \end{verbatim}
 
 
