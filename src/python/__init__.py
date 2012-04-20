@@ -35,6 +35,7 @@ __all__ = [
 "Conformation", 
 "CopernicusProject",
 "CreateMergedTrajectoriesFromFAH",
+"FahProject",
 "metrics", 
 "MSMLib",
 "lumping", 
