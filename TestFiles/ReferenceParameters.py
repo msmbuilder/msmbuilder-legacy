@@ -8,7 +8,7 @@ ReferenceDir = os.path.abspath("./UnitTestReference/")
 WorkingDir   = os.path.abspath("./UnitTestWorkingDir/")
 TutorialDir   = os.path.abspath("../Tutorial/")
 
-PDBFn         = TutorialDir+"/dipeptide.pdb"
+PDBFn         = TutorialDir+"/native.pdb"
 ProjectFn     = "ProjectInfo.h5"
 GensPath      = "Data/Gens.lh5"
 

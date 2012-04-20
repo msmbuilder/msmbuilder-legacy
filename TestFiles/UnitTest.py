@@ -42,5 +42,5 @@ suite.addTest(unittest.makeSuite(TestWrappers))
 # run all the tests
 unittest.TextTestRunner(verbosity=2).run(suite)
 
-clean()
+#clean()
 
