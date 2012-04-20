@@ -89,8 +89,9 @@ class Project(Serializer):
         """By default, the files should be of the form ./Trajectories/trj0.h5 ... ./Trajectories/trj[n].h5.
            Use optional arguments to change path, names, and filetypes."""
 
-        if ConfFilename!=None:
-            Conf=Conformation.Conformation.LoadFromPDB(ConfFilename)
+        if ConfFilename is None:
+            raise ValueError('You must supply a conf (.pdb)')
+        Conf = Conformation.Conformation.LoadFromPDB(ConfFilename)
 
         NumTraj = cls.CountLocalTrajectories(TrajFilePath,TrajFileBaseName,TrajFileType)
         if NumTraj==0:
