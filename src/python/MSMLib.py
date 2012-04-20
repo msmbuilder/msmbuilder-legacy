@@ -836,7 +836,7 @@ def EstimateReversibleCountMatrix(C, Prior=0., InitialGuess = None):
         Xupdata[:] *= scalefactor
 
         # now run the minimizer
-        Xupdata, nfeval, rc = scipy.optimize.fmin_tnc(negativeLogLikelihoodFromCountEstimatesSparse, Xupdata, args=(row, col, N, C), bounds=bounds, approx_grad=False, maxfun=rescale_every, disp=0)
+        Xupdata, nfeval, rc = scipy.optimize.fmin_tnc(negativeLogLikelihoodFromCountEstimatesSparse, Xupdata, args=(row, col, N, C), bounds=bounds, approx_grad=False, maxfun=rescale_every, disp=0,xtol=1E-20)
         totalnumberoffunctionevaluations += nfeval
         negative_logL, negative_gradient = negativeLogLikelihoodFromCountEstimatesSparse(Xupdata, row, col, N, C)
         print "Log-Likelihood after", totalnumberoffunctionevaluations, "function evaluations:", -negative_logL
