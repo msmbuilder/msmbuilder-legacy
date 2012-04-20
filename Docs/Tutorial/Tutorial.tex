@@ -16,8 +16,9 @@
 \section{Table of Contents}
 \begin{enumerate}
 \item Installation
-\item Using MSMBuilder
+\item MSMBuilder Design and Usage
 \item MSMBuilder Tutorial
+\item Listing of MSMBuilder Scripts
 \item Frequently Asked Questions
 \end{enumerate}
 
@@ -66,7 +67,7 @@ Step (1) ensures that your can run MSMBuilder scripts without specifying their l
 
 \newpage
 
-\section{Using MSMBuilder}
+\section{MSMBuilder Design and Usage}
 
 MSMBuilder has been designed to provide both ease of use and versatility.  To facilitate the workflows of both novices and experts, we have designed MSMBuilder with two modes of operations:
 
@@ -76,86 +77,6 @@ MSMBuilder has been designed to provide both ease of use and versatility.  To fa
 \end{enumerate}
 
 Python scripts allow most users to work without writing a single line of Python code.  Advanced users can write their own Python scripts using the MSMBuilder library.  Using MSMBuilder as a library is further described in the MSMBuilder Library Guide; we recommend that users first master the script interface before jumping into the library.  
-
-\subsection{MSMBuilder Scripts}
-
-The MSMBuilder scripts are listed below.  Each script below provides instructions by running with the -h flag.  Note that the installer (setup.py) should have installed each script below to someplace in your PATH.  
-
-\subsubsection{ConvertDataToHDF.py}
-
-Merges sequences of XTC or DCD files into HDF5 files that MSMB2 can read quickly.  Takes data from a directory of trajectory directories or a FAH-style filesystem.  
-
-Note: if you wish to convert a pre-existing MSMBuilder1 project, use UpdateProjectToHDF5.py 
-
-\subsubsection{CreateAtomIndices.py}
-Selects atom indices you care about and dumps them into a flat text file. Can select all non-symmetric atoms, all heavy atoms, all alpha carbons, or all atoms.
-
-\subsubsection{Cluster.py}
-
-Cluster your data using your choice of clustering algorithm and distance metric.  We have previously used several clustering protocols, which are summarized:
-
-\begin{enumerate}
- \item RMSD + k-centers clustering \cite{Bowman2009c} ( ``Cluster.py  rmsd kcenters'')
- \item RMSD + hybrid k-centers / k-medoids clustering \cite{msmb2} (``Cluster.py  rmsd hybrid'')
- \item RMSD + Ward clustering (``Cluster.py  rmsd hierarchical'')
-\end{enumerate}
-
-We recommend Ward clustering if it is computationally feasible; otherwise, use the hybrid k-centers / k-medoids clustering.  Ward clustering calculations an $O(N^2)$ distance matrix, which may be prohibitive for datasets with many conformations.  
-
-Most of our experience has been in applying MSMBuilder to protein folding.  Thus, non-folding applications may require a slightly different protocol.
-
-\subsubsection{Assign.py / AssignHierarchical.py}
-Assign.py assigns data to the cluster generators calculated using the k-centers or hybrid algorithms.
-
-AssignHierarchical.py assigns data using the output of a hierarchical clustering algorithm such as Ward.  The key difference is that a single hierarchical clustering allows construction of models with any number of states.
-
-\subsubsection{CalculateImpliedTimescales.py}
-Calculates the implied timescales for a python range of MSM lag times.  This allows you to validate whether a given model is Markovian.  
-	Notes:
-\begin{enumerate}
- \item You might get a SparseEfficiencyWarning for every lag time. Ignore this.
- \item Lagtimes are input in units of the time spacing between successive trajectory frames.  If your trajectories are stored every 10 ns, then -l 1,4 estimtes implied timescales with lagtimes 10, 20, 30, 40 ns.  
-\end{enumerate}
-
-\subsubsection{PlotImpliedTimescales.py}
-A template for generating an implied timescales plot.
-
-\subsubsection{BuildMSM.py}
-Estimate a reversible transition and count matrix using a two step process:
-\begin{enumerate}
- \item Use Tarjan algorithm to find the maximal strongly-connected (ergodic) subgraph
- \item Use likelihood maximization to estimate a reversible count matrix consistent with your data
-\end{enumerate}
-
-This script also outputs the equilibrium populations of the resulting model, as well as a mapping from the original states to the final (ergodic) states.
-
-\subsubsection{GetRandomConfs.py}
-Selects random conformations from each state of your MSM. This is very useful for efficient calculation of observables.
-
-\subsubsection{CalculateClusterRadii.py}
-Calculates the mean RMSD of all assigned snapshots to their cluster generator for each cluster. Gives an indication of how structurally diverse clusters are.
-
-\subsubsection{CalculateRMSD.py}
-Calculate the RMSD between a PDB and a trajectory (or set of cluster centers). Useful for deciding which clusters belong to the folded, unfolded, or transition state ensembles (or any other grouping!)
-
-\subsubsection{CalculateProjectRMSD.py}
-Calculates the RMSD of all conformations in a project to a given conformation.
-
-\subsubsection{DoTPT.py}
-Performs Transition Path Theory (TPT) calculations. You will need to define good starting (reactants/U) and ending (products/F) ensembles for this script. Writes the forward and backward committors and the net flux matrix
-
-\subsubsection{SavePDBs.py}
-Allows you to sample random PDBs from particular states and save them to disk.
-
-\subsubsection{PCCA.py}
-Lumps microstates into macrostates using PCCA or PCCA+. This script generates a macrostate assignments file from a microstate model.  
-
-Notes:
-\begin{enumerate}
- \item We recommend PCCA+ for most applications
- \item PCCA+ requires a reversible MSM as input
- \item You can discard eigenvectors based on their equilibrium flux (fPCCA+).
-\end{enumerate}
 
 \newpage
 
@@ -255,7 +176,7 @@ Populations.dat contains the maximum likelihood estimated reversible equilibrium
 
 \subsubsection{Construct a Macrostate MSM}
 
-Spectral cluster methods such as PCCA+ can be used to construct metastable models with a minimal number of states.  First, we need to construct a microstate model with a short lagtime.  The short lagtime is necessary because PCCA+ tries to create macrostates that are long-lived, or metastable.  At long lagtimes, states become less and less metastable.
+Spectral cluster methods such as PCCA+  \cite{Deuflhard2000, Deuflhard2005, kube2007coarse} can be used to construct metastable models with a minimal number of states.  First, we need to construct a microstate model with a short lagtime.  The short lagtime is necessary because PCCA+ tries to create macrostates that are long-lived, or metastable.  At long lagtimes, states become less and less metastable.
 
 \begin{verbatim}
  BuildMSM.py -l 1 -o L1
@@ -296,15 +217,13 @@ CalculateImpliedTimescales.py -l 1,25 -i 1 -o Macro4/ImpliedTimescales.dat
 PlotImpliedTimescales.py -i Macro4/ImpliedTimescales.dat -d 1
 \end{verbatim}
 
-When using PCCA+, always verify two things:
+Occasionally, PCCA+ will lead to poor macrostates, so it is important to verify that:
 
 \begin{enumerate}
  \item The state decomposition makes physical sense
  \item The macrostate implied timescales make sense
  \item The macrostate implied timescales ``follow'' the microstate implied timescales
 \end{enumerate}
-
-Occasionally, PCCA+ will lead to a poor solutions.
 
 \subsubsection{Estimate a converged rate matrix using SCRE}
 
@@ -350,6 +269,88 @@ Finally, we compare the fixed-lagtime and SCRE estimates of implied timescales:
 
 
 We find that the SCRE estimates capture the ``converged'' values of the fixed-lagtime timescales.  Achieving convergence for each timescale is not possible with a fixed-lagtime MSM, because the 20 ps lagtime required for the second relaxation causes the third relaxation to alias.  
+
+\newpage
+
+\subsection{MSMBuilder Scripts}
+
+The MSMBuilder scripts are listed below.  Each script below provides instructions by running with the -h flag.  Note that the installer (setup.py) should have installed each script below to someplace in your PATH.  
+
+\subsubsection{ConvertDataToHDF.py}
+
+Merges sequences of XTC or DCD files into HDF5 files that MSMB2 can read quickly.  Takes data from a directory of trajectory directories or a FAH-style filesystem.  
+
+Note: if you wish to convert a pre-existing MSMBuilder1 project, use UpdateProjectToHDF5.py 
+
+\subsubsection{CreateAtomIndices.py}
+Selects atom indices you care about and dumps them into a flat text file. Can select all non-symmetric atoms, all heavy atoms, all alpha carbons, or all atoms.
+
+\subsubsection{Cluster.py}
+
+Cluster your data using your choice of clustering algorithm and distance metric.  We have previously used several clustering protocols, which are summarized:
+
+\begin{enumerate}
+ \item RMSD + k-centers clustering \cite{Bowman2009c, Bowman2009a} ( ``Cluster.py  rmsd kcenters'')
+ \item RMSD + hybrid k-centers / k-medoids clustering \cite{msmb2} (``Cluster.py  rmsd hybrid'')
+ \item RMSD + Ward clustering (``Cluster.py  rmsd hierarchical'')
+\end{enumerate}
+
+We recommend Ward clustering if it is computationally feasible; otherwise, use the hybrid k-centers / k-medoids clustering.  Ward clustering calculations an $O(N^2)$ distance matrix, which may be prohibitive for datasets with many conformations.  
+
+Most of our experience has been in applying MSMBuilder to protein folding.  Thus, non-folding applications may require a slightly different protocol.
+
+\subsubsection{Assign.py / AssignHierarchical.py}
+Assign.py assigns data to the cluster generators calculated using the k-centers or hybrid algorithms.
+
+AssignHierarchical.py assigns data using the output of a hierarchical clustering algorithm such as Ward.  The key difference is that a single hierarchical clustering allows construction of models with any number of states.
+
+\subsubsection{CalculateImpliedTimescales.py}
+Calculates the implied timescales for a python range of MSM lag times.  This allows you to validate whether a given model is Markovian.  
+	Notes:
+\begin{enumerate}
+ \item You might get a SparseEfficiencyWarning for every lag time. Ignore this.
+ \item Lagtimes are input in units of the time spacing between successive trajectory frames.  If your trajectories are stored every 10 ns, then -l 1,4 estimtes implied timescales with lagtimes 10, 20, 30, 40 ns.  
+\end{enumerate}
+
+\subsubsection{PlotImpliedTimescales.py}
+A template for generating an implied timescales plot.
+
+\subsubsection{BuildMSM.py}
+Estimate a reversible transition and count matrix using a two step process:
+\begin{enumerate}
+ \item Use Tarjan algorithm to find the maximal strongly-connected (ergodic) subgraph
+ \item Use likelihood maximization to estimate a reversible count matrix consistent with your data
+\end{enumerate}
+
+This script also outputs the equilibrium populations of the resulting model, as well as a mapping from the original states to the final (ergodic) states.
+
+\subsubsection{GetRandomConfs.py}
+Selects random conformations from each state of your MSM. This is very useful for efficient calculation of observables.
+
+\subsubsection{CalculateClusterRadii.py}
+Calculates the mean RMSD of all assigned snapshots to their cluster generator for each cluster. Gives an indication of how structurally diverse clusters are.
+
+\subsubsection{CalculateRMSD.py}
+Calculate the RMSD between a PDB and a trajectory (or set of cluster centers). Useful for deciding which clusters belong to the folded, unfolded, or transition state ensembles (or any other grouping!)
+
+\subsubsection{CalculateProjectRMSD.py}
+Calculates the RMSD of all conformations in a project to a given conformation.
+
+\subsubsection{DoTPT.py}
+Performs Transition Path Theory (TPT) calculations. You will need to define good starting (reactants/U) and ending (products/F) ensembles for this script. Writes the forward and backward committors and the net flux matrix
+
+\subsubsection{SavePDBs.py}
+Allows you to sample random PDBs from particular states and save them to disk.
+
+\subsubsection{PCCA.py}
+Lumps microstates into macrostates using PCCA \cite{Deuflhard2000} or PCCA+ \cite{Deuflhard2005, kube2007coarse}. This script generates a macrostate assignments file from a microstate model.  
+
+Notes:
+\begin{enumerate}
+ \item We recommend PCCA+ for most applications
+ \item PCCA+ requires a reversible MSM as input
+ \item You can discard eigenvectors based on their equilibrium flux (fPCCA+).
+\end{enumerate}
 
 \newpage
 
