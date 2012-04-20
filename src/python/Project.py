@@ -85,7 +85,7 @@ class Project(Serializer):
     @classmethod
     def CreateProjectFromDir(cls, Filename="ProjectInfo.h5", TrajFilePath="./Trajectories/",
                              TrajFileBaseName="trj", TrajFileType=".h5", ConfFilename=None,
-                             RunList=None, CloneList=None, NumGensList=None):
+                             RunList=None, CloneList=None, NumGensList=None, initial_memory={}):
         """By default, the files should be of the form ./Trajectories/trj0.h5 ... ./Trajectories/trj[n].h5.
            Use optional arguments to change path, names, and filetypes."""
 
@@ -103,7 +103,12 @@ class Project(Serializer):
             f = os.path.join(TrajFilePath, TrajFileBaseName + str(i) + TrajFileType)
             LenList.append(Trajectory.LoadTrajectoryFile(f,JustInspect=True,Conf=Conf)[0])
 
-        DictContainer={"TrajLengths":np.array(LenList),"TrajFilePath":TrajFilePath,"TrajFileBaseName":TrajFileBaseName,"TrajFileType":TrajFileType,"ConfFilename":ConfFilename}
+        DictContainer={ "TrajLengths"      : np.array(LenList),
+                        "TrajFilePath"     : TrajFilePath,
+                        "TrajFileBaseName" : TrajFileBaseName,
+                        "TrajFileType"     : TrajFileType,
+                        "ConfFilename"     : ConfFilename,
+                        "Memory"           : initial_memory }
         if RunList!=None:
             DictContainer["RunList"]=RunList
         if CloneList!=None:

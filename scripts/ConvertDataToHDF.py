@@ -19,9 +19,11 @@
 
 import sys
 import os
+import re
 import glob
 
-from Emsmbuilder import CreateMergedTrajectoriesFromFAH
+from Emsmbuilder import FahProject
+from Emsmbuilder import CreateMergedTrajectoriesFromFAH # TJL: We will eventually kill this
 from Emsmbuilder import Project
 try:
     from deap import dtm
@@ -29,6 +31,7 @@ except:
     pass
 
 from Emsmbuilder.arglib import ArgumentParser
+
 
 # TG 25 jul 2011 from http://code.activestate.com/recipes/285264-natural-string-sorting/
 def keynat(string):
@@ -51,13 +54,26 @@ def keynat(string):
             r.append(c)
     return r
 
-def run(projectfn, PDBfn, InputDir, source, discard, mingen, stride, rmsd_cutoff, parallel='None'):
+
+def run(projectfn, PDBfn, InputDir, source, discard, mingen, stride, rmsd_cutoff, 
+        parallel='None'):
+
+    # check if we are doing an update or a fresh run
+    if os.path.exists( projectfn ):
+        print "Found project info file encoding previous work, running in update mode..."
+        update = True
+    else:
+        update = False
 
     # Check output paths
-    if not os.path.exists("Trajectories"): print "Making directory 'Trajectories' to contain output."
-    else: print "The directory 'Trajectories' already exists! Exiting"; sys.exit(1)
+    if not update:
+        if not os.path.exists("Trajectories"):
+            print "Making directory 'Trajectories' to contain output."
+        else:
+            print "The directory 'Trajectories' already exists! Exiting"; sys.exit(1)
 
-    if os.path.exists("ProjectInfo.h5"): print "The file 'ProjectInfo.h5' already exists! Exiting"; sys.exit(1)
+        if os.path.exists("ProjectInfo.h5"): 
+            print "The file 'ProjectInfo.h5' already exists! Exiting"; sys.exit(1)
 
     print "Looking for", source, "style data in", InputDir
     
@@ -88,21 +104,38 @@ def run(projectfn, PDBfn, InputDir, source, discard, mingen, stride, rmsd_cutoff
         print "Loading data:"
         print Flist
         CreateMergedTrajectoriesFromFAH.CreateMergedTrajectories(PDBfn, Flist, 
-                           OutFileType=".lh5", InFileType=itype,Stride=stride, parallel=parallel)
-
-
+                           OutFileType=".lh5", InFileType=itype, Stride=stride, parallel=parallel)
 
     # If FAH option, seach through a RUNs/CLONEs/frameS.xtc data structure
-    elif source == 'FAH':
-        NumRuns=len( glob.glob( InputDir+"/RUN*" ) )
-        clone_str = glob.glob( InputDir+"/RUN*" )[0] + "/CLONE*" 
-        NumClones=len( glob.glob(clone_str) )
-        print "Found %d RUNs and %d CLONEs" % (NumRuns, NumClones)
-        CreateMergedTrajectoriesFromFAH.CreateMergedTrajectoriesFromFAH(PDBfn, InputDir,
-                           NumRuns, NumClones, InFilenameRoot="frame", OutFilenameRoot="trj", 
-                           OutDir="./Trajectories",OutFileType=".lh5",Stride=stride,MinGen=mingen,
-                           DiscardFirstN=discard,trjcatFlags=["-cat"],ProjectFilename=projectfn,
-                                                                        MaxRMSD=rmsd_cutoff)
+    elif source == 'fah':
+
+        # hard-wiring some arguments, these could be revealed but probably aren't necessary
+        output_dir = "./Trajectories"
+        center_conformations = True
+        input_style = source.upper()
+        try:
+            project_number = re.match('\w+(\d+)\w+', InputDir).group()
+            print "Converting FAH Project %d" % project_number
+        except:
+            project_number = 0 # this number is not critical
+        
+        # check parallelism mode, and set the number of processors accordingly 
+        if parallel == 'multiprocessing':
+            num_proc = int(os.sysconf('SC_NPROCESSORS_ONLN'))
+            print "Found and using %d processors in parallel" % num_proc
+        elif parallel == 'None':
+            num_proc = 1
+        else:
+            print "Allowed parallel options for FAH: None or multiprocessing"
+            raise Exception("Error parsing parallel option: %s" % parallel)
+
+        fahproject = FahProject.FahProject( PDBfn, project_number=project_number, projectinfo_file=projectfn )
+
+        if update:
+            fahproject.retrieve.update_trajectories()
+        else:
+            fahproject.retrieve.write_all_trajectories( InputDir, output_dir, stride, rmsd_cutoff, discard, mingen,
+                                                        center_conformations, num_proc, input_style )
 
     else:
         print "Error parsing arguments: source must be either FAH, file or file_dcd.  You entered: ", source
@@ -115,30 +148,42 @@ def run(projectfn, PDBfn, InputDir, source, discard, mingen, stride, rmsd_cutoff
     else: 
         if source == 'file':
             print "Project file: %s already exists! Check to ensure it is what you want." % projectfn
-        else: print "Project file generated from FAH conversion."
+        else:
+            print "Project file generated from FAH conversion."
 
     print "Data setup properly - done."
     return
 
 
 if __name__ == "__main__":
-    parser = ArgumentParser(description="""Merges individual XTC files into continuous lossy
-    HDF5 (.lh5) trajectories. Can take either data from a FAH project
-    (PROJECT/RUN*/CLONE*/frame*.xtc) or from a directory containing one directory
-    for each trajectory, with all the relevant XTCs inside that directory 
-    (PROJECT/TRAJ*/frame*.xtc). Output: A 'Trajectories' directory containing
-    all the merged lh5 files, and a project info file containing information
-    MSMBuilder uses in subsequent calculations.""")
+    parser = ArgumentParser(description="""
+Merges individual XTC files into continuous lossy HDF5 (.lh5) trajectories. 
 
-    parser.add_argument('project', type=str)
+Can read data from a FAH project (PROJECT/RUN*/CLONE*/frame*.xtc) or from 
+a directory containing one directory for each trajectory, with all the 
+relevant XTCs inside that directory (PROJECT/TRAJ*/frame*.xtc). 
+
+Output: 
+  -- 'Trajectories' directory containing all the merged lh5 files
+  -- 'ProjectInfo' file containing information MSMBuilder uses in subsequent 
+     calculations.""")
+
+    parser.add_argument('project', type=str, description='''The ProjectInfo (.h5) file
+        that contains a mapping of the previous work done. If you specify a file that 
+        exists on disk, conversion will pick up where it left off and simply add data
+        to what has already been done. If you specify a file that doesn't exist, the
+        conversion starts from the beginning and writes a ProjectInfo file with that name
+        at the end of the conversion. NOTE: If you specify a ProjectInfo file, the conversion
+        automatically retrieves the conversion parameters you were using before and uses
+        them - all other options you specify will be IGNORED.''')
     parser.add_argument('pdb')
     parser.add_argument('input_dir', description='''Path to the parent directory
         containing subdirectories with MD (.xtc) data. See the description above
         for the appropriate formatting for directory architecture.''')
     parser.add_argument('source', description='''Data source: "file", "file_dcd" or
-        "FAH". This is the style of trajectory data that gets fed into MSMBuilder.
+        "fah". This is the style of trajectory data that gets fed into MSMBuilder.
         If a file, then it requires each trajectory be housed in a separate directory
-        like (PROJECT/TRAJ*/frame*.xtc). If FAH, then standard FAH-style directory
+        like (PROJECT/TRAJ*/frame*.xtc). If 'fah', then standard FAH-style directory
         architecture is required.''', default='file', choices=['fah', 'file'])
     parser.add_argument('discard', description='''Number of frames to discard from the
         end of XTC files. MSMb2 will disregard the last x frames from each XTC.
@@ -152,14 +197,14 @@ if __name__ == "__main__":
         format''', default=1, type=int)
     parser.add_argument('rmsd_cutoff', description='''A safe-guard that discards any
         structure with and RMSD higher than the specified value (in nanometers,
-         with respect to the input PDB file). Pass -1 to disable this feature''',
-         default=-1, type=float)
+        with respect to the input PDB file). Pass -1 to disable this feature''',
+        default=-1, type=float)
     parser.add_argument('parallel', description='''Run the conversion in parallel.
-    multiprocessing launches multiple python interpreters to use all of your cores.
-    dtm uses mpi, and requires python's "deap" module to be installed. To execute the
-    code over mpi using dtm, you need to start the command with mpirun -np <num_procs>.
-    Note that in many circumstates, the conversion done by this script is IO bound,
-    not CPU bound, so parallelism can actually be detrememtal.''', default='None',
+        multiprocessing launches multiple python interpreters to use all of your cores.
+        dtm uses mpi, and requires python's "deap" module to be installed. To execute the
+        code over mpi using dtm, you need to start the command with mpirun -np <num_procs>.
+        Note that in many circumstates, the conversion done by this script is IO bound,
+        not CPU bound, so parallelism can actually be detrememtal.''', default='None',
         choices=['None', 'multiprocessing', 'dtm'])
     args = parser.parse_args()
     
@@ -169,7 +214,7 @@ if __name__ == "__main__":
     else:
         print "WARNING: Will discard any frame that is %f nm from the PDB conformation..." % rmsd_cutoff
     
-    if args.parallel != 'None' and args.source != 'file':
+    if args.parallel == 'dtm' and args.source != 'file':
         raise NotImplementedError('Sorry. At this point parallelism is only implemented for file-style')
     
     if args.parallel == 'dtm':

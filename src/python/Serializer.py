@@ -43,11 +43,12 @@ class Serializer(dict):
         which will raise an exception if something is missing."""
         self.update(DictLikeObject)
         
-    def SaveToHDF(self,Filename,loc="/"):
+    def SaveToHDF(self,Filename,loc="/", do_file_check=True):
         """A generic function for saving ForceFields / Topologies / Conformations to H5 files.  Certain types of data cannot be stored as simple arrays, so these are the exceptions (if statements) in this function."""
         
         # check h5 file doesn't already exist
-        self.CheckIfFileExists(Filename)
+        if do_file_check:
+            self.CheckIfFileExists(Filename)
         
         F=tables.File(Filename,'a')
         
