@@ -68,8 +68,8 @@ def add_argument(group, name, description=None, type=None, choices=None, nargs=N
         if type is None:
             type = RESERVED[name][3]
 
-    if nargs == '+':
-        type = list
+    #if nargs == '+':
+    #    type = list
     if type is None:
         type = str
     
@@ -165,7 +165,9 @@ class ArgumentParser(object):
         for name, type in self.name_to_type.iteritems():
             try:
                 setattr(namespace, name, type(getattr(namespace, name)))
-            except:
+            except TypeError as e:
+                setattr(namespace, name, [type(e) for e in getattr(namespace, name)])
+            except Exception as e:
                 print getattr(namespace, name)
                 print name
                 print type

@@ -69,20 +69,18 @@ Note: If you want to get structures for all states, it is more efficient
 to use GetRandomConfs.py""")
     parser.add_argument('project')
     parser.add_argument('assignments', default='Data/Assignments.Fixed.h5')
-    parser.add_argument('conformations_per_state', default=5, type=int)
-    parser.add_argument('states', nargs='+')
+    parser.add_argument('conformations_per_state', default=5, type=int,
+        description='Number of conformations to sample from each state')
+    parser.add_argument('states', nargs='+', type=int,
+        description='''Which states to sample from. Pass a list of integers, separated
+        by whitespace. To specify ALL of the states (Although the script GetRandomConfs.py
+        is more efficient for this purpose), pass the integer -1.''')
     parser.add_argument('output_dir', default='PDBs')
     args = parser.parse_args()
-    if any([a in args.states for a in ['All', 'all', 'ALL']]):
+    
+    if -1 in args.states:
         print "Ripping PDBs for all states"
         args.states = 'all'
-    else:
-        try:
-            args.states = [int(s) for s in args.states]
-        except:
-            print >> sys.stderr, 'Error: Could not parse states as integers'
-            sys.exit(1)
-        args.states = np.unique(args.states)
     
     run(args.project, args.assignments['Data'], args.conformations_per_state,
          args.states, args.output_dir)
