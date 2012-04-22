@@ -226,6 +226,17 @@ Occasionally, PCCA+ will lead to poor macrostates, so it is important to verify 
  \item The macrostate implied timescales ``follow'' the microstate implied timescales
 \end{enumerate}
 
+Furthermore, PCCA+ is best used to estimate metastable states.  Here are some additional guidelines for achieving good success with PCCA+:
+
+\begin{enumerate}
+ \item If your microstate model has too \emph{long} of a lagtime, the model may not be metastable because significant dynamics occurs on the timescale of a single lagtime. 
+ \item If your microstate model has too \emph{short} of a lagtime, the microstate model may not be Markovian, leading to errors when estimating the eigenvalues and eigenvectors.  
+ \item If your microstate model has too \emph{few} states, your microstate model may not be sufficiently Markovian.  You may not have sufficient geometric resolution to accurately identify the primary kinetic barriers.
+ \item If your microstate model has too \emph{many} states, your microstate model will have poor statistics, possibly leading to poor estimates of the slow eigenvectors. 
+\end{enumerate}
+
+Thus, success with PCCA+ may require some trial and error when selecting the appropriate lagtime and microstate clustering.  
+
 \subsubsection{Estimate a converged rate matrix using SCRE}
 
 In the macrostate implied timescales, the slowest implied timescale converges at approximately 10 ps, while the third timescale converges as 5 ps.  Furthermore, the third timescale is aliased at lagtimes starting with 14 ps; lagtimes longer than 14 ps will not accurately capture the dynamics of this relaxation.  This suggests that this system might benefit from estimating rates using SCRE and multiple lagtimes.  

@@ -86,10 +86,14 @@ Output: MacroAssignments.h5, a new assignments HDF file, for the Macro MSM.""")
     parser.add_argument('objective_function', description='''Minimize which PCCA+
         objective function (crisp_metastability, metastability, or crispness)''',
                         default="crisp_metastability")
-    parser.add_argument('do_minimization', description='Use PCCA+ minimization', default=True,type=bool)
+    parser.add_argument('do_minimization', description='Use PCCA+ minimization', default=True)
     
     args = parser.parse_args()
     
+    if args.do_minimization in ["False", "0"]:#workaround for arglib funniness?
+        args.do_minimization = False
+    else:
+        args.do_minimization = True
     
     if args.algorithm == 'PCCA':
         run_pcca(args.num_macrostates, args.assignments['Data'], args.tProb, args.output_dir)
