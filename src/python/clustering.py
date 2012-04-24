@@ -665,7 +665,7 @@ class BaseFlatClusterer(object):
             trajectories = list(trajectories)
         
         self._metric = metric
-        self._traj_lengths = [len(traj['XYZList']) for traj in trajectories]
+        self._traj_lengths = [len(traj) for traj in trajectories]
         self._concatenated = concatenate_trajectories(trajectories)
         self.ptraj = metric.prepare_trajectory(self._concatenated)
         self.num_frames = sum(self._traj_lengths)
