@@ -134,7 +134,7 @@ class ArgumentParser(object):
     
     def add_argument(self, name, description=None, type=None, choices=None, nargs=None, default=None, action=None):
         if name in RESERVED and default is None:
-            default = RESERVED[name][2]
+            default = RESERVED[name][1]
 
         if default is None:
             group = self.required
