@@ -219,7 +219,13 @@ def _kcenters(metric, ptraj, k=None, distance_cutoff=None, seed=0, verbose=True)
     seed - index of the frame to use as the first cluster center. (int)
    
     Returns:
-    center indices, assignments and distances
+    generator_indices, assignments and distances.
+    
+    Note that the assignments that are
+    are numbered with respect to the position in ptraj of the generator, not the
+    position in generator_indices. That is, assignments[10] = 1020 means that the
+    10th simulation frame is assigned to the 1020th simulation frame, not to the 1020th
+    generator.
     """
     
     
@@ -234,17 +240,11 @@ def _kcenters(metric, ptraj, k=None, distance_cutoff=None, seed=0, verbose=True)
         # set k to be the highest 32bit integer
         k = sys.maxint
     
-    if verbose:
-        printer = sys.stdout
-    else:
-        printer = open('/dev/null', 'w')
-    
     distance_list = np.inf * np.ones(len(ptraj), dtype=np.float32)
     assignments = -1 * np.ones(len(ptraj), dtype=np.int32) 
     
     generator_indices = []
     for i in xrange(k):
-        print >> printer, 'Finding generator %d' % i
         new_ind = seed if i == 0 else np.argmax(distance_list)
         if distance_list[new_ind] < distance_cutoff:
             break
@@ -253,6 +253,9 @@ def _kcenters(metric, ptraj, k=None, distance_cutoff=None, seed=0, verbose=True)
         distance_list[updated_indices] = new_distance_list[updated_indices]
         assignments[updated_indices] = new_ind
         generator_indices.append(new_ind)
+        
+    if verbose:
+        print 'KCenters found %d generators' % i
     
     return np.array(generator_indices), assignments, distance_list
 
@@ -643,8 +646,8 @@ class BaseFlatClusterer(object):
     functions for the user.
     
     To implement a clusterer using this base class, subclass it and define your
-    init method to do the clustering you want, and then set self.generator_indices,
-    self.assignments, and self.distances with the result.
+    init method to do the clustering you want, and then set self._generator_indices,
+    self._assignments, and self._distances with the result.
     
     For convenience (and to enable some of its functionality), let BaseFlatCluster
     prepare the trajectories for you by calling BaseFlatClusterer's __init__ method
@@ -669,22 +672,22 @@ class BaseFlatClusterer(object):
         
         # All the actual Clusterer objects that subclass this base class
         # need to calculate these three parameters and store them here
-        # generator_indices[i] = j means that the jth frame of self.ptraj is 
-        # considered a generator. self.assignments[i] = j should indicate that
+        # self._generator_indices[i] = j means that the jth frame of self.ptraj is 
+        # considered a generator. self._assignments[i] = j should indicate that
         # self.ptraj[j] is the coordinates of the the cluster center corresponding to i
-        # and self.distances[i] = f should indicate that the distance from self.ptraj[i]
-        # to  self.ptraj[self.assignments[i]] is f.
-        self.generator_indices = 'abstract'
-        self.assignments = 'abstract'
-        self.distances = 'abstract'
+        # and self._distances[i] = f should indicate that the distance from self.ptraj[i]
+        # to  self.ptraj[self._assignments[i]] is f.
+        self._generator_indices = 'abstract'
+        self._assignments = 'abstract'
+        self._distances = 'abstract'
     
     def _ensure_generators_computed(self):
-        if self.generator_indices == 'abstract':
-            raise Exception('Your subclass of BaseFlatClusterer is implemented wrong and didnt compute self.generator_indicies.')
+        if self._generator_indices == 'abstract':
+            raise Exception('Your subclass of BaseFlatClusterer is implemented wrong and didnt compute self._generator_indicies.')
     
     def _ensure_assignments_and_distances_computed(self):
-        if self.assignments == 'abstract' or self.distances == 'abstract':
-            self.assignments, self.distances = _assign(self._metric, self.ptraj, self.generator_indices)    
+        if self._assignments == 'abstract' or self._distances == 'abstract':
+            self._assignments, self._distances = _assign(self._metric, self.ptraj, self._generator_indices)    
     
     def get_assignments(self):
         """Assign the trajectories you passed into the constructor based on generators that have
@@ -698,31 +701,27 @@ class BaseFlatClusterer(object):
         self._ensure_generators_computed()
         self._ensure_assignments_and_distances_computed()
         
-        twoD = split(self.assignments, self._traj_lengths)
+        twoD = split(self._assignments, self._traj_lengths)
         
-        # the numbers in self.assignments are indices with respect to self.ptraj,
+        # the numbers in self._assignments are indices with respect to self.ptraj,
         # but we want indices with respect to the number in the trajectory of generators
         # returned by get_generators_as_traj()
         ptraj_index_to_gens_traj_index = np.zeros(self.num_frames)
-        for i, g in enumerate(self.generator_indices):
+        for i, g in enumerate(self._generator_indices):
             ptraj_index_to_gens_traj_index[g] = i
         
         # put twoD into a rectangular array
         output = -1 * np.ones((len(self._traj_lengths), max(self._traj_lengths)), dtype=np.int32)
         for i, traj_assign in enumerate(twoD):
             output[i,0:len(traj_assign)] = ptraj_index_to_gens_traj_index[traj_assign]
-            
-            
-        #print 'Lone Assignment (oldA=120, newA=135)'
-        #print output[26,362]
-        #sys.exit(1)
+        
         return output
     
     def get_distances(self):
         self._ensure_generators_computed()
         self._ensure_assignments_and_distances_computed()
         
-        twoD = split(self.distances, self._traj_lengths)
+        twoD = split(self._distances, self._traj_lengths)
         
         # put twoD into a rectangular array
         output = -1 * np.ones((len(self._traj_lengths), max(self._traj_lengths)), dtype='float32')
@@ -749,7 +748,7 @@ class BaseFlatClusterer(object):
         assignments = -1 * np.ones(len(lengths), max(lengths), dtype='int')
         new_ptrajs = [self._metric.prepare_trajectory(traj) for traj in trajectories]
         
-        pgens = self.ptraj[self.generator_indices]
+        pgens = self.ptraj[self._generator_indices]
         
         for i, new_traj in enumerate(trajectories):
             new_ptraj = self._metric.prepare_trajectory(new_traj)
@@ -766,7 +765,7 @@ class BaseFlatClusterer(object):
         self._ensure_generators_computed()
         
         output = empty_trajectory_like(self._concatenated)
-        output['XYZList'] = self._concatenated['XYZList'][self.generator_indices, :, :]
+        output['XYZList'] = self._concatenated['XYZList'][self._generator_indices, :, :]
         return output
     
     def save_to_disk(self, filename):
@@ -775,9 +774,6 @@ class BaseFlatClusterer(object):
     
     @classmethod
     def load_from_disk(cls, filename):
-        #s = Serializer.LoadFromHDF(filename)
-        #Z, traj_lengths = s['z_matrix'], s['traj_lengths']
-        #return cls(None, None, precomputed_values=(Z, traj_lengths))
         raise NotImplementedError('sorry')
     
 
@@ -801,15 +797,16 @@ class KCenters(BaseFlatClusterer):
         """
         super(KCenters, self).__init__(metric, trajectories)
         
-        #print type(self.ptraj)
-        #print self.ptraj.dtype
-        #print type(metric)
-        #sys.exit(1)
         gi, asgn, dl = _kcenters(metric, self.ptraj, k, distance_cutoff, seed)
-
-        self.generator_indices = gi
-        self.assignments = asgn
-        self.distances = dl
+        
+        # note that the assignments here are with respect to the numbering
+        # in the trajectory -- they are not contiguous. Using the get_assignments()
+        # method defined on the superclass (BaseFlatClusterer) will convert them
+        # back into the contiguous numbering scheme (with respect to position in the
+        # self._generator_indices).
+        self._generator_indices = gi
+        self._assignments = asgn
+        self._distances = dl
 
 
 class Clarans(BaseFlatClusterer):
@@ -843,9 +840,9 @@ class Clarans(BaseFlatClusterer):
         
         medoids, assignments, distances = _clarans(metric, self.ptraj, k, num_local_minima, max_neighbors, local_swap, initial_medoids='kcenters')
                 
-        self.generator_indices = medoids
-        self.assignments = assignments
-        self.distances = distances
+        self._generator_indices = medoids
+        self._assignments = assignments
+        self._distances = distances
 
 
 class SubsampledClarans(BaseFlatClusterer):
@@ -905,7 +902,7 @@ class SubsampledClarans(BaseFlatClusterer):
         #print 'best medoids (relative to subindices)', medoids_list[best_i]
         #print 'sub indices', sub_indices[best_i]
         #print 'best_medoids', sub_indices[best_i][medoids_list[best_i]]
-        self.generator_indices = sub_indices[best_i][medoids_list[best_i]]
+        self._generator_indices = sub_indices[best_i][medoids_list[best_i]]
         
 
 
@@ -946,9 +943,9 @@ class HybridKMedoids(BaseFlatClusterer):
                                                            too_close_cutoff, ignore_max_objective,
                                                            medoids, assignments, distances)
         
-        self.generator_indices = medoids
-        self.assignments = assignments
-        self.distances = distances
+        self._generator_indices = medoids
+        self._assignments = assignments
+        self._distances = distances
         
 #class KMeans(object):
 #    def __init__(self, metric, trajectories, k, num_iters=1):

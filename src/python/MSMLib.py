@@ -388,7 +388,7 @@ def GetImpliedTimescalesHelper(args):
     # save intermediate result in case of failure
     res = np.zeros((NumImpliedTimes, 2))
     res[:,0] = lagTimes
-    res[:,1] = impTimes
+    res[:,1] = np.real(impTimes)
 
     return (lagTimes, impTimes)
 
