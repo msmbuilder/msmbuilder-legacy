@@ -52,24 +52,21 @@ def ensure_path_exists(path):
     if not os.path.exists(path):
         print >> sys.stderr, "%s: Error: Can't find %s" % (name, path)
     
-RESERVED = {'assignments': ('-a', 'Path to assignments file.', 'Data/Assignments.h5', SerializerType),
-            'project': ('-p', 'Path to ProjectInfo file.', 'ProjectInfo.h5', ProjectType),
-            'tProb': ('-t', 'Path to transition matrix.', 'Data/tProb.mtx', scipy.io.mmread),
-            'output_dir': ('-o', 'Location to save results.', 'Data/', str),
-            'pdb': ('-s', 'Path to PDB structure file.', None, str)}
+RESERVED = {'assignments': ('Path to assignments file.', 'Data/Assignments.h5', SerializerType),
+            'project': ('Path to ProjectInfo file.', 'ProjectInfo.h5', ProjectType),
+            'tProb': ('Path to transition matrix.', 'Data/tProb.mtx', scipy.io.mmread),
+            'output_dir': ('Location to save results.', 'Data/', str),
+            'pdb': ('Path to PDB structure file.', None, str)}
 
 def add_argument(group, name, description=None, type=None, choices=None, nargs=None, default=None, action=None):
     if name in RESERVED:
-        short = RESERVED[name][0]
         if description is None:
-            description = RESERVED[name][1]
+            description = RESERVED[name][0]
         if default is None:
-            default = RESERVED[name][2]
+            default = RESERVED[name][1]
         if type is None:
-            type = RESERVED[name][3]
+            type = RESERVED[name][2]
 
-    #if nargs == '+':
-    #    type = list
     if type is None:
         type = str
     
@@ -86,12 +83,10 @@ def add_argument(group, name, description=None, type=None, choices=None, nargs=N
     found_short = False
     
     for char in _iter_both_cases(name):
-        if not name in RESERVED:
-            short = '-%s' % char
-        
+        short = '-%s' % char
+
         args = (short, long)
 
-    
         if default is None:
             kwargs['required'] = True
             kwargs['help'] = description
@@ -167,11 +162,6 @@ class ArgumentParser(object):
                 setattr(namespace, name, type(getattr(namespace, name)))
             except TypeError as e:
                 setattr(namespace, name, [type(e) for e in getattr(namespace, name)])
-            except Exception as e:
-                print getattr(namespace, name)
-                print name
-                print type
-                raise
         return namespace
         
 if __name__ == '__main__':
