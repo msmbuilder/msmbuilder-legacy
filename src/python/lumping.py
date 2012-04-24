@@ -41,8 +41,11 @@ def trim_eigenvectors_by_flux(lam, vl, flux_cutoff):
     N = len(lam)
 
     flux_list = np.array([(vl[:,i]**2).sum() for i in range(N)])
-    flux_list /= flux_list.max()
-    flux_list[0] = 1.
+    flux_list /= flux_list[0]
+    flux_list[0] = flux_list.max()
+    
+    #flux_list /= flux_list.max()
+    #flux_list[0] = 1.
     KeepInd = np.where(flux_list>=flux_cutoff)[0]
 
     print("Implied timescales (UNITLESS)")
@@ -91,7 +94,7 @@ def to_square(alpha, square_map):
     """Convert a flat array alpha to a square array A."""
     return alpha[square_map]
 
-def pcca_plus(T, N, flux_cutoff=None, do_minimization=True, min_population=0.0,objective_function = "crisp_metastability"):
+def pcca_plus(T, N, flux_cutoff=None, do_minimization=True,objective_function = "crisp_metastability"):
     """Perform PCCA+.
 
     Inputs:
@@ -114,12 +117,12 @@ def pcca_plus(T, N, flux_cutoff=None, do_minimization=True, min_population=0.0,o
         vr[:,i] *= np.sign(vr[0,i])
         vr[:,i] /= np.sqrt(dot(vr[:,i]*pi,vr[:,i]))
 
-    A, chi, microstate_mapping = opt_soft(vr, N, pi, lam, T, do_minimization=do_minimization, min_population=min_population,objective_function=objective_function)
+    A, chi, microstate_mapping = opt_soft(vr, N, pi, lam, T, do_minimization=do_minimization,objective_function=objective_function)
 
     return A, chi,vr, microstate_mapping
 
 
-def opt_soft(vr, N, pi, lam, T, do_minimization=True, use_anneal=True, min_population=0.0,objective_function="crisp_metastability"):
+def opt_soft(vr, N, pi, lam, T, do_minimization=True, use_anneal=True, objective_function="crisp_metastability"):
     """Core routine for PCCA+ algorithm.
     """
     n = len(vr[0])
@@ -136,7 +139,7 @@ def opt_soft(vr, N, pi, lam, T, do_minimization=True, use_anneal=True, min_popul
         flat_map, square_map = get_maps(A)
         alpha = to_flat(1.0*A,flat_map)
 
-        obj = lambda x: -1*objective(x,vr,square_map,lam,T,pi,objective_function=objective_function,min_population=min_population)
+        obj = lambda x: -1*objective(x,vr,square_map,lam,T,pi,objective_function=objective_function)
 
         print("Initial value of objective function: %f"%obj(alpha))
 
@@ -170,7 +173,7 @@ def has_constraint_violation(A,vr,epsilon = 1E-8):
     if abs(lhs-rhs) > epsilon:
         return True
 
-def objective(alpha,vr,square_map,lam,T,pi,barrier_penalty=20000.,objective_function="crisp_metastability",min_population=0.):
+def objective(alpha,vr,square_map,lam,T,pi,barrier_penalty=20000.,objective_function="crisp_metastability"):
     """Return the PCCA+ objective function.
 
     Notes: three choices of objective_function:
@@ -222,7 +225,7 @@ def objective(alpha,vr,square_map,lam,T,pi,barrier_penalty=20000.,objective_func
     """
 
     pi_macro = np.array([pi[mapping==i].sum() for i in range(N)])
-    if len(np.unique(mapping))!= N or has_constraint_violation(A,vr) or pi_macro.min() < min_population:
+    if len(np.unique(mapping))!= N or has_constraint_violation(A,vr):
         print("Warning: constraint violation detected.")
         obj -= barrier_penalty
 

@@ -230,12 +230,12 @@ Furthermore, PCCA+ is best used to estimate metastable states.  Here are some ad
 
 \begin{enumerate}
  \item If your microstate model has too \emph{long} of a lagtime, the model may not be metastable because significant dynamics occurs on the timescale of a single lagtime. 
- \item If your microstate model has too \emph{short} of a lagtime, the microstate model may not be Markovian, leading to errors when estimating the eigenvalues and eigenvectors.  
+ \item If your microstate model has too \emph{short} of a lagtime, the microstate model may not be Markovian, leading to errors when estimating the eigenvalues and eigenvectors.  Most importantly, significant non-Markovian dynamics can cause the slowest eigenvalues to be mis-identified.  If this occurs, your PCCA+ model will be worthless!  To prevent this, a useful guide is to make sure that the slowest implied timescales do not cross one another (e.g. their rank ordering is constant).  
  \item If your microstate model has too \emph{few} states, your microstate model may not be sufficiently Markovian.  You may not have sufficient geometric resolution to accurately identify the primary kinetic barriers.
  \item If your microstate model has too \emph{many} states, your microstate model will have poor statistics, possibly leading to poor estimates of the slow eigenvectors. 
 \end{enumerate}
 
-Thus, success with PCCA+ may require some trial and error when selecting the appropriate lagtime and microstate clustering.  
+Thus, success with PCCA+ may require some trial and error when selecting the appropriate lagtime and microstate clustering.  Finally, note that our implementation of PCCA+ uses a simulated annealing minimization.  This randomized search means that you may find multiple minima by repeating the PCCA+ calculation several times.  You may find a better model by repeating the calculation several times.  
 
 \subsubsection{Estimate a converged rate matrix using SCRE}
 
