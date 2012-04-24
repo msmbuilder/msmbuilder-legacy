@@ -306,7 +306,9 @@ def GetMFPT(F,T,LagTime=1.,tolerance=10**-10,maxiter=50000):
     n=T.shape[0]
     T2=T.copy().tolil()
     for State in F:
-        T2[:,State]=0.0
+        T2[State,:]=0.0     # CRS
+        T2[State,State]=2.0 # CRS
+        #T2[:,State]=0.0     # CRS
 
     T2=T2-scipy.sparse.eye(n,n)
     T2=T2.tocsr()
@@ -318,6 +320,41 @@ def GetMFPT(F,T,LagTime=1.,tolerance=10**-10,maxiter=50000):
     MFPT=LagTime*scipy.sparse.linalg.spsolve(T2,RHS)
     return(MFPT)
 
+
+def all_to_all_mfpt(tprob, populations=None):
+    '''
+    Calculate the all-states by all-state matrix of mean first passage
+    times.
+
+    Takes the transition probability matrix, tprob and the
+    stationary distibution vector, populations.
+
+    If the populations vector is not supplied, it will be computed from scratch
+    '''
+
+    if populations is None:
+        eigens = MSMLib.GetEigenvectors(tprob,5)
+        if np.count_nonzero(np.imag(eigens[1][:,0])) != 0:
+            raise ValueError('First eigenvector has imaginary parts')
+        populations = np.real(eigens[1][:,0])
+
+    # ensure that tprob is a transition matrix
+    MSMLib.CheckTransition(tprob)
+    num_states = len(populations)
+    if tprob.shape[0] != num_states:
+        raise ValueError("Shape of tprob and populations vector don't match")
+
+    eye = np.matrix(np.ones(num_states)).transpose()
+    limiting_matrix = eye * populations
+    z = scipy.linalg.inv(scipy.sparse.eye(num_states, num_states) - (tprob - limiting_matrix))
+
+    # mfpt[i,j] = z[j,j] - z[i,j] / pi[j]
+    mfpt = -z
+    for j in range(num_states):
+        mfpt[:, j] += z[j,j]
+        mfpt[:, j] /= populations[j]
+
+    return mfpt
 
 
 def GetBCommittors(U,F,T0,EquilibriumPopulations,maxiter=100000,X0=None,Dense=False):
