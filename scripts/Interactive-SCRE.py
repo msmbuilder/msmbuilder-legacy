@@ -63,7 +63,7 @@ def scre_iteration(assignments,K0,lagtime_list,M,X,populations):
 	KList=[]
 	counts_list = []
 	for LagTime in lagtime_list:
-		print("Estimate rates at lagtime %d"%LagTime)
+		print("Estimating rates at lagtime %d"%LagTime)
 		K=K0.copy() * float(LagTime)
 		C0=MSMLib.GetCountMatrixFromAssignments(assignments,LagTime=LagTime).toarray()
 		Counts=C0.sum(1)
