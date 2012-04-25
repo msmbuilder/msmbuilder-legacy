@@ -27,6 +27,7 @@ Committors
 
 import numpy as np
 import scipy.sparse
+from msmbuilder import MSMLib
 
 def DijkstraTopPaths(A, B, NFlux, NumPaths=10, NodeWipe=False):
     """
