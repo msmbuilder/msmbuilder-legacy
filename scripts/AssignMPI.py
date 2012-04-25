@@ -3,6 +3,7 @@ import sys, os
 import numpy as np
 
 import argparse
+import pickle
 from msmbuilder.Trajectory import Trajectory
 from msmbuilder.assigning_mpi import MasterAssigner, WorkerAssigner
 from msmbuilder.scripts.Cluster import add_argument, construct_metric
@@ -103,6 +104,14 @@ directly in C, and can thus fully leverage all of the cores on a single node."""
         add_argument(contact, '-f', dest='contact_cutoff_file', help='File containing residue specific cutoff distances (supercedes the scalar cutoff distance if present).')
         add_argument(contact, '-s', dest='contact_scheme', default='closest-heavy', help='contact scheme.',
             choices=['CA', 'cloest', 'closest-heavy'])
+        
+        picklemetric = metrics_parsers.add_parser('custom', description="""CUSTOM: Use a custom
+        distance metric. This requires defining your metric and saving it to a file using
+        the pickle format, which can be done fron an interactive shell. This is an EXPERT FEATURE,
+        and requires significant knowledge of the source code's architecture to pull off.""")
+        add_argument(picklemetric, '-i', dest='picklemetric_input', required=True,
+            help="Path to pickle file for the metric")
+
         args = parser.parse_args()
         
         metric = construct_metric(args)
@@ -110,6 +119,9 @@ directly in C, and can thus fully leverage all of the cores on a single node."""
         distances_path = os.path.join(args.output_dir, "Assignments.h5.distances")
         lock_path = os.path.join(args.output_dir, "Assignments.lock")
         project = Project.LoadFromHDF(args.project)
+        
+        if not os.path.exists(args.output_dir):
+            os.mkdir(args.output_dir)
         
         # touch the lock_path file
         if not os.path.exists(lock_path):

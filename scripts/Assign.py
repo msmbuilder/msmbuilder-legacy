@@ -95,6 +95,14 @@ microstate it is assigned to.""", formatter_class=argparse.RawDescriptionHelpFor
     add_argument(contact, '-f', dest='contact_cutoff_file', help='File containing residue specific cutoff distances (supercedes the scalar cutoff distance if present).')
     add_argument(contact, '-s', dest='contact_scheme', default='closest-heavy', help='contact scheme.',
         choices=['CA', 'cloest', 'closest-heavy'])
+        
+    picklemetric = metrics_parsers.add_parser('custom', description="""CUSTOM: Use a custom
+    distance metric. This requires defining your metric and saving it to a file using
+    the pickle format, which can be done fron an interactive shell. This is an EXPERT FEATURE,
+    and requires significant knowledge of the source code's architecture to pull off.""")
+    add_argument(picklemetric, '-i', dest='picklemetric_input', required=True,
+        help="Path to pickle file for the metric")
+
     args = parser.parse_args()
     
     metric = construct_metric(args)
