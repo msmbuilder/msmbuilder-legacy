@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import sys, os
+import pickle
 from pprint import pprint
 from msmbuilder import metrics
 from msmbuilder import clustering
@@ -120,9 +121,18 @@ add_argument(atompairs, '-m', dest='atompairs_metric', default='cityblock',
 atompairs_subparsers = atompairs.add_subparsers()
 atompairs_subparsers.metric = 'atompairs'
 
+picklemetric = metrics_parsers.add_parser('custom', description="""CUSTOM: Use a custom
+distance metric. This requires defining your metric and saving it to a file using
+the pickle format, which can be done fron an interactive shell. This is an EXPERT FEATURE,
+and requires significant knowledge of the source code's architecture to pull off.""")
+add_argument(picklemetric, '-i', dest='picklemetric_input', required=True,
+    help="Path to pickle file for the metric")
+picklemetric_subparsers = picklemetric.add_subparsers()
+picklemetric_subparsers.metric = 'custom'
+
 ################################################################################
 
-subparsers = [rmsd_subparsers, dihedral_subparsers, lprmsd_subparsers, contact_subparsers, atompairs_subparsers]
+subparsers = [rmsd_subparsers, dihedral_subparsers, lprmsd_subparsers, contact_subparsers, atompairs_subparsers, picklemetric_subparsers]
 for subparser in subparsers:
     kcenters = subparser.add_parser('kcenters') 
     kcenters.set_defaults(alg='kcenters', metric=subparser.metric)
@@ -132,7 +142,6 @@ for subparser in subparsers:
         type=int, dest='kcenters_num_clusters')
     add_argument(kcenters_cutoff, '-d', help='no greater cophenetic distance than this cutoff',
         type=float, dest='kcenters_distance_cutoff')
-
     
     
     hybrid = subparser.add_parser('hybrid')
@@ -219,6 +228,14 @@ def construct_metric(args):
         pairs = np.loadtxt(args.atompairs_which, np.int)
         metric = metrics.AtomPairs(metric=args.atompairs_metric, p=args.atompairs_p,
             atom_pairs=pairs)
+            
+    elif args.metric == 'custom':
+        with open(args.picklemetric_input) as f:
+            metric = pickle.load(f)
+            print '#'*80
+            print 'Loaded custom metric:'
+            print metric
+            print '#'*80
     else:
         raise Exception("Bad metric")
     
