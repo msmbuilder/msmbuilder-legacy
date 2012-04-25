@@ -4,7 +4,7 @@ import numpy as np
 
 import argparse
 from msmbuilder.Trajectory import Trajectory
-from msmbuilder.assigning import MasterAssigner, WorkerAssigner
+from msmbuilder.assigning_mpi import MasterAssigner, WorkerAssigner
 from msmbuilder.scripts.Cluster import add_argument, construct_metric
 from msmbuilder import Project
 from msmbuilder import metrics
