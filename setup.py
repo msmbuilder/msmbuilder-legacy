@@ -84,7 +84,7 @@ RG = Extension('msmbuilder/_rg_wrap',
                include_dirs = [numpy.get_include(), os.path.join(numpy.get_include(), 'numpy')])
 
 
-def buildKeywordDictionary():
+def buildKeywordDictionary(use_LPRMSD=True):
     from distutils.core import Extension
     setupKeywords = {}
     setupKeywords["name"]              = "msmbuilder"
@@ -115,9 +115,13 @@ def buildKeywordDictionary():
         ]),
         (
         "share/msmbuilder_tutorial/",["Tutorial/XTC.tar"]
-         )
-                                          ]
-    setupKeywords["ext_modules"]       = [IRMSD, LPRMSD, XTC, DCD, DISTANCE, DIHEDRAL, CONTACT, RG]
+         )]
+    
+    setupKeywords["ext_modules"] = [IRMSD, XTC, DCD, DISTANCE, DIHEDRAL, CONTACT, RG]
+    if use_LPRMSD:
+        setupKeywords['ext_modules'].append(LPRMSD)
+    
+
     setupKeywords["platforms"]         = ["Linux", "Mac OS X", "Windows"]
     setupKeywords["description"]       = "Python Code for Building Markov State Models."
     setupKeywords["long_description"]  = """
@@ -138,8 +142,24 @@ def buildKeywordDictionary():
     
 
 def main():
-    setupKeywords=buildKeywordDictionary()
-    setup(**setupKeywords)
+    try:
+        setup_keywords = buildKeywordDictionary()
+        setup(**setup_keywords)
+    except:
+        BUILD_EXT_WARNING = "WARNING: The C extension 'LPRMSD' could not be compiled.\nThis may be due to a failure to find the BLAS libraries" 
+        print '*' * 75
+        print BUILD_EXT_WARNING
+        print "I'm retrying the build without the C extension now."
+        print '*' * 75
+
+        setup_keywords = buildKeywordDictionary(use_LPRMSD=False)
+        setup(**setup_keywords)
+
+        print '*' * 75
+        print BUILD_EXT_WARNING
+        print '*' * 75
+        
+
     for requirement in requirements:
       try:
           exec('import %s' % requirement)
