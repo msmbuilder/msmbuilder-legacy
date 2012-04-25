@@ -37,23 +37,23 @@ IRMSD = Extension('msmbuilder/_rmsdcalc',
                   extra_link_args=['-lgomp'],
                   include_dirs = [numpy.get_include(), os.path.join(numpy.get_include(), 'numpy')]
                   )
-LPRMSD = Extension('msmbuilder/_lprmsd',
-                   sources = ["src/ext/LPRMSD/apc.c",
-                              "src/ext/LPRMSD/qcprot.c",
-                              "src/ext/LPRMSD/theobald_rmsd.c",
-                              "src/ext/LPRMSD/lprmsd.c"],
-                   extra_compile_args=["-std=c99","-O2","-shared","-msse2","-msse3","-fopenmp","-Wno-unused","-m64","-I/opt/intel/Compiler/11.1/072/mkl/include"],
-                   extra_link_args=['-lgomp','-lblas'],
+#LPRMSD = Extension('msmbuilder/_lprmsd',
+                   #sources = ["src/ext/LPRMSD/apc.c",
+                   #           "src/ext/LPRMSD/qcprot.c",
+                   #           "src/ext/LPRMSD/theobald_rmsd.c",
+                   #           "src/ext/LPRMSD/lprmsd.c"],
+                   #extra_compile_args=["-std=c99","-O2","-shared","-msse2","-msse3","-fopenmp","-Wno-unused","-m64","-I/opt/intel/Compiler/11.1/072/mkl/include"],
+                   #extra_link_args=['-lgomp','-lblas'],
                    #Uncomment below to use Intel BLAS
                    #extra_link_args=['/opt/intel/Compiler/11.1/072/mkl/lib/em64t/libmkl_solver_lp64_sequential.a',
-                   #                 '-Wl,--start-group','/opt/intel/Compiler/11.1/072/mkl/lib/em64t/libmkl_intel_lp64.a',
-                   #                 '/opt/intel/Compiler/11.1/072/mkl/lib/em64t/libmkl_sequential.a',
-                   #                 '/opt/intel/Compiler/11.1/072/mkl/lib/em64t/libmkl_core.a',
-                   #                 '-Wl,--end-group','-lpthread','-lm','-lgomp'],
+ #                                   '-Wl,--start-group','/opt/intel/Compiler/11.1/072/mkl/lib/em64t/libmkl_intel_lp64.a',
+ #                                   '/opt/intel/Compiler/11.1/072/mkl/lib/em64t/libmkl_sequential.a',
+ #                                   '/opt/intel/Compiler/11.1/072/mkl/lib/em64t/libmkl_core.a',
+ #                                   '-Wl,--end-group','-lpthread','-lm','-lgomp'],
 
 
-                   include_dirs = [numpy.get_include(), os.path.join(numpy.get_include(), 'numpy')]
-                   )
+ #                  include_dirs = [numpy.get_include(), os.path.join(numpy.get_include(), 'numpy')]
+ #                  )
 DISTANCE = Extension('msmbuilder/_distance_wrap',
                       sources = ["src/ext/scipy_distance/distance.c",
                                  "src/ext/scipy_distance/distance_wrap.c"],
@@ -117,7 +117,7 @@ def buildKeywordDictionary():
         "share/msmbuilder_tutorial/",["Tutorial/XTC.tar"]
          )
                                           ]
-    setupKeywords["ext_modules"]       = [IRMSD, LPRMSD, XTC, DCD, DISTANCE, DIHEDRAL, CONTACT, RG]
+    setupKeywords["ext_modules"]       = [IRMSD, XTC, DCD, DISTANCE, DIHEDRAL, CONTACT, RG]
     setupKeywords["platforms"]         = ["Linux", "Mac OS X", "Windows"]
     setupKeywords["description"]       = "Python Code for Building Markov State Models."
     setupKeywords["long_description"]  = """
