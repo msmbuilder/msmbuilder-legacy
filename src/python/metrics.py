@@ -335,8 +335,12 @@ class RMSD(AbstractDistanceMetric):
         self.omp_parallel = omp_parallel
     
     def __repr__(self):
-        return 'metrics.RMSD(atom_indices=%s, omp_parallel=%s)' % (repr(list(self.atomindices)), self.omp_parallel)
-    
+        try:
+            val = 'metrics.RMSD(atom_indices=%s, omp_parallel=%s)' % (repr(list(self.atomindices)), self.omp_parallel)
+        except:
+            val = 'metrics.RMSD(atom_indices=%s, omp_parallel=%s)' % (self.atomindices, self.omp_parallel)
+        return val
+        
     def prepare_trajectory(self, trajectory):
         """Prepare the trajectory for RMSD calculation.
         
