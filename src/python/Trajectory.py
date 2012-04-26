@@ -211,7 +211,7 @@ class Trajectory(Conformation.ConformationBaseClass):
             return(XYZ.shape)
 
         return(A)
-
+    
     @classmethod
     def LoadFromTRR(cls,TRRFilenameList,PDBFilename=None,Conf=None,PreAllocate=True,JustInspect=False):       
         """Create a Trajectory with title Title from a Filename."""
@@ -241,6 +241,8 @@ class Trajectory(Conformation.ConformationBaseClass):
             Shape=np.array((i,ConfShape[0],ConfShape[1]))
             return(Shape)            
         return(A)
+    
+
     @classmethod
     def LoadFromPDBList(cls,Filenames):       
         """Create a Trajectory with title Title from a Filename."""
@@ -249,6 +251,8 @@ class Trajectory(Conformation.ConformationBaseClass):
             A.AppendPDB(f)
         A["XYZList"]=np.array(A["XYZList"])
         return(A)
+    
+    
     @classmethod
     def LoadFromHDF(cls,Filename,JustInspect=False):
         """Load a conformation that was previously saved as HDF."""
@@ -260,7 +264,9 @@ class Trajectory(Conformation.ConformationBaseClass):
             F1=tables.File(Filename)
             Shape=F1.root.XYZList.shape
             F1.close()
-            return(Shape)        
+            return(Shape)
+    
+    
     @classmethod
     def LoadFromLHDF(cls,Filename,JustInspect=False,Precision=default_precision):
         """Load a conformation that was previously saved as HDF."""
@@ -274,6 +280,8 @@ class Trajectory(Conformation.ConformationBaseClass):
             Shape=F1.root.XYZList.shape
             F1.close()
             return(Shape)
+    
+    
     @classmethod
     def ReadXTCFrame(cls,TrajFilename,WhichFrame):
         """Read a single frame from XTC trajectory file without loading file into memory."""
@@ -283,6 +291,20 @@ class Trajectory(Conformation.ConformationBaseClass):
                 return(np.array(c.coords))
             i = i+1
         raise Exception("Frame %d not found in file %s; last frame found was %d"%(WhichFrame,cls.TrajFilename,i))
+    
+    @classmethod
+    def ReadDCDFrame(cls, TrajFilename, WhichFrame):
+        """Read a single frame from DCD trajectory without loading file into memory."""
+        reader = dcd.DCDReader(TrajFilename, firstframe=WhichFrame, lastframe=WhichFrame)
+        xyz = None
+        for c in reader:
+            xyz = c.copy()
+        if xyz == None:
+            raise Exception("Frame %s not found in file %s." % (WhichFrame, TrajFilename))
+
+        return xyz
+        
+    
     @classmethod
     def ReadHDF5Frame(cls,TrajFilename,WhichFrame):
         """Read a single frame from HDF5 trajectory file without loading file into memory."""
@@ -290,6 +312,8 @@ class Trajectory(Conformation.ConformationBaseClass):
         XYZ=F1.root.XYZList[WhichFrame]
         F1.close()
         return(XYZ)
+    
+    
     @classmethod
     def ReadLHDF5Frame(cls,TrajFilename,WhichFrame,Precision=default_precision):
         """Read a single frame from Lossy LHDF5 trajectory file without loading file into memory."""
@@ -298,18 +322,24 @@ class Trajectory(Conformation.ConformationBaseClass):
         F1.close()
         XYZ=_ConvertFromLossyIntegers(XYZ,Precision)
         return(XYZ)
+    
+    
     @classmethod
     def ReadFrame(cls,TrajFilename,WhichFrame,Conf=None):
         extension = os.path.splitext(TrajFilename)[1]
     
         if extension == '.xtc':
-            return(Trajectory.ReadXTCFrame(TrajFilename,WhichFrame))
+            return(Trajectory.ReadXTCFrame(TrajFilename, WhichFrame))
         elif extension == '.h5':
-            return(Trajectory.ReadHDF5Frame(TrajFilename,WhichFrame))
+            return(Trajectory.ReadHDF5Frame(TrajFilename, WhichFrame))
         elif extension == '.lh5':
-            return(Trajectory.ReadLHDF5Frame(TrajFilename,WhichFrame))
+            return(Trajectory.ReadLHDF5Frame(TrajFilename, WhichFrame))
+        elif extension == '.dcd':
+            return(Trajectory.ReadDCDFrame(TrajFilename, WhichFrame))
         else:
             raise IOError("Incorrect file type--cannot get conformation %s"%TrajFilename)
+    
+    
     @classmethod
     def LoadTrajectoryFile(cls,Filename,JustInspect=False,Conf=None):
         """Loads a trajectory into memory, automatically deciding which methods to call based on filetype.  For XTC files, this method uses a pre-registered Conformation filename as a pdb."""
@@ -336,7 +366,8 @@ class Trajectory(Conformation.ConformationBaseClass):
             
         else:
             raise IOError("File: %s. I don't understand the extension '%s'" % (Filename, extension))
-
+    
+    
     @classmethod
     def AppendFramesToFile(cls,filename,XYZList,precision=default_precision):
         """Append an array of XYZ data to an existing .h5 or .lh5 file.
