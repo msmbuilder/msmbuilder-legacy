@@ -8,6 +8,7 @@ from msmbuilder import Trajectory
 from msmbuilder.License import LicenseString
 from msmbuilder.Citation import CiteString
 import scipy.io
+from collections import namedtuple
 
 def _iter_both_cases(string):
     for c in string:
@@ -58,6 +59,8 @@ RESERVED = {'assignments': ('-a', 'Path to assignments file.', 'Data/Assignments
             'output_dir': ('-o', 'Location to save results.', 'Data/', str),
             'pdb': ('-s', 'Path to PDB structure file.', None, str)}
 
+nestedtype = namedtuple('nestedtype', 'innertype')
+
 def add_argument(group, name, description=None, type=None, choices=None, nargs=None, default=None, action=None):
     if name in RESERVED:
         short = RESERVED[name][0]
@@ -68,8 +71,13 @@ def add_argument(group, name, description=None, type=None, choices=None, nargs=N
         if type is None:
             type = RESERVED[name][3]
 
-    if type is None:
+    if type is None and nargs is None:
         type = str
+    if nargs is not None:
+        if type is None:
+            type = nestedtype(str)
+        else:
+            type = nestedtype(type)        
     
     kwargs = {}
     
@@ -160,10 +168,11 @@ class ArgumentParser(object):
         """Work around for the argparse bug with respect to defaults and FileType not
         playing together nicely -- http://stackoverflow.com/questions/8236954/specifying-default-filenames-with-argparse-but-not-opening-them-on-help"""
         for name, type in self.name_to_type.iteritems():
-            try:
+            if isinstance(type, nestedtype):
+                setattr(namespace, name, [type.innertype(e) for e in getattr(namespace, name)])
+            else:
                 setattr(namespace, name, type(getattr(namespace, name)))
-            except TypeError as e:
-                setattr(namespace, name, [type(e) for e in getattr(namespace, name)])
+                
         return namespace
         
 if __name__ == '__main__':
