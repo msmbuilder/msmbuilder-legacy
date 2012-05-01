@@ -128,7 +128,7 @@ def fast_cdist(XA, XB, metric='euclidean', p=2, V=None, VI=None):
         else:
             raise ValueError('You need to supply V')
         _distance_wrap.cdist_seuclidean_wrap(XA, XB, VV, dm)
-    elif metric == 'mahalanobis':
+    elif metric == 'mahalanobis' or metric == 'sqmahalanobis':
         if VI is not None:
             VI = scipy.spatial.distance._convert_to_double(np.asarray(VI, order='c'))
             if type(VI) != np.ndarray:
@@ -139,6 +139,8 @@ def fast_cdist(XA, XB, metric='euclidean', p=2, V=None, VI=None):
         else:
             raise ValueError('You must supply VI')
         _distance_wrap.cdist_mahalanobis_wrap(XA, XB, VI, dm)
+        if metric == 'sqmahalanobis':
+            dm **= 2.0        
     elif metric == 'cosine':
         normsA = np.sqrt(np.sum(XA * XA, axis=1))
         normsB = np.sqrt(np.sum(XB * XB, axis=1))
@@ -438,7 +440,8 @@ class Vectorized(AbstractDistanceMetric):
                                'correlation', 'cosine', 'euclidean', 'minkowski',
                                'sqeuclidean','dice', 'kulsinki', 'matching',
                                'rogerstanimoto', 'russellrao', 'sokalmichener',
-                               'sokalsneath', 'yule', 'seuclidean', 'mahalanobis']
+                               'sokalsneath', 'yule', 'seuclidean', 'mahalanobis',
+                               'sqmahalanobis']
     
     def __init__(self, metric='euclidean', p=2, V=None, VI=None):
         self._validate_scipy_metric(metric)
@@ -446,6 +449,11 @@ class Vectorized(AbstractDistanceMetric):
         self.p = p
         self.V = V
         self.VI = VI
+        
+        if self.metric == 'seuclidean' and V is None:
+            raise ValueError('To use seuclidean, you need to supply V')
+        if self.metric in ['mahalanobis', 'sqmahalanobis'] and VI is None:
+            raise ValueError('To used mahalanobis or sqmahalanobis, you need to supply VI')
         
     
     def _validate_scipy_metric(self, metric):
@@ -545,7 +553,7 @@ class Dihedral(Vectorized, AbstractDistanceMetric):
     
     allowable_scipy_metrics = ['braycurtis', 'canberra', 'chebyshev', 'cityblock',
                                'correlation', 'cosine', 'euclidean', 'minkowski',
-                               'sqeuclidean', 'seuclidean', 'mahalanobis']
+                               'sqeuclidean', 'seuclidean', 'mahalanobis', 'sqmahalanobis']
     
     def __init__(self, metric='euclidean', p=2, angles='phi/psi', V=None, VI=None):
         super(Dihedral, self).__init__(metric, p, V, VI)
