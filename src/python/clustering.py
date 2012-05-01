@@ -255,7 +255,7 @@ def _kcenters(metric, ptraj, k=None, distance_cutoff=None, seed=0, verbose=True)
         generator_indices.append(new_ind)
         
     if verbose:
-        print 'KCenters found %d generators' % i
+        print 'KCenters found %d generators' % i+1 # CRS added +1 
     
     return np.array(generator_indices), assignments, distance_list
 
