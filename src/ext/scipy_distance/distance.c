@@ -672,19 +672,19 @@ void cdist_mahalanobis(const double *XA,
   const double *u, *v;
   double *it = dm;
   double *dimbuf1, *dimbuf2;
-  dimbuf1 = (double*)malloc(sizeof(double) * 2 * n);
-  dimbuf2 = dimbuf1 + n;
-  #pragma omp parallel for default(none) shared(XA, XB, mA, mB, n, dm, dimbuf1, dimbuf2, covinv) private(u, v, it, j)
+  #pragma omp parallel for default(none) shared(XA, XB, mA, mB, n, dm,  covinv) private(u, v, it, j, dimbuf1, dimbuf2)
   for (i = 0; i < mA; i++) {
+    dimbuf1 = (double*)malloc(sizeof(double) * 2 * n);
+    dimbuf2 = dimbuf1 + n;
     for (j = 0; j < mB; j++) {
       it = dm + i + j;
       u = XA + (n * i);
       v = XB + (n * j);
       *it = mahalanobis_distance(u, v, covinv, dimbuf1, dimbuf2, n);
     }
+    dimbuf2 = 0;
+    free(dimbuf1);
   }
-  dimbuf2 = 0;
-  free(dimbuf1);
 }
 
 void cdist_bray_curtis(const double *XA, const double *XB,

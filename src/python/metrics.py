@@ -474,7 +474,7 @@ class Vectorized(AbstractDistanceMetric):
         if not isinstance(index1, int):
             raise TypeError('index1 must be of type int.')
         out = cdist(prepared_traj2[indices2], prepared_traj1[[index1]],
-                    metric=self.metric, p=self.p)
+                    metric=self.metric, p=self.p, V=self.V, VI=self.VI)
                     
         return out[:,0]
     
