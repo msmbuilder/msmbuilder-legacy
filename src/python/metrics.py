@@ -774,8 +774,12 @@ class BooleanContact(Vectorized, AbstractDistanceMetric):
         
         super(BooleanContact, self).__init__(metric)
         self.contacts = contacts
-        self.cutoff = cutoff
-          
+
+        if isinstance( cutoff, Number ):
+            self.cutoff = cutoff
+        else:
+            self.cutoff = np.array( cutoff ).flatten()
+      
         scheme = scheme.lower()
         if not scheme in ['ca', 'closest', 'closest-heavy']:
             raise ValueError('Unrecognized scheme')
@@ -805,12 +809,13 @@ class BooleanContact(Vectorized, AbstractDistanceMetric):
         ccm = ContinuousContact(contacts=self.contacts, scheme=self.scheme)
         contact_d = ccm.prepare_trajectory(trajectory)
         if not isinstance(self.cutoff, Number):
-            if not len(self.cutoff) == len(contact_d):
+            if not len(self.cutoff) == contact_d.shape[1]: # contact_d has frames in rows and contacts in columns
                 raise ValueError('cutoff must be a number or match the length of contacts')
     
-        contact = np.zeros_like(contact_d).astype(bool)
-        for i in xrange(contact_d.shape[1]):
-            contact[:, i] = contact_d[:, i] < self.cutoff
+        #contact = np.zeros_like(contact_d).astype(bool)
+        #for i in xrange(contact_d.shape[0]):
+        #    contact[i, :] = contact_d[i, :] < self.cutoff
+        contact = contact_d < self.cutoff
         return contact
 
 
