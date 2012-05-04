@@ -92,7 +92,8 @@ def assign_with_checkpoint(metric, project, generators, assignments_path, distan
         all_distances[i, 0:len(ptraj)] = distances
         all_assignments[i, 0:len(ptraj)] = assignments
         completed_trajectories[i] = True
-        if i+1 % checkpoint or i+1 == project['NumTrajs']: # Save the data every <checkpoint> trajectories or on the last trajectory.
+        # checkpoint every few trajectories
+        if ((i+1) % checkpoint == 0) or (i+1 == project['NumTrajs']):
             Serializer({'Data': all_assignments,
                         'completed_trajectories': completed_trajectories
                         }).SaveToHDF(assignments_tmp)
