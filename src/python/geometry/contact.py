@@ -1,6 +1,6 @@
-l'''
+'''
 Wrappers to C functions for computing the geometry at each frame of
-a trajectory.
+a trajectory
 '''
 import numpy as np
 from msmbuilder import _contact_wrap
