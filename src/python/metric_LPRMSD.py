@@ -203,16 +203,14 @@ class LPRMSD(AbstractDistanceMetric):
         if b_xyzout :
             Usage += 1
         
-        XYZOut = pt2['XYZList'].transpose(0,2,1).copy()
-        XYZRef = pt1['XYZList'].transpose(0,2,1)[index1].copy()
+        XYZOut = pt2['XYZList'].transpose(0,2,1).copy().astype('float32')
+        XYZRef = pt1['XYZList'].transpose(0,2,1)[index1].copy().astype('float32')
         RotOut = np.zeros(len(pt2)*9,dtype='float32')
         RMSDOut = _lprmsd.LPRMSD_Multipurpose(Usage, pt1.TD.NumAtoms, pt1.TD.NumAtomsWithPadding, pt1.TD.NumAtomsWithPadding, 
                                               pt2.TD.XYZData, pt1.TD.XYZData[index1], pt2.TD.G, pt1.TD.G[index1],
                                               pt1.TDx.NumAtoms, pt1.TDx.NumAtomsWithPadding, pt1.TDx.NumAtomsWithPadding, 
                                               pt2.TDx.XYZData, pt1.TDx.XYZData[index1], pt2.TDx.G, pt1.TDx.G[index1],
                                               pi_flat, pi_lens, RotOut, XYZOut, XYZRef) 
-
-        #np.savetxt('RMSD1.txt',RMSDOut)
 
         if b_xyzout:
             return RMSDOut, XYZOut.transpose(0,2,1)
