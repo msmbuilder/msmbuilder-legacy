@@ -679,7 +679,7 @@ class ContinuousContact(Vectorized, AbstractDistanceMetric):
                 raise ValueError('contacts must be width 2')
             if not (0 < len(np.unique(contacts[:,0])) < num_residues):
                 raise ValueError('contacts should refers to zero-based indexing of the residues')
-            if not np.all(0 <= np.unique(contacts) < num_residues):
+            if not np.all(np.logical_and(0 <= np.unique(contacts), np.unique(contacts) < num_residues)):
                 raise ValueError('contacts should refers to zero-based indexing of the residues')
                 
         if self.scheme == 'ca':
