@@ -87,12 +87,43 @@ class Trajectory(Conformation.ConformationBaseClass):
             newtraj = copy.copy(self)
             newtraj['XYZList'] = self['XYZList'][key]
             return newtraj
-
         return super(Trajectory, self).__getitem__(key)
     
     def __len__(self):
         return len(self['XYZList'])
-    
+
+    def __add__(self,other):
+        # Check type of other
+        if not isinstance(other,Trajectory):
+            raise TypeError('You can only add two Trajectory instances')
+        Sum = copy.deepcopy(self)
+        # Simply copy the XYZList in here if the Trajectory is Empty.
+        if 'XYZList' not in self and 'XYZList' not in other:
+            pass
+        elif 'XYZList' not in self:
+            Sum['XYZList'] = copy.deepcopy(other['XYZList'])
+        elif 'XYZList' not in other:
+            Sum['XYZList'] = copy.deepcopy(self['XYZList'])
+        else:
+            if not self['XYZList'].shape[1] == other['XYZList'].shape[1]:
+                raise TypeError('The two trajectories don\'t have the same number of atoms')
+            Sum['XYZList'] = np.vstack((self['XYZList'],other['XYZList']))
+        return Sum
+ 
+    def __iadd__(self,other):
+        # Check type of other
+        if not isinstance(other,Trajectory):
+            raise TypeError('You can only add two Trajectory instances')
+        # Simply copy the XYZList in here if the Trajectory is Empty.
+        if 'XYZList' not in self:
+            self['XYZList'] = copy.deepcopy(other['XYZList'])
+        else:
+            # Check number of atoms.
+            if not self['XYZList'].shape[1] == other['XYZList'].shape[1]:
+                raise TypeError('The two trajectories don\'t have the same number of atoms')
+            self['XYZList'] = np.vstack((self['XYZList'],other['XYZList']))
+        return self
+ 
     def SaveToLHDF(self,Filename,Precision=default_precision):
         """Save a Trajectory instance to a Lossy HDF File.  First, remove the XYZList key because it should be written using the special CArray operation.  This file format is roughly equivalent to an XTC and should comparable file sizes but with better IO performance."""
         Serializer.CheckIfFileExists(Filename)
