@@ -1,4 +1,4 @@
-'''
+l'''
 Wrappers to C functions for computing the geometry at each frame of
 a trajectory.
 '''
@@ -32,6 +32,9 @@ def atom_distances(xyzlist, atom_contacts):
         assert width is 2
     except (AttributeError, ValueError, AssertionError):
         raise ValueError('contacts must be an n x 2 array')
+        
+    if not np.all(np.unique(atom_contacts) < num_atoms):
+        raise ValueError('Atom contacts goes larger than num_atoms')
     
     # check type
     if xyzlist.dtype != np.float32:
