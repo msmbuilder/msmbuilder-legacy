@@ -190,26 +190,49 @@ class Trajectory(Conformation.ConformationBaseClass):
             raise NameError("Tried to add wrong number of coordinates.")
         else:
             self["XYZList"].append(Temp)
+
     
     @classmethod
     def LoadFromPDB(cls,Filename):       
         """Create a Trajectory from a PDB Filename."""
         return(Trajectory(PDB.LoadPDB(Filename,AllFrames=True)))
+
     
     @classmethod
-    def LoadFromXTC(cls,XTCFilenameList,PDBFilename=None,Conf=None,PreAllocate=True,JustInspect=False):
+    def LoadFromXTC(cls, XTCFilenameList, PDBFilename=None, Conf=None, PreAllocate=True,
+                    JustInspect=False, discard_overlapping_frames=False):
         """Create a Trajectory from a Filename."""
+        
         if PDBFilename!=None:
             A=Trajectory.LoadFromPDB(PDBFilename)
         elif Conf!=None:
             A=Trajectory(Conf)
         else:
             raise Exception("ERROR: Need a conformation to construct a trajectory.")
+        
         if not JustInspect:
-            A["XYZList"]=[]
-            for c in xtc.XTCReader(XTCFilenameList):
-                A["XYZList"].append(np.array(c.coords).copy())
-            A["XYZList"]=np.array(A["XYZList"])
+            
+            A["XYZList"] = []
+            num_redundant = 0
+            
+            for i,c in enumerate( xtc.XTCReader(XTCFilenameList) ):
+
+                # check to see if we have redundant frames as we load them up
+                if discard_overlapping_frames:
+                    if i > 0:
+                        if np.sum( np.abs( c.coords - A["XYZList"][-1] ) ) < 10.**-8:
+                            num_redundant += 1
+                    else:
+                        A["XYZList"].append( np.array(c.coords).copy() )
+                        
+                else:
+                    A["XYZList"].append( np.array(c.coords).copy() )
+                    
+            A["XYZList"]=np.array( A["XYZList"] )
+            if num_redundant != 0:
+                print "Found and discarded %d redunant snapshots in loaded traj" % num_redundant
+
+        # in inspection mode
         else:
             i=0
             for c in xtc.XTCReader(XTCFilenameList):
@@ -218,17 +241,21 @@ class Trajectory(Conformation.ConformationBaseClass):
                 i=i+1
             Shape=np.array((i,ConfShape[0],ConfShape[1]))
             return(Shape)
+        
         return(A)
-    @classmethod
 
+    
+    @classmethod
     def LoadFromDCD(cls,FilenameList,PDBFilename=None,Conf=None,PreAllocate=True,JustInspect=False):       
         """Create a Trajectory from a Filename."""
+        
         if PDBFilename!=None:
             A=Trajectory.LoadFromPDB(PDBFilename)
         elif Conf!=None:
             A=Trajectory(Conf)
         else:
             raise Exception("ERROR: Need a conformation to construct a trajectory.")
+        
         if not JustInspect:
             A["XYZList"]=[]
             for c in dcd.DCDReader(FilenameList):
@@ -356,7 +383,7 @@ class Trajectory(Conformation.ConformationBaseClass):
     
     
     @classmethod
-    def ReadFrame(cls,TrajFilename,WhichFrame,Conf=None):
+    def ReadFrame(cls, TrajFilename, WhichFrame, Conf=None):
         extension = os.path.splitext(TrajFilename)[1]
     
         if extension == '.xtc':
@@ -368,7 +395,7 @@ class Trajectory(Conformation.ConformationBaseClass):
         elif extension == '.dcd':
             return(Trajectory.ReadDCDFrame(TrajFilename, WhichFrame))
         else:
-            raise IOError("Incorrect file type--cannot get conformation %s"%TrajFilename)
+            raise IOError("Incorrect file type--cannot get conformation %s" % TrajFilename)
     
     
     @classmethod
@@ -400,7 +427,8 @@ class Trajectory(Conformation.ConformationBaseClass):
     
     
     @classmethod
-    def AppendFramesToFile(cls,filename,XYZList,precision=default_precision):
+    def AppendFramesToFile(cls, filename, XYZList, precision=default_precision,
+                           discard_overlapping_frames=False):
         """Append an array of XYZ data to an existing .h5 or .lh5 file.
         """
 
@@ -409,16 +437,51 @@ class Trajectory(Conformation.ConformationBaseClass):
         if extension in [".h5", ".lh5"]:
             File = tables.File(filename,"a")
         else:
-            raise(Exception("File must be .h5 or .lh5"))
+            raise Exception("File must be .h5 or .lh5") 
 
         if not File.root.XYZList.shape[1:] == XYZList.shape[1:]:
-            raise(Exception("Error: data cannot be appended to trajectory due to incorrect shape."))
+            raise Exception("Error: data cannot be appended to trajectory due to incorrect shape.")
+
         
         if extension == ".h5":
-            File.root.XYZList.append(XYZList)
-
+            z = XYZList
         elif extension == ".lh5":
             z = _ConvertToLossyIntegers(XYZList,precision)
-            File.root.XYZList.append(z)
+
+        # right now this only checks for the last written frame
+        if discard_overlapping_frames:
+            while (File.root.XYZList[-1,:,:] == z[0,:,:]).all():
+                z = z[1:,:,:]
+
+        File.root.XYZList.append(z)
+        
         File.flush()
         File.close()
+
+
+    @classmethod
+    def _reduce_redundant_snapshots(cls, trajectory):
+        """ Takes a trajectory object, and removes data from the 'XYZList' entry
+            that are duplicated snapshots. Does this by checking if two contiguous
+            snapshots are binary equivalent. """
+
+        not_done = True
+        i = 0 # index for the snapshot we're working on
+        n = 0 # counts the number of corrections
+        
+        while not_done:
+
+            # check to see if we are done
+            if i == trajectory["XYZList"].shape[0]-1:
+                break
+
+            if (trajectory["XYZList"][i,:,:] == trajectory["XYZList"][i+1,:,:]).all():
+                trajectory = trajectory[:i] + trajectory[i+1:]
+                n += 1
+            else:
+                i += 1
+
+        if n != 0:
+            print "Warning: found and eliminated %d redundant snapshots in trajectory" % n
+            
+        return trajectory

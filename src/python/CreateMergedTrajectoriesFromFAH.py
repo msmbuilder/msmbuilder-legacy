@@ -1,4 +1,4 @@
-# This file is part of MSMBuilder.
+o# This file is part of MSMBuilder.
 #
 # Copyright 2011 Stanford University
 #

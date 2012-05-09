@@ -26,6 +26,14 @@ from msmbuilder import Conformation
 from msmbuilder.Serializer import Serializer
 from msmbuilder.Trajectory import Trajectory
 from msmbuilder import clustering
+from msmbuilder import utils
+
+import multiprocessing
+import cPickle
+try:
+    from deap import dtm
+except:
+    pass
 
 #def GetUniqueRandomIntegers(MaxN,NumInt):
 #    """Get random numbers, with replacement."""
@@ -94,10 +102,11 @@ class Project(Serializer):
         Conf = Conformation.Conformation.LoadFromPDB(ConfFilename)
 
         NumTraj = cls.CountLocalTrajectories(TrajFilePath,TrajFileBaseName,TrajFileType)
+        
         if NumTraj==0:
-            print "No data found!  ERROR"
-            return
-        else: print "Found %d trajectories" % NumTraj
+            raise Exception("Could not find any trajectories in %s" % TrajFilePath)
+        else:
+            print "Creating a project file from %d trajectories in %s" % (NumTraj, TrajFilePath)
 
         LenList=[]
         for i in range(NumTraj):
@@ -160,7 +169,12 @@ class Project(Serializer):
         return(Trajectory.ReadFrame(self.GetTrajFilename(WhichTraj),WhichFrame,Conf=self.Conf))
     
     def EvaluateObservableAcrossProject(self,f,Stride=1,ByTraj=False,ResultDim=None):
-        """Evaluate an observable function f for every conformation in a dataset.  Assumes that f returns a float.  Also initializes a matrix as negative ones and fills in f(X[i,j]) where X[i,j] is the jth conformation of the ith trajectory.  If ByTraj==True, evalulate f(R1) for each trajectory R1 in the dataset.  This allows you to dramatically speed up certain observable calculations."""
+        """Evaluate an observable function f for every conformation in a dataset.
+        Assumes that f returns a float.  Also initializes a matrix as negative ones
+        and fills in f(X[i,j]) where X[i,j] is the jth conformation of the ith
+        trajectory.  If ByTraj==True, evalulate f(R1) for each trajectory R1 in the
+        dataset.  This allows you to dramatically speed up certain observable calculations."""
+        
         k=0
         Which=np.arange(self["NumTrajs"])
         n1=len(Which)
@@ -315,27 +329,82 @@ class Project(Serializer):
         return(Trj["XYZList"])
 
 
-#def MergeMultipleAssignments(AssList,RMSDList,WhichTrajList):
-#    """Take a set of Assignment, RMSDList, and WhichTrajList arrays return one big array for each of Assignments, RMSDList, and WhichTrajs.  Used to merge parallelized assignment runs on clusters."""
-#    AssArray=[]
-#    RMSDArray=[]
-#    WhichTrajsArray=[]
-#    for i in range(len(AssList)):
-#        print(i,WhichTrajList[i],AssList[i])
-#        AssArray.append(AssList[i])
-##        RMSDArray.append(RMSDList[i])
-#        WhichTrajsArray.append(np.array(WhichTrajList[i]).reshape((-1)))#
-##
-#
-#    AssArray=np.vstack(AssArray)
-#    RMSDArray=np.vstack(RMSDArray)
-#    WhichTrajsArray=np.concatenate(WhichTrajsArray).flatten()
-#    
-#    Ind=np.argsort(WhichTrajsArray)
-#
-#    AssArray=AssArray[Ind]
-#    RMSDArray=RMSDArray[Ind]
-#    WhichTrajsArray=WhichTrajsArray[Ind]
-#    
-#    return(AssArray,RMSDArray,WhichTrajsArray)
+    @staticmethod
+    def convert_trajectories_to_lh5(pdb_filename, file_list,
+                                    output_directory="./Trajectories", stride=1,
+                                    atom_indices=None, input_file_type=".xtc",
+                                    new_traj_root="trj", parallel=None):
+    
+        """ Generate a directory of LH5 files containing trajectory data for use
+        in MSMBuilder. This function concatenates disparate data you may have
+        collected in xtc/dcd format into an organized, high-performance
+        file structure.
+
+        At its heart, this function is a map that takes a directory structure
+        of the form
+
+        root/
+          trajectory1/
+             part1.xtc
+             part2.xtc
+             ...
+
+          trajectory2/
+             part1.xtc
+             part2.xtc
+             ...
+          
+          ...
+
+         The script spits out somthing like
+  
+         Trajectories/
+           trj1.lh5 (containing all parts in trajectory1/)
+           trj2.lh5
+           ...
+        """
+
+        try:
+            os.mkdir(output_directory)
+        except OSError:
+            raise Exception("The directory %s already exists" % output_directory)
+
+        # set the parallelism functionality
+        if parallel == 'multiprocessing':
+            pool = multiprocessing.Pool()
+            mymap = pool.map
+        elif parallel == 'dtm':
+            mymap = dtm.map
+        else:
+            mymap = map
+
+        mymap( Project._convert_filename_list,
+               utils.uneven_zip( file_list, range(len(file_list)),
+                                 [pdb_filename], [input_file_type], [output_directory],
+                                 [new_traj_root], [stride], [atom_indices] ) )
+
+    @staticmethod
+    def _convert_filename_list(args):
+
+        (file_list, i, pdb_filename, input_file_type,
+         output_directory, new_traj_root, stride, atom_indices) = args
+
+        if len(file_list) > 0:
+            print file_list
+            
+            if input_file_type =='.dcd':
+                traj = Trajectory.LoadFromDCD(file_list, PDBFilename=pdb_filename)
+            elif input_file_type == '.xtc':
+                traj = Trajectory.LoadFromXTC(file_list, PDBFilename=pdb_filename)
+            else:
+                raise Exception("Unknown file type: %s" % input_file_type)
+
+            traj["XYZList"] = traj["XYZList"][::stride]
+
+            if atom_indices!=None:
+                traj.RestrictAtomIndices(atom_indices)
+
+            traj.Save("%s/%s%d.lh5" % (output_directory, new_traj_root, i) )
+
+
 

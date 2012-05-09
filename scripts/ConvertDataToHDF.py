@@ -21,41 +21,44 @@ import sys
 import os
 import re
 import glob
+import cPickle
 
 from msmbuilder import FahProject
-from msmbuilder import CreateMergedTrajectoriesFromFAH # TJL: We will eventually kill this
 from msmbuilder import Project
+from msmbuilder.utils import keynat
+
 try:
     from deap import dtm
 except:
     pass
 
-from msmbuilder.arglib import ArgumentParser
+from msmbuilder.arglib import ArgumentParser, die_if_path_exists
 
 
-# TG 25 jul 2011 from http://code.activestate.com/recipes/285264-natural-string-sorting/
-def keynat(string):
-    r'''A natural sort helper function for sort() and sorted()
-    without using regular expression.
+def yield_trajectory_filelist_from_dir( InputDir, itype ):
 
-    >>> items = ('Z', 'a', '10', '1', '9')
-    >>> sorted(items)
-    ['1', '10', '9', 'Z', 'a']
-    >>> sorted(items, key=keynat)
-    ['1', '9', '10', 'Z', 'a']
-    '''
-    r = []
-    for c in string:
-        try:
-            c = int(c)
-            try: r[-1] = r[-1] * 10 + c
-            except: r.append(c)
-        except:
-            r.append(c)
-    return r
+    print "\nWARNING: Sorting trajectory files by numerical values in their names."
+    print "Ensure that numbering is as intended."
+
+    traj_dirs = glob.glob(InputDir+"/*")
+    traj_dirs.sort(key=keynat)
+
+    Flist = [] # will hold a list of all the files
+
+    print "\nFound", len(traj_dirs), "trajectories."
+    for traj_dir in traj_dirs:
+         toadd = glob.glob( traj_dir + '/*'+itype )
+         toadd.sort(key=keynat)
+         if toadd:
+             Flist.append(toadd)
+
+    print "\nLoading data:"
+    print Flist
+
+    return Flist
 
 
-def run(projectfn, PDBfn, InputDir, source, discard, mingen, stride, rmsd_cutoff, 
+def run(projectfn, PDBfn, InputDir, source, mingen, stride, rmsd_cutoff, 
         parallel='None'):
 
     # check if we are doing an update or a fresh run
@@ -67,13 +70,8 @@ def run(projectfn, PDBfn, InputDir, source, discard, mingen, stride, rmsd_cutoff
 
     # Check output paths
     if not update:
-        if not os.path.exists("Trajectories"):
-            print "Making directory 'Trajectories' to contain output."
-        else:
-            print "The directory 'Trajectories' already exists! Exiting"; sys.exit(1)
-
-        if os.path.exists("ProjectInfo.h5"): 
-            print "The file 'ProjectInfo.h5' already exists! Exiting"; sys.exit(1)
+        die_if_path_exists("Trajectories")
+        die_if_path_exists("ProjectInfo.h5")
 
     print "Looking for", source, "style data in", InputDir
     
@@ -84,27 +82,27 @@ def run(projectfn, PDBfn, InputDir, source, discard, mingen, stride, rmsd_cutoff
     # If file option selected, search through that file and pull out all xtc files
     # Source can be file, file_dcd
     if source.startswith('file'):
-        print "WARNING: Sorting trajectory files by numerical values in their names."
-        print "Ensure that numbering is as intended."
-        Flist = []
+
+        if update:
+            raise NotImplemenetedError("Ack! Update mode is not yet ready for 'file' mode")
+        
 
         if 'dcd' in source: itype='.dcd'
         else: itype='.xtc'
 
-        traj_dirs = glob.glob(InputDir+"/*")
-        traj_dirs.sort(key=keynat)
+        Flist = yield_trajectory_filelist_from_dir( InputDir, itype )
+        Project.convert_trajectories_to_lh5(PDBfn, Flist,
+                                            input_file_type=itype, stride=stride, 
+                                            parallel=parallel)
 
-        print "Found", len(traj_dirs), "trajectories."
-        for traj_dir in traj_dirs:
-            toadd = glob.glob( traj_dir + '/*'+itype )
-            toadd.sort(key=keynat)
-            if toadd:
-              Flist.append(toadd)
-            
-        print "Loading data:"
-        print Flist
-        CreateMergedTrajectoriesFromFAH.CreateMergedTrajectories(PDBfn, Flist, 
-                           OutFileType=".lh5", InFileType=itype, Stride=stride, parallel=parallel)
+        # memory is a map: memory[ trajectory-dir ] = (lh5-file-path, num-files-in-traj-dir)
+        memory = {}
+        for i, trj_dir in enumerate( os.listdir( InputDir ) ): # TJL: should check this!!
+            num_raw_trajs = len( glob.glob( trj_dir + "/*" + itype ) )
+            memory[ trj_dir ] = ( "trj%d.lh5" % i, num_raw_trajs )
+
+        Project.CreateProjectFromDir(Filename=projectfn, ConfFilename=PDBfn, 
+                                     TrajFileType=".lh5", initial_memory=cPickle.dumps( memory ))
 
     # If FAH option, seach through a RUNs/CLONEs/frameS.xtc data structure
     elif source == 'fah':
@@ -129,29 +127,21 @@ def run(projectfn, PDBfn, InputDir, source, discard, mingen, stride, rmsd_cutoff
             print "Allowed parallel options for FAH: None or multiprocessing"
             raise Exception("Error parsing parallel option: %s" % parallel)
 
-        fahproject = FahProject.FahProject( PDBfn, project_number=project_number, projectinfo_file=projectfn )
+        fahproject = FahProject( PDBfn, project_number=project_number, projectinfo_file=projectfn )
 
         if update:
             fahproject.retrieve.update_trajectories()
         else:
-            fahproject.retrieve.write_all_trajectories( InputDir, output_dir, stride, rmsd_cutoff, discard, mingen,
+            fahproject.retrieve.write_all_trajectories( InputDir, output_dir, stride, rmsd_cutoff, mingen,
                                                         center_conformations, num_proc, input_style )
 
     else:
-        print "Error parsing arguments: source must be either FAH, file or file_dcd.  You entered: ", source
-        sys.exit(1)
+        raise Exception("Invalid argument for source: %s" % source)
 
-    print "Checking for project file..."
-    if not os.path.exists(projectfn):
-        P1=Project.CreateProjectFromDir(Filename=projectfn, ConfFilename=PDBfn,TrajFileType=".lh5")
-        print "Created project file:", projectfn
-    else: 
-        if source == 'file':
-            print "Project file: %s already exists! Check to ensure it is what you want." % projectfn
-        else:
-            print "Project file generated from FAH conversion."
+    assert os.path.exists(projectfn)
+    print "\nFinished data conversion successfully."
+    print "Generated: %s, Trajectories/, Data/" % projectfn
 
-    print "Data setup properly - done."
     return
 
 
@@ -166,7 +156,15 @@ relevant XTCs inside that directory (PROJECT/TRAJ*/frame*.xtc).
 Output: 
   -- 'Trajectories' directory containing all the merged lh5 files
   -- 'ProjectInfo' file containing information MSMBuilder uses in subsequent 
-     calculations.""")
+     calculations.
+
+NOTE: There has been a change from previous versions of MSMBuilder with
+regards to the way snapshots are discarded. In the 'FAH' style reader,
+there is an automatic check to see if any two snapshots are the same at
+the beginning/end of consecutive xtc/dcd files. If they are the same, one
+gets discarded. Further, the FahProject object retains a little more discard
+functionality.
+""")
 
     parser.add_argument('project', type=str, description='''The ProjectInfo (.h5) file
         that contains a mapping of the previous work done. If you specify a file that 
@@ -185,9 +183,6 @@ Output:
         If a file, then it requires each trajectory be housed in a separate directory
         like (PROJECT/TRAJ*/frame*.xtc). If 'fah', then standard FAH-style directory
         architecture is required.''', default='file', choices=['fah', 'file'])
-    parser.add_argument('discard', description='''Number of frames to discard from the
-        end of XTC files. MSMb2 will disregard the last x frames from each XTC.
-        NOTE: This has changed from MSMb1.''', type=int, default=0)
     parser.add_argument('mingen', description='''Minimum number of XTC frames 
         required to include data in Project.  Used to discard extremely short 
         trajectories.  Only allowed in conjunction with source = 'FAH'.''',
@@ -217,9 +212,5 @@ Output:
     if args.parallel == 'dtm' and args.source != 'file':
         raise NotImplementedError('Sorry. At this point parallelism is only implemented for file-style')
     
-    if args.parallel == 'dtm':
-        dtm.start(run, args.project, args.pdb, args.input_dir, args.source, args.discard,
-            args.mingen, args.stride, rmsd_cutoff, args.parallel)
-    else:
-        run(args.project, args.pdb, args.input_dir, args.source, args.discard,
-            args.mingen, args.stride, rmsd_cutoff, args.parallel)
+    run(args.project, args.pdb, args.input_dir, args.source,
+        args.mingen, args.stride, rmsd_cutoff, args.parallel)

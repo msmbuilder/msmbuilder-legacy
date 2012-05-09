@@ -2,9 +2,8 @@
 This is a class that contains all of the necessary tools to interact
 with folding@home projects.
 
-Currently doesn't work - need to do some testing!
-
-TJ
+Written by: TJ Lane <tjlane@stanford.edu>
+Contributions from Robert McGibbon
 """
 
 # GLOBAL IMPORTS
@@ -12,7 +11,10 @@ import os
 import re
 import sys
 import cPickle
-import base64
+from glob import glob
+
+import smtplib
+from email.mime.text import MIMEText
 
 from numpy import argmax, concatenate
 
@@ -62,11 +64,55 @@ class FahProject(object):
         Checks that the server comes back up without throwing an error -
         if it doesn't come up OK, sends mail to the project manager.
         """
-        raise NotImplementedError()
+
+        # restart the server, wait 60s to let it come back up
         print "Restarting server: %s" % self.work_server
         cmd = "/etc/init.d/FAHWorkServer-%s restart" % self.work_server
-        r = subprocess.call("grompp -h", shell=True, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        r = subprocess.call(cmd, shell=True, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        r = subprocess.call('sleep 60', shell=True, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+
+        # check that we came back up OK, if not freak out
+        processname = "FAHWorkServer-%s" % self.work_server
+        is_alive = False # guilty until proven innocent
+
+        for line in os.popen("ps -a"):
+            if line.find(processname) > 0:
+                is_alive = True
+
+        if not is_alive:
+            error_msg = """
+                    FATAL ERROR: msmbuilder.FahProject is reporting a critical issue:
+            
+                             Workserver %s did not come back up after restart!
+
+                    Recommend you attend to this immediately.""" % self.workserver
+            
+            if email: send_error_email(self, error_msg)
+            raise Exception(error_msg)
+
         return  
+
+
+    def send_error_email(self, error_msg):
+        """ Sends an error message to the registered email """
+
+        if email == None:
+            print "Cannot send error email - no email provided"
+            return
+
+        msg = MIMEText(error_msg)
+
+        msg['Subject'] = 'FATAL ERROR IN FAHPROJECT'
+        msg['From'] = 'pandelab@gmail.com'
+        msg['To'] = self.email
+
+        # Send the message via our own SMTP server, but don't include the envelope header.
+        print "Sending error email to: %s" % self.email
+        s = smtplib.SMTP('localhost')
+        s.sendmail(me, [you], msg.as_string())
+        s.quit()
+
+        return
 
 
     def save_memory_state(self):
@@ -106,8 +152,7 @@ class FahProject(object):
             
             
         def write_all_trajectories(self, input_dir, output_dir, stride, max_rmsd,
-                                   discard_first_N_snapshots, min_gens,
-                                   center_conformations, num_proc, 
+                                   min_gens, center_conformations, num_proc, 
                                    input_style, update=False):
             """
             Convert all of the trajectories in the FAH project in input_dir to
@@ -141,7 +186,6 @@ class FahProject(object):
                        'trajectory_number': i,
                        'stride':     stride,
                        'max_rmsd':   max_rmsd,
-                       'discard_first_N_snapshots': discard_first_N_snapshots,
                        'min_gens':   min_gens,
                        'center_conformations': center_conformations,
                        'memory_check': update
@@ -177,8 +221,7 @@ class FahProject(object):
                 try: os.remove( self.projectinfo_file ) # if we are updating, just start w fresh slate
                 except: pass
 
-            self.memory['convert_parameters'] = (input_dir, output_dir, stride, max_rmsd,
-                                                 discard_first_N_snapshots, min_gens,
+            self.memory['convert_parameters'] = (input_dir, output_dir, stride, max_rmsd, min_gens,
                                                  center_conformations, num_proc, self.projectinfo_file,
                                                  input_style )
 
@@ -199,13 +242,11 @@ class FahProject(object):
             scanning a FAH project for new trajectories, and converting those """
 
             print self.memory['convert_parameters']
-            (input_dir, output_dir, stride, max_rmsd, discard_first_N_snapshots, min_gens, \
+            (input_dir, output_dir, stride, max_rmsd, min_gens, \
             center_conformations, num_proc, self.projectinfo_file, input_style ) = self.memory['convert_parameters']
             
-            self.write_all_trajectories(input_dir, output_dir, stride, max_rmsd,
-                                        discard_first_N_snapshots, min_gens,
-                                        center_conformations, num_proc, 
-                                        input_style, update=True)
+            self.write_all_trajectories(input_dir, output_dir, stride, max_rmsd, min_gens,
+                                        center_conformations, num_proc, input_style, update=True)
             
             return
         
@@ -225,7 +266,6 @@ class FahProject(object):
                 trajectory_number = args['trajectory_number']
                 stride = args['stride']
                 max_rmsd = args['max_rmsd']
-                discard_first_N_snapshots = args['discard_first_N_snapshots']
                 min_gens = args['min_gens']
                 center_conformations = args['center_conformations']
                 memory_check = args['memory_check']
@@ -234,16 +274,15 @@ class FahProject(object):
                 suplied in the input argument to create_trajectory().""" % e
                 sys.exit(1)
                 
-            self.write_trajectory( clone_dir, output_dir, trajectory_number,
-                                   stride, max_rmsd, discard_first_N_snapshots,
+            self.write_trajectory( clone_dir, output_dir, trajectory_number, stride, max_rmsd,
                                    min_gens, center_conformations, memory_check )
             
             return
 
 
         def write_trajectory( self, clone_dir, output_dir, trajectory_number,
-                              stride, max_rmsd, discard_first_N_snapshots,
-                              min_gens, center_conformations, memory_check ):
+                              stride, max_rmsd, min_gens, center_conformations,
+                              memory_check ):
             """
             This function takes in a path to a CLONE and merges all the XTC files
             it finds into a LH5 trajectory:
@@ -259,7 +298,6 @@ class FahProject(object):
             max_rmsd: (integer/None) if this value is not None, calculate the RMSD to
                       the pdb_file from each snapshot and reject trajectories which have snapshots 
                       with RMSD greated than max_rmsd. If None, no check is performed
-            discard_first_N_snapshots: (integer) ignore the first N snapshots of each trajectory
             min_gens: (integer) Discard the trajectories that contain fewer than N XTC files.
             center_conformations: (boolean) center conformations before saving.
             memory_check: (boolean) if yes, uses the memory dictionary to do an update rather
@@ -305,7 +343,9 @@ class FahProject(object):
                 return
 
             try:
-                trajectory = Trajectory.LoadFromXTC(xtc_file_paths, PDBFilename=self.pdb_topology)
+                # [this should check for and discard overlapping snapshots]
+                trajectory = Trajectory.LoadFromXTC(xtc_file_paths, PDBFilename=self.pdb_topology,
+                                                    discard_overlapping_frames=True)
             except IOError as e:
                 print >> sys.stderr, "IOError (%s) when processing trajectory in clone_dir = %s" % (e, clone_dir)
                 print >> sys.stderr, "Attempting rescue by disregarding final frame, which is often"
@@ -345,18 +385,10 @@ class FahProject(object):
                 print "Extending: %s" % output_filename
                 assert os.path.exists( output_filename )
 
-                # load the traj and extend it
+                # load the traj and extend it [this should check for and discard overlapping snapshots]
                 Trajectory.AppendFramesToFile( output_filename, 
-                                               trajectory['XYZList'][discard_first_N_snapshots::stride] )
-                #old_trajectory = Trajectory.LoadTrajectoryFile( output_filename )
-                #new_trajectory = old_trajectory.copy()
-                #new_trajectory = Trajectory( new_trajectory )
-                #new_trajectory['XYZList'] = concatenate( (old_trajectory['XYZList'],
-                #    trajectory['XYZList'][discard_first_N_snapshots::stride]), axis=0 )
-
-                ## remove the old trajectory from disk and write this one
-                #os.remove( output_filename )
-                #new_trajectory.Save(output_filename)
+                                               trajectory['XYZList'][::stride],
+                                               discard_overlapping_frames=True )
 
                 num_xtcs_processed = len(xtc_file_paths) + self.memory[clone_dir][1]
                 
@@ -370,7 +402,7 @@ class FahProject(object):
                     return
             
                 # stide and discard by snapshot
-                trajectory['XYZList'] = trajectory['XYZList'][discard_first_N_snapshots::stride]
+                trajectory['XYZList'] = trajectory['XYZList'][::stride]
                 trajectory.Save(output_file_path)
 
                 num_xtcs_processed = len(xtc_file_paths)
@@ -456,6 +488,20 @@ class FahProject(object):
         # un-nest the local namespace from the parent class
         def __init__(self, outerclass):
             self.__dict__.update(outerclass.__dict__)
+            self.send_error_email = outerclass.send_error_email
+            self.restart_server = outerclass.restart_server
+
+            # if we are on a workserver,
+            if self.work_server != None:
+                self.set_project_basepath()
+                
+
+        def set_project_basepath(self):
+            search = glob("/home/*/server2/data/SVR*/PROJ%d" % self.project_number)
+            if len(search) != 1:
+                raise Exception("Could not find unique FAH project: %d on %s" % (self.project_number,
+                                                                                 self.work_server))
+            else: self.project_basepath = search[0]
 
 
         def new_run(self):
@@ -471,19 +517,34 @@ class FahProject(object):
             return
 
 
-        def stop_run(self, run, clone):
+        def stop_run(self, run):
             """ Stops all CLONES in a RUN """
-            raise NotImplementedError()
 
-
+            print "Shutting down RUN%d" % run
+            clone_dirs = glob(run_dir + "CLONE*")
+            for clone_dir in clone_dirs:
+                g = re.search('CLONE(\d+)', 'CLONE55')
+                if g:
+                    clone = g.group(1)
+                    self.stop_clone(run, clone)
+                    
             return
 
 
         def stop_clone(self, run, clone):
             """ Stops the specified RUN/CLONE by changing the name of
             the WU's trr, adding .STOP to the end. """
-            raise NotImplementedError()
 
+            clone_dir = os.path.join(self.project_basepath, 'RUN%d/' % run, 'CLONE%d/' % clone)
+            
+            # add .STOP to all dem TRR files
+            trrs = glob( clone_dir + '*.trr' )
+            if len(trrs) == 0:
+                print "Error: Could not find any TRRs to stop in %s. Proceeding." % clone_dir
+            else:
+                for trr in trrs:
+                    os.rename(trr, trr+'.STOP')
+                    print "Stopped: %s" % trr
 
             return
 
