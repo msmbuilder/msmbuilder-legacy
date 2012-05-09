@@ -56,3 +56,4 @@ from Project import Project
 from Trajectory import Trajectory
 from Serializer import Serializer
 from Conformation import Conformation
+from FahProject import FahProject
