@@ -42,16 +42,19 @@ LPRMSD = Extension('msmbuilder/_lprmsd',
                               "src/ext/LPRMSD/qcprot.c",
                               "src/ext/LPRMSD/theobald_rmsd.c",
                               "src/ext/LPRMSD/lprmsd.c"],
-                   extra_compile_args=["-std=c99","-O2","-shared","-msse2","-msse3","-fopenmp","-Wno-unused","-m64","-I/opt/intel/Compiler/11.1/072/mkl/include"],
-                   extra_link_args=['-lgomp','-lblas'],
-                   #Uncomment below to use Intel BLAS
-                   #extra_link_args=['/opt/intel/Compiler/11.1/072/mkl/lib/em64t/libmkl_solver_lp64_sequential.a',
-                   #                 '-Wl,--start-group','/opt/intel/Compiler/11.1/072/mkl/lib/em64t/libmkl_intel_lp64.a',
-                   #                 '/opt/intel/Compiler/11.1/072/mkl/lib/em64t/libmkl_sequential.a',
-                   #                 '/opt/intel/Compiler/11.1/072/mkl/lib/em64t/libmkl_core.a',
-                   #                 '-Wl,--end-group','-lpthread','-lm','-lgomp'],
-
-
+                   extra_compile_args=["-std=c99","-O2","-shared","-msse2","-msse3","-fopenmp","-Wno-unused","-m64","-I/opt/intel/Compiler/11.1/064/mkl/include"],
+                   # This link line uses plain BLAS, which requires 'libblas.so' to be in the dynamic linker search path.
+                   # If this doesn't work, make sure you have a link to 'libblas.so' in one of your directories, 
+                   # for example: (/home/leeping/local/lib/libblas.so), and add '-L/home/leeping/local/lib' to the list below.
+                   # extra_link_args=['-lgomp','-lblas'],
+                   # Intel 11.1 BLAS link line
+                   # Compiling on Certainty? Consider using the link line below (Use /opt/intel/Compiler/11.1/064/)
+                   # Compiling on vsp-compute? Use the link line below (Use /opt/intel/Compiler/11.1/072/)
+                   extra_link_args=['/opt/intel/Compiler/11.1/064/mkl/lib/em64t/libmkl_solver_lp64_sequential.a',
+                                    '-Wl,--start-group','/opt/intel/Compiler/11.1/064/mkl/lib/em64t/libmkl_intel_lp64.a',
+                                    '/opt/intel/Compiler/11.1/064/mkl/lib/em64t/libmkl_sequential.a',
+                                    '/opt/intel/Compiler/11.1/064/mkl/lib/em64t/libmkl_core.a',
+                                    '-Wl,--end-group','-lpthread','-lm','-lgomp'],
                    include_dirs = [numpy.get_include(), os.path.join(numpy.get_include(), 'numpy')]
                    )
 DISTANCE = Extension('msmbuilder/_distance_wrap',
