@@ -196,7 +196,7 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
   */
   struct timeval tv;
   double start, end, dif;
-  int DebugPrint = 1;
+  int DebugPrint = 0;
   if (DebugPrint) {
     start = get_time_precise();
     printf("Preparing...\n");
@@ -300,6 +300,7 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
     PrintDimensions("XYZ_all_b_", XYZ_all_b_);
     PrintDimensions("LP_Lens_", LP_Lens_);
     PrintDimensions("LP_Flat_", LP_Flat_);
+    PrintDimensions("Alt_Idx_", Alt_Idx_);
     printf("LP_Lens has this many dimensions: %i\n",LP_Lens_->nd);
   }
 
