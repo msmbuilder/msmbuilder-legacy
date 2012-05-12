@@ -142,11 +142,12 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
     This routine was written with these two capabilities in mind:
     1) Permute sets of identical and exchangable atom labels to minimize the RMSD (lets us build MSMs with explicit solvent!)
     2) Align using one set of atom labels (i.e. protein) and compute the RMSD using another set of labels (i.e. ligand), motivated by Morgan's projects
+    3) Align using one set of atom labels and permutable atoms, and compute the RMSD using another set of labels + the same permutable atoms (combines 1 and 2)
     
     Conceptually there are three different sets of atomic indices:
     - AtomIndices are the distinguishable atoms used for alignment
     - PermuteIndices are identical and exchangeable atoms (more than one batch is possible)
-    - AltIndices are the alternate labels used for RMSD when using capability #2
+    - AltIndices are the alternate labels used instead of the AtomIndices when computing the RMSD
     
     Note that I can't use PermuteIndices and AltIndices at the same time because that would just be ridiculous.
 
@@ -161,14 +162,16 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
     |  |  |  |- Rotate the whole frame using the rotation matrix
     |  |  |  |- Assign the rotation matrix to the RotOut array
     |  +- If there are PermuteIndices:
-    |  |  |- (Considering this): If the estimated final answer is larger than some lower bound, then don't go on.
+    |  |  |- (Not implemented yet, but thinking): If the estimated final answer is larger than some lower bound, then don't go on.
     |  |  |- Rotate the atoms in (Atom+Permute)Indices using the rotation matrix
     +- If there are PermuteIndices:
     |  |- Permute the atomic indices for each batch in PermuteIndices (This is the bottleneck).
     |  |- Perform alignment using (Atom+Permute)Indices; this sets the RMSD values and gets the rotation matrices
-    |  +- If output coordinates are requested:
+    |  +- If output coordinates are requested, or if there are AltIndices:
     |  |  |- Rotate the whole frame using the rotation matrix
-    |  |  |- (If desired) Relabel the frame using the permutations
+    |  |  |- Relabel the frame using the permutations
+    |  |  +- If there are AltIndices:
+    |  |  |  |- Loop through the AltIndices and the PermuteAtoms to get the RMSD explicitly
     +- If output coordinates are requested:
     |  |- Assign the rotated frame to the XYZOut array
     |- Assign the RMSD values to the RMSDOut array
@@ -193,7 +196,7 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
   */
   struct timeval tv;
   double start, end, dif;
-  int DebugPrint = 0;
+  int DebugPrint = 1;
   if (DebugPrint) {
     start = get_time_precise();
     printf("Preparing...\n");
@@ -212,6 +215,8 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
   float G_lp_b=-1;
   // Arrays for permutable indices and permutable atom 'batch' size (i.e. oxygens, hydrogens)
   PyArrayObject *LP_Flat_,*LP_Lens_;
+  // Array for alternate indices
+  PyArrayObject *Alt_Idx_;
   // Arrays for RMSD and rotation matrices
   PyArrayObject *RMSD_, *Rotations_;
   // The entire set of XYZ coordinates for fitting trajectory and reference frame
@@ -220,10 +225,10 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
 
   float msd;
 
-  if (!PyArg_ParseTuple(args, "iiiiOOOfiiiOOOfOOOOO", &Usage,
+  if (!PyArg_ParseTuple(args, "iiiiOOOfiiiOOOfOOOOOO", &Usage,
 			&nreal_id, &npad_id, &strd_id, &XYZ_id_a_, &XYZ_id_b_, &G_id_a_, &G_id_b, 
 			&nreal_lp, &npad_lp, &strd_lp, &XYZ_lp_a_, &XYZ_lp_b_, &G_lp_a_, &G_lp_b, 
-			&LP_Flat_, &LP_Lens_, &Rotations_, &XYZ_all_a_, &XYZ_all_b_)) {
+			&LP_Flat_, &LP_Lens_, &Alt_Idx_, &Rotations_, &XYZ_all_a_, &XYZ_all_b_)) {
     printf("Mao says: Inputs / outputs not correctly specified!\n");
     return NULL;
   }
@@ -234,7 +239,7 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
   // Settings for running this subroutine
   int HaveID = Usage / 1000;
   int HaveLP = (Usage % 1000) / 100;
-  int AltIdx = (Usage % 100) / 10;
+  int HaveAlt = (Usage % 100) / 10;
   int WantXYZ = (Usage % 10) / 1;
   // The number of frames.
   int ns = XYZ_id_a_->dimensions[0];
@@ -246,6 +251,8 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
   int n_lp_grps = LP_Lens_->dimensions[0];
   // Number of permutable (or alternate) atoms
   int totlen = LP_Flat_->dimensions[0];
+  // Number of alternate index atoms
+  int altlen = Alt_Idx_->dimensions[0];
   // Number of distinguishable atoms (true)
   int na_id = nreal_id;
   // TheoData for distinguishable atoms
@@ -259,6 +266,8 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
   // Arrays for permutable indices and permutable atom group size
   long unsigned int *lp_lens = (long unsigned int*) LP_Lens_->data;
   long unsigned int *lp_flat = (long unsigned int*) LP_Flat_->data;
+  // Arrays for alternate indices
+  long unsigned int *alt_idx = (long unsigned int*) Alt_Idx_->data;
   // Arrays for RMSD and rotation matrices; allocate the RMSD array
   npy_intp dim2[2];
   dim2[0] = ns;
@@ -274,7 +283,7 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
   /*     LPW Debug Printout       */
   /********************************/
   if (DebugPrint) {
-    printf("HaveID = %i HaveLP = %i AltIdx = %i WantXYZ = %i\n",HaveID,HaveLP,AltIdx,WantXYZ);
+    printf("HaveID = %i HaveLP = %i HaveAlt = %i WantXYZ = %i\n",HaveID,HaveLP,HaveAlt,WantXYZ);
     PrintDimensions("XYZ_id_a_", XYZ_id_a_);
     PrintDimensions("XYZ_id_b_", XYZ_id_b_);
     PrintDimensions("G_id_a_", G_id_a_);
@@ -342,7 +351,7 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
       Z_lp_f[i] = (float) XYZ_lp_a[i];
     }
   }
-  if (WantXYZ) {
+  if (WantXYZ || (HaveLP && HaveAlt)) {
     // These three are for rotating the entire frame using the final rotation matrix.
     X_all_d = calloc(na_all * ns * 3, sizeof(double));
     Y_all_d = calloc(na_all * ns * 3, sizeof(double));
@@ -353,16 +362,16 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
       X_all_d[i] = (double) XYZ_all_a[i] ; 
     }
   }
-  if (AltIdx) {
+  if (HaveAlt) {
     // The original and rotated alternate (ligand) coordinates.
-    X_alt_d = calloc(totlen * ns * 3, sizeof(double));
-    Y_alt_d = calloc(totlen * ns * 3, sizeof(double));
+    X_alt_d = calloc(altlen * ns * 3, sizeof(double));
+    Y_alt_d = calloc(altlen * ns * 3, sizeof(double));
     // Copy the ligand coordinates.
     for (int i=0; i < ns; i++) {
-      for (int j=0; j < totlen ; j++) {
-	*(X_alt_d + i*totlen*3 + 0*totlen + j) = (double) *(XYZ_all_a + i*na_all*3 + 0*na_all + lp_flat[j]);
-	*(X_alt_d + i*totlen*3 + 1*totlen + j) = (double) *(XYZ_all_a + i*na_all*3 + 1*na_all + lp_flat[j]);
-	*(X_alt_d + i*totlen*3 + 2*totlen + j) = (double) *(XYZ_all_a + i*na_all*3 + 2*na_all + lp_flat[j]);
+      for (int j=0; j < altlen ; j++) {
+	*(X_alt_d + i*altlen*3 + 0*altlen + j) = (double) *(XYZ_all_a + i*na_all*3 + 0*na_all + alt_idx[j]);
+	*(X_alt_d + i*altlen*3 + 1*altlen + j) = (double) *(XYZ_all_a + i*na_all*3 + 1*na_all + alt_idx[j]);
+	*(X_alt_d + i*altlen*3 + 2*altlen + j) = (double) *(XYZ_all_a + i*na_all*3 + 2*na_all + alt_idx[j]);
       }
     }
   }
@@ -397,7 +406,7 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
       if (HaveID) {
 	start = get_time_precise();
 	// Perform alignment using AtomIndices; this sets the RMSD values and optionally gets the rotation matrices.
-	ls_rmsd2_aligned_T_g(nreal_id,npad_id,strd_id,(XYZ_id_a+i*true_id),XYZ_id_b,G_id_a[i],G_id_b,&msd,(HaveLP || AltIdx || WantXYZ),rot);
+	ls_rmsd2_aligned_T_g(nreal_id,npad_id,strd_id,(XYZ_id_a+i*true_id),XYZ_id_b,G_id_a[i],G_id_b,&msd,(HaveLP || HaveAlt || WantXYZ),rot);
 	time_accumulate(&RMSD1Time,start);
 	// If there are no PermuteIndices:
 	if (!HaveLP) {
@@ -409,18 +418,18 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
 	    time_accumulate(&MatrixTime,start);
 	  }
 	  // If there are AltIndices:
-	  if (AltIdx) {
+	  if (HaveAlt) {
 	    // Rotate the atoms in AltIndices using the rotation matrix.
-	    cblas_dgemm(101,112,111,3,totlen,3,1.0,rot,3,(X_alt_d+i*3*totlen),totlen,0.0,(Y_alt_d+i*3*totlen),totlen);
+	    cblas_dgemm(101,112,111,3,altlen,3,1.0,rot,3,(X_alt_d+i*3*altlen),altlen,0.0,(Y_alt_d+i*3*altlen),altlen);
 	    time_accumulate(&MatrixTime,start);
 	    start = get_time_precise();
 	    msd = 0.0 ;
 	    // Set the RMSD values by explicitly computing them from pairwise distances.
-	    for (j=0; j<lp_lens[0]; j++) {
-	      x2 = Y_alt_d[(i*3+0)*totlen + j];
-	      y2 = Y_alt_d[(i*3+1)*totlen + j];
-	      z2 = Y_alt_d[(i*3+2)*totlen + j];
-	      Idx = lp_flat[j];
+	    for (j=0; j<altlen; j++) {
+	      x2 = Y_alt_d[(i*3+0)*altlen + j];
+	      y2 = Y_alt_d[(i*3+1)*altlen + j];
+	      z2 = Y_alt_d[(i*3+2)*altlen + j];
+	      Idx = alt_idx[j];
 	      x1 = XYZ_all_b[0*na_all + Idx];
 	      y1 = XYZ_all_b[1*na_all + Idx];
 	      z1 = XYZ_all_b[2*na_all + Idx];
@@ -428,7 +437,7 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
 	      msd = msd + (y2-y1)*(y2-y1);
 	      msd = msd + (z2-z1)*(z2-z1);
 	    }
-	    msd = msd / lp_lens[0];
+	    msd = msd / altlen;
 	    time_accumulate(&AltRMSDTime,start);
 	  }
 	}
@@ -456,11 +465,12 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
 	  for (p=0; p<lp_lens[k] ; p++) {
 	    Old = na_id + lp_starts[k] + p;
 	    New = na_id + lp_starts[k] + *(lp_all+i*totlen+lp_starts[k]+p) ;
+	    // Z_lp_f contains (atomindices + relabeled permuteindices) and is used for alignment.
 	    Z_lp_f[(i*3+0)*na_lp + New] = XYZ_lp_a[(i*3+0)*na_lp + Old];
 	    Z_lp_f[(i*3+1)*na_lp + New] = XYZ_lp_a[(i*3+1)*na_lp + Old];
 	    Z_lp_f[(i*3+2)*na_lp + New] = XYZ_lp_a[(i*3+2)*na_lp + Old];
-
-	    if (WantXYZ) {
+	    // Store the new labels.  This will be used for explicit RMSD computation (if both PermuteIndices and AltIndices are present)
+	    if (WantXYZ || HaveAlt) {
 	      Old = lp_flat[lp_starts[k] + p];
 	      New = lp_flat[lp_starts[k] + *(lp_all+i*totlen+lp_starts[k]+p)];
 	      lp_all_glob[i*totlen+lp_starts[k]+p] = New;
@@ -473,13 +483,13 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
 	ls_rmsd2_aligned_T_g(nreal_lp,npad_lp,strd_lp,(Z_lp_f+i*true_lp),XYZ_lp_b,G_lp_a[i],G_lp_b,&msd,1,rot);
 	time_accumulate(&RMSD2Time,start);
 	// If output coordinates are requested:
-	if (WantXYZ) {
+	if (WantXYZ || HaveAlt) {
 	  // Rotate the whole frame using the rotation matrix
 	  cblas_dgemm(101,112,111,3,na_all,3,1.0,rot,3,(X_all_d+i*3*na_all),na_all,0.0,(Y_all_d+i*3*na_all),na_all);
 	  for (k=0; k<3*na_all ; k++) {
 	    *(Z_all_d+i*3*na_all+k) = *(Y_all_d+i*3*na_all+k);
 	  }
-	  // (If desired) Relabel the frame using the permutations
+	  // Relabel the frame using the permutations
 	  for (k=0; k<totlen; k++) {
 	    Old = lp_flat[k];
 	    New = lp_all_glob[i*totlen + k];
@@ -487,11 +497,47 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
 	    Z_all_d[(i*3+1)*na_all + New] = Y_all_d[(i*3+1)*na_all + Old];
 	    Z_all_d[(i*3+2)*na_all + New] = Y_all_d[(i*3+2)*na_all + Old];
 	  }
+	  if (HaveAlt) {
+	    start = get_time_precise();
+	    msd = 0.0 ;
+	    // Set the RMSD values by explicitly computing them from pairwise distances.
+	    for (j=0; j<altlen; j++) {
+	      Idx = alt_idx[j];
+	      // Y_all_d contains all of the atoms being fitted
+	      x2 = Y_all_d[0*na_all + Idx];
+	      y2 = Y_all_d[1*na_all + Idx];
+	      z2 = Y_all_d[2*na_all + Idx];
+	      // XYZ_all_b contains all of the reference atom positions
+	      x1 = XYZ_all_b[0*na_all + Idx];
+	      y1 = XYZ_all_b[1*na_all + Idx];
+	      z1 = XYZ_all_b[2*na_all + Idx];
+	      msd = msd + (x2-x1)*(x2-x1);
+	      msd = msd + (y2-y1)*(y2-y1);
+	      msd = msd + (z2-z1)*(z2-z1);
+	    }
+	    for (k=0; k<totlen; k++) {
+	      Old = lp_flat[k];
+	      New = lp_all_glob[i*totlen + k];
+	      // Z_all_d contains all of the atoms being fitted, with relabeled atom indices
+	      x2 = Z_all_d[(i*3+0)*na_all + New];
+	      y2 = Z_all_d[(i*3+1)*na_all + New];
+	      z2 = Z_all_d[(i*3+2)*na_all + New];
+	      // XYZ_all_b contains all of the reference atom positions
+	      x1 = XYZ_all_b[(i*3+0)*na_all + Old];
+	      y1 = XYZ_all_b[(i*3+1)*na_all + Old];
+	      z1 = XYZ_all_b[(i*3+2)*na_all + Old];
+	      msd = msd + (x2-x1)*(x2-x1);
+	      msd = msd + (y2-y1)*(y2-y1);
+	      msd = msd + (z2-z1)*(z2-z1);
+	    }
+	    msd = msd / (altlen + totlen);
+	    time_accumulate(&AltRMSDTime,start);
+	  }
 	}
       }
       // Assign the RMSD values to the RMSDOut array
       RMSD[i] = sqrtf(msd);
-      if (WantXYZ || AltIdx || HaveLP) {
+      if (WantXYZ || HaveAlt || HaveLP) {
 	// Assign the rotation matrix to the RotOut array
 	for (j=0; j<9; j++) {
 	  *(Rotations + i*9 + j) = (float) rot[j];
@@ -536,7 +582,7 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
     free(Y_all_d);
     free(Z_all_d);
   }
-  if (AltIdx) {
+  if (HaveAlt) {
     free(X_alt_d);
     free(Y_alt_d);
   }

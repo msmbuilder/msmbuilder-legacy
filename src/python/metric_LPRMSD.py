@@ -187,19 +187,18 @@ class LPRMSD(AbstractDistanceMetric):
             self.atomindices = np.arange( pt2['XYZList'].shape[1] )
 
         Usage = 0
+        pi_flat = np.array([])
+        pi_lens = np.array([])
+        alt_idx = np.array([])
         if self.atomindices != None:
             Usage += 1000
         if self.permuteindices != None:
             Usage += 100
             pi_flat = np.array(list(itertools.chain(*self.permuteindices)))
             pi_lens = np.array([len(i) for i in self.permuteindices])
-        elif self.altindices != None:
+        if self.altindices != None:
             Usage += 10
-            pi_flat = np.array(self.altindices)
-            pi_lens = np.array([len(self.altindices)])
-        else:
-            pi_flat = np.array([])
-            pi_lens = np.array([])
+            alt_idx = np.array(self.altindices)
         if b_xyzout :
             Usage += 1
         
@@ -210,7 +209,7 @@ class LPRMSD(AbstractDistanceMetric):
                                               pt2.TD.XYZData, pt1.TD.XYZData[index1], pt2.TD.G, pt1.TD.G[index1],
                                               pt1.TDx.NumAtoms, pt1.TDx.NumAtomsWithPadding, pt1.TDx.NumAtomsWithPadding, 
                                               pt2.TDx.XYZData, pt1.TDx.XYZData[index1], pt2.TDx.G, pt1.TDx.G[index1],
-                                              pi_flat, pi_lens, RotOut, XYZOut, XYZRef) 
+                                              pi_flat, pi_lens, alt_idx, RotOut, XYZOut, XYZRef) 
 
         if b_xyzout:
             return RMSDOut, XYZOut.transpose(0,2,1)
