@@ -368,6 +368,13 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
     X_alt_d = calloc(altlen * ns * 3, sizeof(double));
     Y_alt_d = calloc(altlen * ns * 3, sizeof(double));
     // Copy the ligand coordinates.
+    if (DebugPrint) {
+      printf("Alternate Indices has Length %i \n",altlen);
+      for (int i = 0; i<altlen; i++) {
+	printf("%i ",alt_idx[i]);
+      }
+      printf("\n");
+    }
     for (int i=0; i < ns; i++) {
       for (int j=0; j < altlen ; j++) {
 	*(X_alt_d + i*altlen*3 + 0*altlen + j) = (double) *(XYZ_all_a + i*na_all*3 + 0*na_all + alt_idx[j]);
@@ -450,7 +457,6 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
       }
       // If there are PermuteIndices:
       if (HaveLP) {
-	start = get_time_precise();
 	time_accumulate(&MatrixTime,start);
 	for (k=0; k<na_lp * 3 ; k++) {
 	  Y_lp_f[i*3*na_lp+k] = (float) Y_lp_d[i*3*na_lp+k];
@@ -486,7 +492,10 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
 	// If output coordinates are requested:
 	if (WantXYZ || HaveAlt) {
 	  // Rotate the whole frame using the rotation matrix
+	  start = get_time_precise();
 	  cblas_dgemm(101,112,111,3,na_all,3,1.0,rot,3,(X_all_d+i*3*na_all),na_all,0.0,(Y_all_d+i*3*na_all),na_all);
+	  time_accumulate(&MatrixTime,start);
+	  start = get_time_precise();
 	  for (k=0; k<3*na_all ; k++) {
 	    *(Z_all_d+i*3*na_all+k) = *(Y_all_d+i*3*na_all+k);
 	  }
@@ -498,6 +507,7 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
 	    Z_all_d[(i*3+1)*na_all + New] = Y_all_d[(i*3+1)*na_all + Old];
 	    Z_all_d[(i*3+2)*na_all + New] = Y_all_d[(i*3+2)*na_all + Old];
 	  }
+	  time_accumulate(&RelabelTime,start);
 	  if (HaveAlt) {
 	    start = get_time_precise();
 	    msd = 0.0 ;
@@ -505,9 +515,9 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
 	    for (j=0; j<altlen; j++) {
 	      Idx = alt_idx[j];
 	      // Y_all_d contains all of the atoms being fitted
-	      x2 = Y_all_d[0*na_all + Idx];
-	      y2 = Y_all_d[1*na_all + Idx];
-	      z2 = Y_all_d[2*na_all + Idx];
+	      x2 = Y_all_d[(i*3+0)*na_all + Idx];
+	      y2 = Y_all_d[(i*3+1)*na_all + Idx];
+	      z2 = Y_all_d[(i*3+2)*na_all + Idx];
 	      // XYZ_all_b contains all of the reference atom positions
 	      x1 = XYZ_all_b[0*na_all + Idx];
 	      y1 = XYZ_all_b[1*na_all + Idx];
@@ -517,16 +527,15 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
 	      msd = msd + (z2-z1)*(z2-z1);
 	    }
 	    for (k=0; k<totlen; k++) {
-	      Old = lp_flat[k];
-	      New = lp_all_glob[i*totlen + k];
+	      Idx = lp_flat[k];
 	      // Z_all_d contains all of the atoms being fitted, with relabeled atom indices
-	      x2 = Z_all_d[(i*3+0)*na_all + New];
-	      y2 = Z_all_d[(i*3+1)*na_all + New];
-	      z2 = Z_all_d[(i*3+2)*na_all + New];
+	      x2 = Z_all_d[(i*3+0)*na_all + Idx];
+	      y2 = Z_all_d[(i*3+1)*na_all + Idx];
+	      z2 = Z_all_d[(i*3+2)*na_all + Idx];
 	      // XYZ_all_b contains all of the reference atom positions
-	      x1 = XYZ_all_b[(i*3+0)*na_all + Old];
-	      y1 = XYZ_all_b[(i*3+1)*na_all + Old];
-	      z1 = XYZ_all_b[(i*3+2)*na_all + Old];
+	      x1 = XYZ_all_b[0*na_all + Idx];
+	      y1 = XYZ_all_b[1*na_all + Idx];
+	      z1 = XYZ_all_b[2*na_all + Idx];
 	      msd = msd + (x2-x1)*(x2-x1);
 	      msd = msd + (y2-y1)*(y2-y1);
 	      msd = msd + (z2-z1)*(z2-z1);
@@ -567,6 +576,14 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
     printf("APC Part: % .4f seconds\n",APCTime);
     printf("Relabeling: % .4f seconds\n",RelabelTime);
     printf("Second RMSD: % .4f seconds\n",RMSD2Time);
+    float MaxRMSD = 0.0, MinRMSD = 10.0;
+    for (int i = 0; i < ns ; i ++) {
+      if (RMSD[i] > MaxRMSD)
+	MaxRMSD = RMSD[i];
+      if (RMSD[i] < MinRMSD)
+	MinRMSD = RMSD[i];
+    }
+    printf("Min / Max RMSD = % .4f / % .4f\n",MinRMSD, MaxRMSD);
   }
 
   if (HaveLP) {
@@ -578,7 +595,7 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
     free(lp_all);
     free(lp_all_glob);
   }
-  if (WantXYZ) {
+  if (WantXYZ || (HaveLP && HaveAlt)) {
     free(X_all_d);
     free(Y_all_d);
     free(Z_all_d);
