@@ -88,7 +88,8 @@ class TestWrappers(unittest.TestCase):
     def test_a_ConvertDataToHDF(self):
         os.chdir(WorkingDir)
         shutil.copy(PDBFn,"./")
-        ConvertDataToHDF.run(ProjectFn, PDBFn, TutorialDir+"/XTC", "file", 0, 0, 1,1000000)
+                    #def run(projectfn, PDBfn, InputDir, source, mingen, stride, rmsd_cutoff,  parallel='None'):
+        ConvertDataToHDF.run(ProjectFn, PDBFn, TutorialDir+"/XTC", "file", 0, 1, 0,1000000)
         P1 = Project.LoadFromHDF(ProjectFn)
         
         r_P1 = Project.LoadFromHDF(os.path.abspath(os.path.join('..', ReferenceDir, ProjectFn)))
