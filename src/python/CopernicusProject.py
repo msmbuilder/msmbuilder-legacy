@@ -1,11 +1,13 @@
-import Conformation
 import os
 import numpy as np
 
 from msmbuilder import Conformation, Project, Trajectory
+from msmbuilder import metrics
+from msmbuilder.assigning import assign_in_memory
+from msmbuilder import clustering
 from msmbuilder.ssaCalculator import ssaCalculator
 
-class CopernicusProject(Project.Project):
+class CopernicusProject(Project):
     def GetTrajFilename(self,TrajNumber):
         """Returns the filename of the Nth trajectory."""
 
@@ -20,23 +22,26 @@ class CopernicusProject(Project.Project):
 
         return(self["FileList"][i][PartNum])
 
-    def AssignProject(self,Generators,AtomIndices=None,WhichTrajs=None):
-        ass, rmsd, w = Project.Project.AssignProject(self, Generators, AtomIndices=AtomIndices, WhichTrajs=WhichTrajs)
-        return ass,rmsd,w
+    def AssignProject(self, Generators, AtomIndices=None, WhichTrajs=None):
+        trajectories = list(self.EnumTrajs())
+        metric = metrics.RMSD(AtomIndices)
+        assignments, distances = assign_in_memory(metric, Generators, trajectories)
+        
+        return assignments, distances
 
     def ClusterProject(self,AtomIndices=None,XTCOut=None,NumGen=None, Stride=None):
+        TotNumConfs = self["TrajLengths"].sum()
+        if Stride == None:
+            Stride = 10
         
-        raise NotImplementedError('Not implemented yet')
-        #TotNumConfs = self["TrajLengths"].sum()
-        #if Stride == None:
-        #    Stride = 10
-        #
-        #if NumGen == None:
-        #    NumGen = TotNumConfs / Stride / 10
-        #
-        #Gens = Project.Project.ClusterProject(self,NumGen,AtomIndices=AtomIndices,GetRandomConformations=False,NumConfsToGet=None,Which=None,Stride=Stride,SkipKCenters=False,DiscardFirstN=0,DiscardLastN=0)
-        #    
-        #return Gens
+        if NumGen == None:
+            NumGen = TotNumConfs / Stride / 10
+            
+        
+        metric = metrics.RMSD(AtomIndices)
+        clusterer = clustering.HybridKMedoids(metric, trajectories, NumGen)
+        gens = clusterer.get_generators_as_traj()
+        return gens
 
     def EvenSampling(self, NumGens):
         print "doing even sampling"
