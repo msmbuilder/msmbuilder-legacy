@@ -245,7 +245,9 @@ def _kcenters(metric, ptraj, k=None, distance_cutoff=None, seed=0, verbose=True)
     
     generator_indices = []
     for i in xrange(k):
+        print "K-centers: Finding generator %i" % i,
         new_ind = seed if i == 0 else np.argmax(distance_list)
+        print ": will finish when % .4f drops below % .4f" % (distance_list[new_ind], distance_cutoff) if k == sys.maxint else ""
         if distance_list[new_ind] < distance_cutoff:
             break
         new_distance_list = metric.one_to_all(ptraj, ptraj, new_ind)

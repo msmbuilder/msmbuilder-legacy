@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # This file is part of MSMBuilder.
 #
 # Copyright 2011 Stanford University
@@ -26,7 +26,7 @@ from collections import defaultdict
 import numpy as np
 import random
 
-def run(project, assignments, conformations_per_state, states, output_dir, gens_file, atom_indices, permute_indices):
+def run(project, assignments, conformations_per_state, states, output_dir, gens_file, atom_indices, permute_indices, alt_indices):
     if states == "all":
         states = np.arange(assignments.max()+1)
     # This is a dictionary: {generator : ((traj1, frame1), (traj1, frame3), (traj2, frame1), ... )}
@@ -37,7 +37,7 @@ def run(project, assignments, conformations_per_state, states, output_dir, gens_
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     print "Setting up the metric."
-    rmsd_metric = LPRMSD(atom_indices,permute_indices,None)
+    rmsd_metric = LPRMSD(atom_indices,permute_indices,alt_indices)
     # Create a trajectory of generators and prepare it.
     gens_traj = Trajectory.LoadTrajectoryFile(gens_file)
     p_gens_traj = rmsd_metric.prepare_trajectory(gens_traj)
@@ -103,6 +103,7 @@ to use GetRandomConfs.py""")
     Sets of indistinguishable atoms that can be permuted to minimize the RMSD. On disk this should be stored as
     a list of newline separated indices with a "--" separating the sets of indices if there are
     more than one set of indistinguishable atoms''')
+    parser.add_argument('lprmsd_alt_indices', description='Alternate atom indices', default='AltIndices.dat')
 
     parser.add_argument('generators', description='''Trajectory file containing
     the structures of each of the cluster centers.  Produced using Cluster.py.''', default='Data/Gens.lh5')
@@ -125,7 +126,12 @@ to use GetRandomConfs.py""")
         permute_indices = None
     else:
         permute_indices = ReadPermFile(args.lprmsd_permute_atoms)
-    
+
+    if args.lprmsd_alt_indices == 'None':
+        alt_indices = None
+    else:
+        alt_indices = np.loadtxt(args.lprmsd_alt_indices, np.int)
+
     run(args.project, args.assignments['Data'], args.conformations_per_state,
-         args.states, args.output_dir, args.generators, atom_indices, permute_indices)
+         args.states, args.output_dir, args.generators, atom_indices, permute_indices, alt_indices)
 
