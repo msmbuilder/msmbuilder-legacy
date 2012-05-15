@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=pdflatex 2011.4.11)  22 APR 2012 13:44
+This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=pdflatex 2011.4.11)  27 APR 2012 22:34
 entering extended mode
  %&-line parsing enabled.
 **Tutorial.tex
@@ -431,10 +431,10 @@ Overfull \hbox (12.5507pt too wide) in paragraph at lines 232--233
 n the timescale
  []
 
-[11] <figures/SCRE.pdf, id=148, 587.19376pt x 442.65375pt>
+[11] <figures/SCRE.pdf, id=147, 587.19376pt x 442.65375pt>
 File: figures/SCRE.pdf Graphic file (type pdf)
 
-<use figures/SCRE.pdf> [12 <./figures/SCRE.pdf>] [13] [14] [15] [16]
+<use figures/SCRE.pdf> [12] [13 <./figures/SCRE.pdf>] [14] [15] [16]
 Overfull \hbox (16.35468pt too wide) in paragraph at lines 364--365
 []\OT1/pplx/m/n/12 You can dis-card eigen-vec-tors based on their equi-lib-rium
  flux (fPCCA+). 
@@ -464,7 +464,7 @@ Here is how much of TeX's memory you used:
  4726 multiletter control sequences out of 15000+50000
  28728 words of font info for 75 fonts, out of 3000000 for 9000
  706 hyphenation exceptions out of 8191
- 25i,6n,24p,510b,245s stack positions out of 5000i,500n,10000p,200000b,50000s
+ 25i,6n,24p,672b,245s stack positions out of 5000i,500n,10000p,200000b,50000s
 {/usr/share/texmf-texlive/fonts/enc/dvips/base/8r.enc}</usr/share/texmf-texli
 ve/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/share/texmf-texlive/fonts/typ
 e1/public/amsfonts/cm/cmsy10.pfb></usr/share/texmf-texlive/fonts/type1/public/a
@@ -472,7 +472,7 @@ msfonts/cm/cmtt12.pfb></usr/share/texmf-texlive/fonts/type1/public/mathpazo/fpl
 mri.pfb></usr/share/texmf-texlive/fonts/type1/urw/palatino/uplb8a.pfb></usr/sha
 re/texmf-texlive/fonts/type1/urw/palatino/uplr8a.pfb></usr/share/texmf-texlive/
 fonts/type1/urw/palatino/uplri8a.pfb>
-Output written on Tutorial.pdf (20 pages, 985898 bytes).
+Output written on Tutorial.pdf (20 pages, 986712 bytes).
 PDF statistics:
  235 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 500000)

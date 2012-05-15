@@ -32,7 +32,7 @@ def Correlation(x,Normalize=True,MaxTime=np.inf):
         ACF/=ACF[0]
     return(ACF)
 
-def RawMSMCorrelation(T,ObservableArray,AssignmentArray,Steps=10000,StartingState=0):
+def RawMSMCorrelation(T,ObservableArray,AssignmentArray,Steps=10000,StartingState=0,Normalize=True):
     """Calculate an autocorrelation function from an MSM.  Inputs include: Transition Matrix T, an array of the observable calculated at every project frame, and the array of assignments.  This function works by first generating a 'sample' trajectory from the MSM.  This approach is necessary as it allows treatment of intra-state dynamics.
     """
     Traj=MSMLib.Sample(T,StartingState,Steps)
@@ -43,7 +43,7 @@ def RawMSMCorrelation(T,ObservableArray,AssignmentArray,Steps=10000,StartingStat
         Samp=np.random.random_integers(0,MaxNum-1)
         ObsTraj.append(Obs[Samp])
     ObsTraj=np.array(ObsTraj)
-    Cor=Correlation(ObsTraj)
+    Cor=Correlation(ObsTraj,Normalize=Normalize)
     return(Cor,Traj,ObsTraj)
 
 
