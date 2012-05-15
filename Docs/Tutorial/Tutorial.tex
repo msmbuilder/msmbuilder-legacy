@@ -237,7 +237,7 @@ Furthermore, PCCA+ is best used to estimate metastable states.  Here are some ad
 
 Thus, success with PCCA+ may require some trial and error when selecting the appropriate lagtime and microstate clustering.  Finally, note that our implementation of PCCA+ uses a simulated annealing minimization.  This randomized search means that you may find multiple minima by repeating the PCCA+ calculation several times.  You may find a better model by repeating the calculation several times.  
 
-\subsubsection{Estimate a converged rate matrix using SCRE}
+\subsubsection{Estimate a rate matrix using SCRE}
 
 In the macrostate implied timescales, the slowest implied timescale converges at approximately 10 ps, while the third timescale converges as 5 ps.  Furthermore, the third timescale is aliased at lagtimes starting with 14 ps; lagtimes longer than 14 ps will not accurately capture the dynamics of this relaxation.  This suggests that this system might benefit from estimating rates using SCRE and multiple lagtimes.  
 
@@ -410,6 +410,19 @@ Q5.  Why are there -1s in my Assignments matrix?
 A5.  We use -1 as a “padding” element in Assignment matrices. Suppose your project has maximum trajectory length of 100.  If trajectory 0 has length 50, then A[0,50:] should be a vector of -1.  Furthermore, when you perform trimming to ensure (strong) ergodicity, futher -1s could be introduced at the start or finish of the trajectory.  Finally, if Ergodic trimming was performed with count matrices estimated using a sliding window, you could even see something like:
 -1 -1 -1 x -1 -1 y z …
 This is because sliding window essentially splits your trajectory into independent subtrajectories--one for each possible window starting position.  “x” then marks the start of one of these subtrajectories.
+
+
+Q6.  When building MSMBuilder, I see the following: 
+\begin{verbatim}
+ ***************************************************************************
+WARNING: The C extension 'LPRMSD' could not be compiled.
+This may be due to a failure to find the BLAS libraries
+***************************************************************************
+\end{verbatim}
+
+What should I do?
+
+A6.  Don't worry.  This module is not used by any of the standard MSMBuilder features.  
 
 \bibliography{Tutorial}
 
