@@ -21,7 +21,7 @@ XTC = Extension('msmbuilder/libxdrfile',
                     "src/ext/xdrfile-1.1b/src/xdrfile_xtc.c",
                             ],
                   extra_compile_args=[],
-                  extra_link_args=["--enable-shared"],
+                  extra_link_args=["-shared"],
                   include_dirs = ["src/ext/xdrfile-1.1b/include/"]
                   )
 DCD = Extension('msmbuilder/dcdplugin_s',
