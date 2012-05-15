@@ -128,7 +128,7 @@ Cluster.py rmsd hierarchical
 \subsubsection{Assign data to states}
 
 \begin{verbatim}
-AssignHierarchical.py -H Data/Zmatrix.h5 -n 100
+AssignHierarchical.py -H Data/Zmatrix.h5 -n 200
 \end{verbatim}
 
 \subsubsection{Validate microstate model with relaxation timescales.}
@@ -268,7 +268,7 @@ In practice, the script will prompt the user to select a maximum lagtime.  The s
 25
 14
 
-Note that on the last iteration, the user is asked only to select a lagtime.  Also note that your choices may be different because of differences in the macrostate definitions; the PCCA+ minimization uses a non-deterministic simulated annealing.
+Note that on the last iteration, the user is asked only to select a lagtime.  Also note that your choices may be different because of differences in the macrostate definitions; the PCCA+ minimization uses a non-deterministic simulated annealing.  Also, if your state decomposition is insufficiently Markovian, you may find that the plotted rate estimates show a ``periodic'' behavior.  This likely indicates that a given macrostate contains multiple slowly interconverting substates; as you increase the lagtime, the model switches from the faster process to the slower process.  In such situations, your best bet is to increase the number of macrostates.  
 
 Finally, we compare the fixed-lagtime and SCRE estimates of implied timescales:
 
