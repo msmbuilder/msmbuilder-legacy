@@ -196,7 +196,7 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
   */
   struct timeval tv;
   double start, end, dif;
-  int DebugPrint = 1;
+  int DebugPrint = 0;
   if (DebugPrint) {
     start = get_time_precise();
     printf("Preparing...\n");
