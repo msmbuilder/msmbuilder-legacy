@@ -44,7 +44,8 @@ def run(project, assignments, conformations_per_state, states, output_dir, gens_
     # This trickery allows us to get the correct number of leading
     # zeros in the output file name no matter how many generators we have
     digits = len(str(max(states)))
-    formstr = '\"Cluster-%%0%ii.pdb\"' % digits
+    formstr_pdb = '\"Generator-%%0%ii.pdb\"' % digits
+    formstr_xtc = '\"Cluster-%%0%ii.xtc\"' % digits
     # Loop through the generators.
     for s in states:
         if len(inverse_assignments[s]) == 0:
@@ -72,11 +73,14 @@ def run(project, assignments, conformations_per_state, states, output_dir, gens_
         # Prepare the trajectory, align to the generator, and reassign the coordinates.
         p_cluster_traj = rmsd_metric.prepare_trajectory(cluster_traj)
         rmsd, xout = rmsd_metric.one_to_all_aligned(p_gens_traj, p_cluster_traj, s)
-        p_cluster_traj['XYZList'] = xout
-        outfnm = eval(formstr) % s
-        # Now save the PDB file.
-        print "Done aligning; saving to %s" % os.path.join(output_dir,outfnm)
-        p_cluster_traj.SaveToPDB(os.path.join(output_dir,outfnm))
+        p_cluster_traj['XYZList'] = xout.copy()
+        # Now save the generator / cluster to a PDB / XTC file.
+        outpdb = eval(formstr_pdb) % s
+        outxtc = eval(formstr_xtc) % s
+        this_gen_traj = p_gens_traj[s]
+        print "Done aligning; saving cluster to %s / %s" % (os.path.join(output_dir,outpdb), os.path.join(output_dir,outxtc))
+        this_gen_traj.SaveToPDB(os.path.join(output_dir,outpdb))
+        p_cluster_traj.SaveToXTC(os.path.join(output_dir,outxtc))
                 
 if __name__ == '__main__':
     parser = arglib.ArgumentParser(description="""
@@ -103,7 +107,7 @@ to use GetRandomConfs.py""")
     Sets of indistinguishable atoms that can be permuted to minimize the RMSD. On disk this should be stored as
     a list of newline separated indices with a "--" separating the sets of indices if there are
     more than one set of indistinguishable atoms''')
-    parser.add_argument('lprmsd_alt_indices', description='Alternate atom indices', default='AltIndices.dat')
+    parser.add_argument('lprmsd_alt_indices', default='None', description='Alternate atom indices')
 
     parser.add_argument('generators', description='''Trajectory file containing
     the structures of each of the cluster centers.  Produced using Cluster.py.''', default='Data/Gens.lh5')

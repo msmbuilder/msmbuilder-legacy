@@ -501,7 +501,7 @@ real ls_rmsd2_aligned_T_g(const int nrealatoms, const int npaddedatoms, const in
       for (int k=0; k<9; k++) {
 	M1[k] = M[k];
       }
-      int success = FastCalcRMSDAndRotation(rot, M1, &msd_d, E0, nrealatoms, 0.01);
+      int success = FastCalcRMSDAndRotation(rot, M1, &msd_d, E0, nrealatoms, -1);
       *(msd) = msd_d;
     }
     else {

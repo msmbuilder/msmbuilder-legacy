@@ -248,6 +248,7 @@ FastCalcRMSDAndRotation(double *rot, double *A, double *rmsd, double E0, int len
       if (rms < minScore) {
 	rot[0] = rot[4] = rot[8] = 1.0;
 	rot[1] = rot[2] = rot[3] = rot[5] = rot[6] = rot[7] = 0.0;
+	printf("qcprot borked\n");
 	return (-1); // Don't bother with rotation. 
       }
     }
@@ -275,6 +276,7 @@ FastCalcRMSDAndRotation(double *rot, double *A, double *rmsd, double E0, int len
 */
     if (qsqr < evecprec)
     {
+      printf("qcprot escalating to level 1\n");
         q1 =  a12*a3344_4334 - a13*a3244_4234 + a14*a3243_4233;
         q2 = -a11*a3344_4334 + a13*a3144_4134 - a14*a3143_4133;
         q3 =  a11*a3244_4234 - a12*a3144_4134 + a14*a3142_4132;
@@ -283,6 +285,7 @@ FastCalcRMSDAndRotation(double *rot, double *A, double *rmsd, double E0, int len
 
         if (qsqr < evecprec)
         {
+	  printf("qcprot escalating to level 2\n");
             float a1324_1423 = a13 * a24 - a14 * a23, a1224_1422 = a12 * a24 - a14 * a22;
             float a1223_1322 = a12 * a23 - a13 * a22, a1124_1421 = a11 * a24 - a14 * a21;
             float a1123_1321 = a11 * a23 - a13 * a21, a1122_1221 = a11 * a22 - a12 * a21;
@@ -295,6 +298,7 @@ FastCalcRMSDAndRotation(double *rot, double *A, double *rmsd, double E0, int len
 
             if (qsqr < evecprec)
             {
+	      printf("qcprot escalating to level 3\n");
                 q1 =  a32 * a1324_1423 - a33 * a1224_1422 + a34 * a1223_1322;
                 q2 = -a31 * a1324_1423 + a33 * a1124_1421 - a34 * a1123_1321;
                 q3 =  a31 * a1224_1422 - a32 * a1124_1421 + a34 * a1122_1221;
@@ -303,6 +307,7 @@ FastCalcRMSDAndRotation(double *rot, double *A, double *rmsd, double E0, int len
                 
                 if (qsqr < evecprec)
                 {
+		  printf("Broken rotation in qcprot.c!\n");
                     /* if qsqr is still too small, return the identity matrix. */
                     rot[0] = rot[4] = rot[8] = 1.0;
                     rot[1] = rot[2] = rot[3] = rot[5] = rot[6] = rot[7] = 0.0;
