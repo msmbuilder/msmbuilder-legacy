@@ -239,7 +239,7 @@ Thus, success with PCCA+ may require some trial and error when selecting the app
 
 \subsubsection{Estimate a rate matrix using SCRE}
 
-In the macrostate implied timescales, the slowest implied timescale converges at approximately 10 ps, while the third timescale converges as 5 ps.  Furthermore, the third timescale is aliased at lagtimes starting with 14 ps; lagtimes longer than 14 ps will not accurately capture the dynamics of this relaxation.  This suggests that this system might benefit from estimating rates using SCRE and multiple lagtimes.  
+In the macrostate implied timescales, the slowest implied timescale converges at approximately 10 ps, while the third timescale converges as 5 ps.  Furthermore, the third timescale is aliased at lagtimes starting with 14 ps; lagtimes longer than 14 ps will not accurately capture the dynamics of this relaxation.  This suggests that this system might benefit from estimating rates using SCRE and multiple lagtimes.  Note that SCRE currently is practical only for models with few states ($n \le 10$).  
 
 To build an SCRE model, we first construct a macrostate transition matrix with lagtime 1.  
 
@@ -411,6 +411,7 @@ A5.  We use -1 as a “padding” element in Assignment matrices. Suppose your p
 -1 -1 -1 x -1 -1 y z …
 This is because sliding window essentially splits your trajectory into independent subtrajectories--one for each possible window starting position.  “x” then marks the start of one of these subtrajectories.
 
+\vspace{5mm}
 
 Q6.  When building MSMBuilder, I see the following: 
 \begin{verbatim}
@@ -423,6 +424,30 @@ This may be due to a failure to find the BLAS libraries
 What should I do?
 
 A6.  Don't worry.  This module is not used by any of the standard MSMBuilder features.  
+
+\vspace{5mm}
+
+Q7.  What is the difference between PCCA+ and FPCCA+?
+
+A7.  FPCCA+ is PCCA+ with a different choice of eigenvectors to model.  In particular, FPCCA+ uses a criterion based on both timescale \emph{and} eigenvector flux.  
+
+\vspace{5mm}
+
+Q8.  Should I use FPCCA+ or PCCA+?
+
+A8.  First, note that FPCCA+ is more ``lossy'' or ``coarse-grained'' than PCCA+.  By discarding slow but high-flux eigenvectors, you are losing some information from your microstate model.  Essentially, the choice between FPCCA+ and PCCA+ depends on how much you weight model accuracy versus model simplicity.  
+
+\vspace{5mm}
+
+Q9.  I see warnings when using PCCA+:
+\begin{verbatim}
+ComplexWarning: Casting complex values to real discards the imaginary part
+RuntimeWarning: invalid value encountered in cdouble_scalars
+Warning: constraint violation detected.
+f = nan
+ \end{verbatim}
+ 
+A9.  This is probably due to PCCA+ finding a ``degenerate'' state decomposition, where one of your macrostates is empty.  Usually, the minimization procedure should eventually find a feasible point with the correct number of states.  Be sure to check that your resulting state decomposition makes sense.   
 
 \bibliography{Tutorial}
 
