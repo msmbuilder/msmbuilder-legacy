@@ -39,36 +39,34 @@ PT = {'H' : 1.0079, 'He' : 4.0026,
 def ReadPermFile(fnm):
     LL = []
     L  = []
+    K  = []
     fopen = open(fnm).readlines()
     for ln, line in enumerate(fopen):
         s = line.strip()
-        if s != '--':
+        if '--' not in s:
             L.append(int(s))
-        if (ln != 0 and s == '--') or (ln == len(fopen) - 1):
+        if (ln != 0 and '--' in s) or (ln == len(fopen) - 1):
             LL.append(np.array(L))
+            if len(s.split()) > 1:
+                try: K.append(int(s.split()[1]))
+                except: print "The syntax of this line is incorrect:", line,
+            else:
+                K.append(len(L))
             L = []
         else: continue
-    return LL
+    return (LL, K)
 
 class LPTraj(Trajectory):
     def __init__(self,S,atomindices=None,permuteindices=None):
         super(LPTraj,self).__init__(S)
         aidx = list(atomindices) if atomindices != None else []
         pidx = list(itertools.chain(*permuteindices)) if permuteindices != None else []
-        self.haveplus = permuteindices != None
-        if atomindices == None and permuteindices == None:
+
+        if atomindices == None:
             self.TD = RMSD.TheoData(S['XYZList'])
-            self.TDx = self.TD
-        elif permuteindices == None:
-            self.TD = RMSD.TheoData(S['XYZList'][:,np.array(aidx)])
-            self.TDx = self.TD
-        elif atomindices == None:
-            self.TD = RMSD.TheoData(S['XYZList'])
-            self.TDx = self.TD
         else:
             self.TD = RMSD.TheoData(S['XYZList'][:,np.array(aidx)])
-            self.TDx = RMSD.TheoData(S['XYZList'][:,np.array(aidx+pidx)])
-        
+
     def __getitem__(self, key):
         if isinstance(key, int) or isinstance(key, slice) or isinstance(key,np.ndarray):
             if isinstance(key, int):
@@ -76,8 +74,6 @@ class LPTraj(Trajectory):
             newtraj = copy.copy(self)
             newtraj['XYZList'] = self['XYZList'][key]
             newtraj.TD = self.TD[key]
-            if self.haveplus:
-                newtraj.TDx = self.TDx[key]
             return newtraj
         return super(Trajectory, self).__getitem__(key)
 
@@ -167,7 +163,12 @@ class LPRMSD(AbstractDistanceMetric):
     def __init__(self, atomindices=None, permuteindices=None, altindices=None, moments=False, gridmesh=0):
         self.atomindices = atomindices
         self.altindices = altindices
-        self.permuteindices = permuteindices
+        if permuteindices != None:
+            self.permuteindices = permuteindices[0]
+            self.permutekeep = permuteindices[1]
+        else:
+            self.permuteindices = None
+            self.permutekeep = None
         self.grid     = None
         self.moments  = moments
         if gridmesh > 0:
@@ -189,27 +190,29 @@ class LPRMSD(AbstractDistanceMetric):
         Usage = 0
         pi_flat = np.array([])
         pi_lens = np.array([])
+        pi_keep = np.array([])
         alt_idx = np.array([])
+        id_idx  = np.array([])
         if self.atomindices != None:
             Usage += 1000
+            id_idx = np.array(self.atomindices)
         if self.permuteindices != None:
             Usage += 100
             pi_flat = np.array(list(itertools.chain(*self.permuteindices)))
             pi_lens = np.array([len(i) for i in self.permuteindices])
+            pi_keep = np.array(self.permutekeep)
         if self.altindices != None:
             Usage += 10
             alt_idx = np.array(self.altindices)
         if b_xyzout :
             Usage += 1
-        
+
         XYZOut = pt2['XYZList'].transpose(0,2,1).copy().astype('float32')
         XYZRef = pt1['XYZList'].transpose(0,2,1)[index1].copy().astype('float32')
         RotOut = np.zeros(len(pt2)*9,dtype='float32')
         RMSDOut = _lprmsd.LPRMSD_Multipurpose(Usage, pt1.TD.NumAtoms, pt1.TD.NumAtomsWithPadding, pt1.TD.NumAtomsWithPadding, 
                                               pt2.TD.XYZData, pt1.TD.XYZData[index1], pt2.TD.G, pt1.TD.G[index1],
-                                              pt1.TDx.NumAtoms, pt1.TDx.NumAtomsWithPadding, pt1.TDx.NumAtomsWithPadding, 
-                                              pt2.TDx.XYZData, pt1.TDx.XYZData[index1], pt2.TDx.G, pt1.TDx.G[index1],
-                                              pi_flat, pi_lens, alt_idx, RotOut, XYZOut, XYZRef) 
+                                              id_idx, pi_flat, pi_lens, pi_keep, alt_idx, RotOut, XYZOut, XYZRef) 
 
         if b_xyzout:
             return RMSDOut, XYZOut.transpose(0,2,1)
@@ -245,7 +248,8 @@ class LPRMSD(AbstractDistanceMetric):
     
         else:
             for index, xyz in enumerate(trajectory['XYZList']):
-                xyz -= xyz.mean(0)
+                xsel = xyz[np.array(self.atomindices), :]
+                xyz -= xsel.mean(0)
                 T1['XYZList'][index] = xyz.copy()
                 
         return T1
