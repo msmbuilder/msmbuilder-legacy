@@ -84,7 +84,7 @@ add_argument(lprmsd, '-l', dest='lprmsd_alt_indices', default=None,
 add_argument(lprmsd, '-P', dest='lprmsd_permute_atoms', default=None, help='''Atom labels to be permuted.
 Sets of indistinguishable atoms that can be permuted to minimize the RMSD. On disk this should be stored as
 a list of newline separated indices with a "--" separating the sets of indices if there are
-more than one set of indistinguishable atoms''')
+more than one set of indistinguishable atoms.  Use "-- (integer)" to include a subset in the RMSD (to avoid undesirable boundary effects.)''')
 lprmsd_subparsers = lprmsd.add_subparsers()
 lprmsd_subparsers.metric = 'lprmsd'
 
@@ -210,9 +210,10 @@ def construct_metric(args):
         else:
             permute_inds = None
         if args.lprmsd_alt_indices is not None:
-            alt_inds = np.loadtxt(args.lprmsd_alt_indices, np.int)            
+            alt_inds = np.loadtxt(args.lprmsd_alt_indices, np.int)
         else:
-            alt_inds = None        
+            alt_inds = None
+
         metric = LPRMSD(atom_inds, permute_inds, alt_inds)
         
     elif args.metric == 'contact':

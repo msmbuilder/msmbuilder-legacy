@@ -28,7 +28,7 @@
 #include <omp.h>
 #include <sys/time.h>
 
-#define CHECKARRAYFLOAT(ary,name) if (PyArray_TYPE(ary) != NPY_FLOAT32) {\
+#define CHECKARRAYFLOAT(ary,name) if (PyArray_TYPE(ary) != NPY_FLOAT32) { \
                                      PyErr_SetString(PyExc_ValueError,name" was not of type float32");\
                                      return NULL;\
                                  } 
@@ -46,6 +46,11 @@
 double APCTime = 0.0 ;
 double DistMatTime = 0.0 ;
 
+int compare (const void * a, const void * b)
+{
+  return ( *(int*)a - *(int*)b );
+}
+
 double get_time_precise() {
   struct timeval tim;
   double Answer;
@@ -59,7 +64,7 @@ void time_accumulate(double *acc, double start) {
   *(acc) += (end-start);
 }
 
-void drive_permute(int DIM, int STEP, int START, float *xa, float *xb, int *indices) {
+void drive_permute(int DIM, int STEP, int START, float *xa, float *xb, int *indices, int Subset) {
   // Input: A bunch of indices.
   // Result: The indices are swapped.
   
@@ -67,6 +72,7 @@ void drive_permute(int DIM, int STEP, int START, float *xa, float *xb, int *indi
   float x1, y1, z1;
   float x2, y2, z2;
   int dr2;
+  int bRect = (Subset != 0 && Subset < DIM);
   // Conversion factor to go from nanometers to picometers
   int conv = 1000;
   int conv2 = conv*conv;
@@ -75,7 +81,25 @@ void drive_permute(int DIM, int STEP, int START, float *xa, float *xb, int *indi
   // A big number used to fill in the distance matrix elements that are thresholded out
   int BIG = conv2*3;
   // Allocate the distance matrix (integer).  The units are in squared picometers.
-  int *DistanceMatrix = calloc(DIM*DIM,sizeof(int));
+  int *DistanceMatrix, *DistanceMatrixA, *DistanceMatrixB;
+  int *indicesA, *indicesBT, *indicesB, *indicesCount;
+  int *FillIdx;
+  int *FillDist;
+  int *FillSort;
+  DistanceMatrix = calloc(DIM*DIM,sizeof(int));
+  if (bRect) {
+    DistanceMatrixA = calloc(DIM*DIM,sizeof(int));
+    DistanceMatrixB = calloc(DIM*DIM,sizeof(int));
+    indicesA  = calloc(DIM,sizeof(int));
+    indicesB  = calloc(DIM,sizeof(int));
+    indicesBT = calloc(DIM,sizeof(int));
+    indicesCount = calloc(DIM,sizeof(int));
+    FillSort = calloc(DIM,sizeof(int));
+    FillDist = calloc(DIM,sizeof(int));
+    FillIdx  = calloc(DIM,sizeof(int));
+  }
+  int ENum = 0;
+
   int z_p;
   int INF = 2000000000;
   double start = get_time_precise();
@@ -106,7 +130,15 @@ void drive_permute(int DIM, int STEP, int START, float *xa, float *xb, int *indi
 	  }
 	}
       }
-      DistanceMatrix[i*DIM+j] = dr2;
+      if (bRect) {
+	if (i < Subset) {
+	  DistanceMatrixA[j*DIM+i] = dr2;
+	}
+	if (j < Subset) {
+	  DistanceMatrixB[i*DIM+j] = dr2;
+	}
+      }
+      DistanceMatrix[j*DIM+i] = dr2;
     }
   }
   time_accumulate(&DistMatTime,start);
@@ -115,9 +147,150 @@ void drive_permute(int DIM, int STEP, int START, float *xa, float *xb, int *indi
   /// LPW Drive the APC! ///
   //////////////////////////
   start = get_time_precise();
-  apc(DIM,DistanceMatrix,INF,&z_p,indices);
+  double ElementA, ElementB;
+  int MapCount = 0;
+  int Fill = 0;
+  if (bRect) {
+    apc(DIM,DistanceMatrixA,INF,&z_p,indicesA);
+    apc(DIM,DistanceMatrixB,INF,&z_p,indicesBT);
+    for (int i=0; i<DIM; i++)
+      indicesB[indicesBT[i]] = i;
+    for (int i=0; i<DIM; i++) {
+      ElementA = DistanceMatrixA[i*DIM + indicesA[i]];
+      ElementB = DistanceMatrixB[indicesB[i]*DIM + i];
+      //printf("indicesA[%3i] = %3i ElementA = %.4f indicesB[%3i] = %3i ElementB = %.4f\n", i, indicesA[i], sqrtf((double)ElementA/conv2), i, indicesB[i], sqrtf((double)ElementB/conv2));
+      if (i < Subset && indicesA[i] == indicesB[i]) {
+	indices[i] = indicesA[i] ; 
+	//printf("Setting indices[%i] to %i", i, indices[i]);
+	//printf("Incrementing indicesCount[%i]\n",indices[i]);
+	indicesCount[indices[i]]++;
+	MapCount++;
+      } else {
+	indices[i] = -1;
+	if (Fill) {
+	  if (ElementA != 0) {
+	    FillDist[ENum] = ElementA;
+	    FillIdx[ENum] = i*DIM + indicesA[i];
+	    //printf("FillDist[%i] = %i FillIdx[%i] = %i,%i\n",ENum,FillDist[ENum],ENum,FillIdx[ENum]/DIM,FillIdx[ENum]%DIM);
+	    ENum++;
+	  } 
+	  if (ElementB != 0) {
+	    FillDist[ENum] = ElementB;
+	    FillIdx[ENum] = i*DIM + indicesB[i];
+	    //printf("FillDist[%i] = %i FillIdx[%i] = %i,%i\n",ENum,FillDist[ENum],ENum,FillIdx[ENum]/DIM,FillIdx[ENum]%DIM);
+	    ENum++;
+	  }
+	}
+      }
+    }
+
+    if (Fill) {
+      // This is a fill based on the atom pairs that have the lowest RMSD.
+      /*
+      for (int i=0; i<DIM; i++) {
+	//printf("Setting FillSort[%i] to %i\n", i, FillDist[i]);
+	FillSort[i] = FillDist[i];
+      }
+      qsort(FillSort, Subset, sizeof(int), compare);
+      for (int i=0; i<DIM; i++) {
+	if (FillSort[i] != 0) {
+	  for (int j=0; j<DIM; j++) {
+	    if (MapCount == Subset)
+	      break;
+	    if (FillSort[i] == FillDist[j]) {
+	      printf("DistanceMatrix[%i,%i] has distance % .4f\n",FillIdx[j]/DIM,FillIdx[j]%DIM,sqrtf((double)DistanceMatrix[FillIdx[j]] / conv2));
+	      if (indices[FillIdx[j]/DIM] == -1) {
+		indices[FillIdx[j]/DIM] = FillIdx[j]%DIM;
+		printf("Filling indices[%i] = %i\n",FillIdx[j]/DIM, FillIdx[j]%DIM);
+		MapCount++;
+	      } 
+	    }
+	  }
+	}
+      }
+      */
+      // This is a fill based on the atom ordering.
+      for (int i=0; i<DIM; i++) {
+	if (MapCount == Subset)
+	  break;
+	if (FillDist[i] != 0 && indicesCount[FillIdx[i]%DIM] == 0) {
+	  //printf("indicesCount[%i] = %i\n", FillIdx[i]%DIM, indicesCount[FillIdx[i]%DIM]);
+	  //printf("DistanceMatrix[%i,%i] has distance % .4f\n",FillIdx[i]/DIM,FillIdx[i]%DIM,sqrtf((double)DistanceMatrix[FillIdx[i]] / conv2));
+	  if (indices[FillIdx[i]/DIM] == -1) {
+	    indices[FillIdx[i]/DIM] = FillIdx[i]%DIM;
+	    indicesCount[FillIdx[i]%DIM]++;
+	    //printf("Filling indices[%i] = %i and incrementing indicesCount[%i]\n",FillIdx[i]/DIM, FillIdx[i]%DIM,FillIdx[i]%DIM);
+	    MapCount++;
+	  } else if (FillDist[i] < DistanceMatrix[DIM * (FillIdx[i]/DIM) + indices[FillIdx[i]/DIM]]) {
+	    //printf("Replacing indices[%i] = %i with %i\n", FillIdx[i]/DIM, indices[FillIdx[i]/DIM], FillIdx[i]%DIM);
+	    //printf("DistanceMatrix[%i, %i (%i) ] = % .4f\n", FillIdx[i]/DIM, indices[FillIdx[i]/DIM], DIM * (FillIdx[i]/DIM) + indices[FillIdx[i]/DIM], sqrtf((double)DistanceMatrix[DIM * (FillIdx[i]/DIM) + indices[FillIdx[i]/DIM]] / conv2));
+	    //printf("DistanceMatrix[%i, %i (%i) ] = % .4f or % .4f\n", FillIdx[i]/DIM, FillIdx[i]%DIM, FillIdx[i], sqrtf((double)DistanceMatrix[FillIdx[i]] / conv2), sqrtf((double)FillDist[i] / conv2));
+	    //printf("Incrementing indicesCount[%i] and decrementing indicesCount[%i]\n",FillIdx[i]%DIM,indices[FillIdx[i]/DIM]);
+	    indicesCount[indices[FillIdx[i]/DIM]]--;
+	    indices[FillIdx[i]/DIM] = FillIdx[i]%DIM;
+	    indicesCount[FillIdx[i]%DIM]++;
+	  } else {
+	    //printf("Not filling indices[%i] with %i because current value is equal to %i\n", FillIdx[i]/DIM, FillIdx[i]%DIM, indices[FillIdx[i]/DIM]);
+	  }
+	}
+      }
+    }
+
+    int Index1 = 0;
+    int Index2 = 0;
+    for (int i=0; i<DIM; i++) {
+      Index1 = indices[i];
+      for (int j=0; j<i; j++) {
+	Index2 = indices[j];
+	if ((Index1 == Index2) && (Index1 != -1)) {
+	  printf("ARGH, indices[%i] and indices[%i] are both equal to %i\n", i, j, Index1);
+	  getchar();
+	}
+      }
+    }
+    
+    double Displacement = 0.0;
+    double RMSD_Expect = 0.0;
+    for (int i=0; i<DIM; i++) {
+      if (indices[i] != -1) {
+	Displacement = sqrtf((double)DistanceMatrix[i*DIM + indices[i]] / conv2);
+	RMSD_Expect += Displacement * Displacement;
+	//printf("indices[%i] = %i (Disp = % .3f)\n", i, indices[i], Displacement);
+      }
+    }
+    RMSD_Expect = sqrtf(RMSD_Expect / Subset);
+    //printf("Expected RMSD from waters is % .3f\n",RMSD_Expect);
+    //printf("%i atoms are mapped\n", MapCount);
+    //getchar();
+  } else {
+    apc(DIM,DistanceMatrix,INF,&z_p,indices);
+  }
+
+  /*
+  //printf("YOOOOO!\n");
+  double Displacement;
+  double RMSD_Expect;
+  for (int i=0; i<Subset; i++) {
+    //Element = (double)DistanceMatrix[i*DIM + indices[i]];
+    Displacement = sqrtf(Element / conv2);
+    RMSD_Expect += Displacement * Displacement;
+  }
+  RMSD_Expect = sqrtf(RMSD_Expect / Subset);
+  //printf("Expected RMSD from waters is % .3f\n",RMSD_Expect);
+  */
   time_accumulate(&APCTime,start);
   free(DistanceMatrix);
+  if (bRect) {
+    free(DistanceMatrixA);
+    free(DistanceMatrixB); 
+    free(indicesA);
+    free(indicesB);
+    free(indicesBT);
+    free(indicesCount);
+    free(FillSort);
+    free(FillDist);
+    free(FillIdx);
+  }
 }
 
 void PrintDimensions(char *title, PyArrayObject *array) {
@@ -150,7 +323,7 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
     - AltIndices are the alternate labels used instead of the AtomIndices when computing the RMSD
     
     Note that I can't use PermuteIndices and AltIndices at the same time because that would just be ridiculous.
-
+    
     There are several ways in which a user might run this:
     +- If there are AtomIndices:
     |  |- Perform alignment using AtomIndices; this sets the RMSD values and optionally gets the rotation matrices.
@@ -176,13 +349,13 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
     |  |- Assign the rotated frame to the XYZOut array
     |- Assign the RMSD values to the RMSDOut array
     Done!!!
-
+    
     The options (codified in the Usage integer):
     - Whether we have a set of AtomicIndices
     - Whether we have a set of AltIndices
     - Whether we have a set of PermuteIndices
     - Whether we want the output coordinates
-     
+    
     The arguments:
     - Input: Flag for usage mode (1 integer)
     - Input: TheoData for the AtomIndices (7 variables)
@@ -201,7 +374,7 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
     start = get_time_precise();
     printf("Preparing...\n");
   }
-
+  
   /**********************************/
   /*   Initialize input variables   */
   /**********************************/
@@ -209,30 +382,29 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
   PyArrayObject *XYZ_id_a_, *XYZ_id_b_, *G_id_a_;
   int nreal_id=-1,npad_id=-1,strd_id=-1;
   float G_id_b=-1;
-  // TheoData for distinguishable+permutable atoms
-  PyArrayObject *XYZ_lp_a_, *XYZ_lp_b_, *G_lp_a_;
-  int nreal_lp=-1,npad_lp=-1,strd_lp=-1;
-  float G_lp_b=-1;
   // Arrays for permutable indices and permutable atom 'batch' size (i.e. oxygens, hydrogens)
-  PyArrayObject *LP_Flat_,*LP_Lens_;
+  PyArrayObject *LP_Flat_,*LP_Lens_,*LP_Lens_B_;
   // Array for alternate indices
   PyArrayObject *Alt_Idx_;
+  // Array for distinguishable indices
+  PyArrayObject *Id_Idx_;
   // Arrays for RMSD and rotation matrices
   PyArrayObject *RMSD_, *Rotations_;
   // The entire set of XYZ coordinates for fitting trajectory and reference frame
   PyArrayObject *XYZ_all_a_, *XYZ_all_b_;
   int Usage=-1;
-
+  // Rectangular permutations (EXPERIMENTAL)
+  int bRect=0;
+  
   float msd;
-
-  if (!PyArg_ParseTuple(args, "iiiiOOOfiiiOOOfOOOOOO", &Usage,
+  
+  if (!PyArg_ParseTuple(args, "iiiiOOOfOOOOOOOO", &Usage,
 			&nreal_id, &npad_id, &strd_id, &XYZ_id_a_, &XYZ_id_b_, &G_id_a_, &G_id_b, 
-			&nreal_lp, &npad_lp, &strd_lp, &XYZ_lp_a_, &XYZ_lp_b_, &G_lp_a_, &G_lp_b, 
-			&LP_Flat_, &LP_Lens_, &Alt_Idx_, &Rotations_, &XYZ_all_a_, &XYZ_all_b_)) {
+			&Id_Idx_, &LP_Flat_, &LP_Lens_, &LP_Lens_B_, &Alt_Idx_, &Rotations_, &XYZ_all_a_, &XYZ_all_b_)) {
     printf("Mao says: Inputs / outputs not correctly specified!\n");
     return NULL;
   }
-
+  
   /**********************************/
   /*   Initialize local variables   */
   /**********************************/
@@ -245,27 +417,26 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
   int ns = XYZ_id_a_->dimensions[0];
   // Total number of atoms.
   int na_all = XYZ_all_a_->dimensions[2];
-  // Number of distinguishable+permutable atoms (pad)
-  int na_lp = XYZ_lp_a_->dimensions[2];
   // Number of permutable atom groups
   int n_lp_grps = LP_Lens_->dimensions[0];
   // Number of permutable (or alternate) atoms
-  int totlen = LP_Flat_->dimensions[0];
+  int lplen = LP_Flat_->dimensions[0];
   // Number of alternate index atoms
   int altlen = Alt_Idx_->dimensions[0];
   // Number of distinguishable atoms (true)
   int na_id = nreal_id;
+  // Number of distinguishable+permutable atoms
+  int na_lp = na_id + lplen;
   // TheoData for distinguishable atoms
-  float *XYZ_id_a = (float*) XYZ_id_a_->data;
-  float *XYZ_id_b = (float*) XYZ_id_b_->data;
+  float *IDAtoms_Traj_f = (float*) XYZ_id_a_->data;
+  float *IDAtoms0_f = (float*) XYZ_id_b_->data;
   float *G_id_a = (float*) G_id_a_->data;
-  // TheoData for distinguishable+permutable atoms
-  float *XYZ_lp_a = (float*) XYZ_lp_a_->data;
-  float *XYZ_lp_b = (float*) XYZ_lp_b_->data;
-  float *G_lp_a = (float*) G_lp_a_->data;
   // Arrays for permutable indices and permutable atom group size
-  long unsigned int *lp_lens = (long unsigned int*) LP_Lens_->data;
-  long unsigned int *lp_flat = (long unsigned int*) LP_Flat_->data;
+  long unsigned int *lp_lens   = (long unsigned int*) LP_Lens_->data;
+  long unsigned int *lp_lens_B = (long unsigned int*) LP_Lens_B_->data;
+  long unsigned int *lp_idx   = (long unsigned int*) LP_Flat_->data;
+  // Arrays for distinguishable atom indices
+  long unsigned int *id_idx = (long unsigned int*) Id_Idx_->data;
   // Arrays for alternate indices
   long unsigned int *alt_idx = (long unsigned int*) Alt_Idx_->data;
   // Arrays for RMSD and rotation matrices; allocate the RMSD array
@@ -277,8 +448,8 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
   float *Rotations = (float*) Rotations_->data;
   // The entire set of XYZ coordinates for fitting trajectory and reference frame
   float *XYZ_all_a = (float*) XYZ_all_a_->data;
-  float *XYZ_all_b = (float*) XYZ_all_b_->data;
-
+  float *AllAtoms0_f = (float*) XYZ_all_b_->data;
+  
   /********************************/
   /*     LPW Debug Printout       */
   /********************************/
@@ -289,38 +460,26 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
     PrintDimensions("G_id_a_", G_id_a_);
     printf("nreal_id: %i, npad_id: %i, stride_id: %i\n",nreal_id,npad_id,strd_id);
     printf("\n");
-    PrintDimensions("XYZ_lp_a_", XYZ_lp_a_);
-    PrintDimensions("XYZ_lp_b_", XYZ_lp_b_);
-    PrintDimensions("G_lp_a_", G_lp_a_);
-    printf("nreal_lp: %i, npad_lp: %i, stride_lp: %i\n",nreal_lp,npad_lp,strd_lp);
-    printf("\n");
     printf("Usage Mode: %i\n",Usage);
     PrintDimensions("Rotations_", Rotations_);
     PrintDimensions("XYZ_all_a_", XYZ_all_a_);
     PrintDimensions("XYZ_all_b_", XYZ_all_b_);
     PrintDimensions("LP_Lens_", LP_Lens_);
+    PrintDimensions("LP_Lens_B_", LP_Lens_B_);
     PrintDimensions("LP_Flat_", LP_Flat_);
     PrintDimensions("Alt_Idx_", Alt_Idx_);
     printf("LP_Lens has this many dimensions: %i\n",LP_Lens_->nd);
   }
-
-
+  
+  
   /*********************************/
   /* Initialize internal variables */
   /*   (Memory is allocated here)  */
   /*********************************/
   // Temporary labels for old and new index
-  int Old, New, StartIdx;
-  int *lp_all, *lp_all_glob, *lp_starts;
-  // The underscore d (f) means double (single) precision.
-  // Double precision is needed for the dgemm routine (because sgemm appears to be broken!)
-  double *X_lp_d, *Y_lp_d;
-  float  *Y_lp_f, *Z_lp_f;
-  double *X_all_d, *Y_all_d, *Z_all_d;
-  double *X_alt_d, *Y_alt_d;
-  // The 'truestride' for pad XYZ coordinates
-  int true_id = npad_id*3;
-  int true_lp = npad_lp*3;
+  int StartIdx;
+  int *lp_starts;
+  float *LPAtoms0_f;
   if (HaveLP) {
     // Create an array from the batch size which points to where the batches start
     // For example [5, 5, 6, 3] -> [0, 5, 10, 16], you know what i mean.
@@ -332,42 +491,25 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
       if (DebugPrint) {
 	printf("Index Group %i : Starts at %i and has Length %i \n",i,lp_starts[i],*(lp_lens+i));
 	for (int j = 0; j<*(lp_lens+i); j++)
-	  printf("%i ",lp_flat[lp_starts[i] + j]);
+	  printf("%i ",lp_idx[lp_starts[i] + j]);
 	printf("\n");
       }
     }
-    // These three are for rotating the distinguishable+permutable atoms using the pre-rotation matrix.
-    X_lp_d = calloc(na_lp * ns * 3, sizeof(double));
-    Y_lp_d = calloc(na_lp * ns * 3, sizeof(double));
-    Y_lp_f = calloc(na_lp * ns * 3, sizeof(float));
-    // This is for storing the distinguishable+permutable atoms with swapped coordinates.
-    Z_lp_f = calloc(na_lp * ns * 3, sizeof(float));
-    // An array for all of the permuted indices across all frames, counting from only the permutable indices or all indices.
-    // For example, if the permutable atoms are 8, 10, and 12, these two arrays will be [0, 2, 1, 1, 0, 2] and [8, 12, 10, 10, 8, 12]
-    lp_all = calloc(ns*totlen,sizeof(int));
-    lp_all_glob = calloc(ns*totlen,sizeof(int));
-    // Copy the permutable coordinates.
-    for (int i=0; i<na_lp * ns * 3 ; i++) {
-      X_lp_d[i] = (double) XYZ_lp_a[i]; 
-      Z_lp_f[i] = (float) XYZ_lp_a[i];
+    LPAtoms0_f = calloc(na_lp * 3, sizeof(double));
+    for (int j=0; j<na_id; j++) {
+      LPAtoms0_f[0*na_lp + j] = (float) AllAtoms0_f[0*na_all + id_idx[j]];
+      LPAtoms0_f[1*na_lp + j] = (float) AllAtoms0_f[1*na_all + id_idx[j]];
+      LPAtoms0_f[2*na_lp + j] = (float) AllAtoms0_f[2*na_all + id_idx[j]];
+    }
+    for (int j=0; j<lplen; j++) {
+      LPAtoms0_f[0*na_lp + na_id + j] = (float) AllAtoms0_f[0*na_all + lp_idx[j]];
+      LPAtoms0_f[1*na_lp + na_id + j] = (float) AllAtoms0_f[1*na_all + lp_idx[j]];
+      LPAtoms0_f[2*na_lp + na_id + j] = (float) AllAtoms0_f[2*na_all + lp_idx[j]];
     }
   }
-  if (WantXYZ || (HaveLP && HaveAlt)) {
-    // These three are for rotating the entire frame using the final rotation matrix.
-    X_all_d = calloc(na_all * ns * 3, sizeof(double));
-    Y_all_d = calloc(na_all * ns * 3, sizeof(double));
-    // This is for storing the entire frame, rotated, with swapped coordinates.
-    Z_all_d = calloc(na_all * ns * 3, sizeof(double));
-    // Copy the single-precision coordinates into the double-precision coordinates
-    for (int i=0; i<na_all * ns * 3 ; i++) {
-      X_all_d[i] = (double) XYZ_all_a[i] ; 
-    }
-  }
+
+
   if (HaveAlt) {
-    // The original and rotated alternate (ligand) coordinates.
-    X_alt_d = calloc(altlen * ns * 3, sizeof(double));
-    Y_alt_d = calloc(altlen * ns * 3, sizeof(double));
-    // Copy the ligand coordinates.
     if (DebugPrint) {
       printf("Alternate Indices has Length %i \n",altlen);
       for (int i = 0; i<altlen; i++) {
@@ -375,15 +517,7 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
       }
       printf("\n");
     }
-    for (int i=0; i < ns; i++) {
-      for (int j=0; j < altlen ; j++) {
-	*(X_alt_d + i*altlen*3 + 0*altlen + j) = (double) *(XYZ_all_a + i*na_all*3 + 0*na_all + alt_idx[j]);
-	*(X_alt_d + i*altlen*3 + 1*altlen + j) = (double) *(XYZ_all_a + i*na_all*3 + 1*na_all + alt_idx[j]);
-	*(X_alt_d + i*altlen*3 + 2*altlen + j) = (double) *(XYZ_all_a + i*na_all*3 + 2*na_all + alt_idx[j]);
-      }
-    }
-  }
-
+  }  
   // Rotation matrix and dummy indices
   double rot[9];
   int j, k, p, Idx;
@@ -400,21 +534,84 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
   double RelabelTime = 0.0;
   APCTime = 0.0;
   DistMatTime = 0.0;
-  float x1, x2, y1, y2, z1, z2;
-
+  
   /**********************************/
   /*   Start the RMSD calculation   */
   /*    Parallelized over frames    */
   /**********************************/
-      
-#pragma omp parallel for private(rot, msd, j, k, p, start, end, Idx, Old, New, x1, x2, y1, y2, z1, z2)
+  // Local working variables
+  float x1, x2, y1, y2, z1, z2;
+  int Old, New;
+  double *MapAtoms0_d;
+  double *MapAtoms_d;
+  float *MapAtoms0_f;
+  float *MapAtoms_f;
+  int Count=0;
+  int AtomsInRMSD=0;
+  double xcena, ycena, zcena, xcenb, ycenb, zcenb;
+  double G_map_d;
+  double G_map_f;
+  double G_map0_d;
+  double G_map0_f;
+  double msdi;
+  double Displacement;
+  int D;
+  double *LPAtoms_IDRot_d;
+  float  *LPAtoms_IDRot_f;
+  double *AllAtoms_d;
+  double *AllAtoms_Rot_d;
+  double *AllAtoms_Rot_Perm_d;
+  double *LPAtoms_d;
+  int *LPIndices_Local;
+  int *LPIndices_Global;
+  double *AltAtoms_d;
+  double *AltAtoms_Rot_d;
+  int nreal_map;
+  int npad_map;
+#pragma omp parallel for private(rot, msd, msdi, j, k, p, start, end, Idx, Old, New, Count, x1, x2, y1, y2, z1, z2, MapAtoms0_d, MapAtoms_d, MapAtoms0_f, MapAtoms_f, nreal_map, npad_map, G_map_d, G_map0_d, G_map_f, G_map0_f, AtomsInRMSD, xcena, ycena, zcena, xcenb, ycenb, zcenb, Displacement, D, LPAtoms_d, LPAtoms_IDRot_d, LPAtoms_IDRot_f, AllAtoms_d, AllAtoms_Rot_d, AllAtoms_Rot_Perm_d, LPIndices_Local, LPIndices_Global, AltAtoms_d, AltAtoms_Rot_d)
   for (int i = 0; i < ns; i++) 
     {
+      MapAtoms0_d = calloc(na_lp * 3, sizeof(double));
+      MapAtoms0_f = calloc(na_lp * 3, sizeof(float));
+      MapAtoms_d = calloc(na_lp * 3, sizeof(double));
+      MapAtoms_f = calloc(na_lp * 3, sizeof(float));
+      
+      LPAtoms_d = calloc(na_lp * 3, sizeof(double));
+      LPAtoms_IDRot_d = calloc(na_lp * 3, sizeof(double));
+      LPAtoms_IDRot_f = calloc(na_lp * 3, sizeof(float));
+      for (int j=0; j<na_id; j++) {
+	LPAtoms_d[0*na_lp + j] = (double) *(XYZ_all_a + i*na_all*3 + 0*na_all + id_idx[j]);
+	LPAtoms_d[1*na_lp + j] = (double) *(XYZ_all_a + i*na_all*3 + 1*na_all + id_idx[j]);
+	LPAtoms_d[2*na_lp + j] = (double) *(XYZ_all_a + i*na_all*3 + 2*na_all + id_idx[j]);
+      }
+      for (int j=0; j<lplen; j++) {
+	LPAtoms_d[0*na_lp + na_id + j] = (double) *(XYZ_all_a + i*na_all*3 + 0*na_all + lp_idx[j]);
+	LPAtoms_d[1*na_lp + na_id + j] = (double) *(XYZ_all_a + i*na_all*3 + 1*na_all + lp_idx[j]);
+	LPAtoms_d[2*na_lp + na_id + j] = (double) *(XYZ_all_a + i*na_all*3 + 2*na_all + lp_idx[j]);
+      }
+
+      AllAtoms_d = calloc(na_all*3, sizeof(double));
+      AllAtoms_Rot_d = calloc(na_all*3, sizeof(double));
+      AllAtoms_Rot_Perm_d = calloc(na_all*3, sizeof(double));
+      for (int j=0; j<na_all*3; j++) {
+	AllAtoms_d[j] = (double) XYZ_all_a[na_all*3*i+j];
+      }
+      
+      LPIndices_Local = calloc(lplen, sizeof(int));
+      LPIndices_Global = calloc(lplen, sizeof(int));
+
+      AltAtoms_d = calloc(altlen * 3, sizeof(double));
+      AltAtoms_Rot_d = calloc(altlen * 3, sizeof(double));
+      for (int j=0; j < altlen ; j++) {
+	AltAtoms_d[0*altlen + j] = (double) *(XYZ_all_a + i*na_all*3 + 0*na_all + alt_idx[j]);
+	AltAtoms_d[1*altlen + j] = (double) *(XYZ_all_a + i*na_all*3 + 1*na_all + alt_idx[j]);
+	AltAtoms_d[2*altlen + j] = (double) *(XYZ_all_a + i*na_all*3 + 2*na_all + alt_idx[j]);
+      }
       //If there are AtomIndices:
       if (HaveID) {
 	start = get_time_precise();
 	// Perform alignment using AtomIndices; this sets the RMSD values and optionally gets the rotation matrices.
-	ls_rmsd2_aligned_T_g(nreal_id,npad_id,strd_id,(XYZ_id_a+i*true_id),XYZ_id_b,G_id_a[i],G_id_b,&msd,(HaveLP || HaveAlt || WantXYZ),rot);
+	ls_rmsd2_aligned_T_g(nreal_id,npad_id,strd_id,(IDAtoms_Traj_f+i*3*npad_id),IDAtoms0_f,G_id_a[i],G_id_b,&msd,(HaveLP || HaveAlt || WantXYZ),rot);
 	time_accumulate(&RMSD1Time,start);
 	// If there are no PermuteIndices:
 	if (!HaveLP) {
@@ -422,25 +619,25 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
 	  // If we want output coordinates:
 	  if (WantXYZ) {
 	    // Rotate the whole frame using the rotation matrix
-	    cblas_dgemm(101,112,111,3,na_all,3,1.0,rot,3,(X_all_d+i*3*na_all),na_all,0.0,(Y_all_d+i*3*na_all),na_all);
+	    cblas_dgemm(101,112,111,3,na_all,3,1.0,rot,3,AllAtoms_d,na_all,0.0,AllAtoms_Rot_d,na_all);
 	    time_accumulate(&MatrixTime,start);
 	  }
 	  // If there are AltIndices:
 	  if (HaveAlt) {
 	    // Rotate the atoms in AltIndices using the rotation matrix.
-	    cblas_dgemm(101,112,111,3,altlen,3,1.0,rot,3,(X_alt_d+i*3*altlen),altlen,0.0,(Y_alt_d+i*3*altlen),altlen);
+	    cblas_dgemm(101,112,111,3,altlen,3,1.0,rot,3,AltAtoms_d,altlen,0.0,AltAtoms_Rot_d,altlen);
 	    time_accumulate(&MatrixTime,start);
 	    start = get_time_precise();
 	    msd = 0.0 ;
 	    // Set the RMSD values by explicitly computing them from pairwise distances.
 	    for (j=0; j<altlen; j++) {
-	      x2 = Y_alt_d[(i*3+0)*altlen + j];
-	      y2 = Y_alt_d[(i*3+1)*altlen + j];
-	      z2 = Y_alt_d[(i*3+2)*altlen + j];
 	      Idx = alt_idx[j];
-	      x1 = XYZ_all_b[0*na_all + Idx];
-	      y1 = XYZ_all_b[1*na_all + Idx];
-	      z1 = XYZ_all_b[2*na_all + Idx];
+	      x2 = AltAtoms_d[0*altlen + j];
+	      y2 = AltAtoms_d[1*altlen + j];
+	      z2 = AltAtoms_d[2*altlen + j];
+	      x1 = AllAtoms0_f[0*na_all + Idx];
+	      y1 = AllAtoms0_f[1*na_all + Idx];
+	      z1 = AllAtoms0_f[2*na_all + Idx];
 	      msd = msd + (x2-x1)*(x2-x1);
 	      msd = msd + (y2-y1)*(y2-y1);
 	      msd = msd + (z2-z1)*(z2-z1);
@@ -452,121 +649,239 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
 	// If there are PermuteIndices:
 	// Rotate the atoms in (Atom+Permute)Indices using the rotation matrix
 	else {
-	  cblas_dgemm(101,112,111,3,na_lp,3,1.0,rot,3,(X_lp_d+i*3*na_lp),na_lp,0.0,Y_lp_d+i*3*na_lp,na_lp);
+	  cblas_dgemm(101,112,111,3,na_lp,3,1.0,rot,3,LPAtoms_d,na_lp,0.0,LPAtoms_IDRot_d,na_lp);
 	}
       }
       // If there are PermuteIndices:
       if (HaveLP) {
 	time_accumulate(&MatrixTime,start);
 	for (k=0; k<na_lp * 3 ; k++) {
-	  Y_lp_f[i*3*na_lp+k] = (float) Y_lp_d[i*3*na_lp+k];
+	  LPAtoms_IDRot_f[k] = (float) LPAtoms_IDRot_d[k];
 	}
 	// Permute the atomic indices for each batch in PermuteIndices.
+	Count = 0;
+	for (k=0; k<na_id; k++) {
+	  MapAtoms_d[0*na_lp + Count] = (double)LPAtoms_d[0*na_lp + Count];
+	  MapAtoms_d[1*na_lp + Count] = (double)LPAtoms_d[1*na_lp + Count];
+	  MapAtoms_d[2*na_lp + Count] = (double)LPAtoms_d[2*na_lp + Count];
+	  MapAtoms0_d[0*na_lp + Count] = (double)LPAtoms0_f[0*na_lp + Count];
+	  MapAtoms0_d[1*na_lp + Count] = (double)LPAtoms0_f[1*na_lp + Count];
+	  MapAtoms0_d[2*na_lp + Count] = (double)LPAtoms0_f[2*na_lp + Count];
+	  Count++;
+	}
+
 	for (k=0; k<n_lp_grps ; k++) {
 	  start = get_time_precise();
 	  // This calls a subroutine that builds the cost matrix and solves the assignment problem!
-	  drive_permute(lp_lens[k],na_lp,na_id+lp_starts[k],(Y_lp_f+i*3*na_lp),XYZ_lp_b,lp_all+i*totlen+lp_starts[k]);
+	  drive_permute(lp_lens[k],na_lp,na_id+lp_starts[k],LPAtoms_IDRot_f,LPAtoms0_f,LPIndices_Local+lp_starts[k],lp_lens_B[k]);
+	  //printf("YOU BOYS LIKE MEXICO??\n");
 	  time_accumulate(&PermuteTime,start);
 	  start = get_time_precise();
 	  // Relabel the atoms according to our brand new permutations
 	  for (p=0; p<lp_lens[k] ; p++) {
-	    Old = na_id + lp_starts[k] + p;
-	    New = na_id + lp_starts[k] + *(lp_all+i*totlen+lp_starts[k]+p) ;
-	    // Z_lp_f contains (atomindices + relabeled permuteindices) and is used for alignment.
-	    Z_lp_f[(i*3+0)*na_lp + New] = XYZ_lp_a[(i*3+0)*na_lp + Old];
-	    Z_lp_f[(i*3+1)*na_lp + New] = XYZ_lp_a[(i*3+1)*na_lp + Old];
-	    Z_lp_f[(i*3+2)*na_lp + New] = XYZ_lp_a[(i*3+2)*na_lp + Old];
-	    // Store the new labels.  This will be used for explicit RMSD computation (if both PermuteIndices and AltIndices are present)
-	    if (WantXYZ || HaveAlt) {
-	      Old = lp_flat[lp_starts[k] + p];
-	      New = lp_flat[lp_starts[k] + *(lp_all+i*totlen+lp_starts[k]+p)];
-	      lp_all_glob[i*totlen+lp_starts[k]+p] = New;
+	    if (*(LPIndices_Local+lp_starts[k]+p) >= 0) {
+	      Old = na_id + lp_starts[k] + p;
+	      New = na_id + lp_starts[k] + *(LPIndices_Local+lp_starts[k]+p) ;
+
+	      MapAtoms_d[0*na_lp + Count] = (double)LPAtoms_d[0*na_lp + New];
+	      MapAtoms_d[1*na_lp + Count] = (double)LPAtoms_d[1*na_lp + New];
+	      MapAtoms_d[2*na_lp + Count] = (double)LPAtoms_d[2*na_lp + New];
+	      MapAtoms0_d[0*na_lp + Count] = (double)LPAtoms0_f[0*na_lp + Old];
+	      MapAtoms0_d[1*na_lp + Count] = (double)LPAtoms0_f[1*na_lp + Old];
+	      MapAtoms0_d[2*na_lp + Count] = (double)LPAtoms0_f[2*na_lp + Old];
+
+	      /*
+	      Displacement  = (Y_lp_f[(i*3+0)*na_lp + New] - MapAtoms0_d[0*na_lp + Count]) * (Y_lp_f[(i*3+0)*na_lp + New] - MapAtoms0_d[0*na_lp + Count]);
+	      Displacement += (Y_lp_f[(i*3+1)*na_lp + New] - MapAtoms0_d[1*na_lp + Count]) * (Y_lp_f[(i*3+1)*na_lp + New] - MapAtoms0_d[1*na_lp + Count]);
+	      Displacement += (Y_lp_f[(i*3+2)*na_lp + New] - MapAtoms0_d[2*na_lp + Count]) * (Y_lp_f[(i*3+2)*na_lp + New] - MapAtoms0_d[2*na_lp + Count]);
+	      Displacement  = sqrtf(Displacement);
+	      printf("In the local array, MapAtoms0_d[%i] = %i MapAtoms_d[%i] = %i with Displacement = % .3f\n", Count, Old, Count, New, Displacement);
+	      */
+
+	      Count++;
+	      New = lp_idx[lp_starts[k] + *(LPIndices_Local+lp_starts[k]+p)];
+	      LPIndices_Global[lp_starts[k]+p] = New;
+	      //printf("In the global array, setting lp_all_glob[%i * %i + %i + %i] = %i\n", i, lplen, lp_starts[k], p, New);
+	    } else {
+	      LPIndices_Global[lp_starts[k]+p] = -1;
 	    }
+
 	  }
 	  time_accumulate(&RelabelTime,start);
 	}
+
+	// This block computes the center of mass and the Theobald G-value.
+	nreal_map = Count;
+	npad_map = Count+4-Count%4;
+	xcena = 0.0;
+	ycena = 0.0;
+	zcena = 0.0;
+	xcenb = 0.0;
+	ycenb = 0.0;
+	zcenb = 0.0;
+	G_map_d = 0.0;
+	G_map0_d = 0.0;
+
+	for (k=0; k<Count; k++) {
+	  xcena += MapAtoms_d[0*na_lp + k];
+	  ycena += MapAtoms_d[1*na_lp + k];
+	  zcena += MapAtoms_d[2*na_lp + k];
+
+	  xcenb += MapAtoms0_d[0*na_lp + k];
+	  ycenb += MapAtoms0_d[1*na_lp + k];
+	  zcenb += MapAtoms0_d[2*na_lp + k];
+	}
+	xcena /= Count;
+	ycena /= Count;
+	zcena /= Count;
+	xcenb /= Count;
+	ycenb /= Count;
+	zcenb /= Count;
+	for (k=0; k<Count; k++) {
+	  MapAtoms_d[0*na_lp + k] -= xcena;
+	  MapAtoms_d[1*na_lp + k] -= ycena;
+	  MapAtoms_d[2*na_lp + k] -= zcena;
+
+	  MapAtoms0_d[0*na_lp + k] -= xcenb;
+	  MapAtoms0_d[1*na_lp + k] -= ycenb;
+	  MapAtoms0_d[2*na_lp + k] -= zcenb;
+
+	  G_map_d += MapAtoms_d[0*na_lp + k]*MapAtoms_d[0*na_lp + k];
+	  G_map_d += MapAtoms_d[1*na_lp + k]*MapAtoms_d[1*na_lp + k];
+	  G_map_d += MapAtoms_d[2*na_lp + k]*MapAtoms_d[2*na_lp + k];
+	  G_map0_d += MapAtoms0_d[0*na_lp + k]*MapAtoms0_d[0*na_lp + k];
+	  G_map0_d += MapAtoms0_d[1*na_lp + k]*MapAtoms0_d[1*na_lp + k];
+	  G_map0_d += MapAtoms0_d[2*na_lp + k]*MapAtoms0_d[2*na_lp + k];
+	}
+	G_map_f = (float) G_map_d;
+	G_map0_f = (float) G_map0_d;
+
+	for (k=0; k<Count; k++) {
+	  MapAtoms_f[0*na_lp + k] = (float)MapAtoms_d[0*na_lp + k];
+	  MapAtoms_f[1*na_lp + k] = (float)MapAtoms_d[1*na_lp + k];
+	  MapAtoms_f[2*na_lp + k] = (float)MapAtoms_d[2*na_lp + k];
+	  MapAtoms0_f[0*na_lp + k] = (float)MapAtoms0_d[0*na_lp + k];
+	  MapAtoms0_f[1*na_lp + k] = (float)MapAtoms0_d[1*na_lp + k];
+	  MapAtoms0_f[2*na_lp + k] = (float)MapAtoms0_d[2*na_lp + k];
+	}
+
+	// Compress the arrays so they fit in npad_map.
+	for (D=0; D<3; D++) {
+	  for (k=0; k<nreal_map; k++) {
+	    MapAtoms_f[D*npad_map + k] = MapAtoms_f[D*na_lp + k];
+	    MapAtoms0_f[D*npad_map + k] = MapAtoms0_f[D*na_lp + k];
+	  }
+	  for (k=nreal_map; k<na_lp; k++) {
+	    MapAtoms_f[D*npad_map + k] = 0.0;
+	    MapAtoms0_f[D*npad_map + k] = 0.0;
+	  }
+	}
+
 	start = get_time_precise();
-	// Perform alignment using (Atom+Permute)Indices; this sets the RMSD values and gets the rotation matrices
-	ls_rmsd2_aligned_T_g(nreal_lp,npad_lp,strd_lp,(Z_lp_f+i*true_lp),XYZ_lp_b,G_lp_a[i],G_lp_b,&msd,1,rot);
+	// Perform alignment using the Mapped Indices; this sets the RMSD values and gets the rotation matrices
+	ls_rmsd2_aligned_T_g(nreal_map,npad_map,npad_map,MapAtoms_f,MapAtoms0_f,G_map_f,G_map0_f,&msd,1,rot);
 	time_accumulate(&RMSD2Time,start);
-	// If output coordinates are requested:
-	if (WantXYZ || HaveAlt) {
-	  // Rotate the whole frame using the rotation matrix
-	  start = get_time_precise();
-	  cblas_dgemm(101,112,111,3,na_all,3,1.0,rot,3,(X_all_d+i*3*na_all),na_all,0.0,(Y_all_d+i*3*na_all),na_all);
-	  time_accumulate(&MatrixTime,start);
-	  start = get_time_precise();
-	  for (k=0; k<3*na_all ; k++) {
-	    *(Z_all_d+i*3*na_all+k) = *(Y_all_d+i*3*na_all+k);
-	  }
-	  // Relabel the frame using the permutations
-	  for (k=0; k<totlen; k++) {
-	    Old = lp_flat[k];
-	    New = lp_all_glob[i*totlen + k];
-	    Z_all_d[(i*3+0)*na_all + New] = Y_all_d[(i*3+0)*na_all + Old];
-	    Z_all_d[(i*3+1)*na_all + New] = Y_all_d[(i*3+1)*na_all + Old];
-	    Z_all_d[(i*3+2)*na_all + New] = Y_all_d[(i*3+2)*na_all + Old];
-	  }
-	  time_accumulate(&RelabelTime,start);
-	  if (HaveAlt) {
-	    start = get_time_precise();
-	    msd = 0.0 ;
-	    // Set the RMSD values by explicitly computing them from pairwise distances.
-	    for (j=0; j<altlen; j++) {
-	      Idx = alt_idx[j];
-	      // Y_all_d contains all of the atoms being fitted
-	      x2 = Y_all_d[(i*3+0)*na_all + Idx];
-	      y2 = Y_all_d[(i*3+1)*na_all + Idx];
-	      z2 = Y_all_d[(i*3+2)*na_all + Idx];
-	      // XYZ_all_b contains all of the reference atom positions
-	      x1 = XYZ_all_b[0*na_all + Idx];
-	      y1 = XYZ_all_b[1*na_all + Idx];
-	      z1 = XYZ_all_b[2*na_all + Idx];
-	      msd = msd + (x2-x1)*(x2-x1);
-	      msd = msd + (y2-y1)*(y2-y1);
-	      msd = msd + (z2-z1)*(z2-z1);
-	    }
-	    for (k=0; k<totlen; k++) {
-	      Idx = lp_flat[k];
-	      // Z_all_d contains all of the atoms being fitted, with relabeled atom indices
-	      x2 = Z_all_d[(i*3+0)*na_all + Idx];
-	      y2 = Z_all_d[(i*3+1)*na_all + Idx];
-	      z2 = Z_all_d[(i*3+2)*na_all + Idx];
-	      // XYZ_all_b contains all of the reference atom positions
-	      x1 = XYZ_all_b[0*na_all + Idx];
-	      y1 = XYZ_all_b[1*na_all + Idx];
-	      z1 = XYZ_all_b[2*na_all + Idx];
-	      msd = msd + (x2-x1)*(x2-x1);
-	      msd = msd + (y2-y1)*(y2-y1);
-	      msd = msd + (z2-z1)*(z2-z1);
-	    }
-	    msd = msd / (altlen + totlen);
-	    time_accumulate(&AltRMSDTime,start);
+	
+	// Rotate the whole frame using the rotation matrix
+	start = get_time_precise();
+
+	cblas_dgemm(101,112,111,3,na_all,3,1.0,rot,3,AllAtoms_d,na_all,0.0,AllAtoms_Rot_d,na_all);
+	time_accumulate(&MatrixTime,start);
+	start = get_time_precise();
+	for (k=0; k<3*na_all ; k++) {
+	  *(AllAtoms_Rot_Perm_d+k) = *(AllAtoms_Rot_d+k);
+	}
+	// Relabel the frame using the permutations
+	for (k=0; k<lplen; k++) {
+	  Idx = lp_idx[k];
+	  New = LPIndices_Global[k];
+	  if (New != -1) {
+	    //printf("Atom number %i is being relabeled to %i\n",Idx,New);
+	    // AllAtoms_Rot_Perm_d contains all of the atoms being fitted, with relabeled atom indices
+	    AllAtoms_Rot_Perm_d[0*na_all + Idx] = AllAtoms_Rot_d[0*na_all + New];
+	    AllAtoms_Rot_Perm_d[1*na_all + Idx] = AllAtoms_Rot_d[1*na_all + New];
+	    AllAtoms_Rot_Perm_d[2*na_all + Idx] = AllAtoms_Rot_d[2*na_all + New];
+	    x2 = AllAtoms_Rot_Perm_d[0*na_all + Idx];
+	    y2 = AllAtoms_Rot_Perm_d[1*na_all + Idx];
+	    z2 = AllAtoms_Rot_Perm_d[2*na_all + Idx];
+	    x1 = AllAtoms0_f[0*na_all + Idx];
+	    y1 = AllAtoms0_f[1*na_all + Idx];
+	    z1 = AllAtoms0_f[2*na_all + Idx];
+	    msdi = (x2-x1)*(x2-x1) + (y2-y1)*(y2-y1) + (z2-z1)*(z2-z1);
+	    //printf("Displacement from reference atom %i to permuted atom %i is % .4f\n", Idx, New, sqrtf(msdi));
 	  }
 	}
+	time_accumulate(&RelabelTime,start);
+	start = get_time_precise();
+	if (HaveAlt) {
+	  AtomsInRMSD = 0;
+	  for (j=0; j<altlen; j++) {
+	    Idx = alt_idx[j];
+	    x2 = AllAtoms_Rot_d[0*na_all + Idx];
+	    y2 = AllAtoms_Rot_d[1*na_all + Idx];
+	    z2 = AllAtoms_Rot_d[2*na_all + Idx];
+	    x1 = AllAtoms0_f[0*na_all + Idx];
+	    y1 = AllAtoms0_f[1*na_all + Idx];
+	    z1 = AllAtoms0_f[2*na_all + Idx];
+	    msdi = (x2-x1)*(x2-x1) + (y2-y1)*(y2-y1) + (z2-z1)*(z2-z1);
+	    msd += msdi;
+	    AtomsInRMSD++;
+	  }
+	  for (k=0; k<lplen; k++) {
+	    Idx = lp_idx[k];
+	    New = LPIndices_Global[i*lplen + k];
+	    if (New != -1) {
+	      x2 = AllAtoms_Rot_Perm_d[0*na_all + Idx];
+	      y2 = AllAtoms_Rot_Perm_d[1*na_all + Idx];
+	      z2 = AllAtoms_Rot_Perm_d[2*na_all + Idx];
+	      x1 = AllAtoms0_f[0*na_all + Idx];
+	      y1 = AllAtoms0_f[1*na_all + Idx];
+	      z1 = AllAtoms0_f[2*na_all + Idx];
+	      msdi = (x2-x1)*(x2-x1) + (y2-y1)*(y2-y1) + (z2-z1)*(z2-z1);
+	      msd += msdi;
+	      AtomsInRMSD++;
+	    }
+	  }
+	  msd /= AtomsInRMSD;
+	}
+	time_accumulate(&AltRMSDTime,start);
       }
       // Assign the RMSD values to the RMSDOut array
       RMSD[i] = sqrtf(msd);
-      if (WantXYZ || HaveAlt || HaveLP) {
-	// Assign the rotation matrix to the RotOut array
-	for (j=0; j<9; j++) {
-	  *(Rotations + i*9 + j) = (float) rot[j];
+      //printf("The RMSD value is % .3f\n", RMSD[i]);
+      // Assign the rotation matrix to the RotOut array
+      for (j=0; j<9; j++) {
+	*(Rotations + i*9 + j) = (float) rot[j];
+      }
+      // If output coordinates are requested:
+      // Assign the rotated frames to the XYZOut array
+      if (WantXYZ) {
+	for (j=0; j<3*na_all; j++) {
+	  if (HaveLP)
+	    XYZ_all_a[3*na_all*i + j] = AllAtoms_Rot_Perm_d[j];
+	  else
+	    XYZ_all_a[3*na_all*i + j] = AllAtoms_Rot_d[j];
 	}
       }
-    }
 
-  // If output coordinates are requested:
-  // Assign the rotated frames to the XYZOut array
-  if (WantXYZ) {
-    for (int i=0; i<na_all * ns * 3 ; i++) {
-      if (HaveLP) 
-	XYZ_all_a[i] = (double) Z_all_d[i] ; 
-      else {
-	XYZ_all_a[i] = (double) Y_all_d[i] ; 
-      }
+      free(MapAtoms0_d);
+      free(MapAtoms0_f);
+      free(MapAtoms_d);
+      free(MapAtoms_f);
+      free(LPAtoms_d);
+      free(LPAtoms_IDRot_d);
+      free(LPAtoms_IDRot_f);
+      free(AllAtoms_d);
+      free(AllAtoms_Rot_d);
+      free(AllAtoms_Rot_Perm_d);
+      free(LPIndices_Local);
+      free(LPIndices_Global);
+      free(AltAtoms_d);
+      free(AltAtoms_Rot_d);
+      // Pause here after one RMSD (if developing)
+      //getchar();
     }
-  }
-
+  
   if (DebugPrint) {
     printf("First RMSD: % .4f seconds\n",RMSD1Time);
     printf("Rotation: % .4f seconds\n",MatrixTime);
@@ -585,26 +900,12 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
     }
     printf("Min / Max RMSD = % .4f / % .4f\n",MinRMSD, MaxRMSD);
   }
-
+  
   if (HaveLP) {
     free(lp_starts);
-    free(X_lp_d);
-    free(Y_lp_d);
-    free(Y_lp_f);
-    free(Z_lp_f);
-    free(lp_all);
-    free(lp_all_glob);
+    free(LPAtoms0_f);
   }
-  if (WantXYZ || (HaveLP && HaveAlt)) {
-    free(X_all_d);
-    free(Y_all_d);
-    free(Z_all_d);
-  }
-  if (HaveAlt) {
-    free(X_alt_d);
-    free(Y_alt_d);
-  }
-
+  
   return PyArray_Return(RMSD_);
 }
 
