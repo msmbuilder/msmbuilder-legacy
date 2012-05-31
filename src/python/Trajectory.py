@@ -222,8 +222,7 @@ class Trajectory(Conformation.ConformationBaseClass):
                     if i > 0:
                         if np.sum( np.abs( c.coords - A["XYZList"][-1] ) ) < 10.**-8:
                             num_redundant += 1
-                    else:
-                        A["XYZList"].append( np.array(c.coords).copy() )
+                    A["XYZList"].append( np.array(c.coords).copy() )
                         
                 else:
                     A["XYZList"].append( np.array(c.coords).copy() )
@@ -241,7 +240,7 @@ class Trajectory(Conformation.ConformationBaseClass):
                 i=i+1
             Shape=np.array((i,ConfShape[0],ConfShape[1]))
             return(Shape)
-        
+
         return(A)
 
     
