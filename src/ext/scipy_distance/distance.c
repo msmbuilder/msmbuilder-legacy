@@ -342,21 +342,37 @@ void pdist_mahalanobis(const double *X, const double *covinv,
 		       double *dm, int m, int n) {
   int i, j;
   const double *u, *v;
-  double *it = dm;
+  double *it;
   double *dimbuf1, *dimbuf2;
-  dimbuf1 = (double*)malloc(sizeof(double) * 2 * n);
-  dimbuf2 = dimbuf1 + n;
-  for (i = 0; i < m; i++) {
-    for (j = i + 1; j < m; j++, it++) {
-      u = X + (n * i);
-      v = X + (n * j);
-      *it = mahalanobis_distance(u, v, covinv, dimbuf1, dimbuf2, n);
-    }
-  }
-  dimbuf2 = 0;
-  free(dimbuf1);
-}
 
+  #pragma omp parallel shared(X, m, n, dm, covinv) private(dimbuf1, dimbuf2, u,v,it,i,j)
+  {
+    dimbuf1 = (double*)malloc(sizeof(double) * 2 * n);
+    if (dimbuf1 == NULL) {
+      printf("Out of memory! (not enough to malloc working b8ffer)\n");
+    }
+    
+    dimbuf2 = dimbuf1 + n;
+    #pragma omp for
+    for (i = 0; i < m; i++) {
+      #pragma omp parallel shared(i, X, m, n, dm, covinv)
+      {
+        #pragma omp for
+        for (j = i + 1; j < m; j++) {
+          u = X + (n * i);
+          v = X + (n * j);
+          
+          // given that you're in row i column j of the all to all distance matrix,
+          // this is the index of your location in the 1D condensed distance matrix
+          it = dm + i*(m-2) - i*(i-1)/2 + j - 1;
+          *it = mahalanobis_distance(u, v, covinv, dimbuf1, dimbuf2, n);
+        }
+      }
+    }
+    dimbuf2 = 0;
+    free(dimbuf1);
+  } 
+}
 void pdist_bray_curtis(const double *X, double *dm, int m, int n) {
   int i, j;
   const double *u, *v;
