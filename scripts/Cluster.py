@@ -241,12 +241,21 @@ def construct_metric(args):
         raise Exception("Bad metric")
     
     return metric
-    
+
 def load_trajectories(projectfn, stride):
     project = Project.LoadFromHDF(projectfn)
     return [traj[::stride] for traj in project.EnumTrajs()]
-        
-
+    
+    # Not sure what the memory-management characteristics of the above code is
+    # This should do the same -- but maybe be more efficient?
+    #longtraj = []
+    #for i in xrange(project['NumTrajs']):
+    #    t = project.LoadTraj(i)
+    #    strided = t[::stride].copy()
+    #    del t
+    #    longtraj.append(strided)
+    #return longtraj
+    
 def cluster(metric, trajs, args):
     if args.alg == 'kcenters':
         clusterer = clustering.KCenters(metric, trajs, k=args.kcenters_num_clusters,

@@ -171,11 +171,155 @@ def fast_cdist(XA, XB, metric='euclidean', p=2, V=None, VI=None):
         raise ValueError('Unknown Distance Metric: %s' % metric)
     
     return dm
+
+
+def fast_pdist(X, metric='euclidean', p=2, V=None, VI=None):
+    X = np.asarray(X, order='c')
     
+    def ensure_contiguous(mtx):
+        if not mtx.flags.contiguous:
+            raise Exception('Prepared trajectories need to be contiguous.')
+    def ensure_double(mtx):
+        if not mtx.dtype == np.double:
+            raise TypeError('Must be of type np.double')
+    def ensure_bool(mtx):
+        if not mtx.dtype == np.bool:
+            raise TypeError('Must be of type np.bool')
+
+    ensure_contiguous(X)
+    
+    if not (X.dtype == np.double) or (X.dtype == np.bool):
+        raise TypeError('The vector need to be of type np.double or np.bool.')
+    
+    s = X.shape
+    if len(s) != 2:
+        raise ValueError('A 2-dimensional array must be passed.')
+
+    m, n = s
+    dm = np.zeros((m * (m - 1) / 2,), dtype=np.double)
+
+
+    if isinstance(metric, basestring):
+        mstr = metric.lower()
+
+        #if X.dtype != np.double and \
+        #       (mstr != 'hamming' and mstr != 'jaccard'):
+        #    TypeError('A double array must be passed.')
+        if mstr in set(['euclidean', 'euclid', 'eu', 'e']):
+            ensure_double(X)
+            _distance_wrap.pdist_euclidean_wrap(X, dm)
+        elif mstr in set(['sqeuclidean', 'sqe', 'sqeuclid']):
+            ensure_double(X)
+            _distance_wrap.pdist_euclidean_wrap(X, dm)
+            dm = dm ** 2.0
+        elif mstr in set(['cityblock', 'cblock', 'cb', 'c']):
+            ensure_double(X)
+            _distance_wrap.pdist_city_block_wrap(X, dm)
+        elif mstr in set(['hamming', 'hamm', 'ha', 'h']):
+            if X.dtype == np.bool:
+                _distance_wrap.pdist_hamming_bool_wrap(X, dm)
+            else:
+                ensure_double(X)
+                _distance_wrap.pdist_hamming_wrap(X, dm)
+        elif mstr in set(['jaccard', 'jacc', 'ja', 'j']):
+            if X.dtype == np.bool:
+                _distance_wrap.pdist_jaccard_bool_wrap(X, dm)
+            else:
+                ensure_double(X)
+                _distance_wrap.pdist_jaccard_wrap(X, dm)
+        elif mstr in set(['chebychev', 'chebyshev', 'cheby', 'cheb', 'ch']):
+            ensure_double(X)
+            _distance_wrap.pdist_chebyshev_wrap(X, dm)
+        elif mstr in set(['minkowski', 'mi', 'm']):
+            ensure_double(X)
+            _distance_wrap.pdist_minkowski_wrap(X, dm, p)
+
+        elif mstr in set(['seuclidean', 'se', 's']):
+            ensure_double(X)
+            if V is not None:
+                V = np.asarray(V, order='c')
+                ensure_contiguous(V)
+                if type(V) != np.ndarray:
+                    raise TypeError('Variance vector V must be a numpy array')
+                if V.dtype != np.double:
+                    raise TypeError('Variance vector V must contain doubles.')
+                if len(V.shape) != 1:
+                    raise ValueError('Variance vector V must '
+                                     'be one-dimensional.')
+                if V.shape[0] != n:
+                    raise ValueError('Variance vector V must be of the same '
+                            'dimension as the vectors on which the distances '
+                            'are computed.')
+            else:
+                V = np.var(X, axis=0, ddof=1)
+            _distance_wrap.pdist_seuclidean_wrap(X, V, dm)
+        elif mstr in set(['cosine', 'cos']):
+            ensure_double(X)
+            norms = np.sqrt(np.sum(X * X, axis=1))
+            _distance_wrap.pdist_cosine_wrap(X, dm, norms)
+        elif mstr in set(['correlation', 'co']):
+            X2 = X - X.mean(1)[:, np.newaxis]
+            #X2 = X - np.matlib.repmat(np.mean(X, axis=1).reshape(m, 1), 1, n)
+            norms = np.sqrt(np.sum(X2 * X2, axis=1))
+            _distance_wrap.pdist_cosine_wrap(X2, dm, norms)
+        elif mstr in set(['mahalanobis', 'mahal', 'mah']):
+            if VI is not None:
+                VI = np.asarray(VI, order='c')
+                ensure_contiguous(VI)
+                if type(VI) != np.ndarray:
+                    raise TypeError('VI must be a numpy array.')
+                if VI.dtype != np.double:
+                    raise TypeError('The array must contain 64-bit floats.')
+            else:
+                V = np.cov(X.T)
+                VI = np.linalg.inv(V).T.copy()
+            # (u-v)V^(-1)(u-v)^T
+            ensure_double(X)
+            _distance_wrap.pdist_mahalanobis_wrap(X, VI, dm)
+        elif mstr == 'canberra':
+            ensure_double(X)
+            _distance_wrap.pdist_canberra_wrap(X, dm)
+        elif mstr == 'braycurtis':
+            ensure_double(X)
+            _distance_wrap.pdist_bray_curtis_wrap(X, dm)
+        elif mstr == 'yule':
+            ensure_bool(X)
+            _distance_wrap.pdist_yule_bool_wrap(X, dm)
+        elif mstr == 'matching':
+            ensure_bool(X)
+            _distance_wrap.pdist_matching_bool_wrap(X, dm)
+        elif mstr == 'kulsinski':
+            ensure_bool(X)
+            _distance_wrap.pdist_kulsinski_bool_wrap(X, dm)
+        elif mstr == 'dice':
+            ensure_bool(X)
+            _distance_wrap.pdist_dice_bool_wrap(X, dm)
+        elif mstr == 'rogerstanimoto':
+            ensure_bool(X)
+            _distance_wrap.pdist_rogerstanimoto_bool_wrap(X, dm)
+        elif mstr == 'russellrao':
+            ensure_bool(X)
+            _distance_wrap.pdist_russellrao_bool_wrap(X, dm)
+        elif mstr == 'sokalmichener':
+            ensure_bool(X)
+            _distance_wrap.pdist_sokalmichener_bool_wrap(X, dm)
+        elif mstr == 'sokalsneath':
+            ensure_bool(X)
+            _distance_wrap.pdist_sokalsneath_bool_wrap(X, dm)
+        else:
+            raise ValueError('Unknown Distance Metric: %s' % mstr)
+    else:
+        raise TypeError('2nd argument metric must be a string identifier')
+
+    return dm
+
+
 if USE_FAST_CDIST:
     cdist = fast_cdist
+    pdist = fast_pdist
 else:
     cdist = scipy.spatial.distance.cdist
+    pdist = scipy.spatial.distance.pdist
 #print 'in metrics library, USE_FAST_CDIST is set to', USE_FAST_CDIST
 
 class AbstractDistanceMetric(object):
@@ -542,7 +686,7 @@ class Vectorized(AbstractDistanceMetric):
         See the documentation on scipy.spatial.distance.pdist for more details."""
         
         # TODO: Provide a faster pdist implementation using openmp
-        out = scipy.spatial.distance.pdist(prepared_traj, metric=self.metric, p=self.p,
+        out = pdist(prepared_traj, metric=self.metric, p=self.p,
                     V=self.V, VI=self.VI)
         return out
 
@@ -678,9 +822,9 @@ class ContinuousContact(Vectorized, AbstractDistanceMetric):
             if not width == 2:
                 raise ValueError('contacts must be width 2')
             if not (0 < len(np.unique(contacts[:,0])) < num_residues):
-                raise ValueError('contacts should refers to zero-based indexing of the residues')
+                raise ValueError('contacts should refer to zero-based indexing of the residues')
             if not np.all(np.logical_and(0 <= np.unique(contacts), np.unique(contacts) < num_residues)):
-                raise ValueError('contacts should refers to zero-based indexing of the residues')
+                raise ValueError('contacts should refer to zero-based indexing of the residues')
                 
         if self.scheme == 'ca':
             # not all residues have a CA
@@ -828,12 +972,12 @@ class AtomPairs(Vectorized, AbstractDistanceMetric):
     
     allowable_scipy_metrics = ['braycurtis', 'canberra', 'chebyshev', 'cityblock',
                                'correlation', 'cosine', 'euclidean', 'minkowski',
-                               'sqeuclidean']
+                               'sqeuclidean', 'seuclidean', 'mahalanobis']
                                
-    def __init__(self, metric='cityblock', p=1, atom_pairs=None):
+    def __init__(self, metric='cityblock', p=1, atom_pairs=None, V=None, VI=None):
         """ Atom pairs should be a N x 2 array of the N pairs of atoms
         whose distance you want to monitor"""
-        super(AtomPairs, self).__init__(metric, p)
+        super(AtomPairs, self).__init__(metric, p, V=V, VI=VI)
         try:
             atom_pairs = np.array(atom_pairs, dtype=int)
             n, m = atom_pairs.shape
