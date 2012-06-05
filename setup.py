@@ -7,6 +7,7 @@ __version__ = "%d"%VERSION
 
 import os, sys
 from distutils.core import setup,Extension
+import distutils.sysconfig
 import numpy
 import glob
 
@@ -21,7 +22,7 @@ XTC = Extension('msmbuilder/libxdrfile',
                     "src/ext/xdrfile-1.1b/src/xdrfile_xtc.c",
                             ],
                   extra_compile_args=[],
-                  extra_link_args=["-shared"],
+                  #RTM 6/5/12 - Removed a extra_link_args=['shared'] which was killing the build on OSX
                   include_dirs = ["src/ext/xdrfile-1.1b/include/"]
                   )
 DCD = Extension('msmbuilder/dcdplugin_s',
@@ -60,11 +61,15 @@ LPRMSD = Extension('msmbuilder/_lprmsd',
                    # Intel 11.1 MKL link line - it should work on any machine with the Intel compiler installed.
                    # Make sure that the directories containing the MKL libraries are correct.
                    # This inexplicably fails on Certainty.
-                   extra_link_args=['/opt/intel/Compiler/11.1/072/mkl/lib/em64t/libmkl_solver_lp64_sequential.a',
-                                    '-Wl,--start-group','/opt/intel/Compiler/11.1/072/mkl/lib/em64t/libmkl_intel_lp64.a',
-                                    '/opt/intel/Compiler/11.1/072/mkl/lib/em64t/libmkl_sequential.a',
-                                    '/opt/intel/Compiler/11.1/072/mkl/lib/em64t/libmkl_core.a',
-                                    '-Wl,--end-group','-lpthread','-lm','-lgomp']
+                   #extra_link_args=['/opt/intel/Compiler/11.1/072/mkl/lib/em64t/libmkl_solver_lp64_sequential.a',
+                   #                 '-Wl,--start-group','/opt/intel/Compiler/11.1/072/mkl/lib/em64t/libmkl_intel_lp64.a',
+                   #                 '/opt/intel/Compiler/11.1/072/mkl/lib/em64t/libmkl_sequential.a',
+                   #                 '/opt/intel/Compiler/11.1/072/mkl/lib/em64t/libmkl_core.a',
+                   #                 '-Wl,--end-group','-lpthread','-lm','-lgomp']
+                   
+                   # EPD python, which we recommend, contains MKL shared object files, so this should "just work".
+                   extra_link_args=['-L%s' % distutils.sysconfig.get_config_var('LIBDIR'), '-Wl', '-lpthread', '-lm', '-lgomp']
+
                    )
 DISTANCE = Extension('msmbuilder/_distance_wrap',
                       sources = ["src/ext/scipy_distance/distance.c",
@@ -158,7 +163,7 @@ def main():
         setup_keywords = buildKeywordDictionary()
         setup(**setup_keywords)
     except:
-        BUILD_EXT_WARNING = "WARNING: The C extension 'LPRMSD' could not be compiled.\nThis may be due to a failure to find the BLAS libraries" 
+        BUILD_EXT_WARNING = "WARNING: The C extension 'LPRMSD' could not be compiled.\nThis may be due to a failure to find the BLAS/MKL libraries." 
         print '*' * 75
         print BUILD_EXT_WARNING
         print "I'm retrying the build without the C extension now."
