@@ -80,15 +80,21 @@ def fast_cdist(XA, XB, metric='euclidean', p=2, V=None, VI=None):
     mA = XA.shape[0]
     mB = XB.shape[0]
     
+    if mB != 1:
+        raise Exception('Known buggy when mB!=1')
+    
     if mB > mA:
         raise Exception('The parallelism is the other way. switch them around.')
     if not ((XA.dtype == np.double and XB.dtype == np.double) or (XA.dtype == np.bool and XB.dtype == np.bool)):
         raise TypeError('The vectors need to be of type np.double or np.bool.')
     if not (XA.flags.contiguous and XB.flags.contiguous):
         raise Exception('Prepared trajectories need to be contiguous.')
-    
+
+    if not XA.shape[1] == XB.shape[1]:
+        raise Exception('shape[1] mismatch')
     
     dm = np.empty((mA, mB), dtype=np.double)
+    n = XA.shape[1]
     #dm = np.zeros((mA, mB), dtype=np.double)
         
     if metric == 'euclidean':
@@ -123,11 +129,14 @@ def fast_cdist(XA, XB, metric='euclidean', p=2, V=None, VI=None):
                 raise ValueError('Variance vector V must be of the same '
                                  'dimension as the vectors on which the '
                                  'distances are computed.')
+            if not V.flags.contiguous:
+                raise ValueError('V must be contiguous')
+            
             # The C code doesn't do striding.
-            [VV] = scipy.spatial.distance._copy_arrays_if_base_present([_convert_to_double(V)])
+            #[VV] = scipy.spatial.distance._copy_arrays_if_base_present([V])
         else:
             raise ValueError('You need to supply V')
-        _distance_wrap.cdist_seuclidean_wrap(XA, XB, VV, dm)
+        _distance_wrap.cdist_seuclidean_wrap(XA, XB, V, dm)
     elif metric == 'mahalanobis' or metric == 'sqmahalanobis':
         if VI is not None:
             VI = scipy.spatial.distance._convert_to_double(np.asarray(VI, order='c'))
@@ -188,7 +197,7 @@ def fast_pdist(X, metric='euclidean', p=2, V=None, VI=None):
 
     ensure_contiguous(X)
     
-    if not (X.dtype == np.double) or (X.dtype == np.bool):
+    if not ((X.dtype == np.double) or (X.dtype == np.bool)):
         raise TypeError('The vector need to be of type np.double or np.bool.')
     
     s = X.shape
@@ -279,6 +288,7 @@ def fast_pdist(X, metric='euclidean', p=2, V=None, VI=None):
         elif mstr == 'canberra':
             ensure_double(X)
             _distance_wrap.pdist_canberra_wrap(X, dm)
+            raise ValueError('This is known buggy!')
         elif mstr == 'braycurtis':
             ensure_double(X)
             _distance_wrap.pdist_bray_curtis_wrap(X, dm)
