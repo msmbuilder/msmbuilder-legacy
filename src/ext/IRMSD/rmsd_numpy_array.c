@@ -113,6 +113,85 @@ static PyObject *_getMultipleRMSDs_aligned_T_g(PyObject *self, PyObject *args) {
     return PyArray_Return(ArrayDistances);
 }
 
+static PyObject *_getMultipleRMSDs_aligned_T_g_serial(PyObject *self, PyObject *args) {
+    /*
+    Version that does not use OpenMP
+    */
+    npy_intp dim2[2];
+    float *AData,*BData,*GAData;
+    npy_intp *arrayADims,*arrayBDims,*arrayAStrides,*arrayBStrides,*tan_strides;
+    int nrefmols,nqmols;
+    PyArrayObject* ArrayDistances;
+    float* Distances;
+    float *ADataet,*refcountset;
+    float refmag,reflength;
+    float* outputrow;
+    int row,col;
+    float t;
+    int nprocs=1;
+    float rmsd2;
+    float G_x=-1,G_y=-1;
+    int nrealatoms=-1,npaddedatoms=-1,rowstride=-1;
+    int truestride=-1;
+    PyArrayObject *ary_coorda, *ary_coordb,*ary_Ga;
+ 
+    /*ultimately OO|ff with optimal G's*/
+ 
+    if (!PyArg_ParseTuple(args, "iiiOOOf",&nrealatoms,&npaddedatoms,&rowstride,
+              &ary_coorda, &ary_coordb,&ary_Ga,&G_y)) {
+      return NULL;
+    }
+
+  
+    // Get pointers to array data
+    AData  = (float*) PyArray_DATA(ary_coorda);
+    BData  = (float*) PyArray_DATA(ary_coordb);
+    GAData  = (float*) PyArray_DATA(ary_Ga);
+
+    // TODO add sanity checking on Ga
+
+    // Get dimensions of arrays (# molecules, maxlingos)
+    // Note: strides are in BYTES, not INTs
+    arrayADims = PyArray_DIMS(ary_coorda);
+    arrayAStrides = PyArray_STRIDES(ary_coorda);
+    arrayBDims = PyArray_DIMS(ary_coordb);
+    arrayBStrides = PyArray_STRIDES(ary_coordb);
+
+    // Do some sanity checking on array dimensions
+    //      - make sure they are of float32 data type
+    CHECKARRAYTYPE(ary_coorda,"Array A");
+    CHECKARRAYTYPE(ary_coordb,"Array B");
+
+    //      - make sure lingo/count/mag arrays are 2d and are the same size in a set (ref/q)
+    if (ary_coorda->nd != 3) {
+        PyErr_SetString(PyExc_ValueError,"Array A did not have dimension 3");
+	return NULL;
+    }
+    if (ary_coordb->nd != 2) {
+        PyErr_SetString(PyExc_ValueError,"Array B did not have dimension 2");
+        return NULL;
+    }
+    //      - make sure stride is 4 in last dimension (ie, is C-style and contiguous)
+    CHECKARRAYCARRAY(ary_coorda,"Array A");
+    CHECKARRAYCARRAY(ary_coordb,"Array B");
+
+
+    // Create return array containing Distances
+    dim2[0] = arrayADims[0];
+    dim2[1] = 1;
+    ArrayDistances = (PyArrayObject*) PyArray_SimpleNew(1,dim2,NPY_FLOAT);
+    Distances = (float*) PyArray_DATA(ArrayDistances);
+    
+    truestride=npaddedatoms*3;
+    
+    for (int i = 0; i < arrayADims[0]; i++)  {
+        float msd = ls_rmsd2_aligned_T_g(nrealatoms,npaddedatoms,rowstride,(AData+i*truestride),BData,GAData[i],G_y);
+        Distances[i] = sqrtf(msd);
+    }
+    
+    return PyArray_Return(ArrayDistances);
+}
+
 static PyObject *_getMultipleRMSDs_aligned_T_g_at_indices(PyObject *self, PyObject *args) {
     npy_intp dim2[2];
     float *AData,*BData,*GAData;
@@ -197,6 +276,7 @@ static PyObject *_getMultipleRMSDs_aligned_T_g_at_indices(PyObject *self, PyObje
 }
 
 static PyObject *_getMultipleRMSDs_aligned_T_g_at_indices_serial(PyObject *self, PyObject *args) {
+    /* Version that does not use OpenMP */
     npy_intp dim2[2];
     float *AData,*BData,*GAData;
     npy_intp *arrayADims,*arrayBDims,*arrayAStrides,*arrayBStrides,*tan_strides;
@@ -283,8 +363,9 @@ static PyObject *_getMultipleRMSDs_aligned_T_g_at_indices_serial(PyObject *self,
 
 static PyMethodDef _rmsd_methods[] = {
   {"getMultipleRMSDs_aligned_T_g", (PyCFunction)_getMultipleRMSDs_aligned_T_g, METH_VARARGS, "Theobald rmsd calculation on numpy-Tg."},
-  {"getMultipleRMSDs_aligned_T_g_at_indices", (PyCFunction)_getMultipleRMSDs_aligned_T_g_at_indices, METH_VARARGS, "Theobald rmsd calculate on numpy Tg"},
-  {"getMultipleRMSDs_aligned_T_g_at_indices_serial", (PyCFunction)_getMultipleRMSDs_aligned_T_g_at_indices_serial, METH_VARARGS, "Theobald rmsd calculate on numpy Tg"},
+  {"getMultipleRMSDs_aligned_T_g_serial", (PyCFunction)_getMultipleRMSDs_aligned_T_g_serial, METH_VARARGS, "Theobald rmsd calculation on numpy-Tg without using OMP"},
+  {"getMultipleRMSDs_aligned_T_g_at_indices", (PyCFunction)_getMultipleRMSDs_aligned_T_g_at_indices, METH_VARARGS, "Theobald rmsd calculate on numpy Tg. Takes an extra set of indices, and only calculates the distance from the first traj to supplied indices of the second traj"},
+  {"getMultipleRMSDs_aligned_T_g_at_indices_serial", (PyCFunction)_getMultipleRMSDs_aligned_T_g_at_indices_serial, METH_VARARGS, "Theobald rmsd calculate on numpy Tg. same as above, but also without OMP"},
   
   {NULL, NULL, 0, NULL}
 };

@@ -84,7 +84,7 @@ def run(projectfn, PDBfn, InputDir, source, mingen, stride, rmsd_cutoff,
     if source.startswith('file'):
 
         if update:
-            raise NotImplemenetedError("Ack! Update mode is not yet ready for 'file' mode")
+            raise NotImplementedError("Ack! Update mode is not yet ready for 'file' mode")
         
 
         if 'dcd' in source: itype='.dcd'

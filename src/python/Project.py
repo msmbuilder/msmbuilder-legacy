@@ -27,6 +27,7 @@ from msmbuilder.Serializer import Serializer
 from msmbuilder.Trajectory import Trajectory
 from msmbuilder import clustering
 from msmbuilder import utils
+utils.make_methods_pickable()
 
 import multiprocessing
 import cPickle
@@ -377,34 +378,41 @@ class Project(Serializer):
             mymap = dtm.map
         else:
             mymap = map
-
-        mymap( Project._convert_filename_list,
-               utils.uneven_zip( file_list, range(len(file_list)),
-                                 [pdb_filename], [input_file_type], [output_directory],
-                                 [new_traj_root], [stride], [atom_indices] ) )
-
-    @staticmethod
-    def _convert_filename_list(args):
-
-        (file_list, i, pdb_filename, input_file_type,
-         output_directory, new_traj_root, stride, atom_indices) = args
-
-        if len(file_list) > 0:
-            print file_list
+        
+        if len(file_list) == 0:
+            raise RuntimeError('No conversion jobs found!')
             
-            if input_file_type =='.dcd':
-                traj = Trajectory.LoadFromDCD(file_list, PDBFilename=pdb_filename)
-            elif input_file_type == '.xtc':
-                traj = Trajectory.LoadFromXTC(file_list, PDBFilename=pdb_filename)
-            else:
-                raise Exception("Unknown file type: %s" % input_file_type)
+        mymap(_convert_filename_list,
+              utils.uneven_zip(file_list, range(len(file_list)),
+                               [pdb_filename], [input_file_type], [output_directory],
+                               [new_traj_root], [stride], [atom_indices]))
 
-            traj["XYZList"] = traj["XYZList"][::stride]
 
-            if atom_indices!=None:
-                traj.RestrictAtomIndices(atom_indices)
+def _convert_filename_list( args):
+    """Convert filenames to HDF format. This needs to be a module-scope method so
+    that it can be mapped to properly"""
 
-            traj.Save("%s/%s%d.lh5" % (output_directory, new_traj_root, i) )
+    (file_list, i, pdb_filename, input_file_type,
+     output_directory, new_traj_root, stride, atom_indices) = args
+
+    if len(file_list) > 0:
+        print file_list
+        
+        if input_file_type =='.dcd':
+            traj = Trajectory.LoadFromDCD(file_list, PDBFilename=pdb_filename)
+        elif input_file_type == '.xtc':
+            traj = Trajectory.LoadFromXTC(file_list, PDBFilename=pdb_filename)
+        else:
+            raise Exception("Unknown file type: %s" % input_file_type)
+
+        traj["XYZList"] = traj["XYZList"][::stride]
+        
+        if atom_indices != None:
+            trj['XYZList'] = traj['XYZList'][:,atom_indices,:]
+        #if atom_indices!=None:
+        #    traj.RestrictAtomIndices(atom_indices)
+
+        traj.Save("%s/%s%d.lh5" % (output_directory, new_traj_root, i) )
 
 
 
