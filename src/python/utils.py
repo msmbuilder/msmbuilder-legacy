@@ -1,6 +1,8 @@
 from scipy import signal
 import numpy as np
 import re
+import copy_reg
+import types
 
 def fft_acf(A):
     '''Return the autocorrelation of a 1D array using the fft
@@ -79,3 +81,23 @@ def keynat(string):
             r.append(c)
     return r
 
+
+def _pickle_method(method):
+    func_name = method.im_func.__name__
+    obj = method.im_self
+    cls = method.im_class
+    return _unpickle_method, (func_name, obj, cls)
+
+def _unpickle_method(func_name, obj, cls):
+    for cls in cls.mro():
+        try:
+            func = cls.__dict__[func_name]
+        except KeyError:
+            pass
+        else:
+            break
+    return func.__get__(obj, cls)
+
+def make_methods_pickable():
+    "Run this at the top of a script to register pickable methods"
+    copy_reg.pickle(types.MethodType, _pickle_method, _unpickle_method)

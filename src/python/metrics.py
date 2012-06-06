@@ -68,8 +68,8 @@ from msmbuilder.geometry import rg as _rgcalc
 # parallelized with OMP pragmas. This is used for most
 # of the Vectorized methods
 #######################################################
-USE_FAST_CDIST = True
-#USE_FAST_CDIST = False
+#USE_FAST_CDIST = True
+USE_FAST_CDIST = False
 #######################################################
 
 def fast_cdist(XA, XB, metric='euclidean', p=2, V=None, VI=None):
@@ -524,6 +524,7 @@ class RMSD(AbstractDistanceMetric):
         if not isinstance(prepared_traj2, RMSD.TheoData):
             raise TypeError('Theodata required')
         
+        
         if self.omp_parallel:
             return _rmsdcalc.getMultipleRMSDs_aligned_T_g_at_indices(
                       prepared_traj1.NumAtoms, prepared_traj1.NumAtomsWithPadding,
@@ -545,11 +546,18 @@ class RMSD(AbstractDistanceMetric):
         
         Returns: a vector of distances of length len(indices2)"""
         
-        return _rmsdcalc.getMultipleRMSDs_aligned_T_g(
-            prepared_traj1.NumAtoms, prepared_traj1.NumAtomsWithPadding,
-            prepared_traj1.NumAtomsWithPadding, prepared_traj2.XYZData,
-            prepared_traj1.XYZData[index1], prepared_traj2.G,
-            prepared_traj1.G[index1])
+        if self.omp_parallel: 
+            return _rmsdcalc.getMultipleRMSDs_aligned_T_g(
+                prepared_traj1.NumAtoms, prepared_traj1.NumAtomsWithPadding,
+                prepared_traj1.NumAtomsWithPadding, prepared_traj2.XYZData,
+                prepared_traj1.XYZData[index1], prepared_traj2.G,
+                prepared_traj1.G[index1])
+        else:            
+            return _rmsdcalc.getMultipleRMSDs_aligned_T_g_serial(
+                    prepared_traj1.NumAtoms, prepared_traj1.NumAtomsWithPadding,
+                    prepared_traj1.NumAtomsWithPadding, prepared_traj2.XYZData,
+                    prepared_traj1.XYZData[index1], prepared_traj2.G,
+                    prepared_traj1.G[index1])
     
     
     def _square_all_pairwise(self, prepared_traj):
