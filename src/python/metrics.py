@@ -68,8 +68,8 @@ from msmbuilder.geometry import rg as _rgcalc
 # parallelized with OMP pragmas. This is used for most
 # of the Vectorized methods
 #######################################################
-#USE_FAST_CDIST = True
-USE_FAST_CDIST = False
+USE_FAST_CDIST = True
+#USE_FAST_CDIST = False
 #######################################################
 
 def fast_cdist(XA, XB, metric='euclidean', p=2, V=None, VI=None):
