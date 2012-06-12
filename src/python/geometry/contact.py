@@ -107,7 +107,7 @@ def residue_distances(xyzlist, residue_membership, residue_contacts):
     num_residues = len(residue_membership)
     residue_widths = np.array([len(r) for r in residue_membership], dtype=np.int32)
     max_residue_width = max(residue_widths)
-    residue_membership_array = -1 * np.ones((num_residues, max_residue_width), dtype=np.int32)
+    residue_membership_array = np.int32(-1) * np.ones((num_residues, max_residue_width), dtype=np.int32)
     for i in xrange(num_residues):
         residue_membership_array[i, 0:residue_widths[i]] = np.array(residue_membership[i], dtype=np.int32)
     
