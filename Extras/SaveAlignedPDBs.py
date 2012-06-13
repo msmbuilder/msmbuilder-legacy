@@ -23,6 +23,7 @@ from msmbuilder import arglib
 from msmbuilder import Trajectory
 from msmbuilder.metric_LPRMSD import LPRMSD, LPTraj, ReadPermFile
 from collections import defaultdict
+from msmbuilder.clustering import concatenate_trajectories
 import copy
 import numpy as np
 import random
@@ -51,12 +52,14 @@ def run(project, assignments, conformations_per_state, states, output_dir, gens_
     print "Setting up the metric."
     rmsd_metric = LPRMSD(atom_indices,permute_indices,alt_indices)
     # Create a trajectory of generators and prepare it.
-    gens_traj = Trajectory.LoadTrajectoryFile(gens_file)
-    p_gens_traj = rmsd_metric.prepare_trajectory(gens_traj)
+    if os.path.exists(gens_file):
+        gens_traj = Trajectory.LoadTrajectoryFile(gens_file)
+        p_gens_traj = rmsd_metric.prepare_trajectory(gens_traj)
+        formstr_pdb = '\"Generator-%%0%ii.pdb\"' % digits
+    
     # This trickery allows us to get the correct number of leading
     # zeros in the output file name no matter how many generators we have
     digits = len(str(max(states)))
-    formstr_pdb = '\"Generator-%%0%ii.pdb\"' % digits
     formstr_xtc = '\"Cluster-%%0%ii.xtc\"' % digits
     print "Loading up the trajectories."
     traj_nfiles, traj_bytes = get_size(project['TrajFilePath'])
@@ -68,7 +71,21 @@ def run(project, assignments, conformations_per_state, states, output_dir, gens_
         LoadAll = 1
         AllTraj = [project.LoadTraj(i) for i in np.arange(project["NumTrajs"])]
         print "After loading trajectories, memory usage is % .3f GB" % (float(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss) / 1048576)
-
+    
+    if not os.path.exists(gens_file):
+        if not 'AllTraj' in locals():
+            raise Exception(('To get away with not supplying a Gens.lh5 structure to align to for each state '
+                             'you need to have enough memory to load all the trajectories simultaniously. This could be worked around...'))
+        print 'Randomly Sampling from state for structure to align everything to'
+        centers_list = []
+        for s in states:
+            chosen = inverse_assignments[np.random.randint(len(inverse_assignments[s]))]
+            centers_list.append(AllTraj[chosen[0]][chosen[1]])
+        gens_traj = concatenate_trajectories(centers_list)
+        p_gens_traj = rmsd_metric.prepare_trajectory(gens_traj)
+        formstr_pdb = '\"Center-%%0%ii.pdb\"' % digits
+        
+    
     cluster_traj = project.GetEmptyTrajectory()
     # Loop through the generators.
     for s in states:
