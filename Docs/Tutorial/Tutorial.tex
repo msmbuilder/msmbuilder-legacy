@@ -449,6 +449,11 @@ f = nan
  
 A9.  This is probably due to PCCA+ finding a ``degenerate'' state decomposition, where one of your macrostates is empty.  Usually, the minimization procedure should eventually find a feasible point with the correct number of states.  Be sure to check that your resulting state decomposition makes sense.   
 
+Q10.  How do I make an MSM movie?
+
+A10. To build a movie, you just Sample states from the model (MSMLib.Sample).  Then you sample conformations from each state (Project.GetRandomConfsFromState).  Then you append each frame to a PDB file (Conformation.SavePDB or Trajectory.SavePDB).  After you have the PDBs, you can use either VMD or pymol for movie making.
+
+
 \bibliography{Tutorial}
 
 
