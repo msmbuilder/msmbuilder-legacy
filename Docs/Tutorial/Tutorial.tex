@@ -1,6 +1,7 @@
 \documentclass[12pt]{article}
 \bibliographystyle{plain}
 
+\usepackage{hyperref}
 \usepackage[sc]{mathpazo}
 \usepackage[utf8]{inputenc}
 \usepackage{graphicx}
@@ -48,7 +49,7 @@ Note that the Enthought Python Distribution contains most of these prerequisites
 
 Rather than individually install the many python dependencies, we recommend that you download the Python2.7 version of the Enthought Python Distribution, which contains almost all (except fastcluster) python dependencies required to run MSMBuilder.  Please use the 64 bit versions, as this will give higher performance in our RMSD code.
 
-Note for OSX users: Enthought represents the easiest way to obtain a working Python installation.  The OSX system Python install is broken and cannot properly build Python extensions, which are required for MSMBuilder installation.
+Note for OSX users: Enthought represents the easiest way to obtain a working Python installation.  The OSX system Python install is broken and cannot properly build Python extensions, which are required for MSMBuilder installation.  Also, see FAQ question 11 for a known issue with OSX Lion and OpenMP.  
 
 Note: please use a 64 bit version of python (and thus of MSMBuilder).  On certain systems (OSX Lion), 32 bit builds have experienced crashes in the RMSD / Clustering code.
 
@@ -449,10 +450,21 @@ f = nan
  
 A9.  This is probably due to PCCA+ finding a ``degenerate'' state decomposition, where one of your macrostates is empty.  Usually, the minimization procedure should eventually find a feasible point with the correct number of states.  Be sure to check that your resulting state decomposition makes sense.   
 
+\vspace{5mm}
+
 Q10.  How do I make an MSM movie?
 
 A10. To build a movie, you just Sample states from the model (MSMLib.Sample).  Then you sample conformations from each state (Project.GetRandomConfsFromState).  Then you append each frame to a PDB file (Conformation.SavePDB or Trajectory.SavePDB).  After you have the PDBs, you can use either VMD or pymol for movie making.
 
+\vspace{5mm}
+
+Q11.  On an OSX Lion Machine, clustering fails with an ``Abort Trap'' error message.  What do I do?
+
+A11.  This is due to a known bug in OSX Lion's support for OpenMP (see \url{https://discussions.apple.com/thread/3786045?start=0&tstart=0}).  As a workaround, you have two options.  First, you can simply 
+\begin{verbatim}
+export OMP_NUM_THREADS=1
+\end{verbatim}
+to disable OpenMP support during clustering.  This should eliminate the problem, but it limits you to single core clustering.  An alternative is to use a different (non-LLVM) version of GCC that supports OpenMP.  For details, see \url{http://hpc.sourceforge.net}.
 
 \bibliography{Tutorial}
 
