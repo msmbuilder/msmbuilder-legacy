@@ -460,11 +460,11 @@ A10. To build a movie, you just Sample states from the model (MSMLib.Sample).  T
 
 Q11.  On an OSX Lion Machine, clustering fails with an ``Abort Trap'' error message.  What do I do?
 
-A11.  This is due to a known bug in OSX Lion's support for OpenMP (see \url{https://discussions.apple.com/thread/3786045?start=0&tstart=0}).  As a workaround, you have two options.  First, you can simply 
+A11.  This is due to a known bug in OSX Lion's support for OpenMP (see \url{https://discussions.apple.com/thread/3786045?start=0&tstart=0}).  As a workaround, you can simply 
 \begin{verbatim}
 export OMP_NUM_THREADS=1
 \end{verbatim}
-to disable OpenMP support during clustering.  This should eliminate the problem, but it limits you to single core clustering.  An alternative is to use a different (non-LLVM) version of GCC that supports OpenMP.  For details, see \url{http://hpc.sourceforge.net}.
+to disable OpenMP support during clustering.  This should eliminate the problem, but it limits you to single core clustering.  
 
 \bibliography{Tutorial}
 

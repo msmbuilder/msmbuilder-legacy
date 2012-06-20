@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=pdflatex 2012.5.4)  20 JUN 2012 13:12
+This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=pdflatex 2012.5.4)  20 JUN 2012 13:25
 entering extended mode
  %&-line parsing enabled.
 **Tutorial.tex
@@ -629,9 +629,9 @@ msfonts/cm/cmtt12.pfb></usr/share/texmf-texlive/fonts/type1/public/mathpazo/fpl
 mri.pfb></usr/share/texmf-texlive/fonts/type1/urw/palatino/uplb8a.pfb></usr/sha
 re/texmf-texlive/fonts/type1/urw/palatino/uplr8a.pfb></usr/share/texmf-texlive/
 fonts/type1/urw/palatino/uplri8a.pfb>
-Output written on Tutorial.pdf (21 pages, 1015520 bytes).
+Output written on Tutorial.pdf (21 pages, 1015211 bytes).
 PDF statistics:
- 481 PDF objects out of 1000 (max. 8388607)
+ 480 PDF objects out of 1000 (max. 8388607)
  98 named destinations out of 1000 (max. 500000)
  309 words of extra memory for PDF output out of 10000 (max. 10000000)
 
