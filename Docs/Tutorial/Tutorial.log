@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=pdflatex 2012.5.4)  17 MAY 2012 15:01
+This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=pdflatex 2012.5.4)  19 JUN 2012 21:02
 entering extended mode
  %&-line parsing enabled.
 **Tutorial.tex
@@ -464,6 +464,12 @@ Overfull \hbox (66.95023pt too wide) in paragraph at lines 448--448
 imaginary part[] 
  []
 
+
+Overfull \hbox (136.13582pt too wide) in paragraph at lines 454--455
+\OT1/pplx/m/n/12 Lib.Sample). Then you sam-ple con-for-ma-tions from each state
+ (Project.GetRandomConfsFromState).
+ []
+
 (./Tutorial.bbl [20]) [21] (./Tutorial.aux)
 
 LaTeX Font Warning: Some font shapes were not available, defaults substituted.
@@ -484,7 +490,7 @@ msfonts/cm/cmtt12.pfb></usr/share/texmf-texlive/fonts/type1/public/mathpazo/fpl
 mri.pfb></usr/share/texmf-texlive/fonts/type1/urw/palatino/uplb8a.pfb></usr/sha
 re/texmf-texlive/fonts/type1/urw/palatino/uplr8a.pfb></usr/share/texmf-texlive/
 fonts/type1/urw/palatino/uplri8a.pfb>
-Output written on Tutorial.pdf (21 pages, 989499 bytes).
+Output written on Tutorial.pdf (21 pages, 989820 bytes).
 PDF statistics:
  238 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 500000)
