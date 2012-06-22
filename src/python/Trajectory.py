@@ -80,6 +80,11 @@ class Trajectory(Conformation.ConformationBaseClass):
     #    self["XYZList"] = self["XYZList"][0:len(self['XYZList']):stride]
     #    return self
         
+    def subsample(self,stride):
+        if stride == 1:
+            return
+        self["XYZList"] = self["XYZList"][::stride].copy()
+
     def __getitem__(self, key):
         if isinstance(key, int) or isinstance(key, slice) or isinstance(key,np.ndarray):
             if isinstance(key, int):
