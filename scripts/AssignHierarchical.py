@@ -24,7 +24,7 @@ from msmbuilder import arglib
 
 if __name__ == "__main__":
     parser = arglib.ArgumentParser(description='Assign data using a hierarchical clustering')
-    parser.add_argument('hierarichal_clustering_zmatrix', default='ZMatrix.h5', 
+    parser.add_argument('hierarichal_clustering_zmatrix', default='./Data/Zmatrix.h5', 
         description='Path to hierarchical clustering zmatrix', type=Hierarchical.load_from_disk)
     parser.add_argument('num_states', description='Number of States', default='none')
     parser.add_argument('cutoff_distance', description='Maximum cophenetic distance', default='none')

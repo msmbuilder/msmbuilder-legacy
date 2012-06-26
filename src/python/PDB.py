@@ -2516,8 +2516,8 @@ def LoadPDB(Filename,AllFrames=False):
         if x.__class__ in [END, ENDMDL]:
             if AllFrames==False:
                 break
-            else:
-                PDBLines.append([])
+#            else:
+#                PDBLines.append([])
         if x.__class__==ATOM:
             PDBLines[-1].append(x)
         

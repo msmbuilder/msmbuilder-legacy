@@ -1,4 +1,3 @@
-import HierarchicalClustering
 import scipy
 
 import numpy as np
@@ -117,19 +116,3 @@ def GetTorsions(R1,C1,Torsion):
                 Indices=GetAtomIndicesForTorsion(C1,Torsion)
             Torsions.append(GetTorsionFromConformation(C1,Torsion,Indices=Indices))
     return((np.array((Torsions))).transpose())
-
-def CalculatePairwiseTorsionMatrix(Project1,Dihedrals):
-	"""This is the key (and rate limiting) calculation for SL clustering.  Calculate all pairwise distances in a dataset."""
-	ConfListing,EC=HierarchicalClustering.ConstructConfListing(Project1)
-	NumConf=ConfListing.max()+1
-
-        n0=Dihedrals.shape[0]
-        n1=Dihedrals.shape[1]
-        DH=np.zeros((NumConf,2*Dihedrals.shape[-1]))
-        for i in range(NumConf):
-            x=np.repeat(Dihedrals[EC[i,0],EC[i,1]].flatten(),2)
-            DH[i]=x
-        DH[:,0::2]=np.cos(2*np.pi*DH[:,0::2]/360.)
-        DH[:,1::2]=np.sin(2*np.pi*DH[:,1::2]/360.)
-        DistanceMatrix=scipy.spatial.distance.cdist(DH,DH)                   
-        return(DistanceMatrix)
