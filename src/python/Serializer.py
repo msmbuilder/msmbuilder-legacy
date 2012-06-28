@@ -34,17 +34,49 @@ except:
     Filter = tables.Filters()
 
 class Serializer(dict):
-    """A generic class for dumping dictionaries of data onto disk
-    using the pytables HDF5 library."""
+    """
+    A generic class for dumping dictionaries of data onto disk
+    using the pytables HDF5 library.
+    
+    """
     
     def __init__(self,DictLikeObject=dict()):
-        """All Serializer subclass constructors take a dictionary-like object
+        """Build Serializer from dictionary
+        
+        All Serializer subclass constructors take a dictionary-like object
         as input.  Subclasses will attempt to load (key,value) pairs by name,
-        which will raise an exception if something is missing."""
+        which will raise an exception if something is missing.
+        
+        Parameters
+        ----------
+        DictLikeObject : dict
+            Data to populate the Serializer with
+        
+        """
         self.update(DictLikeObject)
         
     def SaveToHDF(self,Filename,loc="/", do_file_check=True):
-        """A generic function for saving ForceFields / Topologies / Conformations to H5 files.  Certain types of data cannot be stored as simple arrays, so these are the exceptions (if statements) in this function."""
+        """Save the contents of the serializer to disk
+        
+        A generic function for saving ForceFields / Topologies / Conformations
+        to H5 files.  Certain types of data cannot be stored as simple arrays,
+        so these are the exceptions (if statements) in this function.
+        
+        Parameters
+        ----------
+        Filename : str
+            Filename to save data to
+        Loc : str, optional
+            Resource root in HDF file
+        do_file_check : bool, optional
+            Check that the location is free before saving
+        
+        Raises
+        ------
+        Exception
+            If `do_file_check` is True and something is already stored in `Filename`
+            
+        """
         
         # check h5 file doesn't already exist
         if do_file_check:
@@ -69,7 +101,26 @@ class Serializer(dict):
     
     @classmethod
     def LoadFromHDF(cls,Filename,loc="/"):
-        """This is a generic function for loading HDF files into dictionary-like objects.  For each subclass, the constructor calls this function, which loads all available data.  Then, the class-specific constructor makes a few finishing touches.  The different if statements in this function refer to exceptions in the way we load things from HDF5.  For example, residues cannot be represented as simple arrays, so we have to dance a bit to load them.  Similarly, IndexLists (a list of which atom indices belong to which residue number) cannot be stored as a simple array, so we store them as VLArrays (VL= Variable Length)."""
+        """Generic function to load HDF files to dict-like object
+        
+        This is a generic function for loading HDF files into dictionary-like
+        objects.  For each subclass, the constructor calls this function, which
+        loads all available data.  Then, the class-specific constructor makes a
+        few finishing touches.  The different if statements in this function
+        refer to exceptions in the way we load things from HDF5.  For example,
+        residues cannot be represented as simple arrays, so we have to dance a
+        bit to load them.  Similarly, IndexLists (a list of which atom indices
+        belong to which residue number) cannot be stored as a simple array, so
+        we store them as VLArrays (VL= Variable Length).
+        
+        Parameters
+        ----------
+        Filename : str
+            Path to resource on disk to load from
+        loc : str, option
+            Resource root in HDF file
+        
+        """
         
         A=Serializer()
         F=tables.File(Filename,'r')
@@ -90,8 +141,19 @@ class Serializer(dict):
     
     @staticmethod
     def SaveEntryAsEArray(Data, Key, Filename=None, F0=None, loc="/"):
-        """Save this dictionary entry as a compressed EArray.
-        E means extensible, which can be useful for extending trajectories."""
+        """Save dict entry as compressed EArray
+        
+        E means extensible, which can be useful for extending trajectories.
+        
+        Parameters
+        ----------
+        Data : 
+        Key : 
+        Filename : 
+        F0 : 
+        loc : 
+        
+        """
         if F0==None and Filename==None:
             raise Exception("Must Specify either F or Filename")
         if F0==None:
@@ -110,11 +172,24 @@ class Serializer(dict):
     
     @staticmethod
     def SaveEntryAsCArray(Data, Key, Filename=None, F0=None, loc="/"):
-        """Save this dictionary entry as a compressed CArray.
-        Note that CArray tends to give about 20% better performance than EArray.
+        """Save this dictionary entry as a compressed CArray
+        
+        Parameters
+        ----------
+        Data : 
+        Key : 
+        Filename : 
+        F0 : 
+        loc : 
+        
+        Notes
+        -----
+        CArray tends to give about 20% better performance than EArray.
         Also, for VHP (576 atoms), Chunkshape[0]=8 seems to give perhaps another
         20%.  The total enhancement appears to be an total of 8800 conformations
-        per second versus 6300 for EArray without chunkshape optimization."""
+        per second versus 6300 for EArray without chunkshape optimization.
+        
+        """
         if F0==None and Filename==None:
             raise Exception("Must Specify either F or Filename")
         if F0==None:
@@ -131,33 +206,101 @@ class Serializer(dict):
     
     @staticmethod
     def SaveCSRMatrix(Filename, T):
+        """Save a CSR sparse matrix to disk
+        
+        Parameters
+        ----------
+        Filename : str
+            Location to save to
+        T : csr_matrix
+            matrix to save
+        
+        Raises
+        ------
+        TypeError
+            If `T` is not a CSR sparse matrix
+        Exception
+            If a file exists at `Filename`
+        """
+        
         if not scipy.sparse.isspmatrix_csr(T):
-            raise Exception("A CSR sparse matrix is required for saving to .csr.")
+            raise TypeError("A CSR sparse matrix is required for saving to .csr.")
         X=Serializer({"data":T.data,"indices":T.indices,"indptr":T.indptr,"Shape":T.shape})
         X.SaveToHDF(Filename)
         del X
     
     @staticmethod
     def LoadCSRMatrix(Filename):
+        """Load a CSR sparse matrix from disk
+        
+        Parameters
+        ----------
+        Filename : str
+            Path to resource to load from
+            
+        Returns
+        -------
+        T : csr_sparse_matrix
+            The matrix loaded from disk
+        """
         X=Serializer.LoadFromHDF(Filename)
         return scipy.sparse.csr_matrix((X["data"], X["indices"], X["indptr"]),
                                         shape=X["Shape"])
     
     @staticmethod
     def SaveData(Filename,Data):
-        """Dump a numpy array to disk as pytables .h5 file."""
+        """Quickly dump an array to disk in h5 format
+        
+        Writes the array in the 'Data' field
+        
+        Parameters
+        ----------
+        Filename : str
+            Path to resource to write to
+        Data : ndarray
+            numpy array to write to disk
+        """
+        
         X=Serializer({"Data":Data})
         X.SaveToHDF(Filename)
     
     @staticmethod
     def LoadData(Filename):
-        """Load a numpy array from disk (.h5 file)."""
+        """Quickly read an array from disk in h5 format
+        
+        Read from the 'Data' field of the h5 file
+        
+        Parameters
+        ----------
+        Filename : str
+            Path to resource to read from
+        
+        Raises 
+        ------
+        KeyError
+            If `Filename` is a valid h5 file but doesn't have a 'Data' field
+        Exception
+            If `Filename` doesn't exist
+        """
+        
         D=Serializer.LoadFromHDF(Filename)
         return D["Data"]
     
     @staticmethod
     def CheckIfFileExists(Filename):
-        """Check if Filename exists.  If it does, raise an exception."""
+        """Ensure that a file exists
+        
+        Parameters
+        ----------
+        Filename : str
+            Path to resource to check
+        
+        Raises
+        ------
+        Exception
+            If file already exists
+        """
+        
         if os.path.exists(Filename):
             raise Exception("Error: HDF5 File %s Already Exists!"%Filename)
 
