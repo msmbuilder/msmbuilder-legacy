@@ -3,6 +3,10 @@ import numpy as np
 import re
 import copy_reg
 import types
+import warnings
+import functools
+warnings.simplefilter('always')
+
 
 def fft_acf(A):
     '''Return the autocorrelation of a 1D array using the fft
@@ -101,3 +105,39 @@ def _unpickle_method(func_name, obj, cls):
 def make_methods_pickable():
     "Run this at the top of a script to register pickable methods"
     copy_reg.pickle(types.MethodType, _pickle_method, _unpickle_method)
+    
+    import warnings
+    import functools
+
+
+def deprecated(func):
+    '''This is a decorator which can be used to mark functions
+    as deprecated. It will result in a warning being emitted
+    when the function is used.'''
+
+    @functools.wraps(func)
+    def new_func(*args, **kwargs):
+        warnings.warn_explicit(
+            "Call to deprecated function {}.".format(func.__name__),
+            category=DeprecationWarning,
+            filename=func.func_code.co_filename,
+            lineno=func.func_code.co_firstlineno + 1
+        )
+        return func(*args, **kwargs)
+    return new_func
+
+def future_warning(func):
+    '''This is a decorator which can be used to mark functions
+    as to-be deprecated. It will result in a warning being emitted
+    when the function is used.'''
+
+    @functools.wraps(func)
+    def new_func(*args, **kwargs):
+        warnings.warn_explicit(
+            "Call to future function {}.".format(func.__name__),
+            category=FutureWarning,
+            filename=func.func_code.co_filename,
+            lineno=func.func_code.co_firstlineno + 1
+        )
+        return func(*args, **kwargs)
+    return new_func

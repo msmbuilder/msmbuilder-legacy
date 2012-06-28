@@ -16,16 +16,19 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-"""MSMLib contains classes and functions for working with Transition and Count Matrices.
+"""Classes and functions for working with Transition and Count Matrices.
 
-Notes:
-1.  Assignments typically refer to a numpy array of integers such that Assignments[i,j] gives the state of trajectory i, frame j.
-2.  Transition and Count matrices are typically stored in scipy.sparse.csr_matrix format.
+Notes
 
-MSMLib functions generally relate to one of the following:
-1.  Counting the number of transitions observed in Assignment data--e.g., constructing a Count matrix.
-2.  Constructing a transition matrix from a count matrix.
-3.  Performing calculations with Assignments, Counts matrices, or transition matrices.
+* Assignments typically refer to a numpy array of integers such that Assignments[i,j] gives the state of trajectory i, frame j.
+* Transition and Count matrices are typically stored in scipy.sparse.csr_matrix format.
+
+MSMLib functions generally relate to one of the following
+
+* Counting the number of transitions observed in Assignment data--e.g., constructing a Count matrix.
+* Constructing a transition matrix from a count matrix.
+* Performing calculations with Assignments, Counts matrices, or transition matrices.
+
 """
 
 import scipy.sparse
@@ -36,6 +39,7 @@ import multiprocessing
 import sys
 import scipy.optimize
 from collections import defaultdict
+from utils import deprecated, future_warning
 
 from msmbuilder import Serializer
 
@@ -88,41 +92,90 @@ def flatten(*args):
             yield x
 
 def IsTransitionMatrix(T,Epsilon=.00001):
-    """Return true if T is a row normalized transition matrix, false otherwise."""
-
+    """Check for row normalization of a matrix
+    
+    Parameters
+    ----------
+    T : densee or sparse matrix
+    Epsilon : float, optional
+        threshold for how close the row sums need to be to 1
+    
+    Returns
+    -------
+    truth : bool
+        True if the 2-norm of error in the row sums is less than Epsilon.
+    """
+    
     n=T.shape[0]
     X=np.array(T.sum(1)).flatten()
     if scipy.linalg.norm(X-np.ones(n)) < Epsilon:
         return True
-    else:
-        return False
+    return False
 
 NormalizationError=Exception("Not a Row Normalized Matrix","Not a Row Normalized Matix")
 
 def AreAllDimensionsSame(*args):
-    """Find the shape of every input.  Return True if every matrix and vector is the same size."""
-
+    """Are all the supplied arguments the same size
+    
+    Find the shape of every input.
+    
+    Returns
+    -------
+    truth : boolean
+        True if every matrix and vector is the same size.
+    """
+    
     m=len(args)
     DimList=[]
     for i in range(m):
         Dims=scipy.shape(args[i])
         DimList.append(Dims)
-    FlatDimList=[x for x in flatten(DimList)]
-    if min(FlatDimList)!=max(FlatDimList):
-        return(False)
-    else:
-        return(True)
+        
+    return len(np.unique(flatten(DimList))) == 1
+    
 
 DimensionError=Exception("Argument has incorrect shape", "Argument has incorrect shape")
 
 def CheckDimensions(*args):
-    """Throw exception if one of the arguments has the incorrect shape."""
+    """Ensure that all the dimensions of the inputs are identical
+    
+    Raises
+    ------
+    DimensionError
+        If some of the supplied arguments have different dimensions from one
+        another
+    """
 
     if AreAllDimensionsSame(*args)==False:
         raise DimensionError
             
-def CheckTransition(T,Epsilon=.00001):
-    """Throw an exception if T is not a row normalized stochastic matrix."""
+def CheckTransition(T, Epsilon=0.00001):
+    """Ensure that matrix is a row normalized stochastic matrix
+    
+    Parameters
+    ----------
+    T : dense or sparse matrix
+    Epsilon : float, optional
+        Threshold for how close the row sums need to be to one
+    
+    
+    Other Parameters
+    ----------------
+    DisableErrorChecking : bool
+        If this flag (module scope variable) is set tot True, this function just
+        passes. 
+        
+    Raises
+    ------
+    NormalizationError
+        If T is not a row normalized stochastic matrix
+        
+    See Also
+    --------
+    CheckDimensions : ensures dimensionality
+    IsTransitionMatrix : does the actual checking
+    """
+    
     if DisableErrorChecking:
         return
     if IsTransitionMatrix(T,Epsilon=Epsilon)==False:
@@ -130,28 +183,26 @@ def CheckTransition(T,Epsilon=.00001):
         print("T is not a row normalized stocastic matrix.  This is often caused by either numerical inaccuracies or by having states with zero counts.")
         raise NormalizationError    
 
-def GetTransitionCountMatrixSparse(states, numstates = None, LagTime = 1, slidingwindow = True):
-    """Computes the transition count matrix for a sequence of states.
-
-    Inputs:
+def GetTransitionCountMatrixSparse(states, numstates=None, LagTime=1, slidingwindow=True):
+    """Computes the transition count matrix for a sequence of states (single trajectory).
+    
+    Parameters
     ----------
     states : array
-    A one-dimensional array of integers representing the sequence of states.
-    These integers must be in the range [0, numstates]
-    
-    numstates : integer
-    The total number of states. If not specified, the largest integer in the
-    states array plus one will be used.
-    
-    LagTime : integer
-    The time delay over which transitions are counted
-    
-    slidingwindow : bool
+        A one-dimensional array of integers representing the sequence of states.
+        These integers must be in the range [0, numstates]
+    numstates : int
+        The total number of states. If not specified, the largest integer in the
+        states array plus one will be used.
+    LagTime : int, optional
+        The time delay over which transitions are counted
+    slidingwindow : bool, optional
+        Use sliding window
     
     Returns
     -------
     C : sparse matrix of integers
-    The computed transition count matrix
+        The computed transition count matrix
     """
   
     if not numstates:
@@ -182,10 +233,37 @@ def GetTransitionCountMatrixSparse(states, numstates = None, LagTime = 1, slidin
 
 
 def EstimateRateMatrix(tCount, Assignments):
-    """ Gives the maximum likelihood estimate for a rate matrix given the data
-        Input:  tCount, the matrix of observed counts
-        Output: K, most likely rate matrix """
-
+    """MLE Rate Matrix given transition counts and *dwell times*
+    
+    Parameters
+    ----------
+    tCounts : sparse or dense matrix
+        transition counts
+    Assignments : ndarray
+        2D assignments array used to compute average dwell times
+    
+    Returns
+    -------
+    K : csr_matrix
+        Rate matrix
+    
+    Notes
+    -----
+    The *correct* likelihood function to use for estimating the rate matrix when
+    the data is sampled at a discrete frequency is open for debate. This
+    likelihood function doesn't take into account the error in the lifetime estimates
+    from the discrete sampling. Other methods are currently under development (RTM 6/27)
+    
+    See Also
+    --------
+    EstimateTransitionMatrix
+    
+    References
+    ----------
+    .. [1] Buchete NV, Hummer G. "Coarse master equaions for peptide folding
+        dynamics." J Phys Chem B 112:6057-6069.
+    """
+    
     # Find the estimated dwell times (need to deal w negative ones)
     neg_ind = np.where( Assignments == -1)
     n = np.max( Assignments.flatten() ) + 1
@@ -210,27 +288,26 @@ def EstimateRateMatrix(tCount, Assignments):
     S = scipy.sparse.dia_matrix( ((row_sums + (2.0*current)), 0), C.shape).tocsr()
     K = K - S
     assert K.shape == tCount.shape
-    assert K.sum(0).all() == np.zeros(K.shape[0]).all()
+    #assert K.sum(0).all() == np.zeros(K.shape[0]).all(), K.sum(0).all()
  
     return K
 
 def EstimateTransitionMatrix(tCount):
     """Simple Maximum Likelihood estimator of transition matrix.
     
-    Inputs
+    Parameters
     ----------
-    tCount : array / sparse matrix
+    tCount : array or sparse matrix
         A square matrix of transition counts
-    
     MakeSymmetric : bool
         If true, make transition count matrix symmetric
     
-    Returns:
+    Returns
     -------
-    tProb : array / sparse matrix
+    tProb : array or sparse matrix
         Estimate of transition probability matrix
     
-    Notes:
+    Notes
     -----
     The transition count matrix will not be altered by this function. Its elemnts can
     be either of integer of floating point type.
@@ -249,8 +326,32 @@ def EstimateTransitionMatrix(tCount):
 
     return tProb
 
-def CheckForBadEigenvalues(Eigenvalues,decimal=5,CutoffValue=0.999999):
-    """Having multiple eigenvalues of lambda>=1 suggests either non-ergodicity or numerical error.  Throw an error in such cases."""
+@future_warning
+def CheckForBadEigenvalues(Eigenvalues, decimal=5, CutoffValue=0.999999):
+    """Ensure that all eigenvalues are less than or equal to one
+    
+    Having multiple eigenvalues of lambda>=1 suggests either non-ergodicity or
+    numerical error.
+    
+    TODO: 6/27 This function needs to be refactored to throw exceptions/warnings
+        and not print to stdout. It should also sort the eigenvalues. And the deprecated
+        argument should be removed
+    
+    Parameters
+    ----------
+    Eigenvalues : ndarray
+        1D array of eigenvalues to check
+    decimal : deprecated (marked 6/27)
+        this doesn't do anything
+    CutoffValue: float, optional
+        Tolerance used
+    
+    Notes
+    ------
+    Checks that the first eigenvalue is within `CutoffValue` of 1, and that the second
+    eigenvalue is not greater than `CutoffValue`
+
+    """
 
     if DisableErrorChecking:
         return
@@ -260,20 +361,34 @@ def CheckForBadEigenvalues(Eigenvalues,decimal=5,CutoffValue=0.999999):
 
         if Eigenvalues[1] > CutoffValue:
             print """WARNING: the second largest eigenvalue (x) is close to 1, suggesting numerical error or nonergodicity.  Try using 64 or 128 bit precision.  Your data may also be disconnected, in which case you cannot simultaneously model both disconnected components.  Try collecting more data or trimming the disconnected pieces."""
-        
+
+
 def GetEigenvectors(T,NumEig,Epsilon=.001,DenseCutoff=50):
-    """Return the left eigenvectors of a transition matrix.  Return sorted by eigenvalue magnitude.
-
-    Inputs:
-    T -- A transition matrix.  If T is sparse, sparse eigensolvers will be used.
-    NumEig --  How many eigenvalues to calculate and return.
-
-    Keyword Arguments:
-    Epsilon -- Throw error if T is not a stochastic matrix, with tolerance given by Epsilon.  Default: 0.001
-
-    Notes:
+    """Get the left eigenvectors of a transition matrix, sorted by eigenvalue
+    magnitude
+    
+    Parameters
+    ----------
+    T : sparse or dense matrix
+        transition matrix. if `T` is sparse, the sparse eigensolver will be used
+    NumEig : int
+        How many eigenvalues to calculate
+    Epsilon : float, optional
+        Throw error if `T` is not a stochastic matrix, with tolerance given by `Epsilon`
+    
+    Returns
+    -------
+    eigenvalues : ndarray
+        1D array of eigenvalues
+    eigenvectors : ndarray
+        2D array of eigenvectors
+    
+    Notes
+    -----
+    Left eigenvectors satisfy the relation :math:`V \mathbf{T} = \lambda V`
     Vectors are returned in columns of matrix.
     """
+    
     CheckTransition(T,Epsilon=Epsilon)
     CheckDimensions(T)
     n=T.shape[0]
@@ -298,17 +413,30 @@ def GetEigenvectors(T,NumEig,Epsilon=.001,DenseCutoff=50):
     return(eigSolution)
 
 def GetEigenvectors_Right(T,NumEig,Epsilon=.001):
-    """Return the right eigenvectors of a transition matrix.  Return sorted by eigenvalue magnitude.
+    """Get the right eigenvectors of a transition matrix, sorted by eigenvalue
+    magnitude.
 
-    Inputs:
-    T -- A transition matrix.  If T is sparse, sparse eigensolvers will be used.
-    NumEig --  How many eigenvalues to calculate and return.
-
-    Keyword Arguments:
-    Epsilon -- Throw error if T is not a stochastic matrix, with tolerance given by Epsilon.  Default: 0.001
-
-    Notes:
+    Parameters
+    ----------
+    T : sparse or dense matrix
+        transition matrix. if `T` is sparse, the sparse eigensolver will be used
+    NumEig : int
+        How many eigenvalues to calculate
+    Epsilon : float, optional
+        Throw error if `T` is not a stochastic matrix, with tolerance given by `Epsilon`
+    
+    Returns
+    -------
+    eigenvalues : ndarray
+        1D array of eigenvalues
+    eigenvectors : ndarray
+        2D array of eigenvectors
+    
+    Notes
+    -----
+    Right eigenvectors satisfy the relation :math:`\mathbf{T} V = \lambda V`
     Vectors are returned in columns of matrix.
+    
     """
     
     CheckTransition(T,Epsilon=Epsilon)
@@ -330,7 +458,42 @@ def GetEigenvectors_Right(T,NumEig,Epsilon=.001):
     return(eigSolution)
 
 def GetImpliedTimescales(AssignmentsFn, NumStates, LagTimes, NumImpliedTimes=100, Slide=True, Trim=True, Symmetrize=None, nProc=1):
-    """Calculate implied timescales in parallel using multiprocessing library.  Does not work in interactive mode."""
+    """Calculate implied timescales in parallel using multiprocessing library.  Does not work in interactive mode.
+    
+    Parameters
+    ----------
+    AssignmentsFn : str
+        Path to Assignments.h5 file on disk
+    NumStates : int
+        Number of states
+    LagTimes : list
+        List of lag times to calculate the timescales at
+    NumImpledTimes : int, optional
+        Number of implied timescales to calculate at each lag time
+    Slide : bool, optional
+        Use sliding window
+    Trim : bool, optional
+        Use ergodic trimming
+    Symmetrize : {'MLE', 'Transpose', None}
+        Symmetrization method
+    nProc : int
+        number of processes to use in parallel (multiprocessing
+        
+    Returns
+    -------
+    formatedLags : ndarray
+        RTM 6/27 I'm not quite sure what the semantics of the output is. It's not
+        trivial and undocummented.
+    
+    See Also
+    --------
+    EstimateReversibleCountMatrix : (MLE symmetrization)
+    GetImpliedTimescalesHelper
+    GetCountMatrixFromAssignments
+    EstimateTransitionMatrix
+    GetEigenvectors
+        
+    """
     pool = multiprocessing.Pool(processes=nProc)
     n = len(LagTimes)
     inputs = zip(n*[AssignmentsFn], n*[NumStates], LagTimes, n*[NumImpliedTimes], n*[Slide], n*[Trim], n*[Symmetrize])
@@ -350,7 +513,43 @@ def GetImpliedTimescales(AssignmentsFn, NumStates, LagTimes, NumImpliedTimes=100
     return formatedLags
 
 def GetImpliedTimescalesHelper(args):
-    """Helper Function.  Calculate implied timescales in parallel using multiprocessing library.  Does not work in interactive mode."""
+    """Helper function to compute implied timescales with multiprocessing
+    
+    Does not work in interactive mode
+    
+    Parameters
+    ----------
+    AssignmentsFn : str
+        Path to Assignments.h5 file on disk
+    NumStates : int
+        Number of states
+    LagTimes : list
+        List of lag times to calculate the timescales at
+    NumImpledTimes : int, optional
+        Number of implied timescales to calculate at each lag time
+    Slide : bool, optional
+        Use sliding window
+    Trim : bool, optional
+        Use ergodic trimming
+    Symmetrize : {'MLE', 'Transpose', None}
+        Symmetrization method
+    
+    Returns
+    -------
+    lagTimes : ndarray
+        vector of lag times
+    impTimes : ndarray
+        vector of implied timescales
+        
+    See Also
+    --------
+    EstimateReversibleCountMatrix : (MLE symmetrization)
+    GetImpliedTimescales
+    GetCountMatrixFromAssignments
+    EstimateTransitionMatrix
+    GetEigenvectors
+    """
+    
     AssignmentsFn = args[0]
     NumStates = args[1]
     LagTime = args[2]
@@ -393,22 +592,32 @@ def GetImpliedTimescalesHelper(args):
     return (lagTimes, impTimes)
 
 def Sample(T,State,Steps,Traj=None,ForceDense=False):
-    """Generate a trajectory of states by propogating a transition matrix.
+    """Generate a random sequence of states by propogating a transition matrix.
 
-    Inputs:
-    T -- A transition matrix. 
-    State -- Starting state for trajectory.
-             If State is an integer, it will be used as the initial state.
-         If State is None, an initial state will be randomly chosen from an uniform distribution.
-         If State is an array, it represents a probability distribution from which the initial
-           state will be drawn.
-             If a trajectory is specified (see Traj keyword), this variable will be ignored, and the last
-           state of that trajectory will be used.
-    Steps -- How many steps to generate.
-    
-    Keyword Arguments:
-    Traj -- An existing trajectory (python list) can be input; results will be appended to it.  Default: None
-    ForceDense -- Force dense arithmatic.  Can speed up results for small models (OBSOLETE).
+    Parameters
+    ----------
+    T : sparse or dense matrix
+        A transition matrix
+    State : int, None, or ndarray
+        Starting state for trajectory. If State is an integer, it will be used
+        as the initial state. If State is None, an initial state will be
+        randomly chosen from an uniform distribution. If State is an array, it
+        represents a probability distribution from which the initial
+         state will be drawn. If a trajectory is specified (see Traj keyword),
+         this variable will be ignored, and the last state of that trajectory
+         will be used.
+    Steps : int
+        How many steps to generate.
+    Traj : list, optional
+        An existing trajectory (python list) can be input; results will be
+        appended to it
+    ForceDense : bool, deprecated
+        Force dense arithmatic.  Can speed up results for small models (OBSOLETE).
+        
+    Returns
+    -------
+    Traj : list
+        Sequence of states as a python list
     """
 
     CheckTransition(T)
@@ -468,13 +677,33 @@ def Sample(T,State,Steps,Traj=None,ForceDense=False):
 def PropagateModel(T,NumSteps,X0,ObservableVector=None):
     """Propogate the time evolution of a population vector.
 
-    Inputs:
-    T -- A transition matrix.  
-    NumSteps -- How many timesteps to iterate.
-    X0 -- The initial population vector.
+    Parameters
+    ----------
+    T : ndarray or sparse matrix
+        A transition matrix
+    NumSteps : int
+        How many timesteps to iterate
+    X0 : ndarray
+        The initial population vector
+    ObservableVector : ndarray
+        Vector containing the state-wise averaged property of some observable.
+        Can be used to propagate properties such as fraction folded, ensemble
+        average RMSD, etc.  Default: None
     
-    Keyword Arguments:
-    ObservableVector -- a vector containing the state-wise averaged property of some observable.  Can be used to propagate properties such as fraction folded, ensemble average RMSD, etc.  Default: None
+    Returns
+    -------
+    X : ndarray
+        Final population vector, after propagation
+    obslist : list
+        list of floats of length equal to the number of steps, giving the mean value
+        of the observable (dot product of `ObservableVector` and populations) at
+        each timestep
+    
+    See Also
+    --------
+    Sample
+    scipy.sparse.linalg.aslinearoperator
+    
     """
     CheckTransition(T)
     if ObservableVector==None:
@@ -498,15 +727,25 @@ def PropagateModel(T,NumSteps,X0,ObservableVector=None):
 def GetCountMatrixFromAssignments(Assignments,NumStates=None,LagTime=1,Slide=True):
     """Calculate count matrix from Assignments.
 
-    Inputs:
-    Assignments -- a numpy array containing the state assignments.  
+    Parameters
+    ----------
+    Assignments : ndarray
+        A 2d ndarray containing the state assignments.  
+    NumStates : int, optional
+        Can be automatically determined, unless you want a model with more states than are observed
+    LagTime: int, optional
+        the LagTime with which to estimate the count matrix. Default: 1
+    Slide: bool, optional
+        Use a sliding window.  Default: True
+        
+    Returns
+    -------
+    Counts : sparse matrix
+        `Counts[i,j]` stores the number of times in the assignments that a
+        trajectory went from state i to state j in `LagTime` frames
 
-    Keyword Arguments:
-    NumStates -- Can be automatically determined, unless you want a model with more states than are observed.  Default: None
-    LagTime -- the LagTime with which to estimate the count matrix. Default: 1
-    Slide -- Use a sliding window.  Default: True
-
-    Notes:
+    Notes
+    -----
     Assignments are input as iterables over numpy 1-d arrays of integers.
     For example a 2-d array where Assignments[i,j] gives the ith trajectory, jth frame.
     The beginning and end of each trajectory may be padded with negative ones, which will be ignored.
@@ -529,7 +768,27 @@ def GetCountMatrixFromAssignments(Assignments,NumStates=None,LagTime=1,Slide=Tru
     return(C)
 
 def ApplyMappingToAssignments(Assignments,Mapping):
-    """Remap the states in an assignments file according to a mapping.  Useful after performing PCCA or Ergodic Trimming."""
+    """Remap the states in an assignments file according to a mapping.
+    
+    Parameters
+    ----------
+    Assignments : ndarray
+        Standard 2D assignments array
+    Mapping : ndarray
+        1D numpy array of length equal to the number of states in Assignments.
+        Mapping[a] = b means that the frames currently in state a will be mapped
+        to state b
+    
+    Returns
+    -------
+    NewAssignments : ndarray 
+    
+    Notes
+    -----
+    This function is useful after performing PCCA or Ergodic Trimming. Also, the
+    state -1 is treated specially -- it always stays -1 and is not remapped.
+    
+    """
     A=Assignments
     
     NewMapping=Mapping.copy()
@@ -543,17 +802,53 @@ def ApplyMappingToAssignments(Assignments,Mapping):
     A[WhereEliminatedStates]=-1#These states have typically been "deleted" by the ergodic trimming algorithm.  Can be at beginning or end of trajectory.
 
 def ApplyMappingToVector(V, Mapping):
-        """ Applys the mapping to an observable vector. This is a helper function mostly for documentation and completeness """
-        NV = V[np.where(Mapping != -1)[0]] 
-        print "Mapping %d elements --> %d" % (len(V), len(NV))
-        return NV
+    """Remap an observable vector
+    
+    RTM 6/27: I don't think this function is really doing what it should.
+    It does a reordering, but when the mapping is a many->one, don't you really
+    want to average things together or something?
+    
+    Parameters
+    ----------
+    V : ndarray
+        1D. Some observable value associated with each states
+    Mapping : ndarray
+        1D numpy array of length equal to the number of states in Assignments.
+        Mapping[a] = b means that the frames currently in state a are now assigned
+        to state b, and thus their observable should be too
+    
+    Returns
+    -------
+    NV : ndarray
+        mapped observable values
+    
+    Notes
+    -----
+    The state -1 is treated specially -- it always stays -1 and is not remapped.
+    
+    """
+    
+    NV = V[np.where(Mapping != -1)[0]] 
+    print "Mapping %d elements --> %d" % (len(V), len(NV))
+    return NV
 
 def RenumberStates(Assignments):
-    """Renumber states to be consecutive integers (0, 1, ... , n);
-    useful if some states have 0 counts.
+    """Renumber states to be consecutive integers (0, 1, ... , n)
     
-    Should do the same thing as RenumberStates_SLOW() without using np.where()
-    repeatedly, which can be slow"""
+    Parameters
+    ----------
+    Assignments : ndarray
+        2D
+    
+    Returns
+    -------
+    Assignmennts : ndarray
+        2D. Renumbered such that the states consecutive integers starting at -1
+    
+    Notes
+    -----
+    Useful if some states have 0 counts. Could be cythonized if too slow.
+    """
     
     unique = list(np.unique(Assignments))
     if unique[0] == -1:
@@ -573,15 +868,28 @@ def RenumberStates(Assignments):
     Assignments[minus_one] = -1
 
 def Tarjan(graph):
-    """ Find the strongly connected components in a graph using Tarjan's algorithm.
+    """Find the strongly connected components in a graph using Tarjan's algorithm.
     
-    Inputs:
-    graph  -- a dictionary mapping node names to lists of successor nodes.
-
-    Notes:
+    Parameters
+    ----------
+    graph : dict
+        mapping from node names to lists of successor nodes.
+    
+    Returns
+    -------
+    components : list
+        list of the strongly connected components
+    
+    Notes
+    -----
     Code based on ActiveState code by Josiah Carlson (New BSD license).
     Most users will want to call the ErgodicTrim() function rather than directly calling Tarjan().
-        """
+    
+    See Also
+    --------
+    ErgodicTrim
+    
+    """
     NumStates=graph.shape[0]
 
     #Keeping track of recursion state info by node
@@ -650,14 +958,21 @@ def Tarjan(graph):
 def ErgodicTrim(Counts,Assignments=None):
     """Use Tarjan's Algorithm to find maximal strongly connected subgraph.
     
-    Inputs:
-    Counts -- sparse matrix of counts.
+    Parameters
+    ----------
+    Counts : csr sparse matrix
+        transition counts
+    Assignments : ndarray, optional
+        Optionally map assignments to the new states, nulling out disconnected regions.
 
-    Keywoard Arguments:
-    Assignments -- Optionally map assignments to the new states, nulling out disconnected regions.
-
-    Notes:
-    The component with maximum number of counts is used.
+    Notes
+    -----
+    The component with maximum number of counts is selected
+    
+    See Also
+    --------
+    Tarjan
+    
     """
     
     NZ=np.array(Counts.nonzero()).transpose()
@@ -686,18 +1001,23 @@ def ErgodicTrim(Counts,Assignments=None):
 
 
 def logLikelihood(C, P):
-    """Returns the log of the likelihood of an observed count matrix C given a transition matrix P.
+    """log of the likelihood of an observed count matrix given a transition matrix
 
-    Arguments
-    ---------
-    C : array or sparse matrix
-    Transition count matrix.
-    P : array or sparse matrix
-    Transition probability matrix.
+    Parameters
+    ----------
+    C : ndarray or sparse matrix
+        Transition count matrix.
+    P : ndarray or sparse matrix
+        Transition probability matrix.
 
     Returns
     -------
-    The natural log of the likelihood, computed as sum_ij C_ij log(P_ij)."""
+    loglikelihood : float
+        The natural log of the likelihood, computed as
+        :math:`\sum_{ij} C_{ij} \log(P_{ij})`
+            
+    
+    """
 
     if isinstance(P, np.ndarray) and isinstance(C, np.ndarray):
         C = np.asarray(C)   # make sure that both C and P are arrays
@@ -723,26 +1043,24 @@ def EstimateReversibleCountMatrix(C, Prior=0., InitialGuess = None):
     This function uses a Newton conjugate-gradient algorithm to maximize the likelihood
     of a reversible transition probability matrix.
     
-    Arguments
-    ---------
+    Parameters
+    ----------
     C : array or sparse matrix
         Transition count matrix.
     Prior : float
         If not zero, add this value to the count matrix for every transition
-    that has occured in either direction.
+        that has occured in either direction.
     InitialGuess : array or sparse matrix
         Initial guess for the symmetric count matrix uses as starting point for
-    likelihood maximization. If None, the naive symmetrized guess 0.5*(C+C.T)
-    is used.
+        likelihood maximization. If None, the naive symmetrized guess 0.5*(C+C.T)
+        is used.
 
     Returns
     -------
-    Symmetric count matrix. If C is sparse then the returned matrix is also sparse, and
-    dense otherwise.
+    reversible_counts : array or sparse matrix
+        Symmetric count matrix. If C is sparse then the returned matrix is also sparse, and
+        dense otherwise.
 
-    See also
-    --------
-    IterativeDetailedBalance
     """
 
     def negativeLogLikelihoodFromCountEstimatesSparse(Xupdata,row,col,N,C):

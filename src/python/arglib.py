@@ -120,8 +120,19 @@ def add_argument(group, name, description=None, type=None, choices=None, nargs=N
     
     return name, type
 
-class ArgumentParser(object):        
+class ArgumentParser(object):
+    "MSMBuilder specific wrapper around argparse.ArgumentParser"
+    
     def __init__(self, *args, **kwargs):
+        """Create an ArgumentParser
+        
+        Parameters
+        ----------
+        description: (str, optional)
+        
+        
+        """
+        
         if 'description' in kwargs:
             kwargs['description'] += ('\n' + '-'*80)
         kwargs['formatter_class'] = argparse.RawDescriptionHelpFormatter
