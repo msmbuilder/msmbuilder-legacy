@@ -73,8 +73,231 @@ USE_FAST_CDIST = True
 #######################################################
 
 def fast_cdist(XA, XB, metric='euclidean', p=2, V=None, VI=None):
-    """The same code as scipy.spatial.distance.cdist, except with less typechecking
-    so this might throw a segfault, but oh well
+    r"""
+    Computes distance between each pair of the two collections of inputs.
+    
+    This is a direct copy of a function in scipy (scipy.spatial.distance.cdist)
+    except that we do fewer typechecks and then call out to an OpenMP parallelized
+    version of the implementation code (for multicore)
+    
+    ``XA`` is a :math:`m_A` by :math:`n` array while ``XB`` is a :math:`m_B` by
+    :math:`n` array. A :math:`m_A` by :math:`m_B` array is
+    returned. An exception is thrown if ``XA`` and ``XB`` do not have
+    the same number of columns.
+
+    A rectangular distance matrix ``Y`` is returned. For each :math:`i`
+    and :math:`j`, the metric ``dist(u=XA[i], v=XB[j])`` is computed
+    and stored in the :math:`ij` th entry.
+
+    
+    The following are common calling conventions:
+
+    1. ``Y = cdist(XA, XB, 'euclidean')``
+
+       Computes the distance between :math:`m` points using
+       Euclidean distance (2-norm) as the distance metric between the
+       points. The points are arranged as :math:`m`
+       :math:`n`-dimensional row vectors in the matrix X.
+
+    2. ``Y = cdist(XA, XB, 'minkowski', p)``
+
+       Computes the distances using the Minkowski distance
+       :math:`||u-v||_p` (:math:`p`-norm) where :math:`p \geq 1`.
+
+    3. ``Y = cdist(XA, XB, 'cityblock')``
+
+       Computes the city block or Manhattan distance between the
+       points.
+
+    4. ``Y = cdist(XA, XB, 'seuclidean', V=None)``
+
+       Computes the standardized Euclidean distance. The standardized
+       Euclideanan distance between two n-vectors ``u`` and ``v`` is
+
+       .. math::
+
+          \sqrt{\sum {(u_i-v_i)^2 / V[x_i]}}.
+
+       V is the variance vector; V[i] is the variance computed over all
+          the i'th components of the points. If not passed, it is
+          automatically computed.
+
+    5. ``Y = cdist(XA, XB, 'sqeuclidean')``
+
+       Computes the squared Euclidean distance :math:`||u-v||_2^2` between
+       the vectors.
+
+    6. ``Y = cdist(XA, XB, 'cosine')``
+
+       Computes the cosine distance between vectors u and v,
+
+       .. math::
+
+          1 - \frac{u \cdot v}
+                   {{||u||}_2 {||v||}_2}
+
+       where :math:`||*||_2` is the 2-norm of its argument ``*``, and
+       :math:`u \cdot v` is the dot product of :math:`u` and :math:`v`.
+
+    7. ``Y = cdist(XA, XB, 'correlation')``
+
+       Computes the correlation distance between vectors u and v. This is
+
+       .. math::
+
+          1 - \frac{(u - \bar{u}) \cdot (v - \bar{v})}
+                   {{||(u - \bar{u})||}_2 {||(v - \bar{v})||}_2}
+
+       where :math:`\bar{v}` is the mean of the elements of vector v,
+       and :math:`x \cdot y` is the dot product of :math:`x` and :math:`y`.
+
+
+    8. ``Y = cdist(XA, XB, 'hamming')``
+
+       Computes the normalized Hamming distance, or the proportion of
+       those vector elements between two n-vectors ``u`` and ``v``
+       which disagree. To save memory, the matrix ``X`` can be of type
+       boolean.
+
+    9. ``Y = cdist(XA, XB, 'jaccard')``
+
+       Computes the Jaccard distance between the points. Given two
+       vectors, ``u`` and ``v``, the Jaccard distance is the
+       proportion of those elements ``u[i]`` and ``v[i]`` that
+       disagree where at least one of them is non-zero.
+
+    10. ``Y = cdist(XA, XB, 'chebyshev')``
+
+       Computes the Chebyshev distance between the points. The
+       Chebyshev distance between two n-vectors ``u`` and ``v`` is the
+       maximum norm-1 distance between their respective elements. More
+       precisely, the distance is given by
+
+       .. math::
+
+          d(u,v) = \max_i {|u_i-v_i|}.
+
+    11. ``Y = cdist(XA, XB, 'canberra')``
+
+       Computes the Canberra distance between the points. The
+       Canberra distance between two points ``u`` and ``v`` is
+
+       .. math::
+
+         d(u,v) = \sum_i \frac{|u_i-v_i|}
+                              {|u_i|+|v_i|}.
+
+    12. ``Y = cdist(XA, XB, 'braycurtis')``
+
+       Computes the Bray-Curtis distance between the points. The
+       Bray-Curtis distance between two points ``u`` and ``v`` is
+
+
+       .. math::
+
+            d(u,v) = \sum{\sum_i (u_i-v_i)}
+                          {\sum_i (u_i+v_i)}
+
+    13. ``Y = cdist(XA, XB, 'mahalanobis', VI=None)``
+
+       Computes the Mahalanobis distance between the points. The
+       Mahalanobis distance between two points ``u`` and ``v`` is
+       :math:`(u-v)(1/V)(u-v)^T` where :math:`(1/V)` (the ``VI``
+       variable) is the inverse covariance. If ``VI`` is not None,
+       ``VI`` will be used as the inverse covariance matrix.
+
+    14. ``Y = cdist(XA, XB, 'yule')``
+
+       Computes the Yule distance between the boolean
+       vectors. (see yule function documentation)
+
+    15. ``Y = cdist(XA, XB, 'matching')``
+
+       Computes the matching distance between the boolean
+       vectors. (see matching function documentation)
+
+    16. ``Y = cdist(XA, XB, 'dice')``
+
+       Computes the Dice distance between the boolean vectors. (see
+       dice function documentation)
+
+    17. ``Y = cdist(XA, XB, 'kulsinski')``
+
+       Computes the Kulsinski distance between the boolean
+       vectors. (see kulsinski function documentation)
+
+    18. ``Y = cdist(XA, XB, 'rogerstanimoto')``
+
+       Computes the Rogers-Tanimoto distance between the boolean
+       vectors. (see rogerstanimoto function documentation)
+
+    19. ``Y = cdist(XA, XB, 'russellrao')``
+
+       Computes the Russell-Rao distance between the boolean
+       vectors. (see russellrao function documentation)
+
+    20. ``Y = cdist(XA, XB, 'sokalmichener')``
+
+       Computes the Sokal-Michener distance between the boolean
+       vectors. (see sokalmichener function documentation)
+
+    21. ``Y = cdist(XA, XB, 'sokalsneath')``
+
+       Computes the Sokal-Sneath distance between the vectors. (see
+       sokalsneath function documentation)
+
+    22. ``Y = cdist(XA, XB, f)``
+
+       Computes the distance between all pairs of vectors in X
+       using the user supplied 2-arity function f. For example,
+       Euclidean distance between the vectors could be computed
+       as follows::
+
+         dm = cdist(XA, XB, lambda u, v: np.sqrt(((u-v)**2).sum()))
+
+       Note that you should avoid passing a reference to one of
+       the distance functions defined in this library. For example,::
+
+         dm = cdist(XA, XB, sokalsneath)
+
+       would calculate the pair-wise distances between the vectors in
+       X using the Python function sokalsneath. This would result in
+       sokalsneath being called :math:`{n \choose 2}` times, which
+       is inefficient. Instead, the optimized C version is more
+       efficient, and we call it using the following syntax.::
+
+         dm = cdist(XA, XB, 'sokalsneath')
+
+    Parameters
+    ----------
+    XA : ndarray
+        An :math:`m_A` by :math:`n` array of :math:`m_A`
+        original observations in an :math:`n`-dimensional space.
+    XB : ndarray
+        An :math:`m_B` by :math:`n` array of :math:`m_B`
+        original observations in an :math:`n`-dimensional space.
+    metric : string or function
+        The distance metric to use. The distance function can
+        be 'braycurtis', 'canberra', 'chebyshev', 'cityblock',
+        'correlation', 'cosine', 'dice', 'euclidean', 'hamming',
+        'jaccard', 'kulsinski', 'mahalanobis', 'matching',
+        'minkowski', 'rogerstanimoto', 'russellrao', 'seuclidean',
+        'sokalmichener', 'sokalsneath', 'sqeuclidean', 'yule'.
+    w : ndarray
+        The weight vector (for weighted Minkowski).
+    p : double
+        The p-norm to apply (for Minkowski, weighted and unweighted)
+    V : ndarray
+        The variance vector (for standardized Euclidean).
+    VI : ndarray
+        The inverse of the covariance matrix (for Mahalanobis).
+
+
+    Returns
+    -------
+    Y : ndarray
+        A :math:`m_A` by :math:`m_B` distance matrix.
+
     """
     
     mA = XA.shape[0]
@@ -183,6 +406,226 @@ def fast_cdist(XA, XB, metric='euclidean', p=2, V=None, VI=None):
 
 
 def fast_pdist(X, metric='euclidean', p=2, V=None, VI=None):
+    r"""
+    Computes the pairwise distances between m original observations in
+    n-dimensional space. Returns a condensed distance matrix Y.  For
+    each :math:`i` and :math:`j` (where :math:`i<j<n`), the
+    metric ``dist(u=X[i], v=X[j])`` is computed and stored in entry ``ij``.
+
+    See ``squareform`` for information on how to calculate the index of
+    this entry or to convert the condensed distance matrix to a
+    redundant square matrix.
+
+    The following are common calling conventions.
+
+    1. ``Y = pdist(X, 'euclidean')``
+
+       Computes the distance between m points using Euclidean distance
+       (2-norm) as the distance metric between the points. The points
+       are arranged as m n-dimensional row vectors in the matrix X.
+
+    2. ``Y = pdist(X, 'minkowski', p)``
+
+       Computes the distances using the Minkowski distance
+       :math:`||u-v||_p` (p-norm) where :math:`p \geq 1`.
+
+    3. ``Y = pdist(X, 'cityblock')``
+
+       Computes the city block or Manhattan distance between the
+       points.
+
+    4. ``Y = pdist(X, 'seuclidean', V=None)``
+
+       Computes the standardized Euclidean distance. The standardized
+       Euclidean distance between two n-vectors ``u`` and ``v`` is
+
+       .. math::
+
+          \sqrt{\sum {(u_i-v_i)^2 / V[x_i]}}.
+
+
+       V is the variance vector; V[i] is the variance computed over all
+       the i'th components of the points.  If not passed, it is
+       automatically computed.
+
+    5. ``Y = pdist(X, 'sqeuclidean')``
+
+       Computes the squared Euclidean distance :math:`||u-v||_2^2` between
+       the vectors.
+
+    6. ``Y = pdist(X, 'cosine')``
+
+       Computes the cosine distance between vectors u and v,
+
+       .. math::
+
+          1 - \frac{u \cdot v}
+                   {{||u||}_2 {||v||}_2}
+
+       where :math:`||*||_2` is the 2-norm of its argument ``*``, and
+       :math:`u \cdot v` is the dot product of ``u`` and ``v``.
+
+    7. ``Y = pdist(X, 'correlation')``
+
+       Computes the correlation distance between vectors u and v. This is
+
+       .. math::
+
+          1 - \frac{(u - \bar{u}) \cdot (v - \bar{v})}
+                   {{||(u - \bar{u})||}_2 {||(v - \bar{v})||}_2}
+
+       where :math:`\bar{v}` is the mean of the elements of vector v,
+       and :math:`x \cdot y` is the dot product of :math:`x` and :math:`y`.
+
+    8. ``Y = pdist(X, 'hamming')``
+
+       Computes the normalized Hamming distance, or the proportion of
+       those vector elements between two n-vectors ``u`` and ``v``
+       which disagree. To save memory, the matrix ``X`` can be of type
+       boolean.
+
+    9. ``Y = pdist(X, 'jaccard')``
+
+       Computes the Jaccard distance between the points. Given two
+       vectors, ``u`` and ``v``, the Jaccard distance is the
+       proportion of those elements ``u[i]`` and ``v[i]`` that
+       disagree where at least one of them is non-zero.
+
+    10. ``Y = pdist(X, 'chebyshev')``
+
+       Computes the Chebyshev distance between the points. The
+       Chebyshev distance between two n-vectors ``u`` and ``v`` is the
+       maximum norm-1 distance between their respective elements. More
+       precisely, the distance is given by
+
+       .. math::
+
+          d(u,v) = \max_i {|u_i-v_i|}.
+
+    11. ``Y = pdist(X, 'canberra')``
+
+       Computes the Canberra distance between the points. The
+       Canberra distance between two points ``u`` and ``v`` is
+
+       .. math::
+
+         d(u,v) = \sum_i \frac{|u_i-v_i|}
+                              {|u_i|+|v_i|}.
+
+
+    12. ``Y = pdist(X, 'braycurtis')``
+
+       Computes the Bray-Curtis distance between the points. The
+       Bray-Curtis distance between two points ``u`` and ``v`` is
+
+
+       .. math::
+
+            d(u,v) = \frac{\sum_i {u_i-v_i}}
+                          {\sum_i {u_i+v_i}}
+
+    13. ``Y = pdist(X, 'mahalanobis', VI=None)``
+
+       Computes the Mahalanobis distance between the points. The
+       Mahalanobis distance between two points ``u`` and ``v`` is
+       :math:`(u-v)(1/V)(u-v)^T` where :math:`(1/V)` (the ``VI``
+       variable) is the inverse covariance. If ``VI`` is not None,
+       ``VI`` will be used as the inverse covariance matrix.
+
+    14. ``Y = pdist(X, 'yule')``
+
+       Computes the Yule distance between each pair of boolean
+       vectors. (see yule function documentation)
+
+    15. ``Y = pdist(X, 'matching')``
+
+       Computes the matching distance between each pair of boolean
+       vectors. (see matching function documentation)
+
+    16. ``Y = pdist(X, 'dice')``
+
+       Computes the Dice distance between each pair of boolean
+       vectors. (see dice function documentation)
+
+    17. ``Y = pdist(X, 'kulsinski')``
+
+       Computes the Kulsinski distance between each pair of
+       boolean vectors. (see kulsinski function documentation)
+
+    18. ``Y = pdist(X, 'rogerstanimoto')``
+
+       Computes the Rogers-Tanimoto distance between each pair of
+       boolean vectors. (see rogerstanimoto function documentation)
+
+    19. ``Y = pdist(X, 'russellrao')``
+
+       Computes the Russell-Rao distance between each pair of
+       boolean vectors. (see russellrao function documentation)
+
+    20. ``Y = pdist(X, 'sokalmichener')``
+
+       Computes the Sokal-Michener distance between each pair of
+       boolean vectors. (see sokalmichener function documentation)
+
+    21. ``Y = pdist(X, 'sokalsneath')``
+
+       Computes the Sokal-Sneath distance between each pair of
+       boolean vectors. (see sokalsneath function documentation)
+
+    22. ``Y = pdist(X, f)``
+
+       Computes the distance between all pairs of vectors in X
+       using the user supplied 2-arity function f. For example,
+       Euclidean distance between the vectors could be computed
+       as follows::
+
+         dm = pdist(X, lambda u, v: np.sqrt(((u-v)**2).sum()))
+
+       Note that you should avoid passing a reference to one of
+       the distance functions defined in this library. For example,::
+
+         dm = pdist(X, sokalsneath)
+
+       would calculate the pair-wise distances between the vectors in
+       X using the Python function sokalsneath. This would result in
+       sokalsneath being called :math:`{n \choose 2}` times, which
+       is inefficient. Instead, the optimized C version is more
+       efficient, and we call it using the following syntax.::
+
+         dm = pdist(X, 'sokalsneath')
+
+    Parameters
+    ----------
+    X : ndarray
+        An m by n array of m original observations in an
+        n-dimensional space.
+    metric : string or function
+        The distance metric to use. The distance function can
+        be 'braycurtis', 'canberra', 'chebyshev', 'cityblock',
+        'correlation', 'cosine', 'dice', 'euclidean', 'hamming',
+        'jaccard', 'kulsinski', 'mahalanobis', 'matching',
+        'minkowski', 'rogerstanimoto', 'russellrao', 'seuclidean',
+        'sokalmichener', 'sokalsneath', 'sqeuclidean', 'yule'.
+    w : ndarray
+        The weight vector (for weighted Minkowski).
+    p : double
+        The p-norm to apply (for Minkowski, weighted and unweighted)
+    V : ndarray
+            The variance vector (for standardized Euclidean).
+    VI : ndarray
+        The inverse of the covariance matrix (for Mahalanobis).
+
+    Returns
+    -------
+    Y : ndarray
+        A condensed distance matrix.
+
+    See Also
+    --------
+    scipy.spatial.distance.squareform : converts between condensed distance
+        matrices and square distance matrices.
+    """
+    
     X = np.asarray(X, order='c')
     
     def ensure_contiguous(mtx):
@@ -345,7 +788,22 @@ class AbstractDistanceMetric(object):
     @abc.abstractmethod
     def prepare_trajectory(self, trajectory):
         """Prepare trajectory on a format that is more conventient to take
-        distances on. For RMSD, this is going to mean making word-aligned padded
+        distances on.
+        
+        Parameters
+        ----------
+        trajecory : msmbuilder.Trajectory
+            Trajectory to prepare
+
+        Returns
+        -------
+        prepared_traj : array-like
+            the exact form of the prepared_traj is subclass specific, but it should
+            support fancy indexing
+        
+        Notes
+        -----
+        For RMSD, this is going to mean making word-aligned padded
         arrays (TheoData) suitable for faste calculation, for dihedral-space
         distances means computing the dihedral angles, etc."""
         
@@ -357,29 +815,80 @@ class AbstractDistanceMetric(object):
         """Calculate the vector of distances from the index1th frame of
         prepared_traj1 to all of the frames in prepared_traj2.
         
-        Note: Although this might seem to be a special case of one_to_many(), it
+        Parameters
+        ----------
+        prepared_traj1 : prepared_trajectory
+            First prepared trajectory
+        prepared_traj2 : prepared_trajectory
+            Second prepared trajectory
+        index1 : int
+            index in `prepared_trajectory` 
+            
+        Returns
+        -------
+        distances : ndarray
+            vector of distances of length len(prepared_traj2)
+        
+        Notes
+        -----
+        Although this might seem to be a special case of one_to_many(), it
         can often be implemented in a much more optimized way because it doesn't
         require construction of the indices2 array and array slicing in python
         is kindof slow.
-        
-        Should return a vector of distances of length len(prepared_traj2)"""
+        """
         
         return
         
     
     def one_to_many(self, prepared_traj1, prepared_traj2, index1, indices2):
         """Calculate the a vector of distances from the index1th frame of
-        prepared_traj1 to all of the indices2 frames of prepared_traj2. Should
-        return a vector of distances of length len(indices2)
+        prepared_traj1 to all of the indices2 frames of prepared_traj2.
         
-        Subclass can often provide a more efficient implementation that the
-        niave one below.
+        Parameters
+        ----------
+        prepared_traj1 : prepared_trajectory
+            First prepared trajectory
+        prepared_traj2 : prepared_trajectory
+            Second prepared trajectory
+        index1 : int
+            index in `prepared_trajectory`
+        indices2 : ndarray
+            list of indices in `prepared_traj2` to calculate the distances to
+        
+        Returns
+        -------
+            Vector of distances of length len(indices2)
+        
+        Notes
+        -----
+        A subclass should be able to provide a more efficient implementation of
+        this
         """
+        
         return self.one_to_all(prepared_traj1, prepared_traj2[indices2], index1)
         
     
     def all_pairwise(self, prepared_traj):
-        """Calculate condensed distance metric of all pairwise distances"""
+        """Calculate condensed distance metric of all pairwise distances
+        
+        See `scipy.spatial.distance.squareform` for information on how to convert
+        the condensed distance matrix to a redundant square matrix
+        
+        Parameters
+        ----------
+        prepared_traj : array_like
+            Prepared trajectory
+        
+        Returns
+        -------
+        Y : ndarray
+            A 1D array containing the distance from each frame to each other frame
+            
+        See Also
+        --------
+        fast_pdist
+        scipy.spatial.distance.squareform
+        """
         
         traj_length = len(prepared_traj)
         output = -1 * np.ones(traj_length * (traj_length - 1) / 2)
@@ -392,8 +901,14 @@ class AbstractDistanceMetric(object):
 
 
 class RMSD(AbstractDistanceMetric):
-    """Concrete implementation of the AbstractDistanceMetric abstract base class
-    for calculation of RMSD.
+    """
+    Compute distance between frames using the Room Mean Square Deviation
+    over a specifiable set of atoms using the Theobald QCP algorithm
+    
+    References
+    ----------
+    .. [1] Theobald, D. L. Acta. Crystallogr., Sect. A 2005, 61, 478-480.
+    
     """
     
     class TheoData(object):
@@ -486,7 +1001,28 @@ class RMSD(AbstractDistanceMetric):
     
     
     def __init__(self, atomindices=None, omp_parallel=True):
-        """Use the following atomindices"""
+        """Initalize an RMSD calculator
+        
+        Parameters
+        ----------
+        atomindices : array_like, optional
+            List of the indices of the atoms that you want to use for the RMSD
+            calculation. For example, if your trajectory contains the coordinates
+            of all the atoms, but you only want to compute the RMSD on the C-alpha
+            atoms, then you can supply a reduced set of atom_indices. If unsupplied,
+            all of the atoms will be used.
+        omp_parallel : bool, optional
+            Use OpenMP parallelized C code under the hood to take advantage of
+            multicore architectures. If you're using another parallelization scheme
+            (e.g. MPI), you might consider turning off this flag.
+            
+        Notes
+        -----
+        You can also control the degree of parallelism with the OMP_NUM_THREADS
+        envirnoment variable
+            
+        
+        """
         self.atomindices = atomindices
         self.omp_parallel = omp_parallel
     
@@ -500,7 +1036,21 @@ class RMSD(AbstractDistanceMetric):
     def prepare_trajectory(self, trajectory):
         """Prepare the trajectory for RMSD calculation.
         
-        Returns: a RMSD.TheoData prepared trajectory"""
+        Preprocessing includes extracting the relevant atoms, centering the
+        frames, and computing the G matrix.
+        
+        
+        Parameters
+        ----------
+        trajectory : msmbuilder.Trajectory
+            Molecular dynamics trajectory
+        
+        Returns
+        -------
+        theodata : array_like
+            A msmbuilder.metrics.TheoData object, which contains some preprocessed
+            calculations for the RMSD calculation
+        """
         
         if self.atomindices is not None:
             return self.TheoData(trajectory['XYZList'][:,self.atomindices])
@@ -508,14 +1058,35 @@ class RMSD(AbstractDistanceMetric):
     
     
     def one_to_many(self, prepared_traj1, prepared_traj2, index1, indices2):
-        """Calculate a vector of distances from the index1th frame of prepared_traj1
-        to the frames in prepared_traj2 with indices 'indices2'. If the omp_parallel
-        optional argument is True, we use shared-memory parallelization in C to do
-        this faster. Using omp_parallel = False is advised if indices2 is a short
-        list and you are paralellizing your algorithm (say via mpi) at a different
-        level.
+        """Calculate a vector of distances from one frame of the first trajectory
+        to many frames of the second trajectory
         
-        Returns: a vector of distances of length len(indices2)"""
+        The distances calculated are from the `index1`th frame of `prepared_traj1`
+        to the frames in `prepared_traj2` with indices `indices2`
+        
+        Parameters
+        ----------
+        prepared_traj1 : rmsd.TheoData
+            First prepared trajectory
+        prepared_traj2 : rmsd.TheoData
+            Second prepared trajectory
+        index1 : int
+            index in `prepared_trajectory`
+        indices2 : ndarray
+            list of indices in `prepared_traj2` to calculate the distances to
+        
+        Returns
+        -------
+        Vector of distances of length len(indices2)
+        
+        Notes
+        -----
+        If the omp_parallel optional argument is True, we use shared-memory
+        parallelization in C to do this faster. Using omp_parallel = False is
+        advised if indices2 is a short list and you are paralellizing your
+        algorithm (say via mpi) at a different
+        level.
+        """
         
         if isinstance(indices2, list):
             indices2 = np.array(indices2)
@@ -541,10 +1112,30 @@ class RMSD(AbstractDistanceMetric):
     
     
     def one_to_all(self, prepared_traj1, prepared_traj2, index1):
-        """Calculate a vector of distances from the index1th frame of prepared_traj1
-        to all the frames in prepared_traj2. This always uses OMP parallelization.
+        """Calculate a vector of distances from one frame of the first trajectory
+        to all of the frames in the second trajectory
         
-        Returns: a vector of distances of length len(indices2)"""
+        The distances calculated are from the `index1`th frame of `prepared_traj1`
+        to the frames in `prepared_traj2` 
+        
+        Parameters
+        ----------
+        prepared_traj1 : rmsd.TheoData
+            First prepared trajectory
+        prepared_traj2 : rmsd.TheoData
+            Second prepared trajectory
+        index1 : int
+            index in `prepared_trajectory`
+        
+        Returns
+        -------
+        Vector of distances of length len(prepared_traj2)
+        
+        Notes
+        -----
+        If the omp_parallel optional argument is True, we use shared-memory
+        parallelization in C to do this faster.
+        """
         
         if self.omp_parallel: 
             return _rmsdcalc.getMultipleRMSDs_aligned_T_g(
@@ -571,16 +1162,14 @@ class RMSD(AbstractDistanceMetric):
     
     
 class Vectorized(AbstractDistanceMetric):
-    """This is a subclass of AbstractDistanceMetric for computing distances in
-    an arbitrary vector space under a WIDE VARIETY of vector distance metrics
-    (using the scipy.spatial.distance library).
+    """Represent MSM frames as vectors in some arbitrary vector space, and then
+    use standard vector space metrics. 
+    
+    Some examples of this might be extracting the contact map or dihedral angles.
     
     In order to be a full featured DistanceMetric, a subclass of
     Vectorized implements its own prepared_trajectory() method, Vectorized
     provides the remainder.
-    
-    In subclassing this metric, you should probably override the class variables
-    allowable_scipy_metrics, default_scipy_metric and default_scipy_p as well.
     
     allowable_scipy_metrics gives the list of metrics which your client
     can use. If the vector space that you're projecting your trajectory onto is 
@@ -606,6 +1195,27 @@ class Vectorized(AbstractDistanceMetric):
                                'sqmahalanobis']
     
     def __init__(self, metric='euclidean', p=2, V=None, VI=None):
+        """Create a Vectorized metric
+        
+        Parameters
+        ----------
+        metric : {'braycurtis', 'canberra', 'chebyshev', 'cityblock',
+                  'correlation', 'cosine', 'euclidean', 'minkowski',
+                  'sqeuclidean','dice', 'kulsinki', 'matching',
+                  'rogerstanimoto', 'russellrao', 'sokalmichener',
+                  'sokalsneath', 'yule', 'seuclidean', 'mahalanobis',
+                  'sqmahalanobis'}
+            Distance metric to equip the vector space with.
+            See http://docs.scipy.org/doc/scipy/reference/spatial.distance.html
+            for details
+        p : int, optional
+            p-norm order, used for metric='minkowski'
+        V : ndarray, optional
+            variances, used for metric='seuclidean'
+        VI : ndarray, optional
+            inverse covariance matrix, used  for metric='mahalanobis'
+        """
+        
         self._validate_scipy_metric(metric)
         self.metric = metric
         self.p = p
@@ -625,14 +1235,28 @@ class Vectorized(AbstractDistanceMetric):
             
     
     def one_to_many(self, prepared_traj1, prepared_traj2, index1, indices2):
-        """Calculate a vector of distances from the index1th frame of prepared_traj1
-        to the frames in prepared_traj2 with indices 'indices2', using supplied
-        metric and value of p. The field p is unused unless metric='minkowski'.
+        """Calculate a vector of distances from one frame of the first trajectory
+        to many frames of the second trajectory
         
-        metric can be any of the metrics in the class variable allowable_scipy_metric
+        The distances calculated are from the `index1`th frame of `prepared_traj1`
+        to the frames in `prepared_traj2` with indices `indices2`
         
-        Returns: a vector of distances of length len(indices2)
+        Parameters
+        ----------
+        prepared_traj1 : ndarray
+            First prepared trajectory
+        prepared_traj2 : ndarray
+            Second prepared trajectory
+        index1 : int
+            index in `prepared_trajectory`
+        indices2 : ndarray
+            list of indices in `prepared_traj2` to calculate the distances to
+        
+        Returns
+        -------
+        Vector of distances of length len(indices2)
         """
+
         if not isinstance(index1, int):
             raise TypeError('index1 must be of type int.')
         out = cdist(prepared_traj2[indices2], prepared_traj1[[index1]],
@@ -1227,6 +1851,27 @@ class Hybrid(AbstractDistanceMetric):
     
 
     def one_to_many(self, prepared_traj1, prepared_traj2, index1, indices2):
+        """Calculate a vector of distances from one frame of the first trajectory
+        to many frames of the second trajectory
+        
+        The distances calculated are from the `index1`th frame of `prepared_traj1`
+        to the frames in `prepared_traj2` with indices `indices2`
+        
+        Parameters
+        ----------
+        prepared_traj1 : ndarray
+            First prepared trajectory
+        prepared_traj2 : ndarray
+            Second prepared trajectory
+        index1 : int
+            index in `prepared_trajectory`
+        indices2 : ndarray
+            list of indices in `prepared_traj2` to calculate the distances to
+        
+        Returns
+        -------
+        Vector of distances of length len(indices2)
+        """
         distances = None
         for i in range(self.num):
             d = self.base_metrics[i].one_to_many(prepared_traj1.datas[i], prepared_traj2.datas[i], index1, indices2)
@@ -1273,8 +1918,27 @@ class HybridPNorm(Hybrid):
         
     
     def one_to_many(self, prepared_traj1, prepared_traj2, index1, indices2):
-        """Compute the distance from prepared_traj1[index1] to each of the indices2
-        frames of prepared_traj2"""
+        """Calculate a vector of distances from one frame of the first trajectory
+        to many frames of the second trajectory
+        
+        The distances calculated are from the `index1`th frame of `prepared_traj1`
+        to the frames in `prepared_traj2` with indices `indices2`
+        
+        Parameters
+        ----------
+        prepared_traj1 : ndarray
+            First prepared trajectory
+        prepared_traj2 : ndarray
+            Second prepared trajectory
+        index1 : int
+            index in `prepared_trajectory`
+        indices2 : ndarray
+            list of indices in `prepared_traj2` to calculate the distances to
+        
+        Returns
+        -------
+        Vector of distances of length len(indices2)
+        """
         
         distances = None
         for i in range(self.num):

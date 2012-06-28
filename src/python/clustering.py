@@ -14,7 +14,7 @@ import scipy.cluster.hierarchy
 from msmbuilder import metrics, drift
 from msmbuilder.Trajectory import Trajectory
 from msmbuilder.Serializer import Serializer
-from msmbuilder.utils import uneven_zip
+from msmbuilder.utils import uneven_zip, deprecated
 
 from multiprocessing import Pool
 try:
@@ -29,7 +29,18 @@ except:
 #####################################################################
 
 def concatenate_trajectories(trajectories):
-    """Concatenate a list of trajectories into a single long trajectory"""
+    """Concatenate a list of trajectories into a single long trajectory
+    
+    Parameters
+    ----------
+    trajectories : list
+        list of msmbuilder.Trajectory object
+    
+    Returns
+    -------
+    longtraj : msmbuilder.Trajectory
+    
+    """
     #traj_lengths = [len(traj) for traj in trajectories]
     num_atoms = np.array([traj['XYZList'].shape[1] for traj in trajectories])
     if not np.all(num_atoms == num_atoms[0]):
@@ -46,12 +57,21 @@ def unconcatenate_trajectory(trajectory, lengths):
     """Take a single trajectory that was created by concatenating seperate
     trajectories and unconcenatenate it, returning the original trajectories.
     
-    Note that you have to supply the lengths of the original trajectories.
+    You have to supply the lengths of the original trajectories.
     
-    sum(lengths) should be equal to the length of the trajectory
+    Parameters
+    ----------
+    trajectory : msmbuilder.Trajectory
+        Long trajectory to be split
+    lengths : array_like
+        list of lengths to split the long trajectory into
     
-    returns a list of length equal to len(lengths)
+    Returns
+    -------
+    A list of trajectories
     """
+    assert sum(lengths) == len(trajectory)
+    
     xyzlist = trajectory.pop('XYZList')
     empty = empty_trajectory_like(trajectory)
     output = [copy.deepcopy(empty) for length in lengths]
@@ -62,7 +82,20 @@ def unconcatenate_trajectory(trajectory, lengths):
 
 
 def split(longlist, lengths):
-    """Split a long list into segments"""
+    """Split a long list into segments
+    
+    Parameters
+    ----------
+    longlist : array_like
+        Long trajectory to be split
+    lengths : array_like
+        list of lengths to split the long list into
+    
+    Returns
+    -------
+    A list of lists
+    """
+    
     if not sum(lengths) == len(longlist):
         raise Exception('sum(lengths)=%s, len(longlist)=%s' % (sum(lengths), len(longlist)))
     func = lambda (length, cumlength): longlist[cumlength-length:cumlength]
@@ -72,10 +105,19 @@ def split(longlist, lengths):
 
 
 def stochastic_subsample(trajectories, shrink_multiple):
-    """Given a list of trajectories, return a single trajectory
+    """Randomly subsample from a trajectory
+    
+    Given a list of trajectories, return a single trajectory
     shrink_multiple times smaller than the total number of frames in
     trajectories taken by random sampling of frames from trajectories
     
+    Parameters
+    ----------
+    trajectories : list of msmbuilder.Trajectory
+        list of trajectories to sample from
+    shrink_multiple : int
+        fraction to shrint by
+
     Note that this method will modify the trajectory objects that you pass in
     
     @CHECK is the note above actually true?
@@ -125,6 +167,20 @@ def deterministic_subsample(trajectories, stride, start=0):
     trajectories by taking every "stride"th frame, starting from "start"
     
     Note that this method will modify the trajectory objects that you pass in
+    
+    Parameters
+    ----------
+    trajectories : list of msmbuilder.Trajectory
+        trajectories to subsample from
+    stride : int
+        freq to subsample at
+    start : int
+        first frame to pick
+        
+    Returns
+    -------
+    trajectory : msmbuilder.trajectory
+        shortened trajectory
     """
     
     stride = int(stride)
@@ -156,7 +212,21 @@ def deterministic_subsample(trajectories, stride, start=0):
 
 
 def empty_trajectory_like(traj):
-    """Return a trajectory with the same residue ids and stuff as traj, but NO xyzlist"""
+    """Get a trajectory with the right metadata, but no xyz coordinates
+    
+    The same residue ids and stuff as traj, but NO xyzlist
+    
+    Parameters
+    ----------
+    traj : msmbuilder.Trajectory
+        trajectory you want to clone
+    
+    Returns
+    -------
+    empty_traj : msmbuilder.Trajectory
+        new empty trajectory
+        
+    """
     xyzlist = traj.pop('XYZList')
     new_traj = copy.deepcopy(traj)
     new_traj['XYZList'] = None
@@ -165,7 +235,21 @@ def empty_trajectory_like(traj):
 
 
 def p_norm(Data, p=2):
-    """Returns the p-norm of a Numpy array containing XYZ coordinates."""
+    """p_norm of an ndarray with XYZ coordinates
+    
+    Parameters
+    ----------
+    Data : ndarray
+        XYZ coordinates. TODO: Shape?
+    p : {int, "max"}, optional
+        power of p_norm
+    
+    Returns
+    -------
+    value : float
+        the answer
+    """
+    
     if p =="max":
         return Data.max()
     else:
@@ -184,13 +268,24 @@ def p_norm(Data, p=2):
 def _assign(metric, ptraj, generator_indices):
     """Assign the frames in ptraj to the centers with indices *generator_indices*
     
-    Arguments:
-    metric - An instance of AbstractDistanceMetric capable of handling the prepared
-             trajectory ptraj
-    ptraj - A prepared trajectory, returned by the action of the preceding metric
-            on a msmbuilder trajectory
-    generator_indices - indices (with respect to ptraj) of the frames to be considered
-                        the cluster centers.
+    Parameters
+    ----------
+    metric : msmbuilder.metrics.AbstractDistanceMetric
+        A metric capable of handling `ptraj`
+    ptraj : prepared trajectory
+        ptraj return by the action of the preceding metric on a msmbuilder trajectory
+    generator_indices : array_like
+        indices (with respect to ptraj) of the frames to be considered the
+        cluster centers.
+        
+    Returns
+    -------
+    assignments : ndarray
+        `assignments[i] = j` means that the `i`th frame in ptraj is assigned to
+        `ptraj[j]`
+    distances :  ndarray
+        `distances[i] = j` means that the distance (according to `metric`) from
+        `ptraj[i]` to `ptraj[assignments[i]]` is `j`
     """
     
     assignments = np.zeros(len(ptraj), dtype='int')
@@ -205,27 +300,48 @@ def _assign(metric, ptraj, generator_indices):
 def _kcenters(metric, ptraj, k=None, distance_cutoff=None, seed=0, verbose=True):
     """Run kcenters clustering algorithm.
     
-    Terminates either when *k* clusters have been identified, or when every data
-    is clustered better than *distance_cutoff*.
+    Terminates either when `k` clusters have been identified, or when every data
+    is clustered better than `distance_cutoff`.
     
-    Arguments:
-    metric - An instance of AbstractDistanceMetric capable of handling the prepared
-             trajectory ptraj
-    ptraj - A prepared trajectory, returned by the action of the preceding metric
-            on a msmbuilder trajectory
-    k - number of desired clusters, or None. (int or None)
-    distance_cutoff - Stop identifying new clusters once the distance of every data
-                      to its cluster center falls below this value. (float or None)
-    seed - index of the frame to use as the first cluster center. (int)
-   
-    Returns:
-    generator_indices, assignments and distances.
+    Parameters
+    ----------
+    metric : msmbuilder.metrics.AbstractDistanceMetric
+        A metric capable of handling `ptraj`
+    ptraj : prepared trajectory
+        ptraj return by the action of the preceding metric on a msmbuilder trajectory
+    k : {int, None}
+        number of desired clusters, or None
+    distance_cutoff : {float, None}
+        Stop identifying new clusters once the distance of every data to its
+        cluster center falls below this value. Supply either this or `k`
+    seed : int, optional
+        index of the frame to use as the first cluster center
+    verbose : bool, optional
+        print as each new generator is found
     
-    Note that the assignments that are
-    are numbered with respect to the position in ptraj of the generator, not the
-    position in generator_indices. That is, assignments[10] = 1020 means that the
-    10th simulation frame is assigned to the 1020th simulation frame, not to the 1020th
-    generator.
+    Returns
+    -------
+    generator_indices : ndarray
+        indices (with respect to ptraj) of the frames to be considered cluster centers
+    assignments : ndarray
+        the cluster center to which each frame is assigned to (1D)
+    distances : ndarray
+        distance from each of the frames to the cluster center it was assigned to
+    
+    See Also
+    --------
+    KCenters : wrapper around this implementation that provides more convenience
+    
+    Notes
+    ------
+    the assignments are numbered with respect to the position in ptraj of the
+    generator, not the position in generator_indices. That is, assignments[10] =
+    1020 means that the 10th simulation frame is assigned to the 1020th
+    simulation frame, not to the 1020th generator.
+    
+    References
+    ----------
+    .. [1] Beauchamp, MSMBuilder2
     """
     
     
@@ -263,46 +379,59 @@ def _kcenters(metric, ptraj, k=None, distance_cutoff=None, seed=0, verbose=True)
 
 
 def _clarans(metric, ptraj, k, num_local_minima, max_neighbors, local_swap=True, initial_medoids='kcenters', initial_assignments=None, initial_distance=None, verbose=True):
-    """Run the CLARANS clustering algorithm on the frames in (prepared) trajectory
-    *ptraj* using the distance metric *metric*. 
+    """Run the CLARANS clustering algorithm on the frames in a trajectory
+
     
-    Reference: Ng, R.T, Jan, Jiawei, 'CLARANS: A Method For Clustering Objects For
+    Reference
+    ---------
+    .. [1] Ng, R.T, Jan, Jiawei, 'CLARANS: A Method For Clustering Objects For
     Spatial Data Mining', IEEE Trans. on Knowledge and Data Engineering, vol. 14
     no.5 pp. 1003-1016 Sep/Oct 2002
     http://ieeexplore.ieee.org/xpls/abs_all.jsp?arnumber=1033770
     
-    Arguments:
-    metric - An instance of AbstractDistanceMetric capable of handling the prepared
-             trajectory ptraj
-    ptraj - A prepared trajectory, returned by the action of the preceding metric
-            on a msmbuilder trajectory
-    k - number of desired clusters. (int)
-    num_local_minima - number of local minima in the set of all possible clusterings
-                       to identify. Execution time will scale linearly with this
-                       parameter. The best of these local minima will be returned.
-                       (int)
-    max_neighbors - number of rejected swaps in a row necessary to declare a proposed
-                    clustering a local minima (int)
-    local_swap - If true, proposed swaps will be between a medoid and a data point
-                 currently assigned to that medoid. If false, the data point for
-                 the proposed swap is selected randomly. (boolean)
-    initial_medoids - If 'kcenters', run kcenters clustering first to get
-                      the initial medoids, and then run the swaps to improve it.
-                      If 'random', select the medoids at random. Otherwise,
-                      initial_medoids should be a numpy array of the indices of the
-                      medoids.
-    initial_assignments - If None, initial_assignments will be computed based on
-                          the initial_medoids. If you pass in your own initial_medoids,
-                          you can also pass in initial_assignments to avoid recomputing
-                          them.
-    initial_distances - If None, initial_distances will be computed based on
-                        the initial_medoids. If you pass in your own initial_medoids,
-                        you can also pass in initial_distances to avoid recomputing
-                        them.
-    verbose - Print information about the swaps being attempted. (boolean)
+    Parameters
+    ----------
+    metric : msmbuilder.metrics.AbstractDistanceMetric
+        A metric capable of handling `ptraj`
+    ptraj : prepared trajectory
+        ptraj return by the action of the preceding metric on a msmbuilder trajectory
+    k : int
+        number of desired clusters
+    num_local_minima : int
+        number of local minima in the set of all possible clusterings to identify.
+        Execution time will scale linearly with this parameter. The best of
+        these local minima will be returned.
+    max_neighbors : int
+        number of rejected swaps in a row necessary to declare a proposed
+        clustering a local minima
+    local_swap : bool, optional
+        If true, proposed swaps will be between a medoid and a data point
+        currently assigned to that medoid. If false, the data point for
+        the proposed swap is selected randomly.
+    initial_medoids : {'kcenters', 'random', ndarray}, optional
+        If 'kcenters', run kcenters clustering first to get the initial medoids,
+        and then run the swaps to improve it. If 'random', select the medoids at
+        random. Otherwise, initial_medoids should be a numpy array of the
+        indices of the medoids.
+    initial_assignments : {None, ndarray}, optional
+        If None, initial_assignments will be computed based on the
+        initial_medoids. If you pass in your own initial_medoids, you can also
+        pass in initial_assignments to avoid recomputing them.
+    initial_distances : {None, ndarray}, optional
+        If None, initial_distances will be computed based on the initial_medoids.
+        If you pass in your own initial_medoids, you can also pass in
+        initial_distances to avoid recomputing them.
+    verbose : bool, optional
+        Print information about the swaps being attempted
     
-    Returns:
-    center indices, assignments and distances
+    Returns
+    -------
+    generator_indices : ndarray
+        indices (with respect to ptraj) of the frames to be considered cluster centers
+    assignments : ndarray
+        the cluster center to which each frame is assigned to (1D)
+    distances : ndarray
+        distance from each of the frames to the cluster center it was assigned to
     """
     num_frames = len(ptraj)
     
@@ -420,39 +549,49 @@ def _clarans_helper(args):
 
 
 def _hybrid_kmedoids(metric, ptraj, k=None, distance_cutoff=None, num_iters=10, local_swap=True, norm_exponent=2.0, too_close_cutoff=0.0001, ignore_max_objective=False, initial_medoids='kcenters', initial_assignments=None, initial_distance=None):
-    """Run the hybrid kmedoids clustering algorithm from the msmbuilder2 paper on
-    *ptraj* using the distance metric *metric*.
+    """Run the hybrid kmedoids clustering algorithm to cluster a trajectory
     
-    Arguments:
-    metric - An instance of AbstractDistanceMetric capable of handling the prepared
-             trajectory ptraj
-    ptraj - A prepared trajectory, returned by the action of the preceding metric
-            on a msmbuilder trajectory
-    k - number of desired clusters. (int)
-    num_iters - number of swaps to attempt per medoid. (int)
-    local_swap - If true, proposed swaps will be between a medoid and a data point
-                 currently assigned to that medoid. If false, the data point for
-                 the proposed swap is selected randomly. (boolean)
-    norm_exponent - exponent to use in pnorm of the distance to generate objective
-                    function (float)
-    too_close_cutoff - Summarily reject proposed swaps if the distance of the medoid
-                       to the trial medoid is less than thus value (float)
-    ignore_max_objective - Ignore changes to the distance of the worst classified point,
-                           and only reject or accept swaps based on changes to the
-                           p norm of all the data points. (boolean)
-    initial_medoids - If 'kcenters', run kcenters clustering first to get
-                     the initial medoids, and then run the swaps to improve it.
-                     If 'random', select the medoids at random. Otherwise,
-                     initial_medoids should be a numpy array of the indices of the
-                     medoids.
-    initial_assignments - If None, initial_assignments will be computed based on
-                         the initial_medoids. If you pass in your own initial_medoids,
-                         you can also pass in initial_assignments to avoid recomputing
-                         them.
-    initial_distances - If None, initial_distances will be computed based on
-                       the initial_medoids. If you pass in your own initial_medoids,
-                       you can also pass in initial_distances to avoid recomputing
-                       them.
+    References
+    ----------
+    .. [1] Beauchamp, K. MSMBuilder2
+    
+    Parameters
+    ----------
+    metric : msmbuilder.metrics.AbstractDistanceMetric
+        A metric capable of handling `ptraj`
+    ptraj : prepared trajectory
+        ptraj return by the action of the preceding metric on a msmbuilder trajectory
+    k : int
+        number of desired clusters
+    num_iters : int
+        number of swaps to attempt per medoid
+    local_swap : boolean, optional
+        If true, proposed swaps will be between a medoid and a data point
+        currently assigned to that medoid. If false, the data point for the
+        proposed swap is selected randomly.
+    norm_exponent : float, optional
+        exponent to use in pnorm of the distance to generate objective function
+    too_close_cutoff : float, optional
+        Summarily reject proposed swaps if the distance of the medoid to the trial
+        medoid is less than thus value
+    ignore_max_objective : boolean, optional
+        Ignore changes to the distance of the worst classified point, and only
+        reject or accept swaps based on changes to the p norm of all the data
+        points.
+    initial_medoids : {'kcenters', ndarray}
+        If 'kcenters', run kcenters clustering first to get the initial medoids,
+        and then run the swaps to improve it. If 'random', select the medoids at
+        random. Otherwise, initial_medoids should be a numpy array of the
+        indices of the medoids.
+    initial_assignments : {None, ndarray}, optional
+        If None, initial_assignments will be computed based on the
+        initial_medoids. If you pass in your own initial_medoids, you can also
+        pass in initial_assignments to avoid recomputing them.
+    initial_distances : {None, ndarray}, optional
+        If None, initial_distances will be computed based on the initial_medoids.
+        If you pass in your own initial_medoids, you can also pass in
+        initial_distances to avoid recomputing them.
+        
     """
     if k is None and distance_cutoff is None:
         raise ValueError("I need some cutoff criterion! both k and distance_cutoff can't both be none")
@@ -553,14 +692,27 @@ class Hierarchical(object):
                          
     def __init__(self, metric, trajectories, method='single', precomputed_values=None):
         """Initialize a hierarchical clusterer using the supplied distance
-        metric and method. Method should be one of the fastcluster linkage methods,
+        metric and method.
+        
+        Method should be one of the fastcluster linkage methods,
         namely 'single', 'complete', 'average', 'weighted', 'centroid', 'median',
         or 'ward'.
         
-        trajectories can be *either* a single Trajectory object, or a list of Trajectory
-        objects.
-        
-        precomputed_values is used internally to implement load_from_disk()
+        Parameters
+        ----------
+        metric : msmbuilder.metrics.AbstractDistanceMetric
+            A metric capable of handling `ptraj`
+        trajectory : Trajectory list of Trajectorys
+            data to cluster
+        method : {'single', 'complete', 'average', 'weighted', 'centroid',
+                  'median', 'ward'}
+        precomputed_values : 
+            used internally to implement load_from_disk()
+            
+        Notes
+        -----
+        This is implemenred with the fastcluster library, which can be downloaded
+        from CRAN http://cran.r-project.org/web/packages/fastcluster/
         """
         
         if precomputed_values is not None:
@@ -597,10 +749,27 @@ class Hierarchical(object):
         #self.Z = scipy.cluster.hierarchy.linkage(dmat, method=method)
     
     def _oneD_assignments(self, k=None, cutoff_distance=None):
-        """Assign the frames into clusters. Either supply k, the number of clusters
-        desired, or cutoff_distance, a max diameteric of each cluster
+        """Assign the frames into clusters.
         
-        Returns a 1D array with the assignments of the flattened trajectory (internal).
+        Either supply k, the number of clusters desired, or cutoff_distance, a
+        max diameteric of each cluster
+        
+        Parameters
+        ----------
+        k : int, optional
+            number of clusters desired
+        cutoff_distance : float, optional
+            max diameter of each cluster, as a cutoff
+        
+        Returns
+        -------
+        assignments_1d : ndarray
+            1D array with the assignments of the flattened trajectory (internal).
+            
+        See Also
+        --------
+        Hierarchical.get_assignments
+        
         """
         # note that we subtract 1 from the results given by fcluster since
         # they start with 1-based numbering, but we want the lowest index cluster
@@ -616,10 +785,23 @@ class Hierarchical(object):
             raise Exception('You need to supply either k or a cutoff distance')
     
     def get_assignments(self, k=None, cutoff_distance=None):
-        """Assign the frames into clusters. Either supply k, the number of clusters
-        desired, or cutoff_distance, a max diameteric of each cluster
+        """Assign the frames into clusters.
         
-        Returns a 2D array padded with -1s
+        Either supply k, the number of clusters desired, or cutoff_distance, a
+        max diameteric of each cluster
+        
+        Parameters
+        ----------
+        k : int, optional
+            number of clusters desired
+        cutoff_distance : float, optional
+            max diameter of each cluster, as a cutoff
+        
+        Returns
+        -------
+        assignments : ndarray
+            2D array of shape num_trajs x length of longest traj. Padded with -1s
+            at the end if not all trajectories are the same length
         """
         assgn_list = split(self._oneD_assignments(k, cutoff_distance), self.traj_lengths)
         output = -1 * np.ones((len(self.traj_lengths), max(self.traj_lengths)), dtype='int')
@@ -628,11 +810,39 @@ class Hierarchical(object):
         return output
     
     def save_to_disk(self, filename):
+        """Save this clusterer to disk.
+        
+        This is useful because computing the Z-matrix
+        (done in __init__) is the most expensive part, and assigning is cheap
+        
+        Parameters
+        ----------
+        filename : str
+            location to save to
+            
+        Raises
+        ------
+        Exception if something already exists at `filename`
+        """
         s = Serializer({'z_matrix': self.Z, 'traj_lengths': self.traj_lengths})
         s.SaveToHDF(filename)
     
     @classmethod
     def load_from_disk(cls, filename):
+        """Load up a clusterer from disk
+        
+        This is useful because computing the Z-matrix
+        (done in __init__) is the most expensive part, and assigning is cheap
+        
+        Parameters
+        ----------
+        filename : str
+            location to save to
+            
+        Raises
+        ------
+        TODO: Probablt raises something if filename doesn't exist?
+        """
         s = Serializer.LoadFromHDF(filename)
         Z, traj_lengths = s['z_matrix'], s['traj_lengths']
         #Next two lines are a hack to fix Serializer bug. KAB
@@ -692,14 +902,18 @@ class BaseFlatClusterer(object):
             self._assignments, self._distances = _assign(self._metric, self.ptraj, self._generator_indices)    
     
     def get_assignments(self):
-        """Assign the trajectories you passed into the constructor based on generators that have
-        been identified
+        """Assign the trajectories you passed into the constructor based on
+        generators that have been identified
         
-        Returns:
-        2D array of assignments where k = assignments[i,j] means that the
-        jth frame in the ith trajectory is assigned to the center whose coordinates are
-        in the kth frame of the trajectory in get_generators_as_traj()
+        Returns
+        -------
+        assignments : ndarray
+            2D array of assignments where k = assignments[i,j] means that the
+            jth frame in the ith trajectory is assigned to the center whose
+            coordinates are in the kth frame of the trajectory in
+            get_generators_as_traj()
         """
+        
         self._ensure_generators_computed()
         self._ensure_assignments_and_distances_computed()
         
@@ -720,6 +934,15 @@ class BaseFlatClusterer(object):
         return output
     
     def get_distances(self):
+        """Extract the distance from each frame to its assigned cluster kcenter
+        
+        Returns
+        -------
+        distances : ndarray
+            2D array of size num_trajs x length of longest traj, such that
+            distances[i,j] gives the distance from the `i`th trajectory's `j`th
+            frame to its assigned cluster center
+        """
         self._ensure_generators_computed()
         self._ensure_assignments_and_distances_computed()
         
@@ -731,6 +954,7 @@ class BaseFlatClusterer(object):
             output[i][0:len(traj_distances)] = traj_distances
         return output
     
+    @deprecated
     def assign_new_trajectories(self, trajectories, checkpoint_callback=None):
         """Assign some new trajectories based on the generators identified by from the trajectory
         you passed to the constructor
@@ -763,7 +987,15 @@ class BaseFlatClusterer(object):
     
     
     def get_generators_as_traj(self):
-        """Return a trajectory object where each frame is one of the generators/medoids identified"""
+        """Get a trajectory containing the generators
+        
+        Returns
+        -------
+        traj : msmbuilder.Trajectory
+            a trajectory object where each frame is one of the
+            generators/medoids identified
+        
+        """
         self._ensure_generators_computed()
         
         output = empty_trajectory_like(self._concatenated)
@@ -782,21 +1014,34 @@ class BaseFlatClusterer(object):
 
 class KCenters(BaseFlatClusterer):
     def __init__(self, metric, trajectories, k=None, distance_cutoff=None, seed=0):
-        """'Run kcenters clustering algorithm.
+        """Run kcenters clustering algorithm.
+
+        Terminates either when `k` clusters have been identified, or when every data
+        is clustered better than `distance_cutoff`.
+
+        Parameters
+        ----------
+        metric : msmbuilder.metrics.AbstractDistanceMetric
+            A metric capable of handling `ptraj`
+        trajectory : Trajectory or list of msmbuilder.Trajectory
+            data to cluster
+        k : {int, None}
+            number of desired clusters, or None
+        distance_cutoff : {float, None}
+            Stop identifying new clusters once the distance of every data to its
+            cluster center falls below this value. Supply either this or `k`
+        seed : int, optional
+            index of the frame to use as the first cluster center
+            
+        See Also
+        --------
+        _kcenters : implementation
         
-        Terminates either when *k* clusters have been identified, or when every data
-        is clustered better than *distance_cutoff*.
-        
-        Arguments:
-        metric - An instance of AbstractDistanceMetric capable of handling the prepared
-                 trajectory ptraj
-        trajectories - A single trajectory, or an interable of trajectories that you
-                       want to cluster.
-        k - number of desired clusters, or None. (int or None)
-        distance_cutoff - Stop identifying new clusters once the distance of every data
-                          to its cluster center falls below this value. (float or None)
-        seed - index of the frame to use as the first cluster center. (int)
+        References
+        ----------
+        .. [1] Beauchamp, MSMBuilder2
         """
+        
         super(KCenters, self).__init__(metric, trajectories)
         
         gi, asgn, dl = _kcenters(metric, self.ptraj, k, distance_cutoff, seed)
@@ -813,29 +1058,39 @@ class KCenters(BaseFlatClusterer):
 
 class Clarans(BaseFlatClusterer):
     def __init__(self, metric, trajectories, k, num_local_minima=10, max_neighbors=20, local_swap=False):
-        """Run the CLARANS clustering algorithm on the frames in (prepared) trajectory
-        *ptraj* using the distance metric *metric*. 
-        
-        Reference: Ng, R.T, Jan, Jiawei, 'CLARANS: A Method For Clustering Objects For
+        """Run the CLARANS clustering algorithm on the frames in a trajectory
+
+        Reference
+        ---------
+        .. [1] Ng, R.T, Jan, Jiawei, 'CLARANS: A Method For Clustering Objects For
         Spatial Data Mining', IEEE Trans. on Knowledge and Data Engineering, vol. 14
         no.5 pp. 1003-1016 Sep/Oct 2002
         http://ieeexplore.ieee.org/xpls/abs_all.jsp?arnumber=1033770
-        
-        Arguments:
-        metric - An instance of AbstractDistanceMetric capable of handling the prepared
-                 trajectory ptraj
-        trajectories - A single trajectory, or an interable of trajectories that you
-                       want to cluster.
-        k - number of desired clusters. (int)
-        num_local_minima - number of local minima in the set of all possible clusterings
-                           to identify. Execution time will scale linearly with this
-                           parameter. The best of these local minima will be returned.
-                           (int)
-        max_neighbors - number of rejected swaps in a row necessary to declare a proposed
-                        clustering a local minima (int)
-        local_swap - If true, proposed swaps will be between a medoid and a data point
-                     currently assigned to that medoid. If false, the data point for
-                     the proposed swap is selected randomly. (boolean)
+
+        Parameters
+        ----------
+        metric : msmbuilder.metrics.AbstractDistanceMetric
+            A metric capable of handling `ptraj`
+        trajectory : Trajectory or list of msmbuilder.Trajectory
+            data to cluster
+        k : int
+            number of desired clusters
+        num_local_minima : int
+            number of local minima in the set of all possible clusterings to identify.
+            Execution time will scale linearly with this parameter. The best of
+            these local minima will be returned.
+        max_neighbors : int
+            number of rejected swaps in a row necessary to declare a proposed
+            clustering a local minima
+        local_swap : bool, optional
+            If true, proposed swaps will be between a medoid and a data point
+            currently assigned to that medoid. If false, the data point for
+            the proposed swap is selected randomly.
+            
+        See Also
+        --------
+        _kcenters : implementation
+        SubsampledClarans : random subsampling version (faster)
         """
         
         super(Clarans, self).__init__(metric, trajectories)
@@ -853,26 +1108,33 @@ class SubsampledClarans(BaseFlatClusterer):
         """ Run the CLARANS algorithm (see the Clarans class for more description) on
         multiple subsamples of the data drawn randomly.
         
-        Arguments:
-        metric - An instance of AbstractDistanceMetric capable of handling the prepared
-                 trajectory ptraj
-        trajectories - A single trajectory, or an interable of trajectories that you
-                       want to cluster.
-        k - number of desired clusters. (int)
-        
-        num_samples - number of subsamples to draw (int)
-        shrink_multiple - Each of the subsamples drawn will be of size equal to
-                          the total number of frames divided by this number
-        num_local_minima - number of local minima in the set of all possible clusterings
-                           to identify. Execution time will scale linearly with this
-                           parameter. The best of these local minima will be returned.
-                           (int)
-        max_neighbors - number of rejected swaps in a row necessary to declare a proposed
-                        clustering a local minima (int)
-        local_swap - If true, proposed swaps will be between a medoid and a data point
-                     currently assigned to that medoid. If false, the data point for
-                     the proposed swap is selected randomly. (boolean)
-        parallel - Which parallelization library to use. ('multiprocessing', 'dtm', or None)
+        Parameters
+        ----------
+        metric : msmbuilder.metrics.AbstractDistanceMetric
+            A metric capable of handling `ptraj`
+        trajectory : Trajectory or list of msmbuilder.Trajectory
+            data to cluster
+        k : int
+            number of desired clusters
+        num_samples : int
+            number of random subsamples to draw
+        shrink_multiple : int 
+            Each of the subsamples drawn will be of size equal to the total
+            number of frames divided by this number
+        num_local_minima : int, optional
+            number of local minima in the set of all possible clusterings
+            to identify. Execution time will scale linearly with this
+            parameter. The best of these local minima will be returned.
+        max_neighbors : int, optional
+            number of rejected swaps in a row necessary to declare a proposed
+            clustering a local minima
+        local_swap : bool, optional
+            If true, proposed swaps will be between a medoid and a data point
+            currently assigned to that medoid. If false, the data point for
+            the proposed swap is selected randomly
+        parallel : {None, 'multiprocessing', 'dtm}
+            Which parallelization library to use. Each of the random subsamples
+            are run independently
         """
         
         super(SubsampledClarans, self).__init__(metric, trajectories)
@@ -911,26 +1173,41 @@ class SubsampledClarans(BaseFlatClusterer):
 class HybridKMedoids(BaseFlatClusterer):
     def __init__(self, metric, trajectories, k, distance_cutoff=None, local_num_iters=10,
                        global_num_iters=0, norm_exponent=2.0, too_close_cutoff=.0001, ignore_max_objective=False):
-        """Run the hybrid kmedoids clustering algorithm from the msmbuilder2 paper on
-        *ptraj* using the distance metric *metric*.
+        """Run the hybrid kmedoids clustering algorithm on a set of trajectories
         
-        Arguments:
-        metric - An instance of AbstractDistanceMetric capable of handling the prepared
-                 trajectory ptraj
-        trajectories - A single trajectory, or an interable of trajectories that you
-                       want to cluster.
-        k - number of desired clusters. (int)
-        num_iters - number of swaps to attempt per medoid. (int)
-        local_swap - If true, proposed swaps will be between a medoid and a data point
-                     currently assigned to that medoid. If false, the data point for
-                     the proposed swap is selected randomly. (boolean)
-        norm_exponent - exponent to use in pnorm of the distance to generate objective
-                        function (float)
-        too_close_cutoff - Summarily reject proposed swaps if the distance of the medoid
-                           to the trial medoid is less than thus value (float)
-        ignore_max_objective - Ignore changes to the distance of the worst classified point,
-                               and only reject or accept swaps based on changes to the
-                               p norm of all the data points. (boolean)"""
+        Parameters
+        ----------
+        metric : msmbuilder.metrics.AbstractDistanceMetric
+            A metric capable of handling `ptraj`
+        trajectory : Trajectory or list of msmbuilder.Trajectory
+            data to cluster
+        k : int
+            number of desired clusters
+        num_iters : int
+            number of swaps to attempt per medoid
+        local_swap : boolean, optional
+            If true, proposed swaps will be between a medoid and a data point
+            currently assigned to that medoid. If false, the data point for the
+            proposed swap is selected randomly.
+        norm_exponent : float, optional
+            exponent to use in pnorm of the distance to generate objective function
+        too_close_cutoff : float, optional
+            Summarily reject proposed swaps if the distance of the medoid to the trial
+            medoid is less than thus value
+        ignore_max_objective : boolean, optional
+            Ignore changes to the distance of the worst classified point, and only
+            reject or accept swaps based on changes to the p norm of all the data
+            points.
+        
+        References
+        ----------
+        .. [1] Beauchamp, K, et. al. MSMBuilder2
+        
+        See Also
+        --------
+        KCenters : faster, less accurate
+        Clarans : slightly more clever termination criterion
+        """
         
         super(HybridKMedoids, self).__init__(metric, trajectories)
         
