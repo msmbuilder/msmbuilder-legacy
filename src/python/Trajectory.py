@@ -63,24 +63,55 @@ class Trajectory(Conformation.ConformationBaseClass):
     X[i,j,k] gives Frame i, Atom j, Coordinate k.
     """
     def __init__(self,S):
-        """Create a Trajectory from a single conformation.  Leave the XYZList key as an empty list for easy appending."""
+        """Create a Trajectory from a single conformation.
+        
+        Leaves the XYZList key as an empty list for easy appending.
+        
+        Parameters
+        ----------
+        S : Conformation
+            The single conformation to build a trajectory from
+        
+        Notes
+        -----
+        You probably want to use something else to load trajectories
+        
+        See Also
+        --------
+        LoadFromPDB
+        LoadFromHDF
+        LoadFromLHDF
+        """
+        
         Conformation.ConformationBaseClass.__init__(self,S)
         self["XYZList"]=[]
         if "XYZList" in S: self["XYZList"]=S["XYZList"].copy()
     
-    #
-    # I don't think these are necessary anymore
-    #
-    
-    #def RestrictAtomIndices(self,AtomIndices):
-    #    Conformation.ConformationBaseClass.RestrictAtomIndices(self,AtomIndices)
-    #    self["XYZList"]=self["XYZList"][:,AtomIndices]
-    
-    #def Stride(self, stride):
-    #    self["XYZList"] = self["XYZList"][0:len(self['XYZList']):stride]
-    #    return self
         
     def subsample(self,stride):
+        """Keep only the frames at some interval
+        
+        Shorten trajectory by taking every `stride`th frame. Note that this is
+        an inplace operation!
+        
+        Parameters
+        ----------
+        stride : int
+            interval
+        
+        Notes
+        -----
+        Trajectory supports fancy indexing, so you can do this by yourself
+        
+        Example
+        -------
+        >> mytrajectory.subsample(10)
+        
+        >> mytrajectory[::10]
+
+        These do the same thing except that one is inplace and one is not
+        
+        """
         if stride == 1:
             return
         self["XYZList"] = self["XYZList"][::stride].copy()
@@ -130,7 +161,19 @@ class Trajectory(Conformation.ConformationBaseClass):
         return self
  
     def SaveToLHDF(self,Filename,Precision=default_precision):
-        """Save a Trajectory instance to a Lossy HDF File.  First, remove the XYZList key because it should be written using the special CArray operation.  This file format is roughly equivalent to an XTC and should comparable file sizes but with better IO performance."""
+        """Save a Trajectory instance to a Lossy HDF File.
+        
+        First, remove the XYZList key because it should be written using the
+        special CArray operation.  This file format is roughly equivalent to
+        an XTC and should comparable file sizes but with better IO performance.
+        
+        Parameters
+        ----------
+        Filename : str
+            location to save to
+        Precision : float, optional
+            I'm not really sure what this does (RTM 6/27).
+        """
         Serializer.CheckIfFileExists(Filename)
         key="XYZList"
         X=self.pop(key)
@@ -141,19 +184,51 @@ class Trajectory(Conformation.ConformationBaseClass):
         self[key]=X
         
     def SaveToXTC(self,Filename,Precision=default_precision):
-        """Take a Trajectory instance and dump the coordinates to XTC"""
+        """Dump the coordinates to XTC
+        
+        Parameters
+        ----------
+        Filename : str
+            location to save to
+        Precision : float, optional
+            I'm not really sure what this does (RTM 6/27).
+        """
+ 
         Serializer.CheckIfFileExists(Filename)
         XTCFile=xtc.XTCWriter(Filename)
         for i in range(len(self["XYZList"])):
             XTCFile.write(self["XYZList"][i],1,i,np.eye(3,3,dtype='float32'),Precision)
         
     def SaveToPDB(self,Filename):
-        """Write a conformation as a PDB file."""
+        """Dump the coordinates to PDB
+        
+        Parameters
+        ----------
+        Filename : str
+            location to save to
+            
+        Notes
+        -----
+        Don't use this for a very big trajectory. PDB is plaintext and takes a lot
+        of memory
+        """
+        
         for i in range(len(self["XYZList"])):
             PDB.WritePDBConformation(Filename,self["AtomID"], self["AtomNames"],self["ResidueNames"],self["ResidueID"],self["XYZList"][i],self["ChainID"])
 
     def SaveToXYZ(self,Filename):
-        """Write a conformation as a XYZ file."""
+        """Dump the coordinates to XYZ format
+        
+        Parameters
+        ----------
+        Filename : str
+            location to save to
+            
+        Notes
+        -----
+        TODO: What exactly is the XYZ format? (RTM 6/27)
+        """
+        
         Answer = []
         Title = 'From MSMBuilder SaveToXYZ funktion'
         for i in range(len(self["XYZList"])):
@@ -168,7 +243,18 @@ class Trajectory(Conformation.ConformationBaseClass):
         with open(Filename,'w') as f: f.writelines(Answer)
 
     def Save(self,Filename,Precision=default_precision):
-        """Auto-detect format and save."""
+        """Dump the coordinates to disk in format auto-detected by filename
+        
+        Parameters
+        ----------
+        Filename : str
+            location to save to
+            
+        Notes
+        -----
+        Formats supported are h5, xtc, pdb, lh5 and xyz
+        """
+        
         extension = os.path.splitext(Filename)[1]
         
         if extension == '.h5':
@@ -185,6 +271,14 @@ class Trajectory(Conformation.ConformationBaseClass):
             raise IOError("File: %s. I don't understand the extension '%s'" % (Filename, extension))
                     
     def AppendPDB(self,Filename):
+        """Add on to a pdb file
+        
+        Parameters
+        ----------
+        Filename : str
+            location to save to
+        
+        """
         try:
             self["XYZList"]=self["XYZList"].tolist()
         except:
@@ -199,15 +293,46 @@ class Trajectory(Conformation.ConformationBaseClass):
     
     @classmethod
     def LoadFromPDB(cls,Filename):       
-        """Create a Trajectory from a PDB Filename."""
+        """Create a Trajectory from a PDB Filename
+        
+        Parameters
+        ----------
+        Filename : str
+            location to load from
+        """
         return(Trajectory(PDB.LoadPDB(Filename,AllFrames=True)))
 
     
     @classmethod
     def LoadFromXTC(cls, XTCFilenameList, PDBFilename=None, Conf=None, PreAllocate=True,
                     JustInspect=False, discard_overlapping_frames=False):
-        """Create a Trajectory from a Filename."""
-        
+        """Create a Trajectory from a collection of XTC files
+
+        Parameters
+        ----------
+        XTCFilenameList : list
+            list of files to load from
+        PDBFilename : str, optional
+            XTC format doesn't have the connectivity information, which needs to be
+            supplied. You can either supply it by giving a path to the PDB file (here)
+            or by suppling a Conf or Traj object containing the right connectivity
+            (next arg)
+        Conf : Conformation, optional
+            A conformation (actually passing another trajectory will work) that has
+            the right atom labeling
+        PreAlloc : bool, optional
+            This doesn't do anything
+        JustInspect : bool, optional
+            Don't actually load, just return dimensions
+        discard_overallping_frames : bool, optional
+            Check for redundant frames and discard them. (RTM 6/27 should this be default True?)
+            
+        Returns
+        -------
+        Trajectory : Trajectory
+            Trajectory loaded from disk. OR, if you supplied `just_inspect`=True,
+            then just the shape
+        """        
         if PDBFilename!=None:
             A=Trajectory.LoadFromPDB(PDBFilename)
         elif Conf!=None:
