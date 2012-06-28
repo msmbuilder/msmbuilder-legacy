@@ -10,13 +10,18 @@ norm = np.linalg.norm
 tr = np.trace
 
 def NormalizeLeftEigenvectors(V):
-    """Normalize the left eigenvectors, such that <v[:,i]/pi, v[:,i]> = 1
-
-    Notes:
-
-    Acts inplace.
-
-    Assumes that V[:,0] is the equilibrium vector and that detailed balance holds.
+    """Normalize the left eigenvectors
+    
+    Normalization condition is <v[:,i]/pi, v[:,i]> = 1
+    
+    Parameters
+    ----------
+    V : ndarray
+        The left eigenvectors
+    
+    Notes
+    -----
+    Acts inplace. Assumes that V[:,0] is the equilibrium vector and that detailed balance holds.
     """
     pi=V[:,0]
     pi/=pi.sum()
@@ -27,13 +32,24 @@ def NormalizeLeftEigenvectors(V):
 
 def trim_eigenvectors_by_flux(lam, vl, flux_cutoff):
     """Trim eigenvectors that have low equilibrium flux.
-
-    Notes:
-
+    
+    TODO: RTM 6/27 I don't know what any of these parameters are
+    
+    Parameters
+    ----------
+    lam : 
+    vl : 
+    flux_cutoff :
+    
+    Notes
+    -----
     Assuming that the left eigenvectors are properly pi-normalized,
-    the equilibrium flux contributino of each eigenvector v is given by
-
-    \sum_i v_i^2
+    the equilibrium flux contributino of each eigenvector :math:`v` is given by :math:`\sum_i v_i^2`
+    
+    Returns
+    -------
+    lam : 
+    vl : 
     
     """
     NormalizeLeftEigenvectors(vl)
@@ -67,7 +83,20 @@ def trim_eigenvectors_by_flux(lam, vl, flux_cutoff):
     return lam, vl
 
 def get_maps(A):
-    """Helper function for PCCA+ optimization.  Get mappings from the square array A to the flat vector of parameters alpha.
+    """Get mappings from the square array A to the flat vector of parameters alpha.
+    
+    Helper function for PCCA+ optimization.
+    
+    TODO: RTM 6/27 I don't know what these patameters are 
+    
+    Parameters
+    ----------
+    A : 
+    
+    Returns
+    -------
+    flat_map : 
+    square map : 
     """
 
     N = A.shape[0]
@@ -87,19 +116,74 @@ def get_maps(A):
     return flat_map,square_map
 
 def to_flat(A, flat_map):
-    """Convert a square matrix A to a flat array alpha."""
+    """Convert a square matrix A to a flat array alpha.
+    
+    Parameters
+    ----------
+    A : 
+    flat_map : 
+    
+    Returns
+    -------
+    FlatenedA : ndarray
+        flattened version of A
+    """
     return A[flat_map[:,0],flat_map[:,1]]
 
 def to_square(alpha, square_map):
-    """Convert a flat array alpha to a square array A."""
+    """Convert a flat array alpha to a square array A.
+    
+    Parameters
+    ----------
+    alpha : 
+    square_map : 
+    
+    Returns
+    -------
+    SquareA : ndarray
+        Square version of alpha
+    """
     return alpha[square_map]
 
 def pcca_plus(T, N, flux_cutoff=None, do_minimization=True,objective_function = "crisp_metastability"):
-    """Perform PCCA+.
+    """Perform PCCA+ lumping
 
-    Inputs:
-    T -- transition matrix, csr format.
-    N -- desired (maximum) number of macrostates.
+    Parameters
+    ----------
+    T : csr sparse matrix
+        Transition matrix
+    M : int
+        desired (maximum) number of macrostates
+    flux_cutoff : float, optional
+        TODO: Document this
+    do_minimization : bool, optional
+        TODO: document this
+    objective_function: {'crisp_metastablility', 'metastability', 'are-there-others?'}
+        TODO: document this
+    
+    Returns
+    -------
+    A : 
+    chi : 
+    vr : 
+    microstate_mapping :
+    
+    
+    Notes
+    -----
+    TODO: Short description of algorithm
+    
+    
+    
+    
+    References
+    ----------
+    .. [1] TODO: Citation for the PCCA+ paper
+
+    See Also
+    --------
+    PCCA
+    
     """
     n = T.shape[0]
     lam,vl = MSMLib.GetEigenvectors(T,N)
@@ -124,6 +208,26 @@ def pcca_plus(T, N, flux_cutoff=None, do_minimization=True,objective_function = 
 
 def opt_soft(vr, N, pi, lam, T, do_minimization=True, use_anneal=True, objective_function="crisp_metastability"):
     """Core routine for PCCA+ algorithm.
+    
+    TODO: What does this do?
+    
+    Parameters
+    ----------
+    vr :  
+    N : 
+    pi: 
+    lam : 
+    T : 
+    do_minimzation : 
+    use_anneal : 
+    objective_function :
+    
+    Returns
+    -------
+    A : 
+    chi : 
+    microstate_mapping :
+    
     """
     n = len(vr[0])
 
@@ -164,7 +268,25 @@ def opt_soft(vr, N, pi, lam, T, do_minimization=True, use_anneal=True, objective
     return A, chi, microstate_mapping
 
 def has_constraint_violation(A,vr,epsilon = 1E-8):
-    """Check for constraint violations using Eqn 4.25."""
+    """Check for constraint violations using Eqn 4.25
+    
+    Parameters
+    ----------
+    A : 
+    vr : 
+    epsilon : float, optional
+        TODO: Description
+        
+    Returns
+    -------
+    truth : bool
+        Whether or not the violation exists
+        
+    TODO: RTM Shouldn't this function return False on the else condition, not None?
+    
+    References
+    ----------
+    TODO: Add citation for the paper """
 
     lhs = 1-A[0,1:].sum()
     rhs = rhs= dot(vr[:,1:],A[1:,0])
@@ -291,17 +413,37 @@ def index_search(vr):
     return index
 
 def PCCA(T,num_macro,tolerance=1E-5,flux_cutoff=None):
-    """Create a lumped model using the PCCA algorithm.  
+    """Create a lumped model using the PCCA algorithm.
+    
+    1.  Iterate over the eigenvectors, starting with the slowest.
+    2.  Calculate the spread of that eigenvector within each existing macrostate.
+    3.  Pick the macrostate with the largest eigenvector spread.
+    4.  Split the macrostate based on the sign of the eigenvector.
 
-    Inputs:
-    T -- A transition matrix.  
-    num_macro -- The desired number of states.
-
-    Optional Inputs:
-    tolerance=1E-5 : specifies the numerical cutoff to use when splitting states based on sign.
-
-    Returns a mapping from the Microstate indices to the Macrostate indices.
-    To construct a Macrostate MSM, you then need to map your Assignment data to the new states (e.g. Assignments=MAP[Assignments]).
+    Parameters
+    ----------
+    T : csr sparse matrix
+        A transition matrix
+    num_macro : int
+        The desired number of states.
+    tolerance : float, optional
+        specifies the numerical cutoff to use when splitting states based on sign.
+    flux_cutoff : float, optional
+        TODO: document this
+        
+    Returns
+    -------
+    microstate_mapping : ndarray
+        mapping from the Microstate indices to the Macrostate indices
+    
+    Notes
+    -----
+    To construct a Macrostate MSM, you then need to map your Assignment data to
+    the new states (e.g. Assignments=MAP[Assignments]).
+    
+    References
+    ----------
+    .. [1] TODO: Add reference
     """
 
     n = T.shape[0]
