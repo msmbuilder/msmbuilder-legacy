@@ -369,22 +369,33 @@ class _retrieve(object):
         This function takes in a path to a CLONE and merges all the XTC files
         it finds into a LH5 trajectory:
         
-        clone_dir: (string) the directory in which the xtc files are found. All
-                   of the xtc files in this directory are joined together to make
-                   a single trajectory (.lh5) output file
-        output_dir: (string) directory where the outputted files will be placed
-        trajectory_number: A unique number for this trajectory. This number
-                           is used in constructing the filename to write the outputted .lh5
-                           trajectory to, and thus must be unique
-        stride: (integer) Subsample by only considering every Nth snapshop.
-        max_rmsd: (integer/None) if this value is not None, calculate the RMSD to
-                  the pdb_file from each snapshot and reject trajectories which have snapshots 
-                  with RMSD greated than max_rmsd. If None, no check is performed
-        min_gens: (integer) Discard the trajectories that contain fewer than N XTC files.
-        center_conformations: (boolean) center conformations before saving.
-        memory_check: (boolean) if yes, uses the memory dictionary to do an update rather
-                      than a complete re-convert
-        omp_parallel_rmsd: (boolean), if true, use OpenMP accelerated RMSD calculation for max_rmsd check
+        Parameters
+        ----------
+        clone_dir : str
+            the directory in which the xtc files are found. All of the xtc files
+            in this directory are joined together to make a single trajectory
+            (.lh5) output file
+        output_dir : str
+            directory where the outputted files will be placed
+        trajectory_number : int 
+            A unique number for this trajectory. This number is used in 
+            constructing the filename to write the outputted .lh5 trajectory to,
+            and thus must be unique
+        stride: int
+            Subsample by only considering every Nth snapshop.
+        max_rmsd: {int, None}
+            if this value is not None, calculate the RMSD to the pdb_file from
+            each snapshot and reject trajectories which have snapshots with RMSD
+            greated than max_rmsd. If None, no check is performed
+        min_gens : int
+            Discard the trajectories that contain fewer than N XTC files.
+        center_conformations : bool
+            center conformations before saving.
+        memory_check : bool
+            if yes, uses the memory dictionary to do an update rather than a
+            complete re-convert
+        omp_parallel_rmsd : bool
+            If true, use OpenMP accelerated RMSD calculation for max_rmsd check
         """
         
         xtc_files = self.list_xtcs_in_dir(clone_dir)

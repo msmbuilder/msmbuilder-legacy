@@ -291,8 +291,8 @@ def fast_cdist(XA, XB, metric='euclidean', p=2, V=None, VI=None):
         The variance vector (for standardized Euclidean).
     VI : ndarray
         The inverse of the covariance matrix (for Mahalanobis).
-
-
+        
+    
     Returns
     -------
     Y : ndarray
@@ -1199,12 +1199,7 @@ class Vectorized(AbstractDistanceMetric):
         
         Parameters
         ----------
-        metric : {'braycurtis', 'canberra', 'chebyshev', 'cityblock',
-                  'correlation', 'cosine', 'euclidean', 'minkowski',
-                  'sqeuclidean','dice', 'kulsinki', 'matching',
-                  'rogerstanimoto', 'russellrao', 'sokalmichener',
-                  'sokalsneath', 'yule', 'seuclidean', 'mahalanobis',
-                  'sqmahalanobis'}
+        metric : {'braycurtis', 'canberra', 'chebyshev', 'cityblock', 'correlation', 'cosine', 'euclidean', 'minkowski', 'sqeuclidean','dice', 'kulsinki', 'matching', 'rogerstanimoto', 'russellrao', 'sokalmichener', 'sokalsneath', 'yule', 'seuclidean', 'mahalanobis', 'sqmahalanobis'}
             Distance metric to equip the vector space with.
             See http://docs.scipy.org/doc/scipy/reference/spatial.distance.html
             for details
@@ -1213,7 +1208,8 @@ class Vectorized(AbstractDistanceMetric):
         V : ndarray, optional
             variances, used for metric='seuclidean'
         VI : ndarray, optional
-            inverse covariance matrix, used  for metric='mahalanobis'
+            inverse covariance matrix, used for metric='mahalanobis'
+        
         """
         
         self._validate_scipy_metric(metric)

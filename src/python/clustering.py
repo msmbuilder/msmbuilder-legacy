@@ -940,7 +940,7 @@ class BaseFlatClusterer(object):
         -------
         distances : ndarray
             2D array of size num_trajs x length of longest traj, such that
-            distances[i,j] gives the distance from the `i`th trajectory's `j`th
+            distances[i,j] gives the distance from the ith trajectorys jth
             frame to its assigned cluster center
         """
         self._ensure_generators_computed()
