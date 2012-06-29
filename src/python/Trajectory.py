@@ -313,7 +313,7 @@ class Trajectory(Conformation.ConformationBaseClass):
         XTCFilenameList : list
             list of files to load from
         PDBFilename : str, optional
-            XTC format doesn't have the connectivity information, which needs to be
+            XTC format doesnt have the connectivity information, which needs to be
             supplied. You can either supply it by giving a path to the PDB file (here)
             or by suppling a Conf or Traj object containing the right connectivity
             (next arg)
@@ -321,9 +321,9 @@ class Trajectory(Conformation.ConformationBaseClass):
             A conformation (actually passing another trajectory will work) that has
             the right atom labeling
         PreAlloc : bool, optional
-            This doesn't do anything
+            This doesnt do anything
         JustInspect : bool, optional
-            Don't actually load, just return dimensions
+            Dont actually load, just return dimensions
         discard_overallping_frames : bool, optional
             Check for redundant frames and discard them. (RTM 6/27 should this be default True?)
             

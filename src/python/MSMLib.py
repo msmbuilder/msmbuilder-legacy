@@ -598,14 +598,14 @@ def Sample(T,State,Steps,Traj=None,ForceDense=False):
     ----------
     T : sparse or dense matrix
         A transition matrix
-    State : int, None, or ndarray
+    State : {int, None, ndarray}
         Starting state for trajectory. If State is an integer, it will be used
         as the initial state. If State is None, an initial state will be
         randomly chosen from an uniform distribution. If State is an array, it
         represents a probability distribution from which the initial
-         state will be drawn. If a trajectory is specified (see Traj keyword),
-         this variable will be ignored, and the last state of that trajectory
-         will be used.
+        state will be drawn. If a trajectory is specified (see Traj keyword),
+        this variable will be ignored, and the last state of that trajectory
+        will be used.
     Steps : int
         How many steps to generate.
     Traj : list, optional
