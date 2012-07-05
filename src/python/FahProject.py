@@ -282,22 +282,27 @@ class _retrieve(object):
         else:
             # use regular serial execution
             map(self.write_trajectory_mapper, jobs)
-            
+         
+        # CRS REMOVED THE CONTIGUOUS ORDERING SECTION BECAUSE IT WAS RENAMING TRAJECTORIES TO 
+        #    ONES THAT ALREADY EXISTED. vvvvvvvvvvvvvvvvvvvv   
+
         # Rename trajectory files such that they have contiguous numbering
-        print "\nFinished Generating Trajectories. Renaming them now in contiguous order"
-        mapping = {} # document the directory changes, allowing us to update memory
-        for i, filename in enumerate( os.listdir(output_dir) ):
-            path = os.path.join(output_dir, filename)
-            new_path = os.path.join(output_dir, "trj%d.lh5" % i)
-            os.rename(path, new_path)
-            mapping[path] = new_path
+        #print "\nFinished Generating Trajectories. Renaming them now in contiguous order"
+        #mapping = {} # document the directory changes, allowing us to update memory
+        #for i, filename in enumerate( os.listdir(output_dir) ):
+        #    path = os.path.join(output_dir, filename)
+        #    new_path = os.path.join(output_dir, "trj%d.lh5" % i)
+        #    os.rename(path, new_path)
+        #    mapping[path] = new_path
             
         # update the memory hash to accound for our renumbering
-        for key in self.memory.keys():
-            if key not in ['convert_parameters', 'SerializerFilename']:
-                print "%s --> %s" % ( self.memory[key][0], mapping[ self.memory[key][0] ] )
-                self.memory[key][0] = mapping[ self.memory[key][0] ]
+        #for key in self.memory.keys():
+        #    if key not in ['convert_parameters', 'SerializerFilename']:
+        #        print "%s --> %s" % ( self.memory[key][0], mapping[ self.memory[key][0] ] )
+        #        self.memory[key][0] = mapping[ self.memory[key][0] ]
                 
+        # CRS ^^^^^^^^^^^^^^^^^
+  
         # save the parameters used for this run in the memory file, and write to disk
         print "\nGenerating Project File: %s" % self.projectinfo_file
         if update:
