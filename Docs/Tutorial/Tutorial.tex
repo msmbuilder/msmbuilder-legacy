@@ -95,8 +95,6 @@ Constructing a Markov State model involves several steps, which are summarized b
  \item Construct a microstate MSM
  \item Validate microstate MSM
  \item Calculate macrostates using PCCA+
- \item Calculate a macrostate rate matrix using SCRE
- \item Validate the resulting model.
 \end{enumerate}
 
 \subsection{Alanine Dipeptide Tutorial}
@@ -120,10 +118,11 @@ Here, $PREFIX$ is the base directory of your msmbuilder installation.
 ConvertDataToHDF.py  -s native.pdb -i XTC
 \end{verbatim}
 
-\subsubsection{Cluster your data using Ward's algorithm and the RMSD metric}
-WARNING: this step requires a minimum of 3.0 GB of memory for storing a matrix of pairwise RMSD.
+\subsubsection{Cluster your data}
+The following command clusters your data using the RMSD metric and a hybrid k-centers k-medoids clustering algorithm.  Note that other clustering protocols might lead to improved models; see the AdvancedMethods tutorial for details.
+
 \begin{verbatim}
-Cluster.py rmsd hierarchical
+Cluster.py rmsd hybrid
 \end{verbatim}
 
 \subsubsection{Assign data to states}
@@ -214,7 +213,8 @@ In general, PCCA and PCCA+ are best applied to capturing long-lived, metastable 
 \subsubsection{Calculate Macrostate Implied Timescales}
 
 \begin{verbatim}
-CalculateImpliedTimescales.py -l 1,25 -i 1 -o Macro4/ImpliedTimescales.dat -a Macro4/MacroAssignments.h5 -e 3
+CalculateImpliedTimescales.py -l 1,25 -i 1 \
+-o Macro4/ImpliedTimescales.dat -a Macro4/MacroAssignments.h5 -e 3
 
 PlotImpliedTimescales.py -i Macro4/ImpliedTimescales.dat -d 1
 \end{verbatim}
@@ -237,51 +237,6 @@ Furthermore, PCCA+ is best used to estimate metastable states.  Here are some ad
 \end{enumerate}
 
 Thus, success with PCCA+ may require some trial and error when selecting the appropriate lagtime and microstate clustering.  Finally, note that our implementation of PCCA+ uses a simulated annealing minimization.  This randomized search means that you may find multiple minima by repeating the PCCA+ calculation several times.  You may find a better model by repeating the calculation several times.  
-
-\subsubsection{Estimate a rate matrix using SCRE}
-
-In the macrostate implied timescales, the slowest implied timescale converges at approximately 10 ps, while the third timescale converges as 5 ps.  Furthermore, the third timescale is aliased at lagtimes starting with 14 ps; lagtimes longer than 14 ps will not accurately capture the dynamics of this relaxation.  This suggests that this system might benefit from estimating rates using SCRE and multiple lagtimes.  Note that SCRE currently is practical only for models with few states ($n \le 10$).  
-
-To build an SCRE model, we first construct a macrostate transition matrix with lagtime 1.  
-
-\begin{verbatim}
- BuildMSM.py -l 1 -a Macro4/MacroAssignments.h5 -o Macro4/
-\end{verbatim}
-
-The key idea in SCRE is to estimate rate matrix $K_{ij}(\tau)$ for a variety of lagtimes.  Then, each rate matrix element is fixed when $K_{ij}(\tau)$ becomes approximately constant with respect to the lagtime $\tau$.  The final rate matrix provides estimates of Markovian rates for each of the rate elements $K_{ij}$.  
-
-Next, we run an interactive script to estimate rates using SCRE.  
-
-\begin{verbatim}
- Interactive-SCRE.py -a Macro4/Assignments.Fixed.h5 -o Macro4
-\end{verbatim}
-
-In practice, the script will prompt the user to select a maximum lagtime.  The script then estimates and plots rate matrices for each lagtime up to the maximum value.  The user is then asked to identify converged rate matrix elements.  In general, one should try to estimate the quickly-convergign rates first.  After those rates are constrained, one can then try to estimate the slower and / or less Markovian rates.  For concreteness, I used the following inputs:
-
-25
-1,0,6
-25
-3,2,19
-25
-3,1,6
-25
-3,0,9
-25
-14
-
-Note that on the last iteration, the user is asked only to select a lagtime.  Also note that your choices may be different because of differences in the macrostate definitions; the PCCA+ minimization uses a non-deterministic simulated annealing.  Also, if your state decomposition is insufficiently Markovian, you may find that the plotted rate estimates show a ``periodic'' behavior.  This likely indicates that a given macrostate contains multiple slowly interconverting substates; as you increase the lagtime, the model switches from the faster process to the slower process.  In such situations, your best bet is to increase the number of macrostates.  
-
-Finally, we compare the fixed-lagtime and SCRE estimates of implied timescales:
-
-\begin{verbatim}
- python PlotMacrostateImpliedTimescales.py
-\end{verbatim}
-
-
-\includegraphics[width=11.7cm]{figures/SCRE}
-
-
-We find that the SCRE estimates capture the ``converged'' values of the fixed-lagtime timescales.  Achieving convergence for each timescale is not possible with a fixed-lagtime MSM, because the 20 ps lagtime required for the second relaxation causes the third relaxation to alias.  
 
 \newpage
 
@@ -308,7 +263,7 @@ Cluster your data using your choice of clustering algorithm and distance metric.
  \item RMSD + Ward clustering (``Cluster.py  rmsd hierarchical'')
 \end{enumerate}
 
-We recommend Ward clustering if it is computationally feasible; otherwise, use the hybrid k-centers / k-medoids clustering.  Ward clustering calculations an $O(N^2)$ distance matrix, which may be prohibitive for datasets with many conformations.  
+We recommend Ward clustering if it is computationally feasible; otherwise, use the hybrid clustering.  Ward clustering calculations an $O(N^2)$ distance matrix, which may be prohibitive for datasets with many conformations.  
 
 Most of our experience has been in applying MSMBuilder to protein folding.  Thus, non-folding applications may require a slightly different protocol.
 
@@ -384,9 +339,12 @@ Q2:  I see the following error.  What do I do?
 \end{verbatim}
 
 A2:  You are trying to read an HDF5 file that was written using a different PyTables installation.  Your current PyTables installation is likely missing the compression algorithm (filter) required to read the file.  The solution is to find a version of Pytables that has the old compression algorithm (filter) and use MSMBuilder to read and then re-write the trajectories (by default, MSMBuilder uses the PyTables BLOSC compression).  To do this (for a single File), you would so something like:
+
+\begin{verbatim}
 from msmbuilder import Trajectory
 R1=Trajectory.Trajectory.LoadFromLHDF(Filename)
 R1.SaveToLHDF(NewFilename)
+\end{verbatim}
 
 \vspace{5mm}
 
@@ -454,7 +412,7 @@ A9.  This is probably due to PCCA+ finding a ``degenerate'' state decomposition,
 
 Q10.  How do I make an MSM movie?
 
-A10. To build a movie, you just Sample states from the model (MSMLib.Sample).  Then you sample conformations from each state (Project.GetRandomConfsFromState).  Then you append each frame to a PDB file (Conformation.SavePDB or Trajectory.SavePDB).  After you have the PDBs, you can use either VMD or pymol for movie making.
+A10. To build a movie, you just Sample states from the model (MSMLib.Sample).  Then you sample conformations from each state (Project . GetRandomConfsFromState).  Then you append each frame to a PDB file (Conformation.SavePDB or Trajectory.SavePDB).  After you have the PDBs, you can use either VMD or pymol for movie making.
 
 \vspace{5mm}
 
