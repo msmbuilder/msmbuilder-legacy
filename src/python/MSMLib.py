@@ -591,6 +591,66 @@ def GetImpliedTimescalesHelper(args):
 
     return (lagTimes, impTimes)
 
+
+def project_observable_onto_transition_matrix(observable, tprob, num_modes=25):
+    """
+    Projects an observable vector onto a probability transition matrix's
+    eigenmodes.
+
+    The function first decomposes the matrix `tprob` into `num_modes`
+    different eigenvectors, sorted by eigenvalue. Then, it returns the
+    amplitude of the projection of the observable onto each of those
+    eigenmodes. 
+
+    This projection gives an estimate of how strong an
+    experimental signal will be see at each timescale - though the actual
+    experimental response will also be modulated by the populations of
+    states at play.
+
+    Parameters
+    ----------
+    observable : array_like, float
+        a one-dimensional array of the values of a given observable for
+        each state in the MSM
+    tprob : matrix
+        the transition probability matrix
+    num_modes : int
+        the number of eigenmodes to calculate (the top ones, sorted by mag.) 
+
+    Returns
+    -------
+    timescales : array_like, float
+        the timescales of each eigenmode, in units of the lagtime of `tprob`
+    amplitudes : array_like, float
+        the amplitudes of the projection of `observable` onto each mode
+
+    Notes
+    -----
+    The stationary mode is always discarded
+    The eigenvalues/vectors are calculated from scratch, so this function
+        may take a little while to run
+    """
+
+    if num_modes+1 > tprob.shape[0]:
+        print "Warning: cannot get %d eigenmodes from a rank %d matrix" % (num_modes+1, tprob.shape[0])
+        print "Getting as many modes as possible..."
+        num_modes = tprob.shape[0]-1
+
+    eigenvalues, eigenvectors = GetEigenvectors_Right(tprob, num_modes+1)
+
+    # discard the stationary eigenmode
+    eigenvalues = np.real( eigenvalues[1:] )
+    eigenvectors = np.real( eigenvectors[:,1:] )
+
+    timescales = - 1.0 / np.log(eigenvalues)
+
+    amplitudes = np.zeros(num_modes)
+    for mode in range(num_modes):
+        amplitudes[mode] = np.dot(observable, eigenvectors[:,mode])
+
+    return timescales, amplitudes
+
+
 def Sample(T,State,Steps,Traj=None,ForceDense=False):
     """Generate a random sequence of states by propogating a transition matrix.
 
@@ -802,11 +862,14 @@ def ApplyMappingToAssignments(Assignments,Mapping):
     A[WhereEliminatedStates]=-1#These states have typically been "deleted" by the ergodic trimming algorithm.  Can be at beginning or end of trajectory.
 
 def ApplyMappingToVector(V, Mapping):
-    """Remap an observable vector
+    """ Remap an observable vector after ergodic trimming
     
     RTM 6/27: I don't think this function is really doing what it should.
     It does a reordering, but when the mapping is a many->one, don't you really
     want to average things together or something?
+
+    TJL 7/1: That's true. I wrote this with only the ergodic trimming in
+    mind, it needs to be updated if it's going to work w/PCCA as well...
     
     Parameters
     ----------
