@@ -68,7 +68,9 @@ LPRMSD = Extension('msmbuilder/_lprmsd',
                    #                 '-Wl,--end-group','-lpthread','-lm','-lgomp']
                    
                    # EPD python, which we recommend, contains MKL shared object files, so this should "just work".
-                   extra_link_args=['-L%s' % distutils.sysconfig.get_config_var('LIBDIR'), '-Wl', '-lpthread', '-lm', '-lgomp']
+                   #extra_link_args=['-L%s' % distutils.sysconfig.get_config_var('LIBDIR'), '-Wl', '-lpthread', '-lm', '-lgomp'] 
+                       # -Wl throws an error with gcc-4.8 LP says it doesn't do anything here anyway
+                   extra_link_args=['-L%s' % distutils.sysconfig.get_config_var('LIBDIR'),'-lpthread', '-lm', '-lgomp']
 
                    )
 DISTANCE = Extension('msmbuilder/_distance_wrap',
