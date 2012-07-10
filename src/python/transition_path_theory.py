@@ -25,6 +25,9 @@ Pathways
 Committors
 """
 
+debug = False # set to increase verbosity for coding purposes
+
+import sys
 import numpy as np
 import scipy.sparse
 from msmbuilder import MSMLib
@@ -62,11 +65,29 @@ def DijkstraTopPaths(A, B, NFlux, NumPaths=10, NodeWipe=False):
         The flux through each path
     """
 
-    Paths=[]
-    Fluxes=[]
-    Bottlenecks=[]
+
+    # first, do some checking on the input, esp. A and B
+    # we want to make sure all objects are iterable and the sets are disjoint
+    try:
+        l = len(A)
+    except:
+        A = list([int(A)])
+        print "Warning: passed object 'A' was not iterable, converted it to:", A
+    try: 
+        l = len(B)
+    except: 
+        B = list([int(B)])
+        print "Warning: passed object 'B' was not iterable, converted it to:", B
+    if np.any( A == B ):
+        raise ValueError("Sets A and B must be disjoint to find paths between them")
+
+    # initialize objects
+    Paths = []
+    Fluxes = []
+    Bottlenecks = []
     NFlux = NFlux.tolil()
 
+    # run the initial Dijkstra pass
     pi, b = Dijkstra(A, B, NFlux)
 
     print "Path Num | Path | Bottleneck | Flux" 
@@ -99,7 +120,7 @@ def DijkstraTopPaths(A, B, NFlux, NumPaths=10, NodeWipe=False):
         
         # Then relax the graph and repeat
         # But only if we still need to
-        if i != NumPaths-1:        
+        if i != NumPaths-1:
             while len(Q) > 0:
                 w = Q.pop()
                 for v in G[1][np.where( G[0] == w )]:
@@ -109,7 +130,8 @@ def DijkstraTopPaths(A, B, NFlux, NumPaths=10, NodeWipe=False):
                 Q = sorted(Q, key=lambda v: b[v])
 
         i+=1
-        if i == NumPaths: done = True
+        if i == NumPaths+1: 
+            done = True
         if Flux == 0: 
             print "Only %d possible pathways found. Stopping backtrack." % i
             done = True
@@ -211,24 +233,26 @@ def BackRelax(s, b, pi, NFlux):
         `DijkstraTopPaths` is probably the function you want to call to find
          paths through an MSM network. This is a utility function called by
          `DijkstraTopPaths`, but may be useful in some specific cases
-
-    Notes
-    -----
-    TJL wrote this, but has forgotten exactly how it all works. The basic
-    idea is above. Email <tjlane@stanford.edu> with issues.
     """
+
     G = scipy.sparse.find(NFlux)
     if len( G[0][np.where( G[1] == s )] ) > 0:
-        # Resource that node from the best option one level lower
+
+        # For all nodes connected upstream to the node `s` in question,
+        # Re-source that node from the best option (lowest cost) one level lower
         # Notation: j is node one level below, s is the one being considered
-        b[s] = 0
-        for j in G[0][np.where( G[1] == s )]:
-            if b[s] < min( b[j], NFlux[j,s]):
-                b[s] = min( b[j], NFlux[j,s])
-                pi[s] = j
+
+        b[s] = 0                                 # set the cost to zero
+        for j in G[0][np.where( G[1] == s )]:    # for each upstream node
+            if b[s] < min( b[j], NFlux[j,s] ):   # if that node has a lower cost
+                b[s] = min( b[j], NFlux[j,s] )   # then set the cost to that node
+                pi[s] = j                        # and the source comes from there
+
+    # if there are no nodes connected to this one, then we need to go one
+    # level up and work there first 
     else: 
         for sprime in G[1][np.where( G[0] == s )]:
-            NFlux[s,sprime]=0
+            NFlux[s,sprime] = 0
             b, pi, NFlux = BackRelax(sprime, b, pi, NFlux)
             
     return b, pi, NFlux
@@ -264,8 +288,8 @@ def Backtrack(B, b, pi, NFlux):
     --------
     DijkstraTopPaths : child function
         `DijkstraTopPaths` is probably the function you want to call to find
-         paths through an MSM network. This is a utility function called by
-         `DijkstraTopPaths`, but may be useful in some specific cases
+        paths through an MSM network. This is a utility function called by
+        `DijkstraTopPaths`, but may be useful in some specific cases
     """
 
     # Select starting location
@@ -274,15 +298,19 @@ def Backtrack(B, b, pi, NFlux):
         path = [Bnode]
         NotDone=True
         while NotDone:
-            if pi[path[-1]] == -1: break
-            else: path.append(pi[path[-1]])
+            if pi[path[-1]] == -1:
+                break
+            else:
+                #print pi
+                path.append( pi[path[-1]] )
+                #print path # sys.exit()
         path.reverse()
 
-        ( (b1, b2), Flux) = FindPathBottleneck(path, NFlux)
+        bottleneck, Flux = FindPathBottleneck(path, NFlux)
+        if debug: print 'In Backtrack: Flux, bestflux:', Flux, bestflux
         if Flux > bestflux: 
             bestpath = path
             bestflux = Flux
-            bottleneck = (b1,b2)
 
     if Flux == 0:
         bestpath = []
@@ -319,8 +347,10 @@ def FindPathBottleneck(Path, NFlux):
          paths through an MSM network. This is a utility function called by
          `DijkstraTopPaths`, but may be useful in some specific cases
     """
-    NFlux=NFlux.tolil()
-    flux = 100
+
+    NFlux = NFlux.tolil()
+    flux = 100.
+
     for i in range(len(Path)-1):
         if NFlux[ Path[i], Path[i+1] ] < flux:
             flux = NFlux[ Path[i], Path[i+1] ]
