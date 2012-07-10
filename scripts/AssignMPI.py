@@ -4,7 +4,7 @@ import numpy as np
 
 import argparse
 import pickle
-from msmbuilder.Trajectory import Trajectory
+from msmbuilder import Trajectory
 from msmbuilder.assigning_mpi import MasterAssigner, WorkerAssigner
 from msmbuilder.scripts.Cluster import add_argument, construct_metric
 from msmbuilder import Project

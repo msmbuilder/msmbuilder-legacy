@@ -37,7 +37,7 @@ if __name__ == "__main__":
     AtomIndicesFilename=args["AtomIndicesFn"]
     RMSDFilename=args["RMSDFn"]
 
-    P1=Project.Project.LoadFromHDF(ProjectFilename)
+    P1=Project.LoadFromHDF(ProjectFilename)
     AtomIndices=loadtxt(AtomIndicesFilename, int)
 
     rmsd=HierarchicalClustering.CalculateRMSDMatrix(P1,AtomIndices)

@@ -52,8 +52,10 @@ __all__ = [
 "mm"
 ]
 
-from Project import Project
-from Trajectory import Trajectory
+import PDB
 from Serializer import Serializer
+from Conformation import ConformationBaseClass
 from Conformation import Conformation
+from Trajectory import Trajectory
+from Project import Project
 from FahProject import FahProject

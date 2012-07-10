@@ -25,8 +25,8 @@ import tables
 import numpy as np
 
 from msmbuilder import PDB
-from msmbuilder import Conformation
-from msmbuilder.Serializer import Serializer
+from msmbuilder import ConformationBaseClass, Conformation
+from msmbuilder import Serializer
 from msmbuilder import xtc
 from msmbuilder import dcd
 
@@ -53,7 +53,7 @@ def _ConvertFromLossyIntegers(X,Precision):
     X2/=float(Precision)
     return(X2)
 
-class Trajectory(Conformation.ConformationBaseClass):
+class Trajectory(ConformationBaseClass):
     """This is the representation of a sequence of  conformations.
 
     Notes:
@@ -83,7 +83,7 @@ class Trajectory(Conformation.ConformationBaseClass):
         LoadFromLHDF
         """
         
-        Conformation.ConformationBaseClass.__init__(self,S)
+        ConformationBaseClass.__init__(self,S)
         self["XYZList"]=[]
         if "XYZList" in S: self["XYZList"]=S["XYZList"].copy()
     
@@ -283,7 +283,7 @@ class Trajectory(Conformation.ConformationBaseClass):
             self["XYZList"]=self["XYZList"].tolist()
         except:
             pass
-        C1=Conformation.Conformation.LoadFromPDB(Filename)
+        C1=Conformation.LoadFromPDB(Filename)
         Temp=C1["XYZ"]
         if len(Temp)!=len(self["XYZList"][0]):
             raise NameError("Tried to add wrong number of coordinates.")
