@@ -21,11 +21,11 @@
 import numpy as np
 from msmbuilder import PDB, Serializer
 
-class ConformationBaseClass(Serializer.Serializer):
+class ConformationBaseClass(Serializer):
     """Base class for Trajectory and Conformation classes.  Not for separate use."""
     def __init__(self,DictLike=None):
         """Initialize object.  Optionally include data from a dictionary object DictLike."""
-        Serializer.Serializer.__init__(self,DictLike)
+        Serializer.__init__(self,DictLike)
         KeysToForceCopy=["ChainID","AtomNames","ResidueNames","AtomID","ResidueID"]
         for key in KeysToForceCopy:#Force copy to avoid owning same numpy memory.
             self[key]=self[key].copy()

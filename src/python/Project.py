@@ -23,8 +23,8 @@ import os
 import numpy as np
 
 from msmbuilder import Conformation
-from msmbuilder.Serializer import Serializer
-from msmbuilder.Trajectory import Trajectory
+from msmbuilder import Serializer
+from msmbuilder import Trajectory
 from msmbuilder import clustering
 from msmbuilder import utils
 utils.make_methods_pickable()
@@ -71,10 +71,10 @@ class Project(Serializer):
         for key in ["RunList","CloneList","NumGensList"]:
             if key in S: self[key]=S[key]
         try:
-            self.Conf=Conformation.Conformation.LoadFromPDB(self["ConfFilename"])
+            self.Conf=Conformation.LoadFromPDB(self["ConfFilename"])
         except IOError:
             print("Could not find %s; trying current directory."%self["ConfFilename"])
-            self.Conf=Conformation.Conformation.LoadFromPDB(os.path.basename(self["ConfFilename"]))
+            self.Conf=Conformation.LoadFromPDB(os.path.basename(self["ConfFilename"]))
     
     @classmethod   
     def CountLocalTrajectories(cls, TrajFilePath, TrajFileBaseName, TrajFileType):
@@ -100,7 +100,7 @@ class Project(Serializer):
 
         if ConfFilename is None:
             raise ValueError('You must supply a conf (.pdb)')
-        Conf = Conformation.Conformation.LoadFromPDB(ConfFilename)
+        Conf = Conformation.LoadFromPDB(ConfFilename)
 
         NumTraj = cls.CountLocalTrajectories(TrajFilePath,TrajFileBaseName,TrajFileType)
         

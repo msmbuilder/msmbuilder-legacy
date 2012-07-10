@@ -109,7 +109,7 @@ def run(atomindicesFn, pdbFn, trajlistFn, datatype):
 
         print("Creating Project File based on assignments")
         DictContainer={"TrajLengths":numpy.array(LenList),"TrajFilePath":"Trajectories","TrajFileBaseName":"trj","TrajFileType":".lh5","ConfFilename":pdbFn}
-        P1=Project.Project(DictContainer)
+        P1=Project(DictContainer)
         P1.SaveToHDF("ProjectInfo.h5")
     else:
         print "Found trajectory data. Moving old trajectories directory to one called old_trajectories and converting to %s files in new Trajectories directory." % datatype
