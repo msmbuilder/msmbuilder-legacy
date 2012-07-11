@@ -1250,7 +1250,8 @@ class Vectorized(AbstractDistanceMetric):
         
         Returns
         -------
-        Vector of distances of length len(indices2)
+        distances : ndarray
+            Vector of distances of length len(indices2)
         """
 
         if not isinstance(index1, int):
@@ -1261,13 +1262,26 @@ class Vectorized(AbstractDistanceMetric):
         return out[:,0]
     
     def one_to_all(self, prepared_traj1, prepared_traj2, index1):
-        """Calculate a vector of distances from the index1th frame of prepared_traj1
-        to the frames in prepared_traj2 with indices 'indices2', using supplied
-        metric and value of p. The field p is unused unless metric='minkowski'.
+        """Measure the distance from one frame to every frame in a trajectory
         
-        metric can be any of the metrics in the class variable allowable_scipy_metric
+        The distances calculated are from the `index1`th frame of `prepared_traj1`
+        to all the frames in `prepared_traj2` with indices `indices2`. Although
+        this is similar to one_to_many, it can often be computed faster
         
-        Returns: a vector of distances of length len(prepared_traj2)"""
+        Parameters
+        ----------
+        prepared_traj1 : ndarray
+            First prepared trajectory
+        prepared_traj2 : ndarray
+            Second prepared trajectory
+        index1 : int
+            index in `prepared_trajectory`
+        
+        
+        Returns
+        -------
+        distances : ndarray
+            A vector of distances of length len(prepared_traj2)"""
         
         if not isinstance(index1, int):
             raise TypeError('index1 must be of type int.')
@@ -1277,14 +1291,28 @@ class Vectorized(AbstractDistanceMetric):
         
     
     def many_to_many(self, prepared_traj1, prepared_traj2, indices1, indices2):
-        """Calculate a MATRIX of distances from the frames in prepared_traj1 with
-        indices 'indices1' to the frames in prepared_traj2 with indices 'indices2',
-        using supplied metric and value of p. The field p is unused unless
-        metric='minkowski'.
+        """Get a matrix of distances from each frame in a set to each other frame
+        in a second set.
         
-        metric can be any of the metrics in the class variable allowable_scipy_metric
+        Calculate a MATRIX of distances from the frames in prepared_traj1 with
+        indices `indices1` to the frames in prepared_traj2 with indices `indices2`,
+        using supplied metric.
         
-        Returns: a 2D array of shape len(prepared_traj1) * len(prepared_traj2)"""
+        Parameters
+        ----------
+        prepared_traj1 : ndarray
+            First prepared trajectory
+        prepared_traj2 : ndarray
+            Second prepared trajectory
+        indices1 : array_like
+            list of indices in `prepared_traj1` to calculate the distances from
+        indices2 : array_like
+            list of indices in `prepared_traj2` to calculate the distances to
+        
+        Returns
+        -------
+        distances : ndarray
+            A 2D array of shape len(indices1) * len(indices2)"""
         
         
         out = cdist(prepared_traj1[indices1], prepared_traj2[indices2], metric=self.metric,
@@ -1292,13 +1320,21 @@ class Vectorized(AbstractDistanceMetric):
         return out
         
     def all_to_all(self, prepared_traj1, prepared_traj2):
-        """Calculate a MATRIX of distances from the frames in prepared_traj1 to 
-        all the frames in prepared_traj2 using supplied metric and value of p.
-        The field p is unused unless metric='minkowski'.
+        """Get a matrix of distances from all frames in one traj to all frames in
+        another
         
-        metric can be any of the metrics in the class variable allowable_scipy_metric
         
-        Returns: a 2D array of shape len(prepared_traj1) * len(prepared_traj2)"""
+        Parameters
+        ----------
+        prepared_traj1 : ndarray
+            First prepared trajectory
+        prepared_traj2 : ndarray
+            Second prepared trajectory
+        
+        Returns
+        -------
+        distances : ndarray
+            A 2D array of shape len(preprared_traj1) * len(preprared_traj2)"""
         
         if prepared_traj1 is prepared_traj2:
             warnings.warn('runtime', re.sub("\s+", " ", """it's not recommended to
@@ -1313,17 +1349,29 @@ class Vectorized(AbstractDistanceMetric):
         return out                                        
         
     def all_pairwise(self, prepared_traj):
-        """Calculate a "condensed" distance matrix of all the pairwise distances
-        between each frame with each other frame in prepared_traj using supplied
-        metric and value of p. The field p is unused unless metric='minkowski'. 
+        """Calculate a condense" distance matrix of all the pairwise distances
+        between each frame with each other frame in prepared_traj
         
-        metric can be any of the metrics in the class variable allowable_scipy_metric
+        The condensed distance matrix can be converted to the redundant square form
+        if desired
         
-        Returns: a 1D vector of length len(pairwise_traj) choose 2 where the i*jth
-        entry contains the distance between prepared_traj[i] and prepared_traj[j].
-        See the documentation on scipy.spatial.distance.pdist for more details."""
+        Parameters
+        ----------
+        prepared_traj1 : ndarray
+            Prepared trajectory
+            
+        Returns
+        -------
+        distances : ndarray
+            1D vector of length len(pairwise_traj) choose 2 where the i*jth
+            entry contains the distance between prepared_traj[i] and prepared_traj[j]
+            
+        See Also
+        --------
+        scipy.spatial.distance.pdist
+        scipy.spatial.distance.squareform
+        """
         
-        # TODO: Provide a faster pdist implementation using openmp
         out = pdist(prepared_traj, metric=self.metric, p=self.p,
                     V=self.V, VI=self.VI)
         return out
@@ -1338,21 +1386,56 @@ class Dihedral(Vectorized, AbstractDistanceMetric):
                                'sqeuclidean', 'seuclidean', 'mahalanobis', 'sqmahalanobis']
     
     def __init__(self, metric='euclidean', p=2, angles='phi/psi', V=None, VI=None):
+        """Create a distance metric to act on torison angles
+        
+        Parameters
+        ----------
+        metric : {'braycurtis', 'canberra', 'chebyshev', 'cityblock',
+                  'correlation', 'cosine', 'euclidean', 'minkowski',
+                  'sqeuclidean', 'seuclidean', 'mahalanobis', 'sqmahalanobis'}
+            Distance metric to equip the vector space with.
+        angles : {'phi', 'psi', 'chi', 'omega', 'psi/psi', etc...}
+            A slash separated list of strings specifying the types of angles to 
+            compute per residue. The choices are 'phi', 'psi', 'chi', and 'omega',
+            or any combination thereof
+        p : int, optional
+            p-norm order, used for metric='minkowski'
+        V : ndarray, optional
+            variances, used for metric='seuclidean'
+        VI : ndarray, optional
+            inverse covariance matrix, used for metric='mahalanobi'
+            
+        See Also
+        --------
+        fast_cdist
+        fast_pdist
+        scipy.spatial.distance
+        
+        """
         super(Dihedral, self).__init__(metric, p, V, VI)
         self.angles = angles
     
     def __repr__(self):
+        "String representation of the object"
         return 'metrics.Dihedral(metric=%s, p=%s, angles=%s)' % (self.metric, self.p, self.angles)
     
     def prepare_trajectory(self, trajectory):
         """Prepare the dihedral angle representation of a trajectory, suitable
         for distance calculations.
         
-        Returns: a 2D array of dimension len(trajectory) x (2*number of dihedral
-        angles per frame), such that in each row, the first half of the entries
-        contain the cosine of the dihedral angles and the later dihedral angles
-        contain the sine of the dihedral angles. This transform is necessary so
-        that distance calculations preserve the periodic symmetry.
+        Parameters
+        ----------
+        trajectory : msmbuilder.Trajectory
+            An MSMBuilder trajectory to prepare
+        
+        Returns
+        -------
+        projected_angles : ndarray
+            A 2D array of dimension len(trajectory) x (2*number of dihedral
+            angles per frame), such that in each row, the first half of the entries
+            contain the cosine of the dihedral angles and the later dihedral angles
+            contain the sine of the dihedral angles. This transform is necessary so
+            that distance calculations preserve the periodic symmetry.
         """
         
         traj_length = len(trajectory['XYZList'])
@@ -1389,29 +1472,30 @@ class ContinuousContact(Vectorized, AbstractDistanceMetric):
         """Create a distance calculator based on the distances between pairs of atoms
         in a sturcture -- like the contact map except without casting to boolean.
         
-        contacts can be an n by 2 array, where each row is a pair of
-        integers giving the indices of 2 residues whose distance you care about.
-        
-        Alternatively, contacts can be the string 'all'. This is a shortcut for
-        supplying a contacts list that includes all (N * N-1) / 2 pairs of the n
-        residues.
-        
-        scheme can be 'CA', 'closest', or 'closest-heavy' and gives
-        the sense in which the 'distance between two residues' is computed. If
-        scheme is 'CA', then we'll use the cartesian distance between the residues'
-        C-alpha atoms as their distance for the purpose of calculating whether or
-        not they have exceeded the cutoff. If scheme is 'closest', we'll use the
-        distance between the closest pair of atoms where one
-        belongs to residue i and to residue j. If scheme is 'closest-heavy', we'll
-        use the distance between the closest pair of non-hydrogen atoms where one
-        belongs to reside i and one to residue j.
-        
-        'metric' should be the mathematic metric used to compare the vectors of distances.
-        it can either be 'braycurtis', 'canberra', 'chebyshev', 'cityblock',
-        'correlation', 'cosine', 'euclidean', 'minkowski', 'sqeuclidean'.
-        
-        If you use 'minkowski', then you have to supply a value for p, the degree.
-        otherwise, the value p is ignored.
+        Parameters
+        ----------
+        metric : {'braycurtis', 'canberra', 'chebyshev', 'cityblock',
+                  'correlation', 'cosine', 'euclidean', 'minkowski',
+                  'sqeuclidean'}
+            distance metric to equip the space with
+        p : int
+            exponent for p-norm, used only for `metric='minkowski'`
+        contacts : {ndarray, 'all'}
+            contacts can be an n by 2 array, where each row is a pair of
+            integers giving the indices of 2 residues whose distance you care about.
+            Alternatively, contacts can be the string 'all'. This is a shortcut for
+            supplying a contacts list that includes all (N-2 * N-3) / 2 pairs of
+            residues which are more than 2 residues apart.
+        scheme: {'CA', 'closest', 'closest-heavy'}
+            scheme can be 'CA', 'closest', or 'closest-heavy' and gives
+            the sense in which the 'distance between two residues' is computed. If
+            scheme is 'CA', then we'll use the cartesian distance between the residues'
+            C-alpha atoms as their distance for the purpose of calculating whether or
+            not they have exceeded the cutoff. If scheme is 'closest', we'll use the
+            distance between the closest pair of atoms where one
+            belongs to residue i and to residue j. If scheme is 'closest-heavy', we'll
+            use the distance between the closest pair of non-hydrogen atoms where one
+            belongs to reside i and one to residue j.
         """
         
         super(ContinuousContact, self).__init__(metric, p)
@@ -1434,13 +1518,24 @@ class ContinuousContact(Vectorized, AbstractDistanceMetric):
     
     def prepare_trajectory(self, trajectory):
         """Prepare a trajectory for distance calculations based on the contact map.
+        
         Each frame in the trajectory will be represented by a vector where
         each entries represents the distance between two residues in the structure.
         Depending on what contacts you pick to use, this can be a 'native biased' 
         picture or not.
+        
+        Paramters
+        ---------
+        trajectory : msmbuilder.Trajectory
+            The trajectory to prepare
+            
+        Returns
+        -------
+        pairwise_distances : ndarray
+            1D array of various residue-residue distances
         """
         
-        xyzlist = trajectory['XYZList']        
+        xyzlist = trajectory['XYZList']
         traj_length = len(xyzlist)
         num_residues = trajectory.GetNumberOfResidues()
         num_atoms = trajectory.GetNumberOfAtoms()
@@ -1521,40 +1616,40 @@ class BooleanContact(Vectorized, AbstractDistanceMetric):
         """ Create a distance metric that will measure the distance between frames
         based on differences in their contact maps.
         
-        metric should be one of 'dice', 'kulsinki', 'matching', 'rogerstanimoto',
-        russellrao', 'sokalmichener', 'sokalsneath', 'yule'. You should probably
-        use matching. Then the distance between two frames is just the number of
-        elements in their contact map that are the same. See the scipy.spatial.distance
-        documentation for details.
-        
-        contacts can be an n by 2 array, where each row is a pair of
-        integers giving the indices of 2 residues which form a native contact.
-        Each conformation is then represnted by a vector of booleans representing
-        whether or not that contact is present in the conformation. The distance
-        metric acts on two conformations and compares their vectors of booleans.
-        
-        Alternatively, contacts can be the string 'all'. This is a shortcut for
-        supplying a contacts list that includes all (N * N-1) / 2 pairs of the n
-        residues.
-        
-        cutoff can be either a positive float representing the cutoff distance between two
-        residues which constitues them being 'in contact' vs 'not in contact'. It
-        is measured in the same distance units that your trajectory's XYZ data is in
-        (probably nanometers).
-        
-        Alternatively, cutoff can be an array of length equal to the number of rows in the
-        contacts array, specifying a different cutoff for each contact. That is, cutoff[i]
-        should contain the cutoff for the contact in contact[i].
-        
-        scheme can be 'CA', 'closest', or 'closest-heavy' and gives
-        the sense in which the 'distance between two residues' is computed. If
-        scheme is 'CA', then we'll use the cartesian distance between the residues'
-        C-alpha atoms as their distance for the purpose of calculating whether or
-        not they have exceeded the cutoff. If scheme is 'closest', we'll use the
-        distance between the closest pair of atoms where one belongs to residue i
-        and to residue j. If scheme is 'closest-heavy', we'll use the distance
-        between the closest pair of non-hydrogen atoms where one belongs to reside
-        i and one to residue j."""
+        Paramters
+        ---------
+        metric : {'dice', 'kulsinki', 'matching', 'rogerstanimoto',
+                  russellrao', 'sokalmichener', 'sokalsneath', 'yule'}
+            You should probably use matching. Then the distance between two
+            frames is just the number of elements in their contact map that are
+            the same. See the scipy.spatial.distance documentation for details.
+        contacts : {ndarray, 'all'}
+            contacts can be an n by 2 array, where each row is a pair of
+            integers giving the indices of 2 residues which form a native contact.
+            Each conformation is then represnted by a vector of booleans representing
+            whether or not that contact is present in the conformation. The distance
+            metric acts on two conformations and compares their vectors of booleans.
+            Alternatively, contacts can be the string 'all'. This is a shortcut for
+            supplying a contacts list that includes all (N-2 * N-3) / 2 pairs of
+            residues which are more than 2 residues apart.
+        cutoff : {float, ndarray}
+            cutoff can be either a positive float representing the cutoff distance between two
+            residues which constitues them being 'in contact' vs 'not in contact'. It
+            is measured in the same distance units that your trajectory's XYZ data is in
+            (probably nanometers).
+            Alternatively, cutoff can be an array of length equal to the number of rows in the
+            contacts array, specifying a different cutoff for each contact. That is, cutoff[i]
+            should contain the cutoff for the contact in contact[i].
+        scheme : {'CA', 'closest', 'closest-heavy'}
+            scheme can be 'CA', 'closest', or 'closest-heavy' and gives
+            the sense in which the 'distance between two residues' is computed. If
+            scheme is 'CA', then we'll use the cartesian distance between the residues'
+            C-alpha atoms as their distance for the purpose of calculating whether or
+            not they have exceeded the cutoff. If scheme is 'closest', we'll use the
+            distance between the closest pair of atoms where one belongs to residue i
+            and to residue j. If scheme is 'closest-heavy', we'll use the distance
+            between the closest pair of non-hydrogen atoms where one belongs to reside
+            i and one to residue j."""
         
         super(BooleanContact, self).__init__(metric)
         self.contacts = contacts
@@ -1587,8 +1682,18 @@ class BooleanContact(Vectorized, AbstractDistanceMetric):
     
     def prepare_trajectory(self, trajectory):
         """Prepare a trajectory for distance calculations based on the contact map.
-        This will use the optins that you selected in the call to init.
+        
+        Paramters
+        ---------
+        trajectory : msmbuilder.Trajectory
+            The trajectory to prepare
+            
+        Returns
+        -------
+        pairwise_distances : ndarray
+            1D array of various residue-residue distances, casted to boolean
         """
+
         
         ccm = ContinuousContact(contacts=self.contacts, scheme=self.scheme)
         contact_d = ccm.prepare_trajectory(trajectory)
@@ -1730,12 +1835,36 @@ class ProtLigRMSD(AbstractDistanceMetric):
         return aligned_ligand_xyz
     
     
-    def one_to_all(self, ptraj1, ptraj2, index1):
-        "Calculate the distance between ptraj1[index1] and each frame in ptraj2"
-        length = len(ptraj2)
+    def one_to_all(self, prepared_traj1, prepared_traj2, index1):
+        """Calculate the vector of distances from the index1th frame of
+        prepared_traj1 to all of the frames in prepared_traj2.
+        
+        Parameters
+        ----------
+        prepared_traj1 : prepared_trajectory
+            First prepared trajectory
+        prepared_traj2 : prepared_trajectory
+            Second prepared trajectory
+        index1 : int
+            index in `prepared_trajectory` 
+            
+        Returns
+        -------
+        distances : ndarray
+            vector of distances of length len(prepared_traj2)
+        
+        Notes
+        -----
+        Although this might seem to be a special case of one_to_many(), it
+        can often be implemented in a much more optimized way because it doesn't
+        require construction of the indices2 array and array slicing in python
+        is kindof slow.
+        """
+        
+        length = len(prepared_traj2)
         distances = np.zeros(length)
         for i in xrange(length):
-            distances[i] = self._calcRMSD(ptraj1[index1], ptraj2[i])
+            distances[i] = self._calcRMSD(prepared_traj1[index1], prepared_traj2[i])
         return distances
     
     @staticmethod
@@ -1833,6 +1962,16 @@ class Hybrid(AbstractDistanceMetric):
         
     
     def __init__(self, base_metrics, weights):
+        """Create a hybrid linear combinatiin distance metric
+        
+        Parameters
+        ----------
+        base_metrics : list of distance metric objects
+        weights : list of floats
+            list of scalars of equal length to `base_metrics` -- each base
+            metric will be multiplied by that scalar when they get summed.
+        """
+        
         self.base_metrics = base_metrics
         self.weights = weights
         self.num = len(self.base_metrics)
@@ -1842,6 +1981,22 @@ class Hybrid(AbstractDistanceMetric):
         
 
     def prepare_trajectory(self, trajectory):
+        """Preprocess trajectory for use with this metric
+        
+        Parameters
+        ----------
+        trajectory : msmbuilder.Trajectory
+            Trajectory to prepare
+        
+        Returns
+        -------
+        prepared_trajectory : array_like
+            The prepared trajectory is a special array like object called
+            HybridPreparedTrajectory which is designed to pass through the slicing
+            correctly so that if you ask for prepared_trajectory[5] you get the
+            appropriate 5th frames dihedral angles, RMSD, etc (depending what
+            base metrics you used)
+        """
         prepared = (m.prepare_trajectory(trajectory) for m in self.base_metrics)
         return self.HybridPreparedTrajectory(*prepared)
     
@@ -1879,6 +2034,31 @@ class Hybrid(AbstractDistanceMetric):
     
 
     def one_to_all(self, prepared_traj1, prepared_traj2, index1):
+        """Calculate the vector of distances from the index1th frame of
+        prepared_traj1 to all of the frames in prepared_traj2.
+        
+        Parameters
+        ----------
+        prepared_traj1 : prepared_trajectory
+            First prepared trajectory
+        prepared_traj2 : prepared_trajectory
+            Second prepared trajectory
+        index1 : int
+            index in `prepared_trajectory` 
+            
+        Returns
+        -------
+        distances : ndarray
+            vector of distances of length len(prepared_traj2)
+        
+        Notes
+        -----
+        Although this might seem to be a special case of one_to_many(), it
+        can often be implemented in a much more optimized way because it doesn't
+        require construction of the indices2 array and array slicing in python
+        is kindof slow.
+        """
+        
         distances = None
         for i in range(self.num):
             d = self.base_metrics[i].one_to_all(prepared_traj1.datas[i], prepared_traj2.datas[i], index1)
@@ -1890,7 +2070,27 @@ class Hybrid(AbstractDistanceMetric):
     
 
     def all_pairwise(self, prepared_traj):
-        """Calculate condensed distance metric of all pairwise distances"""
+        """Calculate condensed distance metric of all pairwise distances
+        
+        See `scipy.spatial.distance.squareform` for information on how to convert
+        the condensed distance matrix to a redundant square matrix
+        
+        Parameters
+        ----------
+        prepared_traj : array_like
+            Prepared trajectory
+        
+        Returns
+        -------
+        Y : ndarray
+            A 1D array containing the distance from each frame to each other frame
+            
+        See Also
+        --------
+        fast_pdist
+        scipy.spatial.distance.squareform
+        """
+        
         distances = None
         for i in range(self.num):
             d = self.base_metrics[i].all_pairwise(prepared_traj.datas[i])
@@ -1903,12 +2103,21 @@ class HybridPNorm(Hybrid):
     this gives you the root mean square combination of the base metrics"""
     
     def __init__(self, base_metrics, weights, p=2):
-        """Initialize the HybridPNorm distance metric. base_metrics is a list
-        of (instantiated) distance metrics. Weights is a list of scalars of equal
-        length -- each base metric will be multiplied by that scalar. p should be
-        a scalar, greater than 0, which will be the exponent. If p=2, all the base
-        metrics will be squared, then summed, then the square root will be taken.
-        If p=3, the base metrics will be cubed, summed and cube rooted, etc."""
+        """Initialize the HybridPNorm distance metric.
+        
+        Parameters
+        ----------
+        base_metrics : list of distance metric objects
+        weights : list of floats
+            list of scalars of equal length to `base_metrics` -- each base
+            metric will be multiplied by that scalar.
+        p : float
+            p should be a scalar, greater than 0, which will be the exponent.
+            If p=2, all the base metrics will be squared, then summed, then the
+            square root will be taken. If p=3, the base metrics will be cubed,
+            summed and cube rooted, etc.
+        """
+        
         self.p = float(p)
         super(HybridPNorm, self).__init__(base_metrics, weights)
         
@@ -1946,8 +2155,30 @@ class HybridPNorm(Hybrid):
         return distances**(1.0 / self.p)
         
     def one_to_all(self, prepared_traj1, prepared_traj2, index1):
-        """Compute the distance from prepared_traj1[index1] to each of the frames in
-        prepared_traj2"""
+        """Calculate the vector of distances from the index1th frame of
+        prepared_traj1 to all of the frames in prepared_traj2.
+        
+        Parameters
+        ----------
+        prepared_traj1 : prepared_trajectory
+            First prepared trajectory
+        prepared_traj2 : prepared_trajectory
+            Second prepared trajectory
+        index1 : int
+            index in `prepared_trajectory` 
+            
+        Returns
+        -------
+        distances : ndarray
+            vector of distances of length len(prepared_traj2)
+        
+        Notes
+        -----
+        Although this might seem to be a special case of one_to_many(), it
+        can often be implemented in a much more optimized way because it doesn't
+        require construction of the indices2 array and array slicing in python
+        is kindof slow.
+        """
         
         distances = None
         for i in range(self.num):
@@ -1959,8 +2190,27 @@ class HybridPNorm(Hybrid):
         return distances**(1.0 / self.p)
         
     def all_pairwise(self, prepared_traj):
-        """Calculate condensed distance metric of all pairwise distances"""
+        """Calculate condensed distance metric of all pairwise distances
         
+        See `scipy.spatial.distance.squareform` for information on how to convert
+        the condensed distance matrix to a redundant square matrix
+        
+        Parameters
+        ----------
+        prepared_traj : array_like
+            Prepared trajectory
+        
+        Returns
+        -------
+        Y : ndarray
+            A 1D array containing the distance from each frame to each other frame
+            
+        See Also
+        --------
+        fast_pdist
+        scipy.spatial.distance.squareform
+        """
+                
         distances = None
         for i in range(self.num):
             d = self.base_metrics[i].all_pairwise(prepared_traj.datas[i])

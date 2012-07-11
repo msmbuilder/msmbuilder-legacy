@@ -37,15 +37,17 @@ def _setup_containers(assignments_path, distances_path, num_trajs, longest):
     return assignments_tmp, distances_tmp, all_assignments, all_distances, completed_trajectories
 
 
-def assign_in_memory(metric, generators, trajectories):
+def assign_in_memory(metric, generators, project):
     """This really should be called simple assign -- its the simplest"""
 
-    lengths = [len(traj) for traj in trajectories]
-    assignments = -1 * np.ones((len(lengths), max(lengths)), dtype='int')
-    distances = -1 * np.ones((len(lengths), max(lengths)), dtype='float32')
-    pgens = metric.prepare_trajectory(generators)
+    n_trajs, max_traj_length = project['NumTrajs'], max(project['TrajLengths'])
+    assignments = -1 * np.ones((n_trajs, max_traj_length), dtype='int')
+    distances = -1 * np.ones((n_trajs, max_traj_length), dtype='float32')
 
-    for i, traj in enumerate(trajectories):
+    pgens = metric.prepare_trajectory(generators)
+    
+    for i in xrange(n_trajs):
+        traj = project.LoadTraj(i)
         ptraj = metric.prepare_trajectory(traj)
         for j in xrange(len(traj)):
             d = metric.one_to_all(ptraj, pgens, j)
