@@ -148,7 +148,7 @@ def _get_indices_phi(conformation):
             a2 = np.where((AName == "CA") & (RID == (i + 1)))[0][0]
             a3 = np.where((AName == "C") & (RID == (i + 1)))[0][0]
         except:
-            pass
+            continue
         Indices.append([a0, a1, a2, a3])
     return(np.array(Indices))
 
@@ -174,7 +174,7 @@ def _get_indices_psi(conformation):
             a2 = np.where((AName == "C") & (RID == i))[0][0]
             a3 = np.where((AName == "N") & (RID == (i + 1)))[0][0]
         except:
-            pass
+            continue
         Indices.append([a0, a1, a2, a3])
         
     return(np.array(Indices))
@@ -200,7 +200,7 @@ def _get_indices_omega(conformation):
             a2 = np.where((AName == "N") & (RID == (i + 1)))[0][0]
             a3 = np.where((AName == "CA") & (RID == (i + 1)))[0][0]
         except:
-            pass
+            continue
         Indices.append([a0, a1, a2, a3])
 
     return(np.array(Indices))
