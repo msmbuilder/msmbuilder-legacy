@@ -182,7 +182,7 @@ functionality.
         "fah". This is the style of trajectory data that gets fed into MSMBuilder.
         If a file, then it requires each trajectory be housed in a separate directory
         like (PROJECT/TRAJ*/frame*.xtc). If 'fah', then standard FAH-style directory
-        architecture is required.''', default='file', choices=['fah', 'file'])
+        architecture is required.''', default='file', choices=['fah', 'file', 'file_dcd'])
     parser.add_argument('mingen', description='''Minimum number of XTC frames 
         required to include data in Project.  Used to discard extremely short 
         trajectories.  Only allowed in conjunction with source = 'FAH'.''',
