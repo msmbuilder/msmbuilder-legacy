@@ -999,7 +999,7 @@ class BaseFlatClusterer(object):
         self._ensure_generators_computed()
         
         output = empty_trajectory_like(self._concatenated)
-        output['XYZList'] = self._concatenated[self._generator_indices]
+        output['XYZList'] = self._concatenated['XYZList'][self._generator_indices]
         return output
     
     def save_to_disk(self, filename):
