@@ -1385,7 +1385,8 @@ class Dihedral(Vectorized, AbstractDistanceMetric):
                                'correlation', 'cosine', 'euclidean', 'minkowski',
                                'sqeuclidean', 'seuclidean', 'mahalanobis', 'sqmahalanobis']
     
-    def __init__(self, metric='euclidean', p=2, angles='phi/psi', V=None, VI=None):
+    def __init__(self, metric='euclidean', p=2, angles='phi/psi', V=None, VI=None,
+        indices=None):
         """Create a distance metric to act on torison angles
         
         Parameters
@@ -1404,7 +1405,13 @@ class Dihedral(Vectorized, AbstractDistanceMetric):
             variances, used for metric='seuclidean'
         VI : ndarray, optional
             inverse covariance matrix, used for metric='mahalanobi'
-            
+        indices : ndarray, optional
+            N x 4 numpy array of indices to be considered as dihedral angles. If
+            provided, this overrrides the angles argument. The semantics of the
+            array are that each row, indices[i], is an array of length 4 giving
+            (in order) the indices of 4 atoms that together form a dihedral you
+            want to monitor.
+        
         See Also
         --------
         fast_cdist
@@ -1414,6 +1421,20 @@ class Dihedral(Vectorized, AbstractDistanceMetric):
         """
         super(Dihedral, self).__init__(metric, p, V, VI)
         self.angles = angles
+        self.indices = indices
+        
+        if indices is not None:
+            if not isinstance(indices, np.ndarray):
+                raise ValueError('indices must be a numpy array')
+            if not indices.ndim == 2:
+                raise ValueError('indices must be 2D')
+            if not indices.dtype == np.int:
+                raise ValueError('indices must contain ints')
+            if not indices.shape[1] == 4:
+                raise ValueError('indices must be N x 4')
+            print '#'*70
+            print 'OVERRIDING angles={} and using custom indices instead'.format(angles)
+            print '#'*70
     
     def __repr__(self):
         "String representation of the object"
@@ -1439,7 +1460,12 @@ class Dihedral(Vectorized, AbstractDistanceMetric):
         """
         
         traj_length = len(trajectory['XYZList'])
-        indices = _dihedralcalc.get_indices(trajectory, self.angles)
+        
+        if self.indices is None:
+            indices = _dihedralcalc.get_indices(trajectory, self.angles)
+        else:
+            indices = self.indices
+        
         dihedrals = _dihedralcalc.compute_dihedrals(trajectory, indices, degrees=False)
         
         # these dihedrals go between -pi and pi but obviously because of the
