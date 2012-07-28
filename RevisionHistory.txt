@@ -1,3 +1,7 @@
+MSMBuilder 2.5.1
+1.  Fixes to Tutorials
+2.  Moved Ward and SCRE to AdvancedMethods tutorial
+
 MSMBuilder 2.5.0
 1. The libraries are distance metric agnostic, you can use your own new distance metric
 without having to change the clustering/assignment code
