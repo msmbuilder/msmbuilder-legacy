@@ -344,7 +344,7 @@ Description output (put into directory specified with outDir):
 , formatter_class=argparse.RawDescriptionHelpFormatter)
     add_argument(parser, '-c', dest='tCountFn', help='Path to transition count matrix file (sparse and dense formats accepted).', required=True)
     add_argument(parser, '-n', dest='nMacro', help='Minimum number of macrostates to make.', default=2, type=int)
-    add_argument(parser, '-p', dest='nProc', help='Number of processors to use (if None, the code will use all the available processors on your machine).', default=None, type=int, required=False)
+#    add_argument(parser, '-p', dest='nProc', help='Number of processors to use (if None, the code will use all the available processors on your machine).', default=None, type=int, required=False)
     add_argument(parser, '-f', dest='forceDense', help='If true, will force transition matrix into a dense format. Using the dense format is faster if you have enough memory.', default=False, type=bool, required=False, nargs='?', const=True)
     add_argument(parser, '-o', dest='outDir', help='Path to save output to.', default="Output_BACE", required=False)
     args = parser.parse_args()
@@ -364,10 +364,10 @@ Description output (put into directory specified with outDir):
         multiDist = multiDistDense
         filterFunc = filterFuncDense
 
-    if args.nProc == None:
-        args.nProc = multiprocessing.cpu_count()
-    print "Set number of processors to", args.nProc
+#    if args.nProc == None:
+#        args.nProc = multiprocessing.cpu_count()
+#    print "Set number of processors to", args.nProc
 
-    run(c, args.nMacro, args.nProc, multiDist, args.outDir, filterFunc)
+    run(c, args.nMacro, 1, multiDist, args.outDir, filterFunc)
 
 
