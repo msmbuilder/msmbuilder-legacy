@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=pdflatex 2012.5.4)  6 JUL 2012 10:52
+This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=pdflatex 2012.5.4)  27 JUL 2012 17:01
 entering extended mode
  %&-line parsing enabled.
 **AdvancedMethods.tex
@@ -493,34 +493,42 @@ Overfull \hbox (11.45729pt too wide) in paragraph at lines 28--28
 []\OT1/pplx/b/n/14.4 Cluster your data us-ing Ward's al-go-rithm and the RMSD
  []
 
+
+Overfull \hbox (5.36081pt too wide) in paragraph at lines 38--39
+[]\OT1/pplx/m/n/12 Note that the key dis-ad-van-tage of Ward is that it re-quir
+es large amounts
+ []
+
+<figures/NTL9-Timescales.pdf, id=25, 578.16pt x 433.62pt>
+File: figures/NTL9-Timescales.pdf Graphic file (type pdf)
+
+<use figures/NTL9-Timescales.pdf> [2]
 LaTeX Font Info:    Font shape `OT1/pplx/bx/n' in size <12> not available
-(Font)              Font shape `OT1/pplx/b/n' tried instead on input line 46.
-[2] <figures/SCRE.pdf, id=35, 587.19376pt x 442.65375pt>
+(Font)              Font shape `OT1/pplx/b/n' tried instead on input line 51.
+ [3 <./figures/NTL9-Timescales.pdf>]
+<figures/SCRE.pdf, id=81, 587.19376pt x 442.65375pt>
 File: figures/SCRE.pdf Graphic file (type pdf)
-
-<use figures/SCRE.pdf> [3] [4 <./figures/SCRE.pdf>] (./AdvancedMethods.bbl
-
-LaTeX Warning: Empty `thebibliography' environment on input line 3.
-
-) [5] (./AdvancedMethods.aux) ) 
+ <use figures/SCRE.pdf>
+[4] [5 <./figures/SCRE.pdf>] (./AdvancedMethods.bbl) [6] (./AdvancedMethods.aux
+) ) 
 Here is how much of TeX's memory you used:
- 4681 strings out of 495061
- 66880 string characters out of 1182622
- 133367 words of memory out of 3000000
- 7753 multiletter control sequences out of 15000+50000
- 27783 words of font info for 72 fonts, out of 3000000 for 9000
+ 4691 strings out of 495061
+ 67100 string characters out of 1182622
+ 130367 words of memory out of 3000000
+ 7759 multiletter control sequences out of 15000+50000
+ 28230 words of font info for 73 fonts, out of 3000000 for 9000
  28 hyphenation exceptions out of 8191
  38i,6n,36p,679b,409s stack positions out of 5000i,500n,10000p,200000b,50000s
-{/usr/share/texmf-texlive/fonts/enc/dvips/base/8
-r.enc}</usr/share/texmf-texlive/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/
-share/texmf-texlive/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/texmf
--texlive/fonts/type1/public/amsfonts/cm/cmtt12.pfb></usr/share/texmf-texlive/fo
-nts/type1/public/mathpazo/fplmri.pfb></usr/share/texmf-texlive/fonts/type1/urw/
-palatino/uplb8a.pfb></usr/share/texmf-texlive/fonts/type1/urw/palatino/uplr8a.p
-fb></usr/share/texmf-texlive/fonts/type1/urw/palatino/uplri8a.pfb>
-Output written on AdvancedMethods.pdf (5 pages, 94804 bytes).
+{/usr/share/texmf-texlive/fonts/enc/dvips/base/8r.enc}</usr/share/texmf-texl
+ive/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/share/texmf-texlive/fonts/ty
+pe1/public/amsfonts/cm/cmsy10.pfb></usr/share/texmf-texlive/fonts/type1/public/
+amsfonts/cm/cmtt12.pfb></usr/share/texmf-texlive/fonts/type1/public/mathpazo/fp
+lmri.pfb></usr/share/texmf-texlive/fonts/type1/urw/palatino/uplb8a.pfb></usr/sh
+are/texmf-texlive/fonts/type1/urw/palatino/uplr8a.pfb></usr/share/texmf-texlive
+/fonts/type1/urw/palatino/uplri8a.pfb>
+Output written on AdvancedMethods.pdf (6 pages, 120300 bytes).
 PDF statistics:
- 111 PDF objects out of 1000 (max. 8388607)
- 14 named destinations out of 1000 (max. 500000)
- 30 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 157 PDF objects out of 1000 (max. 8388607)
+ 16 named destinations out of 1000 (max. 500000)
+ 35 words of extra memory for PDF output out of 10000 (max. 10000000)
 

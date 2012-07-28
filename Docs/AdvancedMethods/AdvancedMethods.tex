@@ -28,7 +28,7 @@ Advanced Methods Tutorial
 \subsection{Cluster your data using Ward's algorithm and the RMSD metric}
 
 MSMBuilder provides multiple clustering algorithms.  In the 'basic' tutorial, we used a hybrid k-centers k-medoids algorithm.  That algorithm is quite fast, but more advanced clustering algorithms can lead to better models.  In particular, we have found that
-Ward clustering provides two key advantages over k-centers:
+Ward clustering provides two key advantages over k-centers \cite{beauchamp2012simple}:
 
 \begin{enumerate}
  \item Improved statistics in each state--that is, few states will have ``poor'' statistics.
@@ -43,11 +43,14 @@ WARNING: this step requires a minimum of 3.0 GB of memory for storing a matrix o
 Cluster.py rmsd hierarchical
 \end{verbatim}
 
+As example, the following figure shows that Ward clustering leads to improved implied timescales, as compared to Hybrid clustering:
+
+\includegraphics[width=11.7cm]{figures/NTL9-Timescales.pdf}
 
 
 \subsubsection{Estimate a rate matrix using SCRE}
 
-In the macrostate implied timescales, the slowest implied timescale converges at approximately 10 ps, while the third timescale converges as 5 ps.  Furthermore, the third timescale is aliased at lagtimes starting with 14 ps; lagtimes longer than 14 ps will not accurately capture the dynamics of this relaxation.  This suggests that this system might benefit from estimating rates using SCRE and multiple lagtimes.  Note that SCRE currently is practical only for models with few states ($n \le 10$).  
+In the macrostate implied timescales, the slowest implied timescale converges at approximately 10 ps, while the third timescale converges as 5 ps.  Furthermore, the third timescale is aliased at lagtimes starting with 14 ps; lagtimes longer than 14 ps will not accurately capture the dynamics of this relaxation.  This suggests that this system might benefit from estimating rates using SCRE and multiple lagtimes \cite{beauchamp2012simple}.  Note that SCRE currently is practical only for models with few states ($n \le 10$).  
 
 To build an SCRE model, we first construct a macrostate transition matrix with lagtime 1.  
 
@@ -94,7 +97,7 @@ We find that the SCRE estimates capture the ``converged'' values of the fixed-la
 
 
 
-\bibliography{AdvancedMethods.tex}
+\bibliography{AdvancedMethods}
 
 
 \end{document}
