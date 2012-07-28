@@ -1,0 +1,51 @@
+This is BibTeX, Version 0.99c (TeX Live 2009/Debian)
+The top-level auxiliary file: AdvancedMethods.aux
+The style file: plain.bst
+Database file #1: AdvancedMethods.bib
+I was expecting a `,' or a `}'---line 195 of file AdvancedMethods.bib
+ : 
+ : @article{piana2011computational,
+(Error may have been on previous line)
+I'm skipping whatever remains of this entry
+You've used 1 entry,
+            2118 wiz_defined-function locations,
+            502 strings with 4224 characters,
+and the built_in function-call counts, 322 in all, are:
+= -- 27
+> -- 23
+< -- 0
++ -- 9
+- -- 8
+* -- 23
+:= -- 66
+add.period$ -- 3
+call.type$ -- 1
+change.case$ -- 7
+chr.to.int$ -- 0
+cite$ -- 1
+duplicate$ -- 10
+empty$ -- 18
+format.name$ -- 8
+if$ -- 59
+int.to.chr$ -- 0
+int.to.str$ -- 1
+missing$ -- 1
+newline$ -- 8
+num.names$ -- 2
+pop$ -- 7
+preamble$ -- 1
+purify$ -- 6
+quote$ -- 0
+skip$ -- 7
+stack$ -- 0
+substring$ -- 5
+swap$ -- 1
+text.length$ -- 0
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 4
+warning$ -- 0
+while$ -- 2
+width$ -- 2
+write$ -- 12
+(There was 1 error message)

@@ -1,6 +1,7 @@
 \documentclass[12pt]{article}
 \bibliographystyle{plain}
 
+\usepackage{hyperref}
 \usepackage[sc]{mathpazo}
 \usepackage[utf8]{inputenc}
 \usepackage{graphicx}
@@ -48,7 +49,7 @@ Note that the Enthought Python Distribution contains most of these prerequisites
 
 Rather than individually install the many python dependencies, we recommend that you download the Python2.7 version of the Enthought Python Distribution, which contains almost all (except fastcluster) python dependencies required to run MSMBuilder.  Please use the 64 bit versions, as this will give higher performance in our RMSD code.
 
-Note for OSX users: Enthought represents the easiest way to obtain a working Python installation.  The OSX system Python install is broken and cannot properly build Python extensions, which are required for MSMBuilder installation.
+Note for OSX users: Enthought represents the easiest way to obtain a working Python installation.  The OSX system Python install is broken and cannot properly build Python extensions, which are required for MSMBuilder installation.  Also, see FAQ question 11 for a known issue with OSX Lion and OpenMP.  
 
 Note: please use a 64 bit version of python (and thus of MSMBuilder).  On certain systems (OSX Lion), 32 bit builds have experienced crashes in the RMSD / Clustering code.
 
@@ -56,16 +57,17 @@ Note: please use a 64 bit version of python (and thus of MSMBuilder).  On certai
 
 Download MSMBuilder, unzip, move to the msmbuilder directory.  Install using setup.py:
 \begin{verbatim}
-python setup.py build
 python setup.py install
 \end{verbatim}
 
 You may need root privileges during the install step; alternatively, you can specify an alternative install path via --prefix=XXX.  If you performed the install step with “--prefix=XXX”, you need to ensure that
+\begin{enumerate}
+ \item XXX/bin is included in your PATH
+ \item XXX/lib/python2.7/site-packages/ is included in your PYTHONPATH
+\end{enumerate}
 
-1.  XXX/bin is included in your PATH
-2.  XXX/lib/python2.7/site-packages/ is included in your PYTHONPATH
 
-Step (1) ensures that your can run MSMBuilder scripts without specifying their location.  Step (2) ensures that your Python can locate the MSMBuilder libraries.  
+Step (1) ensures that you can run MSMBuilder scripts without specifying their location.  Step (2) ensures that your Python can locate the MSMBuilder libraries.  
 
 \newpage
 
@@ -78,7 +80,7 @@ MSMBuilder has been designed to provide both ease of use and versatility.  To fa
 \item MSMBuilder is a library.
 \end{enumerate}
 
-Python scripts allow most users to work without writing a single line of Python code.  Advanced users can write their own Python scripts using the MSMBuilder library.  Using MSMBuilder as a library is further described in the MSMBuilder Library Guide; we recommend that users first master the script interface before jumping into the library.  
+Python scripts allow most users to work without writing a single line of Python code.  Advanced users can write their own Python scripts using the MSMBuilder library.  Using MSMBuilder as a library is further described in the MSMBuilder Scripting Guide; we recommend that users first master the script interface before jumping into the library.  
 
 \newpage
 
@@ -94,8 +96,6 @@ Constructing a Markov State model involves several steps, which are summarized b
  \item Construct a microstate MSM
  \item Validate microstate MSM
  \item Calculate macrostates using PCCA+
- \item Calculate a macrostate rate matrix using SCRE
- \item Validate the resulting model.
 \end{enumerate}
 
 \subsection{Alanine Dipeptide Tutorial}
@@ -119,17 +119,18 @@ Here, $PREFIX$ is the base directory of your msmbuilder installation.
 ConvertDataToHDF.py  -s native.pdb -i XTC
 \end{verbatim}
 
-\subsubsection{Cluster your data using Ward's algorithm and the RMSD metric}
-WARNING: this step requires a minimum of 3.0 GB of memory for storing a matrix of pairwise RMSD.
-\begin{verbatim}
-Cluster.py rmsd hierarchical
-\end{verbatim}
-
-\subsubsection{Assign data to states}
+\subsubsection{Cluster your data}
+The following command clusters your data using the RMSD metric and a hybrid k-centers k-medoids clustering algorithm.  The clustering continues until the intercluster distance is 0.35 \AA.
 
 \begin{verbatim}
-AssignHierarchical.py -H Data/Zmatrix.h5 -n 100
+Cluster.py rmsd hybrid -d 0.035
 \end{verbatim}
+
+The assignments of each conformation are stored as Data/Assignments.h5.  The cluster centers are stored as Data/Gens.lh5.  
+
+\subsubsection{Alternative Clustering Protocols}
+
+Note that other clustering protocols (e.g. Ward's algorithm) often leads to improved models; see the AdvancedMethods tutorial for details.  
 
 \subsubsection{Validate microstate model with relaxation timescales.}
 We calculate the relaxation timescales for a sequence of lagtimes $\{1, 2, ..., 25\}$:
@@ -178,7 +179,7 @@ Populations.dat contains the maximum likelihood estimated reversible equilibrium
 
 \subsubsection{Construct a Macrostate MSM}
 
-Spectral cluster methods such as PCCA+  \cite{Deuflhard2000, Deuflhard2005, kube2007coarse} can be used to construct metastable models with a minimal number of states.  First, we need to construct a microstate model with a short lagtime.  The short lagtime is necessary because PCCA+ tries to create macrostates that are long-lived, or metastable.  At long lagtimes, states become less and less metastable.
+Spectral clustering methods such as PCCA+  \cite{Deuflhard2000, Deuflhard2005, kube2007coarse} can be used to construct metastable models with a minimal number of states.  First, we need to construct a microstate model with a short lagtime.  The short lagtime is necessary because PCCA+ tries to create macrostates that are long-lived, or metastable.  At long lagtimes, states become less and less metastable.
 
 \begin{verbatim}
  BuildMSM.py -l 1 -o L1
@@ -198,7 +199,7 @@ It is known that the relevant degrees of freedom for alanine dipeptide are the p
 python PlotDihedrals.py Macro4/MacroAssignments.h5
 \end{verbatim}
 
-You should see the following graph:
+You should see something like the following graph (our clustering and PCCA+ code both perform randomized searches, so your plot may appear slightly different):
 \begin{center}
 \includegraphics[width=11.7cm]{figures/Macro4}
 \end{center}
@@ -213,7 +214,8 @@ In general, PCCA and PCCA+ are best applied to capturing long-lived, metastable 
 \subsubsection{Calculate Macrostate Implied Timescales}
 
 \begin{verbatim}
-CalculateImpliedTimescales.py -l 1,25 -i 1 -o Macro4/ImpliedTimescales.dat -a Macro4/MacroAssignments.h5 -e 3
+CalculateImpliedTimescales.py -l 1,25 -i 1 \
+-o Macro4/ImpliedTimescales.dat -a Macro4/MacroAssignments.h5 -e 3
 
 PlotImpliedTimescales.py -i Macro4/ImpliedTimescales.dat -d 1
 \end{verbatim}
@@ -226,50 +228,16 @@ Occasionally, PCCA+ will lead to poor macrostates, so it is important to verify 
  \item The macrostate implied timescales ``follow'' the microstate implied timescales
 \end{enumerate}
 
-\subsubsection{Estimate a converged rate matrix using SCRE}
+Furthermore, PCCA+ is best used to estimate metastable states.  Here are some additional guidelines for achieving good success with PCCA+:
 
-In the macrostate implied timescales, the slowest implied timescale converges at approximately 10 ps, while the third timescale converges as 5 ps.  Furthermore, the third timescale is aliased at lagtimes starting with 14 ps; lagtimes longer than 14 ps will not accurately capture the dynamics of this relaxation.  This suggests that this system might benefit from estimating rates using SCRE and multiple lagtimes.  
+\begin{enumerate}
+ \item If your microstate model has too \emph{long} of a lagtime, the model may not be metastable because significant dynamics occurs on the timescale of a single lagtime. 
+ \item If your microstate model has too \emph{short} of a lagtime, the microstate model may not be Markovian, leading to errors when estimating the eigenvalues and eigenvectors.  Most importantly, significant non-Markovian dynamics can cause the slowest eigenvalues to be mis-identified.  If this occurs, your PCCA+ model will be worthless!  To prevent this, a useful guide is to make sure that the slowest implied timescales do not cross one another (e.g. their rank ordering is constant).  
+ \item If your microstate model has too \emph{few} states, your microstate model may not be sufficiently Markovian.  You may not have sufficient geometric resolution to accurately identify the primary kinetic barriers.
+ \item If your microstate model has too \emph{many} states, your microstate model will have poor statistics, possibly leading to poor estimates of the slow eigenvectors. 
+\end{enumerate}
 
-To build an SCRE model, we first construct a macrostate transition matrix with lagtime 1.  
-
-\begin{verbatim}
- BuildMSM.py -l 1 -a Macro4/MacroAssignments.h5 -o Macro4/
-\end{verbatim}
-
-The key idea in SCRE is to estimate rate matrix $K_{ij}(\tau)$ for a variety of lagtimes.  Then, each rate matrix element is fixed when $K_{ij}(\tau)$ becomes approximately constant with respect to the lagtime $\tau$.  The final rate matrix provides estimates of Markovian rates for each of the rate elements $K_{ij}$.  
-
-Next, we run an interactive script to estimate rates using SCRE.  
-
-\begin{verbatim}
- Interactive-SCRE.py -a Macro4/Assignments.Fixed.h5 -o Macro4
-\end{verbatim}
-
-In practice, the script will prompt the user to select a maximum lagtime.  The script then estimates and plots rate matrices for each lagtime up to the maximum value.  The user is then asked to identify converged rate matrix elements.  In general, one should try to estimate the quickly-convergign rates first.  After those rates are constrained, one can then try to estimate the slower and / or less Markovian rates.  For concreteness, I used the following inputs:
-
-25
-1,0,6
-25
-3,2,19
-25
-3,1,6
-25
-3,0,9
-25
-14
-
-Note that on the last iteration, the user is asked only to select a lagtime.  
-
-Finally, we compare the fixed-lagtime and SCRE estimates of implied timescales:
-
-\begin{verbatim}
- ./PlotMacrostateImpliedTimescales.py
-\end{verbatim}
-
-
-\includegraphics[width=11.7cm]{figures/SCRE}
-
-
-We find that the SCRE estimates capture the ``converged'' values of the fixed-lagtime timescales.  Achieving convergence for each timescale is not possible with a fixed-lagtime MSM, because the 20 ps lagtime required for the second relaxation causes the third relaxation to alias.  
+Thus, success with PCCA+ may require some trial and error when selecting the appropriate lagtime and microstate clustering.  Finally, note that our implementation of PCCA+ uses a simulated annealing minimization.  This randomized search means that you may find multiple minima by repeating the PCCA+ calculation several times.  You may find a better model by repeating the calculation several times.  
 
 \newpage
 
@@ -296,7 +264,7 @@ Cluster your data using your choice of clustering algorithm and distance metric.
  \item RMSD + Ward clustering (``Cluster.py  rmsd hierarchical'')
 \end{enumerate}
 
-We recommend Ward clustering if it is computationally feasible; otherwise, use the hybrid k-centers / k-medoids clustering.  Ward clustering calculations an $O(N^2)$ distance matrix, which may be prohibitive for datasets with many conformations.  
+We recommend Ward clustering if it is computationally feasible; otherwise, use the hybrid clustering.  Ward clustering calculations an $O(N^2)$ distance matrix, which may be prohibitive for datasets with many conformations.  
 
 Most of our experience has been in applying MSMBuilder to protein folding.  Thus, non-folding applications may require a slightly different protocol.
 
@@ -310,7 +278,7 @@ Calculates the implied timescales for a python range of MSM lag times.  This all
 	Notes:
 \begin{enumerate}
  \item You might get a SparseEfficiencyWarning for every lag time. Ignore this.
- \item Lagtimes are input in units of the time spacing between successive trajectory frames.  If your trajectories are stored every 10 ns, then -l 1,4 estimtes implied timescales with lagtimes 10, 20, 30, 40 ns.  
+ \item Lagtimes are input in units of the time spacing between successive trajectory frames.  If your trajectories are stored every 10 ns, then -l 1,4 estimates implied timescales with lagtimes 10, 20, 30, 40 ns.  
 \end{enumerate}
 
 \subsubsection{PlotImpliedTimescales.py}
@@ -372,15 +340,18 @@ Q2:  I see the following error.  What do I do?
 \end{verbatim}
 
 A2:  You are trying to read an HDF5 file that was written using a different PyTables installation.  Your current PyTables installation is likely missing the compression algorithm (filter) required to read the file.  The solution is to find a version of Pytables that has the old compression algorithm (filter) and use MSMBuilder to read and then re-write the trajectories (by default, MSMBuilder uses the PyTables BLOSC compression).  To do this (for a single File), you would so something like:
+
+\begin{verbatim}
 from msmbuilder import Trajectory
-R1=Trajectory.Trajectory.LoadFromLHDF(Filename)
+R1 = Trajectory.LoadFromLHDF(Filename)
 R1.SaveToLHDF(NewFilename)
+\end{verbatim}
 
 \vspace{5mm}
 
 Q3: I received an “Illegal instruction” error.  What does this mean?
 
-A3:  MSMBuilder2 requires an SSE3 compatible processor when Clustering and calculating RMSDs.  Any processor built after ~2006 should have the necessary instructions.  
+A3:  MSMBuilder2 requires an SSE3 compatible processor when Clustering and calculating RMSDs.  Any processor built after 2006 should have the necessary instructions.  
 
 \vspace{5mm}
 
@@ -399,6 +370,60 @@ Q5.  Why are there -1s in my Assignments matrix?
 A5.  We use -1 as a “padding” element in Assignment matrices. Suppose your project has maximum trajectory length of 100.  If trajectory 0 has length 50, then A[0,50:] should be a vector of -1.  Furthermore, when you perform trimming to ensure (strong) ergodicity, futher -1s could be introduced at the start or finish of the trajectory.  Finally, if Ergodic trimming was performed with count matrices estimated using a sliding window, you could even see something like:
 -1 -1 -1 x -1 -1 y z …
 This is because sliding window essentially splits your trajectory into independent subtrajectories--one for each possible window starting position.  “x” then marks the start of one of these subtrajectories.
+
+\vspace{5mm}
+
+Q6.  When building MSMBuilder, I see the following: 
+\begin{verbatim}
+ ***************************************************************************
+WARNING: The C extension 'LPRMSD' could not be compiled.
+This may be due to a failure to find the BLAS libraries
+***************************************************************************
+\end{verbatim}
+
+What should I do?
+
+A6.  Don't worry.  This module is not used by any of the standard MSMBuilder features.  
+
+\vspace{5mm}
+
+Q7.  What is the difference between PCCA+ and FPCCA+?
+
+A7.  FPCCA+ is PCCA+ with a different choice of eigenvectors to model.  In particular, FPCCA+ uses a criterion based on both timescale \emph{and} eigenvector flux.  
+
+\vspace{5mm}
+
+Q8.  Should I use FPCCA+ or PCCA+?
+
+A8.  First, note that FPCCA+ is more ``lossy'' or ``coarse-grained'' than PCCA+.  By discarding slow but high-flux eigenvectors, you are losing some information from your microstate model.  Essentially, the choice between FPCCA+ and PCCA+ depends on how much you weight model accuracy versus model simplicity.  
+
+\vspace{5mm}
+
+Q9.  I see warnings when using PCCA+:
+\begin{verbatim}
+ComplexWarning: Casting complex values to real discards the imaginary part
+RuntimeWarning: invalid value encountered in cdouble_scalars
+Warning: constraint violation detected.
+f = nan
+ \end{verbatim}
+ 
+A9.  This is probably due to PCCA+ finding a ``degenerate'' state decomposition, where one of your macrostates is empty.  Usually, the minimization procedure should eventually find a feasible point with the correct number of states.  Be sure to check that your resulting state decomposition makes sense.   
+
+\vspace{5mm}
+
+Q10.  How do I make an MSM movie?
+
+A10. To build a movie, you just Sample states from the model (MSMLib.Sample).  Then you sample conformations from each state (Project . GetRandomConfsFromState).  Then you append each frame to a PDB file (Conformation.SavePDB or Trajectory.SavePDB).  After you have the PDBs, you can use either VMD or pymol for movie making.
+
+\vspace{5mm}
+
+Q11.  On an OSX Lion Machine, clustering fails with an ``Abort Trap'' error message.  What do I do?
+
+A11.  This is due to a known bug in OSX Lion's support for OpenMP (see \url{https://discussions.apple.com/thread/3786045?start=0&tstart=0}).  As a workaround, you can simply 
+\begin{verbatim}
+export OMP_NUM_THREADS=1
+\end{verbatim}
+to disable OpenMP support during clustering.  This should eliminate the problem, but it limits you to single core clustering.  
 
 \bibliography{Tutorial}
 
