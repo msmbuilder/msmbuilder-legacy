@@ -34,7 +34,7 @@ def Correlation(x,Normalize=True,MaxTime=np.inf):
     return(ACF)
 
 def fft_autocorrelate(A):
-    A-A.mean()
+    A -= A.mean()
     result = signal.fftconvolve(A,A[::-1])
     var = A.std()**2
     return result[result.size/2:] / var
