@@ -34,10 +34,10 @@ def Correlation(x,Normalize=True,MaxTime=np.inf):
     return(ACF)
 
 def fft_autocorrelate(A):
-    A -= A.mean()
+    A = A - A.mean()
     result = signal.fftconvolve(A,A[::-1])
     var = A.std()**2
-    return result[result.size/2:] / var
+    return result[result.size/2:] / var / len(A)
 
 def RawMSMCorrelation(T,ObservableArray,AssignmentArray,Steps=10000,StartingState=0):
     """Calculate an autocorrelation function from an MSM.  Inputs include: Transition Matrix T, an array of the observable calculated at every project frame, and the array of assignments.  This function works by first generating a 'sample' trajectory from the MSM.  This approach is necessary as it allows treatment of intra-state dynamics.
