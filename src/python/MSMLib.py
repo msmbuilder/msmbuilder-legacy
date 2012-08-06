@@ -405,7 +405,7 @@ def GetEigenvectors(T,NumEig,Epsilon=.001,DenseCutoff=50):
     elambda=eigSolution[0][Ord]
     eV=eigSolution[1][:,Ord]
     
-    CheckForBadEigenvalues(elambda, CutoffValue=1-Epsilon) # this is bad IMO --TJL
+    #CheckForBadEigenvalues(elambda, CutoffValue=1-Epsilon) # this is bad IMO --TJL
 
     eV[:,0]/=sum(eV[:,0])
     eigSolution=(elambda[0:NumEig],eV[:,0:NumEig])
@@ -649,6 +649,81 @@ def project_observable_onto_transition_matrix(observable, tprob, num_modes=25):
         amplitudes[mode] = np.dot(observable, eigenvectors[:,mode])
 
     return timescales, amplitudes
+
+
+def calc_expectation_timeseries(tprob, observable, init_pop=None,
+                                timepoints=10**6, n_modes=100, lagtime=15.0):
+    """
+    Calculates the expectation value over time <A(t)> for some `observable`
+    in an MSM. Does this by eigenvalue decomposition, according to the eq
+
+    math :: \langle A \rangle (t) = \sum_{i=0}^N \langle p(0), \psi^L_i
+            \rangle e^{ - \lambda_i t } \langle \psi^R_i, A \rangle
+
+    Parameters
+    ----------
+    tprob : matrix
+        The transition probability matrix (of size N) for the MSM.
+
+    observable : array_like, float
+        A len N array of the values A of the observable for each state.
+
+    init_pop : array_like, float
+        A len N array of the initial populations of each state. If None
+        is passed, then the function will start from even populations in
+        each state.
+
+    timepoints : int
+        The number of timepoints to calculate - the final timeseries will
+        be in length LagTime x `timepoints`
+
+    n_modes : int
+        The number of eigenmodes to include in the calculation. This
+        number will depend on the timescales involved in the relatation
+        of the observable.      
+
+    Returns
+    -------
+    timeseries : array_like, float
+        A timeseries of the observable over time, in units of the lag time
+        of the transition matrix. 
+    """
+
+    # first, perform the eigendecomposition
+    lambd, psi_R = eigs(tprob.T, k=n_modes)
+    psi_R = np.real(psi_R)
+    lambd = np.real(lambd)
+
+    # normalize eigenvectors
+    pi = psi_R[:,0]
+    pi /= pi.sum()
+
+    psi_L = np.zeros( psi_R.shape )
+    for i in range(n_modes):
+        psi_R[:,i] *= np.sqrt( np.sum( np.power( psi_R[:,i], 2.0 ) / pi ) )
+        psi_L[:,i] = psi_R[:,i] / pi
+        psi_L[:,i] /= np.dot( psi_L[:,i], psi_R[:,i] )
+
+    if lagtime:
+        print "Shortest timescale process included:", -lagtime / np.log( np.min(lambd) )
+
+    # figure out the initial populations
+    if init_pop == None:
+        init_pop = np.ones( tprob.shape[0] )
+        init_pop /= init_pop.sum()
+    assert np.abs(init_pop.sum() - 1.0) < 0.0001
+
+    # generate the timeseries
+    timeseries = np.zeros(timepoints)
+    for i in range(n_modes):
+        front = np.dot(init_pop, psi_L[:,i])
+        back  = np.dot(observable, psi_R[:,i])
+        mode_decay = front * np.power( lambd[i], np.arange(timepoints) ) * back
+        timeseries += np.real(mode_decay)
+
+    print np.dot(pi, observable), timeseries[-1]
+
+    return timeseries
 
 
 def Sample(T,State,Steps,Traj=None,ForceDense=False):
