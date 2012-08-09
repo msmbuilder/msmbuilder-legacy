@@ -51,15 +51,15 @@ def run(project, assignments, conformations_per_state, states, output_dir, gens_
         os.makedirs(output_dir)
     print "Setting up the metric."
     rmsd_metric = LPRMSD(atom_indices,permute_indices,alt_indices)
+    # This trickery allows us to get the correct number of leading
+    # zeros in the output file name no matter how many generators we have
+    digits = len(str(max(states)))
     # Create a trajectory of generators and prepare it.
     if os.path.exists(gens_file):
         gens_traj = Trajectory.LoadTrajectoryFile(gens_file)
         p_gens_traj = rmsd_metric.prepare_trajectory(gens_traj)
         formstr_pdb = '\"Generator-%%0%ii.pdb\"' % digits
     
-    # This trickery allows us to get the correct number of leading
-    # zeros in the output file name no matter how many generators we have
-    digits = len(str(max(states)))
     formstr_xtc = '\"Cluster-%%0%ii.xtc\"' % digits
     print "Loading up the trajectories."
     traj_nfiles, traj_bytes = get_size(project['TrajFilePath'])
@@ -70,7 +70,7 @@ def run(project, assignments, conformations_per_state, states, output_dir, gens_
         print "Loading all trajectories into memory."
         LoadAll = 1
         AllTraj = [project.LoadTraj(i) for i in np.arange(project["NumTrajs"])]
-        print "After loading trajectories, memory usage is % .3f GB" % (float(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss) / 1048576)
+        #print "After loading trajectories, memory usage is % .3f GB" % (float(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss) / 1048576)
     
     if not os.path.exists(gens_file):
         if not 'AllTraj' in locals():
@@ -132,7 +132,7 @@ def run(project, assignments, conformations_per_state, states, output_dir, gens_
         NowMem = float(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss) / 1048576
         if NowMem > MaxMem:
             MaxMem = NowMem
-    print "This script used at least % .3f GB of memory" % MaxMem
+    #print "This script used at least % .3f GB of memory" % MaxMem
                 
 if __name__ == '__main__':
     parser = arglib.ArgumentParser(description="""
