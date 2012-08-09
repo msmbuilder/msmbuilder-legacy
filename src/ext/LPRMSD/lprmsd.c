@@ -508,6 +508,15 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
     }
   }
 
+  if (HaveID) {
+    if (DebugPrint) {
+      printf("Normal Indices has Length %i \n",na_id);
+      for (int i = 0; i<na_id; i++) {
+	printf("%i ",id_idx[i]);
+      }
+      printf("\n");
+    }
+  }  
 
   if (HaveAlt) {
     if (DebugPrint) {
@@ -632,9 +641,9 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
 	    // Set the RMSD values by explicitly computing them from pairwise distances.
 	    for (j=0; j<altlen; j++) {
 	      Idx = alt_idx[j];
-	      x2 = AltAtoms_d[0*altlen + j];
-	      y2 = AltAtoms_d[1*altlen + j];
-	      z2 = AltAtoms_d[2*altlen + j];
+	      x2 = AltAtoms_Rot_d[0*altlen + j];
+	      y2 = AltAtoms_Rot_d[1*altlen + j];
+	      z2 = AltAtoms_Rot_d[2*altlen + j];
 	      x1 = AllAtoms0_f[0*na_all + Idx];
 	      y1 = AllAtoms0_f[1*na_all + Idx];
 	      z1 = AllAtoms0_f[2*na_all + Idx];
