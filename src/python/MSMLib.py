@@ -293,36 +293,34 @@ def EstimateRateMatrix(tCount, Assignments):
     return K
 
 def EstimateTransitionMatrix(tCount):
-    """Simple Maximum Likelihood estimator of transition matrix.
+    """
+    Simple Maximum Likelihood estimator of transition matrix.
     
     Parameters
     ----------
     tCount : array or sparse matrix
         A square matrix of transition counts
-    MakeSymmetric : bool
-        If true, make transition count matrix symmetric
     
     Returns
     -------
     tProb : array or sparse matrix
-        Estimate of transition probability matrix
-    
-    Notes
-    -----
-    The transition count matrix will not be altered by this function. Its elemnts can
-    be either of integer of floating point type.
+         Most likely transition matrix given `tCount`
     """
     #1.  Make sure you don't modify tCounts.
     #2.  Make sure you handle both floats and ints 
     if scipy.sparse.isspmatrix(tCount):
         C=scipy.sparse.csr_matrix(tCount).asfptype()
         weights = np.asarray(C.sum(axis=1)).flatten()            
-        D=scipy.sparse.dia_matrix((1./weights,0),C.shape).tocsr()
+        inv_weights = np.zeros( len(weights) )
+        inv_weights[ weights != 0 ] = 1.0 / weights[ weights != 0 ]
+        D=scipy.sparse.dia_matrix((inv_weights,0),C.shape).tocsr()
         tProb=D.dot(C)
     else:
-        tProb = np.asarray(tCount.astype(float))                              # astype creates a copy, so tProb is decoupled from tCont
+        tProb = np.asarray(tCount.astype(float)) # astype creates a copy
         weights = tProb.sum(axis=1)
-        tProb = tProb / weights.reshape((weights.shape[0],1))
+        inv_weights = np.zeros( len(weights) )
+        inv_weights[ weights != 0 ] = 1.0 / weights[ weights != 0 ]
+        tProb = tProb * inv_weights.reshape((weights.shape[0],1))
 
     return tProb
 
