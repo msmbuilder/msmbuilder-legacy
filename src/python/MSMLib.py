@@ -971,21 +971,24 @@ def ApplyMappingToVector(V, Mapping):
     return NV
 
 def RenumberStates(Assignments):
-    """Renumber states to be consecutive integers (0, 1, ... , n)
+    """
+    Renumbers states to be consecutive integers (0, 1, ... , n), performs
+    this transformation in place.
     
     Parameters
     ----------
     Assignments : ndarray
-        2D
+        2D array of the assignments
     
     Returns
     -------
-    Assignmennts : ndarray
-        2D. Renumbered such that the states consecutive integers starting at -1
+    mapping : ndarray, int
+        A mapping from the old numbering scheme to the new, such that
+        mapping[new] = old
     
     Notes
     -----
-    Useful if some states have 0 counts. Could be cythonized if too slow.
+    Useful if some states have 0 counts due to a trimming procedure.
     """
     
     unique = list(np.unique(Assignments))
@@ -1004,6 +1007,9 @@ def RenumberStates(Assignments):
     for i,x in enumerate(unique):
         Assignments[inverse_mapping[x]] = i
     Assignments[minus_one] = -1
+
+    mapping = np.array(unique, dtype=int)
+    return mapping
 
 def Tarjan(graph):
     """Find the strongly connected components in a graph using Tarjan's algorithm.
