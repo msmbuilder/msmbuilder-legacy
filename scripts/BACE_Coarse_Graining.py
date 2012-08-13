@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # This file is part of BACE.
 #
 # Copyright 2012 University of California, Berkeley
@@ -46,6 +45,7 @@ GR Bowman. Coarse-grained Markov chains capture molecular thermodynamics and kin
 """ % version
 
 import argparse
+import functools
 import multiprocessing
 import numpy as np
 import os
@@ -86,7 +86,7 @@ def run(c, nMacro, nProc, multiDist, outDir, filterFunc, chunkSize=100):
     w = np.array(c.sum(axis=1)).flatten()
     w[statesKeep] += 1
 
-    unmerged = np.zeros(w.shape[0])
+    unmerged = np.zeros(w.shape[0], dtype=np.int8)
     unmerged[statesKeep] = 1
 
     # get nonzero indices in upper triangle
@@ -94,22 +94,10 @@ def run(c, nMacro, nProc, multiDist, outDir, filterFunc, chunkSize=100):
     if scipy.sparse.issparse(c):
         dMat = scipy.sparse.lil_matrix(c.shape)
     else:
-        dMat = np.zeros(c.shape)
+        dMat = np.zeros(c.shape, dtype=np.float32)
 
-    # estimate memory usage
-    nBytes = 0
     if scipy.sparse.issparse(c):
-        nBytes += 3*(c.rows.nbytes + c.data.nbytes)
         c = c.tocsr()
-    else:
-        nBytes += 3*c.nbytes
-    nBytes += w.nbytes
-    nBytes += map.nbytes
-    nBytes += statesKeep.nbytes
-    nBytes += unmerged.nbytes
-    nBytes *= nProc
-    nGB = nBytes / 1000000000.
-    print "May use up to %f GB of memory by very rough estimate" % (nGB*nProc)
 
     i = 0
     nCurrentStates = statesKeep.shape[0]
@@ -117,6 +105,7 @@ def run(c, nMacro, nProc, multiDist, outDir, filterFunc, chunkSize=100):
         os.mkdir(outDir)
     fBayesFact = open("%s/bayesFactors.dat" % outDir, 'w')
     dMat, minX, minY = calcDMat(c, w, fBayesFact, indRecalc, dMat, nProc, statesKeep, multiDist, unmerged, chunkSize)
+    print "Coarse-graining..."
     while nCurrentStates > nMacro:
         print "  Iteration %d, merging %d states" % (i, nCurrentStates)
         c, w, indRecalc, dMat, map, statesKeep, unmerged, minX, minY = mergeTwoClosestStates(c, w, fBayesFact, indRecalc, dMat, nProc, map, statesKeep, minX, minY, multiDist, unmerged, chunkSize)
@@ -170,9 +159,10 @@ def renumberMap(map, stateDrop):
     return map
 
 def calcDMat(c, w, fBayesFact, indRecalc, dMat, nProc, statesKeep, multiDist, unmerged, chunkSize):
-    if nProc > len(indRecalc):
-        nProc = len(indRecalc)
-    if nProc > 1:
+    nRecalc = len(indRecalc)
+    if nRecalc > 1 and nProc > 1:
+        if nRecalc < nProc:
+            nProc = nRecalc
         pool = multiprocessing.Pool(processes=nProc)
         n = len(indRecalc)
         stepSize = int(n/nProc)
@@ -180,17 +170,15 @@ def calcDMat(c, w, fBayesFact, indRecalc, dMat, nProc, statesKeep, multiDist, un
             dlims = zip(range(0,n,stepSize), range(stepSize,n,stepSize)+[n])
         else:
             dlims = zip(range(0,n-stepSize,stepSize), range(stepSize,n-stepSize,stepSize)+[n])
-        argsPart = []
+        args = []
         for start,stop in dlims:
-            argsPart.append(indRecalc[start:stop])
-        nArgs = len(argsPart)
-        args = zip(argsPart, nArgs*[c], nArgs*[w], nArgs*[statesKeep], nArgs*[unmerged], nArgs*[chunkSize])
-        result = pool.map_async(multiDist, args)
+            args.append(indRecalc[start:stop])
+        result = pool.map_async(functools.partial(multiDist, c=c, w=w, statesKeep=statesKeep, unmerged=unmerged, chunkSize=chunkSize), args)
         result.wait()
         d = np.vstack(result.get())
         pool.close()
     else:
-        d = multiDist((indRecalc, c, w, statesKeep, unmerged, chunkSize))
+        d = multiDist(indRecalc, c, w, statesKeep, unmerged, chunkSize)
     for i in xrange(len(indRecalc)):
         dMat[indRecalc[i][0], indRecalc[i][1]] = d[i][:len(indRecalc[i][1])]
 
@@ -214,17 +202,17 @@ def calcDMat(c, w, fBayesFact, indRecalc, dMat, nProc, statesKeep, multiDist, un
     fBayesFact.write("%f\n" % (1./dMat[minX,minY]))
     return dMat, minX, minY
 
-def multiDistDense((indicesList, c, w, statesKeep, unmerged, chunkSize)):
-    d = np.zeros((len(indicesList),chunkSize))
+def multiDistDense(indicesList, c, w, statesKeep, unmerged, chunkSize):
+    d = np.zeros((len(indicesList),chunkSize), dtype=np.float32)
     for j in xrange(len(indicesList)):
         indices = indicesList[j]
         ind1 = indices[0]
         c1 = c[ind1,statesKeep] + unmerged[ind1]*unmerged[statesKeep]*1.0/c.shape[0]
-        d[j,:indices[1].shape[0]] = 1./multiDistDenseHelper(c1, w[ind1], indices[1], c, w, statesKeep, unmerged) # BACE BF inverted so can use sparse matrices
+        d[j,:indices[1].shape[0]] = 1./multiDistDenseHelper(indices[1], c1, w[ind1], c, w, statesKeep, unmerged) # BACE BF inverted so can use sparse matrices
     return d
 
-def multiDistDenseHelper(c1, w1, indices, c, w, statesKeep, unmerged):
-    d = np.zeros(indices.shape[0])
+def multiDistDenseHelper(indices, c1, w1, c, w, statesKeep, unmerged):
+    d = np.zeros(indices.shape[0], dtype=np.float32)
     p1 = c1 / w1
     for i in xrange(indices.shape[0]):
         ind2 = indices[i]
@@ -235,17 +223,17 @@ def multiDistDenseHelper(c1, w1, indices, c, w, statesKeep, unmerged):
         d[i] = c1.dot(np.log(p1/cp)) + c2.dot(np.log(p2/cp))
     return d
 
-def multiDistSparse((indicesList, c, w, statesKeep, unmerged, chunkSize)):
-    d = np.zeros((len(indicesList),chunkSize))
+def multiDistSparse(indicesList, c, w, statesKeep, unmerged, chunkSize):
+    d = np.zeros((len(indicesList),chunkSize), dtype=np.float32)
     for j in xrange(len(indicesList)):
         indices = indicesList[j]
         ind1 = indices[0]
         c1 = c[ind1,statesKeep].toarray()[0] + unmerged[ind1]*unmerged[statesKeep]*1.0/c.shape[0]
-        d[j,:indices[1].shape[0]] = 1./multiDistSparseHelper(c1, w[ind1], indices[1], c, w, statesKeep, unmerged) # BACE BF inverted so can use sparse matrices
+        d[j,:indices[1].shape[0]] = 1./multiDistSparseHelper(indices[1], c1, w[ind1], c, w, statesKeep, unmerged) # BACE BF inverted so can use sparse matrices
     return d
 
-def multiDistSparseHelper(c1, w1, indices, c, w, statesKeep, unmerged):
-    d = np.zeros(indices.shape[0])
+def multiDistSparseHelper(indices, c1, w1, c, w, statesKeep, unmerged):
+    d = np.zeros(indices.shape[0], dtype=np.float32)
     p1 = c1 / w1
     for i in xrange(indices.shape[0]):
         ind2 = indices[i]
@@ -271,17 +259,35 @@ def filterFuncDense(c, nProc):
     w += 1
 
     # init map from micro to macro states
-    map = np.arange(c.shape[0])
+    map = np.arange(c.shape[0], dtype=np.int32)
 
     # pseudo-state (just pseudo counts)
-    pseud = np.ones(c.shape[0], dtype=float)
+    pseud = np.ones(c.shape[0], dtype=np.float32)
     pseud /= c.shape[0]
 
-    indices = np.arange(c.shape[0])
-    statesKeep = np.arange(c.shape[0])
-    unmerged = np.ones(c.shape[0])
+    indices = np.arange(c.shape[0], dtype=np.int32)
+    statesKeep = np.arange(c.shape[0], dtype=np.int32)
+    unmerged = np.ones(c.shape[0], dtype=np.float32)
 
-    d = multiDistDenseHelper(pseud, 1, indices, c, w, statesKeep, unmerged)
+    nInd = len(indices)
+    if nInd > 1 and nProc > 1:
+        if nInd < nProc:
+            nProc = nInd
+        pool = multiprocessing.Pool(processes=nProc)
+        stepSize = int(nInd/nProc)
+        if nInd % stepSize > 3:
+            dlims = zip(range(0,nInd,stepSize), range(stepSize,nInd,stepSize)+[nInd])
+        else:
+            dlims = zip(range(0,nInd-stepSize,stepSize), range(stepSize,nInd-stepSize,stepSize)+[nInd])
+        args = []
+        for start,stop in dlims:
+            args.append(indices[start:stop])
+        result = pool.map_async(functools.partial(multiDistDenseHelper, c1=pseud, w1=1, c=c, w=w, statesKeep=statesKeep, unmerged=unmerged), args)
+        result.wait()
+        d = np.concatenate(result.get())
+        pool.close()
+    else:
+        d = multiDistDenseHelper(indices, pseud, 1, c, w, statesKeep, unmerged)
 
     # prune states with Bayes factors less than 3:1 ratio (log(3) = 1.1)
     statesPrune = np.where(d<1.1)[0]
@@ -304,17 +310,35 @@ def filterFuncSparse(c, nProc):
     w += 1
 
     # init map from micro to macro states
-    map = np.arange(c.shape[0])
+    map = np.arange(c.shape[0], dtype=np.int32)
 
     # pseudo-state (just pseudo counts)
-    pseud = np.ones(c.shape[0], dtype=float)
+    pseud = np.ones(c.shape[0], dtype=np.float32)
     pseud /= c.shape[0]
 
-    indices = np.arange(c.shape[0])
-    statesKeep = np.arange(c.shape[0])
-    unmerged = np.ones(c.shape[0])
+    indices = np.arange(c.shape[0], dtype=np.int32)
+    statesKeep = np.arange(c.shape[0], dtype=np.int32)
+    unmerged = np.ones(c.shape[0], dtype=np.int8)
 
-    d = multiDistSparseHelper(pseud, 1, indices, c, w, statesKeep, unmerged)
+    nInd = len(indices)
+    if nInd > 1 and nProc > 1:
+        if nInd < nProc:
+            nProc = nInd
+        pool = multiprocessing.Pool(processes=nProc)
+        stepSize = int(nInd/nProc)
+        if nInd % stepSize > 3:
+            dlims = zip(range(0,nInd,stepSize), range(stepSize,nInd,stepSize)+[nInd])
+        else:
+            dlims = zip(range(0,nInd-stepSize,stepSize), range(stepSize,nInd-stepSize,stepSize)+[nInd])
+        args = []
+        for start,stop in dlims:
+            args.append(indices[start:stop])
+        result = pool.map_async(functools.partial(multiDistSparseHelper, c1=pseud, w1=1, c=c, w=w, statesKeep=statesKeep, unmerged=unmerged), args)
+        result.wait()
+        d = np.concatenate(result.get())
+        pool.close()
+    else:
+        d = multiDistSparseHelper(indices, pseud, 1, c, w, statesKeep, unmerged)
 
     # prune states with Bayes factors less than 3:1 ratio (log(3) = 1.1)
     statesPrune = np.where(d<1.1)[0]
@@ -344,14 +368,13 @@ Description output (put into directory specified with outDir):
 , formatter_class=argparse.RawDescriptionHelpFormatter)
     add_argument(parser, '-c', dest='tCountFn', help='Path to transition count matrix file (sparse and dense formats accepted).', required=True)
     add_argument(parser, '-n', dest='nMacro', help='Minimum number of macrostates to make.', default=2, type=int)
-#    add_argument(parser, '-p', dest='nProc', help='Number of processors to use (if None, the code will use all the available processors on your machine).', default=None, type=int, required=False)
+    add_argument(parser, '-p', dest='nProc', help='Number of processors to use (if None, the code will use all the available processors on your machine).', default=None, type=int, required=False)
     add_argument(parser, '-f', dest='forceDense', help='If true, will force transition matrix into a dense format. Using the dense format is faster if you have enough memory.', default=False, type=bool, required=False, nargs='?', const=True)
     add_argument(parser, '-o', dest='outDir', help='Path to save output to.', default="Output_BACE", required=False)
     args = parser.parse_args()
 
     if "mtx" in args.tCountFn:
-        c = scipy.io.mmread(args.tCountFn)
-        c = c.tolil()
+        c = scipy.sparse.lil_matrix(scipy.io.mmread(args.tCountFn), dtype=np.float32)
         multiDist = multiDistSparse
         filterFunc = filterFuncSparse
         if args.forceDense:
@@ -360,14 +383,14 @@ Description output (put into directory specified with outDir):
             multiDist = multiDistDense
             filterFunc = filterFuncDense
     else:
-        c = np.loadtxt(tCountFn)
+        c = np.loadtxt(tCountFn, dtype=np.float32)
         multiDist = multiDistDense
         filterFunc = filterFuncDense
 
-#    if args.nProc == None:
-#        args.nProc = multiprocessing.cpu_count()
-#    print "Set number of processors to", args.nProc
+    if args.nProc == None:
+        args.nProc = multiprocessing.cpu_count()
+    print "Set number of processors to", args.nProc
 
-    run(c, args.nMacro, 1, multiDist, args.outDir, filterFunc)
+    run(c, args.nMacro, args.nProc, multiDist, args.outDir, filterFunc, chunkSize=100)
 
 
