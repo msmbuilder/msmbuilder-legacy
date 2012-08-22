@@ -446,7 +446,7 @@ def objective(alpha,vr,square_map,lam,T,pi,barrier_penalty=20000.,objective_func
         print("Warning: constraint violation detected.")
         obj -= barrier_penalty
 
-    print("f = %f, %f"%(obj.real, obj.imag))
+    print("f = %f"%(obj.real))
     
 
     return obj
