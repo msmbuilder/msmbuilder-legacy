@@ -446,7 +446,8 @@ def objective(alpha,vr,square_map,lam,T,pi,barrier_penalty=20000.,objective_func
         print("Warning: constraint violation detected.")
         obj -= barrier_penalty
 
-    print("f = %f"%(obj))
+    print("f = %f, %f"%(obj.real, obj.imag))
+    
 
     return obj
 
@@ -475,7 +476,7 @@ def fill_A(A,vr):
     A[1:,0] = -1*A[1:,1:].sum(1)
 
     # compute 1st row of A by maximum condition
-    A[0] = -1*dot(vr[:,1:],A[1:]).min(0)
+    A[0] = -1*dot(vr[:,1:].real,A[1:]).min(0)
 
     #rescale A to be in the feasible set
     A /= A[0].sum()
