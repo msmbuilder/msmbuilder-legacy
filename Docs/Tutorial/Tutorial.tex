@@ -144,9 +144,11 @@ Next, we use python to plot the results, specifying the lagtime between frames (
 PlotImpliedTimescales.py -d 1. -i Data/ImpliedTimescales.dat
 \end{verbatim}
 
+\begin{figure}
 \begin{center}
 \includegraphics[width=11.7cm]{figures/microstate_timescales.pdf}
 \end{center}
+\end{figure}
 
 \subsubsection{Construct MSM at appropriate lagtime}
 The plotted relaxation timescales suggest that the three slow timescales are reasonable flat at a lagtime of 3 timesteps [ps].  Thus, we construct an MSM using that lagtime:
@@ -200,14 +202,19 @@ python PlotDihedrals.py Macro4/MacroAssignments.h5
 \end{verbatim}
 
 You should see something like the following graph (our clustering and PCCA+ code both perform randomized searches, so your plot may appear slightly different):
+\begin{figure}
 \begin{center}
 \includegraphics[width=11.7cm]{figures/Macro4}
 \end{center}
+\end{figure}
 
 
 Thus, the PCCA algorithm has automatically identified the key basins of alanine dipeptide.  The black lines correspond to the $\beta, PP_{II}, \alpha_R, \alpha_L$ and $\gamma$ conformational basins, as estimated previously \cite{Jha2005}.  If we want a model that is less coarse grained, we can build a macrostate MSM with more states.  If, for example, we had used 5 states, we would produce a Ramachandran plot that also captures the barrier between the $\beta$ and $PP_{II}$ basins.  
-
+\begin{figure}
+\begin{center}
 \includegraphics[width=11.7cm]{figures/Macro5}
+\end{center}
+\end{figure}
 
 In general, PCCA and PCCA+ are best applied to capturing long-lived, metastable states.  Thus, for this system, applying PCCA+ to construct models with more than 5 states may not produce useful models.  This is because alanine dipeptide only contains four eigenvalues that are significantly slower than the time resolution of 1 ps.  
 
@@ -238,6 +245,24 @@ Furthermore, PCCA+ is best used to estimate metastable states.  Here are some ad
 \end{enumerate}
 
 Thus, success with PCCA+ may require some trial and error when selecting the appropriate lagtime and microstate clustering.  Finally, note that our implementation of PCCA+ uses a simulated annealing minimization.  This randomized search means that you may find multiple minima by repeating the PCCA+ calculation several times.  You may find a better model by repeating the calculation several times.  
+
+\subsubsection{Visualizing Structures with Pymol}
+
+Because macrostate models typically have a handful of states, it is easy for humans to compare the resulting structures visually.  One way to do this 
+is to save randomly selected conformations from each state, then view them in Pymol (or VMD):
+
+\begin{verbatim}
+SavePDBs.py -s -1 -a Macro4/MacroAssignments.h5  -c 
+pymol PDBs/State0-0.pdb PDBs/State1-0.pdb PDBs/State2-0.pdb PDBs/State3-0.pdb
+\end{verbatim}
+
+\begin{figure}
+\begin{center}
+\includegraphics[width=9.0cm]{figures/ala.png}
+\caption{Randomly selected conformations from the four macrostate model}
+\end{center}
+\end{figure}
+
 
 \newpage
 
