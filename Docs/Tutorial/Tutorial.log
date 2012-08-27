@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=pdflatex 2012.5.4)  27 JUL 2012 16:49
+This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=pdflatex 2012.7.25)  27 AUG 2012 15:28
 entering extended mode
  %&-line parsing enabled.
 **Tutorial.tex
@@ -518,101 +518,110 @@ Overfull \hbox (54.60022pt too wide) in paragraph at lines 139--139
 mescales.dat[] 
  []
 
-<figures/microstate_timescales.pdf, id=184, 587.19376pt x 442.65375pt>
+<figures/microstate_timescales.pdf, id=188, 587.19376pt x 442.65375pt>
 File: figures/microstate_timescales.pdf Graphic file (type pdf)
 
 <use figures/microstate_timescales.pdf> [6]
-Overfull \hbox (2.15271pt too wide) in paragraph at lines 170--171
+Overfull \hbox (2.15271pt too wide) in paragraph at lines 172--173
 []\OT1/pplx/m/n/12 tCounts.UnSym.mtx con-tains the raw counts of the er-godic d
 ata. These
  []
 
-[7 <./figures/microstate_timescales.pdf>]
-Overfull \hbox (0.38075pt too wide) in paragraph at lines 174--175
+
+Overfull \hbox (0.38075pt too wide) in paragraph at lines 176--177
 []\OT1/pplx/m/n/12 tProb.mtx con-tains the max-i-mum like-li-hood es-ti-mated t
 ran-si-tion prob-
  []
 
-
-Overfull \hbox (0.38074pt too wide) in paragraph at lines 178--179
+[7 <./figures/microstate_timescales.pdf>]
+Overfull \hbox (0.38074pt too wide) in paragraph at lines 180--181
 []\OT1/pplx/m/n/12 Populations.dat con-tains the max-i-mum like-li-hood es-ti-m
 ated re-versible
  []
 
 
-Overfull \hbox (73.12523pt too wide) in paragraph at lines 192--192
+Overfull \hbox (73.12523pt too wide) in paragraph at lines 194--194
 []\OT1/cmtt/m/n/12 PCCA.py -n 4 -a L1/Assignments.Fixed.h5 -t L1/tProb.mtx -o M
 acro4/ -A PCCA+[] 
  []
 
-<figures/Macro4.pdf, id=228, 587.19376pt x 442.65375pt>
+<figures/Macro4.pdf, id=232, 587.19376pt x 442.65375pt>
 File: figures/Macro4.pdf Graphic file (type pdf)
 
-<use figures/Macro4.pdf> [8]
-<figures/Macro5.pdf, id=237, 587.19376pt x 442.65375pt>
+<use figures/Macro4.pdf>
+<figures/Macro5.pdf, id=234, 587.19376pt x 442.65375pt>
 File: figures/Macro5.pdf Graphic file (type pdf)
 
-<use figures/Macro5.pdf> [9 <./figures/Macro4.pdf>]
-Overfull \hbox (17.5502pt too wide) in paragraph at lines 221--221
+<use figures/Macro5.pdf> [8]
+Overfull \hbox (17.5502pt too wide) in paragraph at lines 228--228
 []\OT1/cmtt/m/n/12 -o Macro4/ImpliedTimescales.dat -a Macro4/MacroAssignments.h
 5 -e 3[] 
  []
 
-[10 <./figures/Macro5.pdf>]
-Overfull \hbox (12.5507pt too wide) in paragraph at lines 234--235
+[9 <./figures/Macro4.pdf>]
+Overfull \hbox (12.5507pt too wide) in paragraph at lines 241--242
 \OT1/pplx/m/n/12 not be metastable be-cause sig-nif-i-cant dy-nam-ics oc-curs o
 n the timescale
  []
 
-[11] [12] [13] [14]
-Overfull \hbox (16.35468pt too wide) in paragraph at lines 321--322
+[10 <./figures/Macro5.pdf>]
+Overfull \hbox (85.47523pt too wide) in paragraph at lines 257--257
+[]\OT1/cmtt/m/n/12 pymol PDBs/State0-0.pdb PDBs/State1-0.pdb PDBs/State2-0.pdb 
+PDBs/State3-0.pdb[] 
+ []
+
+<figures/ala.png, id=328, 1204.5pt x 1204.5pt>
+File: figures/ala.png Graphic file (type png)
+ <use figures/ala.png> [11]
+[12 <./figures/ala.png>] [13] [14] [15]
+Overfull \hbox (16.35468pt too wide) in paragraph at lines 346--347
 []\OT1/pplx/m/n/12 You can dis-card eigen-vec-tors based on their equi-lib-rium
  flux (fPCCA+). 
  []
 
-[15]
-Overfull \hbox (73.12523pt too wide) in paragraph at lines 340--340
+[16]
+Overfull \hbox (73.12523pt too wide) in paragraph at lines 365--365
 [] \OT1/cmtt/m/n/12 #004: H5Z.c line 1095 in H5Z_pipeline(): required filter is
  not registered[] 
  []
 
-[16]
-Overfull \hbox (79.30023pt too wide) in paragraph at lines 386--386
+[17]
+Overfull \hbox (79.30023pt too wide) in paragraph at lines 411--411
 [] \OT1/cmtt/m/n/12 ***********************************************************
 ****************[] 
  []
 
 
-Overfull \hbox (73.12523pt too wide) in paragraph at lines 386--386
+Overfull \hbox (73.12523pt too wide) in paragraph at lines 411--411
 []\OT1/cmtt/m/n/12 ************************************************************
 ***************[] 
  []
 
-[17]
-Overfull \hbox (66.95023pt too wide) in paragraph at lines 412--412
+[18]
+Overfull \hbox (66.95023pt too wide) in paragraph at lines 437--437
 []\OT1/cmtt/m/n/12 ComplexWarning: Casting complex values to real discards the 
 imaginary part[] 
  []
 
 
-Overfull \hbox (3.7322pt too wide) in paragraph at lines 426--427
+Overfull \hbox (3.7322pt too wide) in paragraph at lines 451--452
 \OT1/pplx/m/n/12 (see []$\OT1/cmtt/m/n/12 https : / / discussions . apple . com
  / thread / 3786045 ? start = 0&tstart =
  []
 
-[18] (./Tutorial.bbl) [19] (./Tutorial.aux)
+[19] (./Tutorial.bbl) [20] (./Tutorial.aux)
 
 LaTeX Font Warning: Some font shapes were not available, defaults substituted.
 
  ) 
 Here is how much of TeX's memory you used:
- 4828 strings out of 495061
- 68869 string characters out of 1182622
+ 4839 strings out of 495061
+ 69029 string characters out of 1182621
  133367 words of memory out of 3000000
- 7808 multiletter control sequences out of 15000+50000
+ 7815 multiletter control sequences out of 15000+50000
  28728 words of font info for 75 fonts, out of 3000000 for 9000
  28 hyphenation exceptions out of 8191
- 38i,6n,36p,522b,370s stack positions out of 5000i,500n,10000p,200000b,50000s
+ 38i,6n,36p,522b,411s stack positions out of 5000i,500n,10000p,200000b,50000s
 {/usr/share/texmf-texlive/fonts/enc/dvips/base/8r.enc}</usr/share/texmf-texli
 ve/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/share/texmf-texlive/fonts/typ
 e1/public/amsfonts/cm/cmsy10.pfb></usr/share/texmf-texlive/fonts/type1/public/a
@@ -620,9 +629,9 @@ msfonts/cm/cmtt12.pfb></usr/share/texmf-texlive/fonts/type1/public/mathpazo/fpl
 mri.pfb></usr/share/texmf-texlive/fonts/type1/urw/palatino/uplb8a.pfb></usr/sha
 re/texmf-texlive/fonts/type1/urw/palatino/uplr8a.pfb></usr/share/texmf-texlive/
 fonts/type1/urw/palatino/uplri8a.pfb>
-Output written on Tutorial.pdf (19 pages, 998834 bytes).
+Output written on Tutorial.pdf (20 pages, 1292697 bytes).
 PDF statistics:
- 439 PDF objects out of 1000 (max. 8388607)
- 100 named destinations out of 1000 (max. 500000)
- 296 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 452 PDF objects out of 1000 (max. 8388607)
+ 103 named destinations out of 1000 (max. 500000)
+ 309 words of extra memory for PDF output out of 10000 (max. 10000000)
 
