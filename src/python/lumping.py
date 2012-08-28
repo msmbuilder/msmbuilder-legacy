@@ -28,7 +28,7 @@ def NormalizeLeftEigenvectors(V):
     
     for k in xrange(1,V.shape[-1]):
         x=V[:,k]
-	x/=abs(np.dot(x/pi,x))**.5
+        x/=abs(np.dot(x/pi,x))**.5
 
 def trim_eigenvectors_by_flux(lam, vl, flux_cutoff):
     """Trim eigenvectors that have low equilibrium flux.
