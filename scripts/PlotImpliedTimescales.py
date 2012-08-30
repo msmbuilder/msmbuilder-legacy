@@ -33,12 +33,17 @@ parser.add_argument('input', description='Path to ImpledTimescales.dat',
     type=arglib.LoadTxtType(dtype=float), default='ImpliedTimescales.dat')
 parser.add_argument('dt', description='Time between snapshots in your data',
     default=1, type=float)
+parser.add_argument('filename', description='Filename to save plot to. Leave blank to render plot to sceen', default='') 
+parser.add_argument('title', description='Title for plot', default='Relaxation Timescale versus Lagtime')
 args = parser.parse_args()
 
 scatter(args.input[:,0] * args.dt, args.input[:,1] * args.dt)
 yscale('log')
-title('Relaxation Timescales versus Lagtime')
+title(args.title)
 xlabel('Lag Time')
 ylabel('Relaxation Timescale')
 
-show()
+if args.filename:
+    savefig(args.filename)
+else:
+    show()

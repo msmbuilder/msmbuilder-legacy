@@ -38,7 +38,7 @@ def run_pcca(num_macrostates, assignments, tProb, output_dir):
 
     # MAP the new assignments and save, make sure don't
     # mess up negaitve one's (ie where don't have data)
-    MSMLib.ApplyMappingToAssignments(assignments, MAP)
+    MSMLib.apply_mapping_to_assignments(assignments, MAP)
 
     np.savetxt(MacroMapFn, MAP, "%d")
     Serializer.SaveData(MacroAssignmentsFn,assignments)
@@ -56,7 +56,7 @@ def run_pcca_plus(num_macrostates, assignments, tProb, output_dir, flux_cutoff=0
     A, chi, vr, MAP = lumping.pcca_plus(tProb, num_macrostates, flux_cutoff=flux_cutoff,
         do_minimization=do_minimization, objective_function=objective_function)
 
-    MSMLib.ApplyMappingToAssignments(assignments, MAP)    
+    MSMLib.apply_mapping_to_assignments(assignments, MAP)    
 
     np.savetxt(ChiFn, chi)
     np.savetxt(AFn, A)

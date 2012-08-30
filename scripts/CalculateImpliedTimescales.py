@@ -24,6 +24,7 @@ import numpy
 from msmbuilder import MSMLib
 from msmbuilder import Serializer
 from msmbuilder import arglib
+from msmbuilder import msm_analysis
 
 
 def run(MinLagtime, MaxLagtime, Interval, NumEigen, AssignmentsFn, symmetrize, nProc, output):
@@ -43,9 +44,9 @@ def run(MinLagtime, MaxLagtime, Interval, NumEigen, AssignmentsFn, symmetrize, n
     print "Building MSMs at the following lag times:",  lagTimes
 
     # Get the implied timescales (eigenvalues)
-    impTimes = MSMLib.GetImpliedTimescales(AssignmentsFn, NumStates,
-                                           lagTimes, NumImpliedTimes=NumEigen,
-                                           Slide=True, Symmetrize=symmetrize, nProc=nProc)
+    impTimes = msm_analysis.get_implied_timescales(AssignmentsFn, NumStates,
+                                           lagTimes, n_implied_times=NumEigen,
+                                           sliding_window=True, symmetrize=symmetrize, n_procs=nProc)
     numpy.savetxt(output, impTimes)
     return
 
