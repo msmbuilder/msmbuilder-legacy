@@ -9,8 +9,14 @@ from msmbuilder.License import LicenseString
 from msmbuilder.Citation import CiteString
 import scipy.io
 from collections import namedtuple
+import warnings
 
 def _iter_both_cases(string):
+    """Iterate over the chars in a strings in both cases
+    
+    >>> [e for e in _iter_both_cases("string")]
+    ['s', 'S', 't', 'T', 'r', 'R', 'i', 'I', 'n', 'N', 'g', 'G']    
+    """
     for c in string:
         yield c
         yield c.swapcase()
@@ -62,6 +68,10 @@ RESERVED = {'assignments': ('-a', 'Path to assignments file.', 'Data/Assignments
 nestedtype = namedtuple('nestedtype', 'innertype')
 
 def add_argument(group, name, description=None, type=None, choices=None, nargs=None, default=None, action=None):
+    """
+    Wrapper around arglib.ArgumentParser.add_argument. Gives you a short name
+    directly from your longname
+    """
     if name in RESERVED:
         short = RESERVED[name][0]
         if description is None:
@@ -80,6 +90,9 @@ def add_argument(group, name, description=None, type=None, choices=None, nargs=N
             type = nestedtype(type)        
     
     kwargs = {}
+    
+    if action == 'store_true' or action == 'store_false':
+        type = bool
     
     if action is not None:
         kwargs['action'] = action
@@ -113,7 +126,7 @@ def add_argument(group, name, description=None, type=None, choices=None, nargs=N
             group.add_argument(*args, **kwargs)
             found_short = True
             break
-        except argparse.ArgumentError as e:
+        except argparse.ArgumentError:
             pass
     if not found_short:
         raise ValueError('Could not find short name')
@@ -137,8 +150,8 @@ class ArgumentParser(object):
             kwargs['description'] += ('\n' + '-'*80)
         kwargs['formatter_class'] = argparse.RawDescriptionHelpFormatter
         
-        self.parser = argparse.ArgumentParser(self, *args, **kwargs)
-        self.parser.prog=os.path.split(sys.argv[0])[1]
+        self.parser = argparse.ArgumentParser(*args, **kwargs)
+        self.parser.prog = os.path.split(sys.argv[0])[1]
         self.required = self.parser.add_argument_group(title='required arguments')
         self.wdefaults = self.parser.add_argument_group(title='arguments with defaults')
         
@@ -157,6 +170,16 @@ class ArgumentParser(object):
         if name in RESERVED and default is None:
             default = RESERVED[name][2]
 
+        if action == 'store_true':
+            default = False
+        elif action == 'store_false':
+            default = True
+        
+        if choices:    
+            for choice in choices:
+                if not isinstance(choice, str):
+                    warnings.warn('arglib bug: choices should all be str')
+
         if default is None:
             group = self.required
         else:
@@ -169,10 +192,11 @@ class ArgumentParser(object):
 
         self.name_to_type[name] = type
      
-    def parse_args(self):
-        print LicenseString
-        print CiteString
-        namespace = self.parser.parse_args()
+    def parse_args(self, args=None, namespace=None, print_banner=True):
+        if print_banner:
+            print LicenseString
+            print CiteString
+        namespace = self.parser.parse_args(args=args, namespace=namespace)
         return self._typecast(namespace)
     
     def _typecast(self, namespace):
@@ -186,8 +210,6 @@ class ArgumentParser(object):
                 
         return namespace
         
-if __name__ == '__main__':
-    a = ArgumentParser(description='myparser')
-    a.add_argument('project', choices=['a', 'b'])
-    args = a.parse_args()
-    print args
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod()
