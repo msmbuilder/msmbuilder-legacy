@@ -980,7 +980,7 @@ class RMSD(AbstractDistanceMetric):
             """Remove the center of mass from conformations.  Inplace to minimize mem. use."""
             
             for ci in xrange(XYZList.shape[0]):
-                X=XYZList[ci].astype('float64')#To improve the accuracy of RMSD, it can help to do certain calculations in double precision.
+                X = XYZList[ci].astype('float64')#To improve the accuracy of RMSD, it can help to do certain calculations in double precision.
                 X -= X.mean(0)
                 XYZList[ci] = X.astype('float32')
             return
@@ -991,9 +991,9 @@ class RMSD(AbstractDistanceMetric):
             
             conf=XYZ.astype('float64')#Doing this operation in double significantly improves numerical precision of RMSD
             G = 0
-            G += np.dot(conf[:,0],conf[:,0])
-            G += np.dot(conf[:,1],conf[:,1])
-            G += np.dot(conf[:,2],conf[:,2])
+            G += np.dot(conf[:, 0], conf[:, 0])
+            G += np.dot(conf[:, 1], conf[:, 1])
+            G += np.dot(conf[:, 2], conf[:, 2])
             return G
             
         def __len__(self):
@@ -1053,7 +1053,7 @@ class RMSD(AbstractDistanceMetric):
         """
         
         if self.atomindices is not None:
-            return self.TheoData(trajectory['XYZList'][:,self.atomindices])
+            return self.TheoData(trajectory['XYZList'][:, self.atomindices])
         return self.TheoData(trajectory['XYZList'])
     
     
@@ -1259,7 +1259,7 @@ class Vectorized(AbstractDistanceMetric):
         out = cdist(prepared_traj2[indices2], prepared_traj1[[index1]],
                     metric=self.metric, p=self.p, V=self.V, VI=self.VI)
                     
-        return out[:,0]
+        return out[:, 0]
     
     def one_to_all(self, prepared_traj1, prepared_traj2, index1):
         """Measure the distance from one frame to every frame in a trajectory
@@ -1285,9 +1285,9 @@ class Vectorized(AbstractDistanceMetric):
         
         if not isinstance(index1, int):
             raise TypeError('index1 must be of type int.')
-        out2 = cdist(prepared_traj2, prepared_traj1[[index1]], metric=self.metric, p=self.p,
-                     V=self.V, VI=self.VI)
-        return out2[:,0]
+        out2 = cdist(prepared_traj2, prepared_traj1[[index1]], metric=self.metric,
+                     p=self.p, V=self.V, VI=self.VI)
+        return out2[:, 0]
         
     
     def many_to_many(self, prepared_traj1, prepared_traj2, indices1, indices2):
@@ -1567,11 +1567,11 @@ class ContinuousContact(Vectorized, AbstractDistanceMetric):
         num_atoms = trajectory.GetNumberOfAtoms()
         
         if self.contacts == 'all':
-            contacts = np.empty(((num_residues-2) * (num_residues - 3) / 2, 2), dtype=np.int32)
+            contacts = np.empty(((num_residues - 2) * (num_residues - 3) / 2, 2), dtype=np.int32)
             p = 0
-            for (a,b) in itertools.combinations(range(num_residues),2):
-                if max(a,b) > min(a,b) + 2:
-                    contacts[p,:] = [a,b]
+            for (a, b) in itertools.combinations(range(num_residues), 2):
+                if max(a, b) > min(a, b) + 2:
+                    contacts[p, :] = [a, b]
                     p += 1
             assert p == len(contacts), 'Something went wrong generating "all"'
             
@@ -1580,7 +1580,7 @@ class ContinuousContact(Vectorized, AbstractDistanceMetric):
             contacts = self.contacts
             if not width == 2:
                 raise ValueError('contacts must be width 2')
-            if not (0 < len(np.unique(contacts[:,0])) < num_residues):
+            if not (0 < len(np.unique(contacts[:, 0])) < num_residues):
                 raise ValueError('contacts should refer to zero-based indexing of the residues')
             if not np.all(np.logical_and(0 <= np.unique(contacts), np.unique(contacts) < num_residues)):
                 raise ValueError('contacts should refer to zero-based indexing of the residues')
@@ -1775,7 +1775,7 @@ class Rg(Vectorized, AbstractDistanceMetric):
     
     def prepare_trajectory(self, trajectory):
         """Calculate the Rg of every frame"""
-        return _rgcalc.Rg(trajectory['XYZList'])
+        return _rgcalc.calculate_rg(trajectory['XYZList'])
     
 
 class ProtLigRMSD(AbstractDistanceMetric):
@@ -1810,9 +1810,9 @@ class ProtLigRMSD(AbstractDistanceMetric):
             self.pdb_xyz = pdb['XYZ']
         elif 'XYZList' in pdb:
             warnings.warn("You passed a Trajectory object for the PDB? I'm taking the first frame")
-            self.pdb_xyz = pdb['XYZList'][0,:,:]
+            self.pdb_xyz = pdb['XYZList'][0, :, :]
         else:
-            raise ValueError("Couldn't handle pdb:%s" %s)
+            raise ValueError("Couldn't handle pdb:%s" % s)
         if not len(self.protein_indices) == self.pdb_xyz.shape[0]:
             raise ValueError("There should be the same number of protein indices as there are atoms in the pdb structure")
         
@@ -1904,10 +1904,10 @@ class ProtLigRMSD(AbstractDistanceMetric):
         v, s, w_tr = np.linalg.svd(correlation_matrix)
         is_reflection = (np.linalg.det(v) * np.linalg.det(w_tr)) < 0.0
         if is_reflection:
-        	s[-1] = - s[-1]
+            s[-1] = - s[-1]
         E0 = sum(sum(crds1 * crds1)) + \
         sum(sum(crds2 * crds2))
-        rmsd_sq = (E0 - 2.0*sum(s)) / float(n_vec)
+        rmsd_sq = (E0 - 2.0 * sum(s)) / float(n_vec)
         rmsd_sq = max([rmsd_sq, 0.0])
         return np.sqrt(rmsd_sq)
     
@@ -1939,7 +1939,7 @@ class ProtLigRMSD(AbstractDistanceMetric):
         v, s, w_tr = np.linalg.svd(correlation_matrix)
         is_reflection = (np.linalg.det(v) * np.linalg.det(w_tr)) < 0.0
         if is_reflection:
-            v[:,-1] = -v[:,-1]
+            v[:, -1] = -v[:, -1]
         rotation_matrix = np.dot(v, w_tr)
             
         return rotation_matrix
