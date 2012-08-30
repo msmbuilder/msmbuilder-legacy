@@ -1,9 +1,9 @@
 u"""
 setup.py: Install msmbuilder.  
 """
-VERSION=205
+VERSION="2.6.dev"
 __author__ = "Kyle A. Beauchamp"
-__version__ = "%d"%VERSION
+__version__ = VERSION
 
 import os, sys
 from distutils.core import setup,Extension
@@ -107,7 +107,7 @@ def buildKeywordDictionary(use_LPRMSD=True):
     from distutils.core import Extension
     setupKeywords = {}
     setupKeywords["name"]              = "msmbuilder"
-    setupKeywords["version"]           = "%d" %VERSION
+    setupKeywords["version"]           = VERSION
     setupKeywords["author"]            = "Kyle A. Beauchamp"
     setupKeywords["author_email"]      = "kyleb@stanford.edu"
     setupKeywords["license"]           = "GPL 3.0"
