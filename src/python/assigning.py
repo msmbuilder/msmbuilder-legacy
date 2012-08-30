@@ -24,7 +24,7 @@ def _setup_containers(assignments_path, distances_path, num_trajs, longest):
         try:
             completed_trajectories = s['completed_trajectories']
         except:
-            completed_trajectories = (all_assignments[:,0] >= 0)
+            completed_trajectories = (all_assignments[:, 0] >= 0)
         
     else:
         print "Creating serializer containers"
@@ -51,8 +51,8 @@ def assign_in_memory(metric, generators, project):
         ptraj = metric.prepare_trajectory(traj)
         for j in xrange(len(traj)):
             d = metric.one_to_all(ptraj, pgens, j)
-            assignments[i,j] = np.argmin(d)
-            distances[i,j] = d[assignments[i,j]]
+            assignments[i, j] = np.argmin(d)
+            distances[i, j] = d[assignments[i, j]]
 
     return assignments, distances
     
@@ -68,7 +68,6 @@ def assign_with_checkpoint(metric, project, generators, assignments_path, distan
     will not have lost its place (i.e. checkpointing)"""
     pgens = metric.prepare_trajectory(generators)
     
-    num_gens = len(pgens)
     num_trajs = project['NumTrajs']
     longest = max(project['TrajLengths'])
     
