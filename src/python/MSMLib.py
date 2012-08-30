@@ -30,216 +30,25 @@ MSMLib functions generally relate to one of the following
 * Performing calculations with Assignments, Counts matrices, or transition matrices.
 
 """
-
+import warnings
 import scipy.sparse
 import scipy.linalg
 import scipy
 import numpy as np
-import multiprocessing
 import sys
 import scipy.optimize
 from collections import defaultdict
-from utils import deprecated, future_warning
+from msmbuilder.utils import deprecated
+from msmbuilder import msm_analysis 
 
-from msmbuilder import Serializer
-
-eig=scipy.linalg.eig
-DisableErrorChecking=False#Set this value to true (MSMLib.DisableErrorChecking=True) to ignore Eigenvector calculation errors.  Useful if you need to process disconnected data.
-MinimumAllowedNumEig=5
-
-# try to import scipy sparse methods correctly, accounting for different namespaces in different version
-def importSparseEig():
-    try:
-        import scipy.sparse.linalg
-        sparseEigen = scipy.sparse.linalg.eigs
-    except:
-        pass
-    else:
-        return sparseEigen
-
-    try:
-        import scipy.sparse.linalg.eigen.arpack as arpack
-        sparseEigen = arpack.eigen
-    except:
-        pass
-    else:
-        return sparseEigen
-
-    try:
-        import scipy.sparse.linalg.eigen
-        sparseEigen = scipy.sparse.linalg.eigen.eigs
-    except:
-        pass
-        try:
-                import scipy.sparse.linalg.eigen
-                sparseEigen = scipy.sparse.linalg.eigen
-        except:
-                pass
-    else:
-        return sparseEigen
-
-    raise ImportError
-sparseEigen = importSparseEig()
-
-def flatten(*args):
-    """Return a generator for a flattened form of all arguments"""
-
-    for x in args:
-        if hasattr(x, '__iter__'):
-            for y in flatten(*x):
-                yield y
-        else:
-            yield x
-
-def IsTransitionMatrix(T,Epsilon=.00001):
-    """Check for row normalization of a matrix
-    
-    Parameters
-    ----------
-    T : densee or sparse matrix
-    Epsilon : float, optional
-        threshold for how close the row sums need to be to 1
-    
-    Returns
-    -------
-    truth : bool
-        True if the 2-norm of error in the row sums is less than Epsilon.
-    """
-    
-    n=T.shape[0]
-    X=np.array(T.sum(1)).flatten()
-    if scipy.linalg.norm(X-np.ones(n)) < Epsilon:
-        return True
-    return False
-
-NormalizationError=Exception("Not a Row Normalized Matrix","Not a Row Normalized Matix")
-
-def AreAllDimensionsSame(*args):
-    """Are all the supplied arguments the same size
-    
-    Find the shape of every input.
-    
-    Returns
-    -------
-    truth : boolean
-        True if every matrix and vector is the same size.
-    """
-    
-    m=len(args)
-    DimList=[]
-    for i in range(m):
-        Dims=scipy.shape(args[i])
-        DimList.append(Dims)
-        
-    return len(np.unique(flatten(DimList))) == 1
-    
-
-DimensionError=Exception("Argument has incorrect shape", "Argument has incorrect shape")
-
-def CheckDimensions(*args):
-    """Ensure that all the dimensions of the inputs are identical
-    
-    Raises
-    ------
-    DimensionError
-        If some of the supplied arguments have different dimensions from one
-        another
-    """
-
-    if AreAllDimensionsSame(*args)==False:
-        raise DimensionError
-            
-def CheckTransition(T, Epsilon=0.00001):
-    """Ensure that matrix is a row normalized stochastic matrix
-    
-    Parameters
-    ----------
-    T : dense or sparse matrix
-    Epsilon : float, optional
-        Threshold for how close the row sums need to be to one
-    
-    
-    Other Parameters
-    ----------------
-    DisableErrorChecking : bool
-        If this flag (module scope variable) is set tot True, this function just
-        passes. 
-        
-    Raises
-    ------
-    NormalizationError
-        If T is not a row normalized stochastic matrix
-        
-    See Also
-    --------
-    CheckDimensions : ensures dimensionality
-    IsTransitionMatrix : does the actual checking
-    """
-    
-    if DisableErrorChecking:
-        return
-    if IsTransitionMatrix(T,Epsilon=Epsilon)==False:
-        print(T)
-        print("T is not a row normalized stocastic matrix.  This is often caused by either numerical inaccuracies or by having states with zero counts.")
-        raise NormalizationError    
-
-def GetTransitionCountMatrixSparse(states, numstates=None, LagTime=1, slidingwindow=True):
-    """Computes the transition count matrix for a sequence of states (single trajectory).
-    
-    Parameters
-    ----------
-    states : array
-        A one-dimensional array of integers representing the sequence of states.
-        These integers must be in the range [0, numstates]
-    numstates : int
-        The total number of states. If not specified, the largest integer in the
-        states array plus one will be used.
-    LagTime : int, optional
-        The time delay over which transitions are counted
-    slidingwindow : bool, optional
-        Use sliding window
-    
-    Returns
-    -------
-    C : sparse matrix of integers
-        The computed transition count matrix
-    """
-  
-    if not numstates:
-        numstates = np.max(states)+1
-
-    if slidingwindow:
-        from_states = states[:-LagTime:1]
-        to_states = states[LagTime::1]
-    else:
-        from_states = states[:-LagTime:LagTime]
-        to_states = states[LagTime::LagTime]
-    assert from_states.shape == to_states.shape
-
-    transitions = np.row_stack((from_states,to_states))
-    counts = np.ones(transitions.shape[1], dtype=int)
-    try:
-        C = scipy.sparse.coo_matrix((counts, transitions),shape=(numstates,numstates))
-    except ValueError:
-        # Lutz: if we arrive here, there was probably a state with index -1
-        # we try to fix it by ignoring transitions in and out of those states
-        # (we set both the count and the indices for those transitions to 0)
-        mask = transitions < 0
-        counts[mask[0,:] | mask[1,:]] = 0
-        transitions[mask] = 0
-        C = scipy.sparse.coo_matrix((counts, transitions),shape=(numstates,numstates))
-            
-    return C
-
-
-def EstimateRateMatrix(tCount, Assignments):
+def estimate_rate_matrix(count_matrix, assignments):
     """MLE Rate Matrix given transition counts and *dwell times*
     
     Parameters
     ----------
-    tCounts : sparse or dense matrix
+    count_matrix : sparse or dense matrix
         transition counts
-    Assignments : ndarray
+    assignments : ndarray
         2D assignments array used to compute average dwell times
     
     Returns
@@ -265,40 +74,41 @@ def EstimateRateMatrix(tCount, Assignments):
     """
     
     # Find the estimated dwell times (need to deal w negative ones)
-    neg_ind = np.where( Assignments == -1)
-    n = np.max( Assignments.flatten() ) + 1
-    Assignments[neg_ind] = n
-    R = np.bincount( Assignments.flatten() )
+    neg_ind = np.where(assignments == -1)
+    n = np.max(assignments.flatten()) + 1
+    assignments[neg_ind] = n
+    R = np.bincount(assignments.flatten())
     R = R[:n]
-    assert tCount.shape[0] == R.shape[0]
-
+    assert count_matrix.shape[0] == R.shape[0]
+    
     # Most Likely Estimator ( Kij(hat) = Nij / Ri )
-    if scipy.sparse.isspmatrix(tCount):
-        C = scipy.sparse.csr_matrix( tCount ).asfptype()
-        D = scipy.sparse.dia_matrix( (1./R,0), C.shape).tocsr()
+    if scipy.sparse.isspmatrix(count_matrix):
+        C = scipy.sparse.csr_matrix(count_matrix).asfptype()
+        D = scipy.sparse.dia_matrix((1.0 / R, 0), C.shape).tocsr()
         K = D*C # if all is sparse is matrix multiply, formerly: D.dot( C )
     else:
         # deprecated due to laziness --TJL
-        print "ERROR! Pass sparse matrix to EstimateRateMatrix()"
-        sys.exit(1)
+        raise ValueError("ERROR! Pass sparse matrix to me")
    
     # Now get the diagonals right. They should be negative row sums
-    row_sums = np.asarray( C.sum(axis=1) ).flatten()
+    row_sums = np.asarray(C.sum(axis=1)).flatten()
     current  = K.diagonal()
-    S = scipy.sparse.dia_matrix( ((row_sums + (2.0*current)), 0), C.shape).tocsr()
+    S = scipy.sparse.dia_matrix(((row_sums + (2.0*current)), 0), C.shape).tocsr()
     K = K - S
-    assert K.shape == tCount.shape
+    if not K.shape == count_matrix.shape:
+        raise RuntimeError('Bad news bears')
     #assert K.sum(0).all() == np.zeros(K.shape[0]).all(), K.sum(0).all()
  
     return K
 
-def EstimateTransitionMatrix(tCount):
+
+def estimate_transition_matrix(count_matrix):
     """
     Simple Maximum Likelihood estimator of transition matrix.
     
     Parameters
     ----------
-    tCount : array or sparse matrix
+    count_matrix : array or sparse matrix
         A square matrix of transition counts
     
     Returns
@@ -308,606 +118,203 @@ def EstimateTransitionMatrix(tCount):
     """
     #1.  Make sure you don't modify tCounts.
     #2.  Make sure you handle both floats and ints 
-    if scipy.sparse.isspmatrix(tCount):
-        C=scipy.sparse.csr_matrix(tCount).asfptype()
+    if scipy.sparse.isspmatrix(count_matrix):
+        C = scipy.sparse.csr_matrix(count_matrix).asfptype()
         weights = np.asarray(C.sum(axis=1)).flatten()            
         inv_weights = np.zeros( len(weights) )
         inv_weights[ weights != 0 ] = 1.0 / weights[ weights != 0 ]
-        D=scipy.sparse.dia_matrix((inv_weights,0),C.shape).tocsr()
-        tProb=D.dot(C)
+        D = scipy.sparse.dia_matrix((inv_weights,0),C.shape).tocsr()
+        tProb = D.dot(C)
     else:
-        tProb = np.asarray(tCount.astype(float)) # astype creates a copy
+        tProb = np.asarray(count_matrix.astype(float)) # astype creates a copy
         weights = tProb.sum(axis=1)
         inv_weights = np.zeros( len(weights) )
         inv_weights[ weights != 0 ] = 1.0 / weights[ weights != 0 ]
         tProb = tProb * inv_weights.reshape((weights.shape[0],1))
-
+    
     return tProb
 
-@future_warning
-def CheckForBadEigenvalues(Eigenvalues, decimal=5, CutoffValue=0.999999):
-    """Ensure that all eigenvalues are less than or equal to one
-    
-    Having multiple eigenvalues of lambda>=1 suggests either non-ergodicity or
-    numerical error.
-    
-    TODO: 6/27 This function needs to be refactored to throw exceptions/warnings
-        and not print to stdout. It should also sort the eigenvalues. And the deprecated
-        argument should be removed
-    
-    Parameters
-    ----------
-    Eigenvalues : ndarray
-        1D array of eigenvalues to check
-    decimal : deprecated (marked 6/27)
-        this doesn't do anything
-    CutoffValue: float, optional
-        Tolerance used
-    
-    Notes
-    ------
-    Checks that the first eigenvalue is within `CutoffValue` of 1, and that the second
-    eigenvalue is not greater than `CutoffValue`
 
+def build_msm(assignments, lag_time, n_states=None, symmetrize='MLE', sliding_window=True, trimming=True, get_populations=False):
     """
-
-    if DisableErrorChecking:
-        return
-
-    if abs( Eigenvalues[0] - 1 ) > 1-CutoffValue:
-        print """WARNING: the largest eigenvalue is not 1, suggesting numerical error.  Try using 64 or 128 bit precision."""
-
-        if Eigenvalues[1] > CutoffValue:
-            print """WARNING: the second largest eigenvalue (x) is close to 1, suggesting numerical error or nonergodicity.  Try using 64 or 128 bit precision.  Your data may also be disconnected, in which case you cannot simultaneously model both disconnected components.  Try collecting more data or trimming the disconnected pieces."""
-
-
-def GetEigenvectors(T,NumEig,Epsilon=.001,DenseCutoff=50):
-    """Get the left eigenvectors of a transition matrix, sorted by eigenvalue
-    magnitude
+    Build a basic transition probability MSM
+    
+    First, get the counts matrix. Next, use Tarjan's algorithm
+    to get the maximal strongly ergodic subgraph. From this, estimate a reversible
+    counts matrix.
     
     Parameters
     ----------
-    T : sparse or dense matrix
-        transition matrix. if `T` is sparse, the sparse eigensolver will be used
-    NumEig : int
-        How many eigenvalues to calculate
-    Epsilon : float, optional
-        Throw error if `T` is not a stochastic matrix, with tolerance given by `Epsilon`
+    assignments : np.ndarray
+        2D msmbuilder assignmennts array
+    lag_time :
+        the lag time to build the msm with, in frames
+    n_states :int, optional
+        number of states in `assignments`. If unsupplied, we'll scan assignments
+        for this.
+    symmetrize : {'MLE', 'Transpose', None}, optional
+        symmetrization scheme so that we have reversible counts
+    sliding_window : bool, optional
+        used in constructing the counts matrix
+    trimming : bool, optional
+        should we trim?
+    get_populations : bool, optional
+        When using symmetrize=None, getting the populations requires some extra
+        work (calculating an eigenvector). If you don't need the populations,
+        there's no reason to compute them. For MLE and Transpose, the populations
+        come free so we'll return them anyway.
     
     Returns
     -------
-    eigenvalues : ndarray
-        1D array of eigenvalues
-    eigenvectors : ndarray
-        2D array of eigenvectors
-    
-    Notes
-    -----
-    Left eigenvectors satisfy the relation :math:`V \mathbf{T} = \lambda V`
-    Vectors are returned in columns of matrix.
+    counts : scipy.sparse.csr_matrix
+    rev_counts : scipy.sparse.csr_matric
+    t_matrix : scipy.sparse_csr_matrix
+    populations : np.ndarray
+    mapping : np.ndarray
     """
+    symmetrize = str(symmetrize).lower()
+    symmetrization_error = ValueError("Invalid symmetrization scheme requested: %s. Exiting." % symmetrize)
+    if symmetrize not in ['mle', 'transpose', 'none']:
+        raise symmetrization_error
     
-    CheckTransition(T,Epsilon=Epsilon)
-    CheckDimensions(T)
-    n=T.shape[0]
-    if NumEig>n:
-        raise Exception("You cannot calculate %d Eigenvectors from a %d x %d matrix"%(NumEig,n,n))
-    if n < DenseCutoff and scipy.sparse.issparse(T):
-        T=T.toarray()
-    if scipy.sparse.issparse(T):
-        eigSolution = sparseEigen(T.transpose().tocsr(), max(NumEig,MinimumAllowedNumEig), which="LR", maxiter=100000)
-    else:
-        eigSolution=eig(T.transpose())      
-    Ord=np.argsort(-np.real(eigSolution[0]))
-
-    elambda=eigSolution[0][Ord]
-    eV=eigSolution[1][:,Ord]
+    counts = get_count_matrix_from_assignments(assignments, n_states=n_states, lag_time=lag_time, sliding_window=sliding_window)
+    if trimming:
+        counts, mapping = ergodic_trim(counts) 
     
-    #CheckForBadEigenvalues(elambda, CutoffValue=1-Epsilon) # this is bad IMO --TJL
-
-    eV[:,0]/=sum(eV[:,0])
-    eigSolution=(elambda[0:NumEig],eV[:,0:NumEig])
+    # Apply a symmetrization scheme
+    if symmetrize == 'mle':
+        rev_counts = mle_reversible_count_matrix(counts, prior=0.0)
     
-    return(eigSolution)
-
-def GetEigenvectors_Right(T,NumEig,Epsilon=.001):
-    """Get the right eigenvectors of a transition matrix, sorted by eigenvalue
-    magnitude.
-
-    Parameters
-    ----------
-    T : sparse or dense matrix
-        transition matrix. if `T` is sparse, the sparse eigensolver will be used
-    NumEig : int
-        How many eigenvalues to calculate
-    Epsilon : float, optional
-        Throw error if `T` is not a stochastic matrix, with tolerance given by `Epsilon`
-    
-    Returns
-    -------
-    eigenvalues : ndarray
-        1D array of eigenvalues
-    eigenvectors : ndarray
-        2D array of eigenvectors
-    
-    Notes
-    -----
-    Right eigenvectors satisfy the relation :math:`\mathbf{T} V = \lambda V`
-    Vectors are returned in columns of matrix.
-    
-    """
-    
-    CheckTransition(T,Epsilon=Epsilon)
-    CheckDimensions(T)
-    n=T.shape[0]
-    if NumEig>n:
-        raise Exception("You cannot calculate %d Eigenvectors from a %d x %d matrix"%(NumEig,n,n))
-    if scipy.sparse.issparse(T):
-        eigSolution = sparseEigen(T.tocsr(), max(NumEig,MinimumAllowedNumEig), which="LR", maxiter=100000)
-    else:
-        eigSolution=eig(T)
-    Ord=np.argsort(-np.real(eigSolution[0]))
-    elambda=eigSolution[0][Ord]
-    eV=eigSolution[1][:,Ord]
-                   
-    eV[:,0]/=sum(eV[:,0])
-    eigSolution=(elambda[0:NumEig],eV[:,0:NumEig])
-    
-    return(eigSolution)
-
-def GetImpliedTimescales(AssignmentsFn, NumStates, LagTimes, NumImpliedTimes=100, Slide=True, Trim=True, Symmetrize=None, nProc=1):
-    """Calculate implied timescales in parallel using multiprocessing library.  Does not work in interactive mode.
-    
-    Parameters
-    ----------
-    AssignmentsFn : str
-        Path to Assignments.h5 file on disk
-    NumStates : int
-        Number of states
-    LagTimes : list
-        List of lag times to calculate the timescales at
-    NumImpledTimes : int, optional
-        Number of implied timescales to calculate at each lag time
-    Slide : bool, optional
-        Use sliding window
-    Trim : bool, optional
-        Use ergodic trimming
-    Symmetrize : {'MLE', 'Transpose', None}
-        Symmetrization method
-    nProc : int
-        number of processes to use in parallel (multiprocessing
+    elif symmetrize == 'transpose':
+        rev_counts = 0.5*(counts + counts.transpose())
         
-    Returns
-    -------
-    formatedLags : ndarray
-        RTM 6/27 I'm not quite sure what the semantics of the output is. It's not
-        trivial and undocummented.
-    
-    See Also
-    --------
-    EstimateReversibleCountMatrix : (MLE symmetrization)
-    GetImpliedTimescalesHelper
-    GetCountMatrixFromAssignments
-    EstimateTransitionMatrix
-    GetEigenvectors
+    elif symmetrize == 'none':
+        rev_counts = counts
         
-    """
-    pool = multiprocessing.Pool(processes=nProc)
-    n = len(LagTimes)
-    inputs = zip(n*[AssignmentsFn], n*[NumStates], LagTimes, n*[NumImpliedTimes], n*[Slide], n*[Trim], n*[Symmetrize])
-    #result = pool.map_async(GetImpliedTimescalesHelper, inputs)
-    result = pool.map_async(GetImpliedTimescalesHelper, inputs)
-    #result.get(9999999)
-    #result.wait()
-    lags = result.get(999999)
-
-    # reformat
-    formatedLags = np.zeros((n*NumImpliedTimes, 2))
-    i = 0
-    for arr in lags:
-        formatedLags[i:i+NumImpliedTimes,0] = arr[0]
-        formatedLags[i:i+NumImpliedTimes,1] = arr[1]
-        i += NumImpliedTimes
-    return formatedLags
-
-def GetImpliedTimescalesHelper(args):
-    """Helper function to compute implied timescales with multiprocessing
-    
-    Does not work in interactive mode
-    
-    Parameters
-    ----------
-    AssignmentsFn : str
-        Path to Assignments.h5 file on disk
-    NumStates : int
-        Number of states
-    LagTimes : list
-        List of lag times to calculate the timescales at
-    NumImpledTimes : int, optional
-        Number of implied timescales to calculate at each lag time
-    Slide : bool, optional
-        Use sliding window
-    Trim : bool, optional
-        Use ergodic trimming
-    Symmetrize : {'MLE', 'Transpose', None}
-        Symmetrization method
-    
-    Returns
-    -------
-    lagTimes : ndarray
-        vector of lag times
-    impTimes : ndarray
-        vector of implied timescales
-        
-    See Also
-    --------
-    EstimateReversibleCountMatrix : (MLE symmetrization)
-    GetImpliedTimescales
-    GetCountMatrixFromAssignments
-    EstimateTransitionMatrix
-    GetEigenvectors
-    """
-    
-    AssignmentsFn = args[0]
-    NumStates = args[1]
-    LagTime = args[2]
-    NumImpliedTimes = args[3]
-    Slide = args[4]
-    Trim = args[5]
-    Symmetrize = args[6]
-
-    Assignments=Serializer.LoadData(AssignmentsFn)
-
-    Counts=GetCountMatrixFromAssignments(Assignments,NumStates,LagTime=LagTime,Slide=Slide)
-        
-    # Apply ergodic trim if requested
-    if Trim: Counts, MAP = ErgodicTrim(Counts) # TJL 5/9/11, previously AD
-
-    # Apply a symmetrization scheme (TJL 8/3/11)
-    if Symmetrize == 'MLE':
-        Counts = EstimateReversibleCountMatrix(Counts, Prior=0.0)       
-    elif Symmetrize == 'Transpose':
-        Counts = 0.5*(Counts + Counts.transpose())
-    elif Symmetrize == None:
-        pass
     else:
-        print "ERROR: Invalid symmetrization scheme requested: %d. Exiting." %Symmetrize
-        sys.exit(1)
-
-    # Calculate the eigen problem
-    T=EstimateTransitionMatrix(Counts)
-    EigAns=GetEigenvectors(T,NumImpliedTimes+1,Epsilon=1) #TJL: set Epsilon high, should not raise err here     
-
-    # make sure to leave off equilibrium distribution
-    lagTimes = LagTime*np.ones((NumImpliedTimes))
-    impTimes = -lagTimes/np.log(EigAns[0][1:NumImpliedTimes+1])
-
-    # save intermediate result in case of failure
-    res = np.zeros((NumImpliedTimes, 2))
-    res[:,0] = lagTimes
-    res[:,1] = np.real(impTimes)
-
-    return (lagTimes, impTimes)
-
-
-def project_observable_onto_transition_matrix(observable, tprob, num_modes=25):
-    """
-    Projects an observable vector onto a probability transition matrix's
-    eigenmodes.
-
-    The function first decomposes the matrix `tprob` into `num_modes`
-    different eigenvectors, sorted by eigenvalue. Then, it returns the
-    amplitude of the projection of the observable onto each of those
-    eigenmodes. 
-
-    This projection gives an estimate of how strong an
-    experimental signal will be see at each timescale - though the actual
-    experimental response will also be modulated by the populations of
-    states at play.
-
-    Parameters
-    ----------
-    observable : array_like, float
-        a one-dimensional array of the values of a given observable for
-        each state in the MSM
-    tprob : matrix
-        the transition probability matrix
-    num_modes : int
-        the number of eigenmodes to calculate (the top ones, sorted by mag.) 
-
-    Returns
-    -------
-    timescales : array_like, float
-        the timescales of each eigenmode, in units of the lagtime of `tprob`
-    amplitudes : array_like, float
-        the amplitudes of the projection of `observable` onto each mode
-
-    Notes
-    -----
-    The stationary mode is always discarded
-    The eigenvalues/vectors are calculated from scratch, so this function
-        may take a little while to run
-    """
-
-    if num_modes+1 > tprob.shape[0]:
-        print "Warning: cannot get %d eigenmodes from a rank %d matrix" % (num_modes+1, tprob.shape[0])
-        print "Getting as many modes as possible..."
-        num_modes = tprob.shape[0]-1
-
-    eigenvalues, eigenvectors = GetEigenvectors_Right(tprob, num_modes+1)
-
-    # discard the stationary eigenmode
-    eigenvalues = np.real( eigenvalues[1:] )
-    eigenvectors = np.real( eigenvectors[:,1:] )
-
-    timescales = - 1.0 / np.log(eigenvalues)
-
-    amplitudes = np.zeros(num_modes)
-    for mode in range(num_modes):
-        amplitudes[mode] = np.dot(observable, eigenvectors[:,mode])
-
-    return timescales, amplitudes
-
-
-def calc_expectation_timeseries(tprob, observable, init_pop=None,
-                                timepoints=10**6, n_modes=100, lagtime=15.0):
-    """
-    Calculates the expectation value over time <A(t)> for some `observable`
-    in an MSM. Does this by eigenvalue decomposition, according to the eq
-
-    math :: \langle A \rangle (t) = \sum_{i=0}^N \langle p(0), \psi^L_i
-            \rangle e^{ - \lambda_i t } \langle \psi^R_i, A \rangle
-
-    Parameters
-    ----------
-    tprob : matrix
-        The transition probability matrix (of size N) for the MSM.
-
-    observable : array_like, float
-        A len N array of the values A of the observable for each state.
-
-    init_pop : array_like, float
-        A len N array of the initial populations of each state. If None
-        is passed, then the function will start from even populations in
-        each state.
-
-    timepoints : int
-        The number of timepoints to calculate - the final timeseries will
-        be in length LagTime x `timepoints`
-
-    n_modes : int
-        The number of eigenmodes to include in the calculation. This
-        number will depend on the timescales involved in the relatation
-        of the observable.      
-
-    Returns
-    -------
-    timeseries : array_like, float
-        A timeseries of the observable over time, in units of the lag time
-        of the transition matrix. 
-    """
-
-    # first, perform the eigendecomposition
-    lambd, psi_R = eigs(tprob.T, k=n_modes)
-    psi_R = np.real(psi_R)
-    lambd = np.real(lambd)
-
-    # normalize eigenvectors
-    pi = psi_R[:,0]
-    pi /= pi.sum()
-
-    psi_L = np.zeros( psi_R.shape )
-    for i in range(n_modes):
-        psi_R[:,i] *= np.sqrt( np.sum( np.power( psi_R[:,i], 2.0 ) / pi ) )
-        psi_L[:,i] = psi_R[:,i] / pi
-        psi_L[:,i] /= np.dot( psi_L[:,i], psi_R[:,i] )
-
-    if lagtime:
-        print "Shortest timescale process included:", -lagtime / np.log( np.min(lambd) )
-
-    # figure out the initial populations
-    if init_pop == None:
-        init_pop = np.ones( tprob.shape[0] )
-        init_pop /= init_pop.sum()
-    assert np.abs(init_pop.sum() - 1.0) < 0.0001
-
-    # generate the timeseries
-    timeseries = np.zeros(timepoints)
-    for i in range(n_modes):
-        front = np.dot(init_pop, psi_L[:,i])
-        back  = np.dot(observable, psi_R[:,i])
-        mode_decay = front * np.power( lambd[i], np.arange(timepoints) ) * back
-        timeseries += np.real(mode_decay)
-
-    print np.dot(pi, observable), timeseries[-1]
-
-    return timeseries
-
-
-def Sample(T,State,Steps,Traj=None,ForceDense=False):
-    """Generate a random sequence of states by propogating a transition matrix.
-
-    Parameters
-    ----------
-    T : sparse or dense matrix
-        A transition matrix
-    State : {int, None, ndarray}
-        Starting state for trajectory. If State is an integer, it will be used
-        as the initial state. If State is None, an initial state will be
-        randomly chosen from an uniform distribution. If State is an array, it
-        represents a probability distribution from which the initial
-        state will be drawn. If a trajectory is specified (see Traj keyword),
-        this variable will be ignored, and the last state of that trajectory
-        will be used.
-    Steps : int
-        How many steps to generate.
-    Traj : list, optional
-        An existing trajectory (python list) can be input; results will be
-        appended to it
-    ForceDense : bool, deprecated
-        Force dense arithmatic.  Can speed up results for small models (OBSOLETE).
-        
-    Returns
-    -------
-    Traj : list
-        Sequence of states as a python list
-    """
-
-    CheckTransition(T)
-    CheckDimensions(T)
-
-    if scipy.sparse.isspmatrix(T):
-        T = T.tocsr()
-        
-    # reserve room for the new trajectory (will be appended to an existing trajectory at the end if necessary)
-    newtraj = [-1] * Steps
-
-    # determine initial state
-    if Traj is None or len(Traj) == 0:
-        if State is None:
-            State = np.random.randint(T.shape[0])
-        elif isinstance(State,np.ndarray):
-            State = np.where(scipy.random.multinomial(1,State/sum(State))==1)[0][0]
-        newtraj[0] = State
-        start = 1
-    else:
-        State = Traj[-1]
-        start = 0
-    assert State < T.shape[0], "Intial state is " + str(State) + ", but should be between 0 and " + str(T.shape[0]-1) + "."
-
-    # sample the Markov chain
-    if isinstance(T,np.ndarray):
-        for i in xrange(start,Steps):
-            p = T[State,:]
-            State = np.where(scipy.random.multinomial(1,p) == 1)[0][0]
-            newtraj[i] = State
-    elif isinstance(T, scipy.sparse.csr_matrix):
-        if ForceDense:
-            # Lutz: this is the old code path that converts the row of transition probabilities to a dense array at each step.
-            # With the optimized handling of sparse matrices below, this can probably be deleted altogether.
-            for i in xrange(start,Steps):
-                p = T[State,:].toarray().flatten()
-                State = np.where(scipy.random.multinomial(1,p) == 1)[0][0]
-                newtraj[i] = State
-        else:
-            for i in xrange(start,Steps):
-                # Lutz: slicing sparse matrices is very slow (compared to slicing ndarrays)
-                # To avoid slicing, use the underlying data structures of the CSR format directly
-                vals = T.indices[T.indptr[State]:T.indptr[State+1]]   # the column indices of the non-zero entries are the possible target states
-                p = T.data[T.indptr[State]:T.indptr[State+1]]         # the data values of the non-zero entries are the corresponding probabilities
-                State = vals[np.where(scipy.random.multinomial(1,p) == 1)[0][0]]
-                newtraj[i] = State
-    else:
-        raise RuntimeError, "Unknown matrix type: " + str(type(T))
-
-    # return the new trajectory, or the concatenation of the old trajectory with the new one
-    if Traj is None:
-        return newtraj
-    else:
-        Traj.extend(newtraj)
-        return Traj
-
-def PropagateModel(T,NumSteps,X0,ObservableVector=None):
-    """Propogate the time evolution of a population vector.
-
-    Parameters
-    ----------
-    T : ndarray or sparse matrix
-        A transition matrix
-    NumSteps : int
-        How many timesteps to iterate
-    X0 : ndarray
-        The initial population vector
-    ObservableVector : ndarray
-        Vector containing the state-wise averaged property of some observable.
-        Can be used to propagate properties such as fraction folded, ensemble
-        average RMSD, etc.  Default: None
+        raise symmetrization_error
     
-    Returns
-    -------
-    X : ndarray
-        Final population vector, after propagation
-    obslist : list
-        list of floats of length equal to the number of steps, giving the mean value
-        of the observable (dot product of `ObservableVector` and populations) at
-        each timestep
+    t_matrix = estimate_transition_matrix(rev_counts)
     
-    See Also
-    --------
-    Sample
-    scipy.sparse.linalg.aslinearoperator
+    if symmetrize in ['mle', 'transpose']:
+        populations = np.array(rev_counts.sum(0)).flatten()
+    elif get_populations and symmetrize == 'none':
+        vectors = msm_analysis.get_eigenvectors(t_matrix, 5)[1]
+        populations = vectors[:, 0]
+    else:
+        populations = None
     
-    """
-    CheckTransition(T)
-    if ObservableVector==None:
-        CheckDimensions(T,X0)
-    else:
-        CheckDimensions(T,X0,ObservableVector)
+    if populations is not None:
+        populations /= populations.sum()
+    
+    return counts, rev_counts, t_matrix, populations, mapping
 
-    X=X0.copy()
-    obslist=[]
-    if scipy.sparse.issparse(T):
-        TC=T.tocsr()
-    else:
-        TC=T
-    Tl=scipy.sparse.linalg.aslinearoperator(TC)
-    for i in range(NumSteps):
-        X=Tl.rmatvec(X);
-        if ObservableVector!=None:
-            obslist.append(sum(ObservableVector*X))
-    return X,obslist
 
-def GetCountMatrixFromAssignments(Assignments,NumStates=None,LagTime=1,Slide=True):
+def get_count_matrix_from_assignments(assignments, n_states=None, lag_time=1, sliding_window=True):
     """Calculate count matrix from Assignments.
-
+    
     Parameters
     ----------
-    Assignments : ndarray
+    assignments : ndarray
         A 2d ndarray containing the state assignments.  
-    NumStates : int, optional
+    n_states : int, optional
         Can be automatically determined, unless you want a model with more states than are observed
-    LagTime: int, optional
+    lag_time: int, optional
         the LagTime with which to estimate the count matrix. Default: 1
-    Slide: bool, optional
+    sliding_window: bool, optional
         Use a sliding window.  Default: True
         
     Returns
     -------
-    Counts : sparse matrix
+    counts : sparse matrix
         `Counts[i,j]` stores the number of times in the assignments that a
         trajectory went from state i to state j in `LagTime` frames
-
+        
     Notes
     -----
-    Assignments are input as iterables over numpy 1-d arrays of integers.
-    For example a 2-d array where Assignments[i,j] gives the ith trajectory, jth frame.
+    assignments are input as iterables over numpy 1-d arrays of integers.
+    For example a 2-d array where assignments[i,j] gives the ith trajectory, jth frame.
     The beginning and end of each trajectory may be padded with negative ones, which will be ignored.
     If the number of states is not given explitly, it will be determined as one plus the largest state index of the Assignments.
     Sliding window yields non-independent samples, but wastes less data.
     """
-
-    if not NumStates:
-        NumStates = 1 + int(np.max([np.max(a) for a in Assignments]))   # Lutz: a single np.max is not enough, b/c it can't handle a list of 1-d arrays of different lengths
-        assert NumStates >= 1
-        
-    C=scipy.sparse.lil_matrix((int(NumStates),int(NumStates)),dtype='float32')  # Lutz: why are we using float for count matrices?
     
-    for A in Assignments:
-        FirstEntry=np.where(A!=-1)[0]
-        if len(FirstEntry)>=1:#New Code by KAB to skip pre-padded negative ones.  This should solve issues with Tarjan trimming results.
-            FirstEntry=FirstEntry[0]
-            A=A[FirstEntry:]
-            C=C+GetTransitionCountMatrixSparse(A,NumStates,LagTime=LagTime,slidingwindow=Slide)#.tolil()
-    return(C)
+    if not n_states:
+        n_states = 1 + int(np.max([np.max(a) for a in assignments]))   # Lutz: a single np.max is not enough, b/c it can't handle a list of 1-d arrays of different lengths
+        if n_states < 1:
+            raise ValueError()
+        
+    C = scipy.sparse.lil_matrix((int(n_states), int(n_states)), dtype='float32')  # Lutz: why are we using float for count matrices?
+    
+    for A in assignments:
+        FirstEntry = np.where(A!=-1)[0]
+        if len(FirstEntry) >= 1: #New Code by KAB to skip pre-padded negative ones.  This should solve issues with Tarjan trimming results.
+            FirstEntry = FirstEntry[0]
+            A = A[FirstEntry:]
+            C = C + get_counts_from_traj(A, n_states, lag_time=lag_time, sliding_window=sliding_window)#.tolil()
+    
+    return C
 
-def ApplyMappingToAssignments(Assignments,Mapping):
+
+def get_counts_from_traj(states, n_states=None, lag_time=1, sliding_window=True):
+    """Computes the transition count matrix for a sequence of states (single trajectory).
+    
+    Parameters
+    ----------
+    states : array
+        A one-dimensional array of integers representing the sequence of states.
+        These integers must be in the range [0, n_states]
+    n_states : int
+        The total number of states. If not specified, the largest integer in the
+        states array plus one will be used.
+    lag_time : int, optional
+        The time delay over which transitions are counted
+    sliding_window : bool, optional
+        Use sliding window
+        
+    Returns
+    -------
+    C : sparse matrix of integers
+        The computed transition count matrix
+    """
+    
+    if not n_states:
+        n_states = np.max(states)+1
+        
+    if sliding_window:
+        from_states = states[:-lag_time:1]
+        to_states = states[lag_time::1]
+    else:
+        from_states = states[:-lag_time:lag_time]
+        to_states = states[lag_time::lag_time]
+    assert from_states.shape == to_states.shape
+    
+    transitions = np.row_stack((from_states, to_states))
+    counts = np.ones(transitions.shape[1], dtype=int)
+    try:
+        C = scipy.sparse.coo_matrix((counts, transitions),
+            shape=(n_states, n_states))
+    except ValueError:
+        # Lutz: if we arrive here, there was probably a state with index -1
+        # we try to fix it by ignoring transitions in and out of those states
+        # (we set both the count and the indices for those transitions to 0)
+        mask = transitions < 0
+        counts[mask[0, :] | mask[1, :]] = 0
+        transitions[mask] = 0
+        C = scipy.sparse.coo_matrix((counts, transitions),
+            shape=(n_states, n_states))
+            
+    return C
+
+
+def apply_mapping_to_assignments(assignments, mapping):
     """Remap the states in an assignments file according to a mapping.
     
     Parameters
     ----------
-    Assignments : ndarray
+    assignments : ndarray
         Standard 2D assignments array
-    Mapping : ndarray
+    mapping : ndarray
         1D numpy array of length equal to the number of states in Assignments.
         Mapping[a] = b means that the frames currently in state a will be mapped
         to state b
@@ -922,31 +329,60 @@ def ApplyMappingToAssignments(Assignments,Mapping):
     state -1 is treated specially -- it always stays -1 and is not remapped.
     
     """
-    A=Assignments
     
-    NewMapping=Mapping.copy()
-    NewMapping[np.where(Mapping==-1)]=Mapping.max()+1#Make a special state for things that get deleted by Ergodic Trimming.
+    NewMapping = mapping.copy()
+    # Make a special state for things that get deleted by Ergodic Trimming.
+    NewMapping[np.where(mapping == -1)] = mapping.max() + 1
+    
+    NegativeOneStates = np.where(assignments == -1)
+    assignments[:] = NewMapping[assignments]
+    WhereEliminatedStates = np.where(assignments == (mapping.max() + 1))
+    
+    # These are the dangling 'tails' of trajectories (with no actual data) that we denote state -1.
+    assignments[NegativeOneStates] = -1
+    # These states have typically been "deleted" by the ergodic trimming algorithm.  Can be at beginning or end of trajectory.
+    assignments[WhereEliminatedStates] = -1
 
-    NegativeOneStates=np.where(A==-1)
-    A[:]=NewMapping[A]
-    WhereEliminatedStates=np.where(A==(Mapping.max()+1))
 
-    A[NegativeOneStates]=-1#These are the dangling 'tails' of trajectories (with no actual data) that we denote state -1.
-    A[WhereEliminatedStates]=-1#These states have typically been "deleted" by the ergodic trimming algorithm.  Can be at beginning or end of trajectory.
+def invert_assignments(assignments):
+    """Invert an assignments array -- that is, produce a mapping
+    from state -> traj/frame
+    
+    Parameters
+    ----------
+    assignments : np.ndarray
+        2D array of MSMBuilder assignments
+    
+    Returns
+    -------
+    inverse_mapping : collections.defaultdict
+        Mapping from state -> traj,frame, such that inverse_mapping[s]
+        gives the conformations assigned to state s.
+    
+    """
+    
+    inverse_mapping = defaultdict(lambda: ([], []))
+    for i in xrange(assignments.shape[0]):
+        for j in xrange(assignments.shape[1]):
+            inverse_mapping[assignments[i, j]][0].append(i)
+            inverse_mapping[assignments[i, j]][1].append(j)
+    
+    return inverse_mapping
 
-def ApplyMappingToVector(V, Mapping):
+
+def apply_mapping_to_vector(vector, mapping):
     """ Remap an observable vector after ergodic trimming
     
     RTM 6/27: I don't think this function is really doing what it should.
     It does a reordering, but when the mapping is a many->one, don't you really
     want to average things together or something?
-
+    
     TJL 7/1: That's true. I wrote this with only the ergodic trimming in
     mind, it needs to be updated if it's going to work w/PCCA as well...
     
     Parameters
     ----------
-    V : ndarray
+    vector : ndarray
         1D. Some observable value associated with each states
     Mapping : ndarray
         1D numpy array of length equal to the number of states in Assignments.
@@ -955,7 +391,7 @@ def ApplyMappingToVector(V, Mapping):
     
     Returns
     -------
-    NV : ndarray
+    new_vector : ndarray
         mapped observable values
     
     Notes
@@ -964,19 +400,20 @@ def ApplyMappingToVector(V, Mapping):
     
     """
     
-    NV = V[np.where(Mapping != -1)[0]] 
-    print "Mapping %d elements --> %d" % (len(V), len(NV))
-    return NV
+    new_vector = vector[np.where(mapping != -1)[0]] 
+    print "Mapping %d elements --> %d" % (len(vector), len(new_vector))
+    
+    return new_vector
 
-def RenumberStates(Assignments):
-    """
-    Renumbers states to be consecutive integers (0, 1, ... , n), performs
+
+def renumber_states(assignments):
+    """Renumber states to be consecutive integers (0, 1, ... , n), performs
     this transformation in place.
     
     Parameters
     ----------
-    Assignments : ndarray
-        2D array of the assignments
+    assignments : ndarray
+        2D array of msmbuilder assignments
     
     Returns
     -------
@@ -986,30 +423,27 @@ def RenumberStates(Assignments):
     
     Notes
     -----
-    Useful if some states have 0 counts due to a trimming procedure.
+    Useful if some states have 0 counts.
     """
     
-    unique = list(np.unique(Assignments))
+    unique = list(np.unique(assignments))
     if unique[0] == -1:
-        minus_one = np.where(Assignments == -1)
+        minus_one = np.where(assignments == -1)
         unique.pop(0)
     else:
         minus_one = []
     
-    inverse_mapping = defaultdict(lambda: ([], []))
-    for i in xrange(Assignments.shape[0]):
-        for j in xrange(Assignments.shape[1]):
-            inverse_mapping[Assignments[i,j]][0].append(i)
-            inverse_mapping[Assignments[i,j]][1].append(j)
+    inverse_mapping = invert_assignments(assignments)
     
-    for i,x in enumerate(unique):
-        Assignments[inverse_mapping[x]] = i
-    Assignments[minus_one] = -1
-
+    for i, x in enumerate(unique):
+        assignments[inverse_mapping[x]] = i
+    assignments[minus_one] = -1
+    
     mapping = np.array(unique, dtype=int)
     return mapping
 
-def Tarjan(graph):
+
+def tarjan(graph):
     """Find the strongly connected components in a graph using Tarjan's algorithm.
     
     Parameters
@@ -1032,22 +466,23 @@ def Tarjan(graph):
     ErgodicTrim
     
     """
-    NumStates=graph.shape[0]
-
+    n_states = graph.shape[0]
+    
     #Keeping track of recursion state info by node
-    Nodes=np.arange(NumStates)
-    NodeNums=[None for i in range(NumStates)]
-    NodeRoots=np.arange(NumStates)
-    NodeVisited=[False for i in range(NumStates)]
-    NodeHidden=[False for i in range(NumStates)]
-    NodeInComponent=[None for i in range(NumStates)]
-
+    Nodes = np.arange(n_states)
+    NodeNums = [None for i in range(n_states)]
+    NodeRoots = np.arange(n_states)
+    NodeVisited = [False for i in range(n_states)]
+    NodeHidden = [False for i in range(n_states)]
+    NodeInComponent = [None for i in range(n_states)]
+    
     stack = []
     components = []
     nodes_visit_order = []
     graph.next_visit_num = 0
-
+    
     def visit(v):
+        "Mark a state as visited"
         call_stack = [(1, v, graph.getrow(v).nonzero()[1], None)]
         while call_stack:
             tovisit, v, iterator, w = call_stack.pop()
@@ -1058,7 +493,7 @@ def Tarjan(graph):
                 graph.next_visit_num += 1
                 stack.append(v)
             if w and not NodeInComponent[v]:
-                    NodeRoots[v] = nodes_visit_order[ min(NodeNums[NodeRoots[v]],\
+                NodeRoots[v] = nodes_visit_order[min(NodeNums[NodeRoots[v]],
                                                      NodeNums[NodeRoots[w]])]
             cont = 0
             for w in iterator:
@@ -1068,8 +503,8 @@ def Tarjan(graph):
                     call_stack.append((1, w, graph.getrow(w).nonzero()[1], None))
                     break
                 if not NodeInComponent[w]:
-                    NodeRoots[v] = nodes_visit_order[ min(NodeNums[NodeRoots[v]],\
-                                                         NodeNums[NodeRoots[w]]) ]
+                    NodeRoots[v] = nodes_visit_order[min(NodeNums[NodeRoots[v]],
+                                                         NodeNums[NodeRoots[w]])]
             if cont:
                 continue
             if NodeRoots[v] == v:
@@ -1085,7 +520,7 @@ def Tarjan(graph):
     for v in Nodes:
         if not NodeVisited[v]:
             visit(v)
-
+    
     # extract SCC info
     for n in Nodes:
         if NodeInComponent[n] and len(NodeInComponent[n]) > 1:
@@ -1094,19 +529,20 @@ def Tarjan(graph):
         else:
             # either not in a component, or singleton case
             NodeHidden[n] = True
-
+    
     return(components)
 
-def ErgodicTrim(Counts,Assignments=None):
+
+def ergodic_trim(counts, assignments=None):
     """Use Tarjan's Algorithm to find maximal strongly connected subgraph.
     
     Parameters
     ----------
-    Counts : csr sparse matrix
+    counts : csr sparse matrix
         transition counts
-    Assignments : ndarray, optional
+    assignments : ndarray, optional
         Optionally map assignments to the new states, nulling out disconnected regions.
-
+        
     Notes
     -----
     The component with maximum number of counts is selected
@@ -1117,41 +553,43 @@ def ErgodicTrim(Counts,Assignments=None):
     
     """
     
-    NZ=np.array(Counts.nonzero()).transpose()
-
-    ConnectedComponents=Tarjan(Counts)
-    PiSym=np.array(Counts.sum(0)).flatten()
-    ComponentPops=np.array([sum(PiSym[np.array(x)]) for x in ConnectedComponents])
-    ComponentInd=np.argmax(ComponentPops)
-    print("Selected component %d with population %f"%(ComponentInd,ComponentPops[ComponentInd]/ComponentPops.sum()))
-    GoodComponent=np.unique(ConnectedComponents[ComponentInd])
-
-    Mapping=np.zeros(Counts.shape[0],dtype='int')-1
-    for i,x in enumerate(GoodComponent):
-        Mapping[x]=i
-
-    NZ[:,0]=Mapping[NZ[:,0]]
-    NZ[:,1]=Mapping[NZ[:,1]]
-
-    Ind=np.where(NZ.min(1)!=-1)
-    X=scipy.sparse.csr_matrix((Counts.data[Ind],NZ[Ind].transpose()))
-
-    if Assignments!=None:
-        ApplyMappingToAssignments(Assignments,Mapping)
+    NZ = np.array(counts.nonzero()).transpose()
     
-    return(X,Mapping)
+    ConnectedComponents = tarjan(counts)
+    PiSym = np.array(counts.sum(0)).flatten()
+    ComponentPops = np.array([sum(PiSym[np.array(x)]) for x in ConnectedComponents])
+    ComponentInd = np.argmax(ComponentPops)
+    
+    print("Selected component %d with population %f" % (ComponentInd, ComponentPops[ComponentInd] / ComponentPops.sum()))
+    
+    GoodComponent = np.unique(ConnectedComponents[ComponentInd])
+    
+    Mapping = np.zeros(counts.shape[0], dtype='int') - 1
+    for i, x in enumerate(GoodComponent):
+        Mapping[x] = i
+        
+    NZ[:, 0] = Mapping[NZ[:, 0]]
+    NZ[:, 1] = Mapping[NZ[:, 1]]
+    
+    Ind = np.where(NZ.min(1) != -1)
+    X = scipy.sparse.csr_matrix((counts.data[Ind], NZ[Ind].transpose()))
+    
+    if assignments is not None:
+        apply_mapping_to_assignments(assignments, Mapping)
+    
+    return (X, Mapping)
 
 
-def logLikelihood(C, P):
+def log_likelihood(count_matrix, transition_matrix):
     """log of the likelihood of an observed count matrix given a transition matrix
-
+    
     Parameters
     ----------
-    C : ndarray or sparse matrix
+    count_matrix : ndarray or sparse matrix
         Transition count matrix.
-    P : ndarray or sparse matrix
+    transition_matrix : ndarray or sparse matrix
         Transition probability matrix.
-
+        
     Returns
     -------
     loglikelihood : float
@@ -1160,121 +598,131 @@ def logLikelihood(C, P):
             
     
     """
-
-    if isinstance(P, np.ndarray) and isinstance(C, np.ndarray):
-        C = np.asarray(C)   # make sure that both C and P are arrays
-        P = np.asarray(P)   # (not dense matrices), so we can use element-wise multiplication
-        mask = C > 0
-        return np.sum( np.log(P[mask]) * C[mask] )
+    
+    if isinstance(transition_matrix, np.ndarray) and isinstance(count_matrix, np.ndarray):
+        # make sure that both count_matrix and transition_matrix are arrays
+        count_matrix = np.asarray(count_matrix)
+        # (not dense matrices), so we can use element-wise multiplication
+        transition_matrix = np.asarray(transition_matrix)
+        mask = count_matrix > 0
+        return np.sum(np.log(transition_matrix[mask]) * count_matrix[mask])
+        
     else:
-        # make sure both C and P are sparse CSR matrices
-        if not scipy.sparse.isspmatrix(C):
-            C = scipy.sparse.csr_matrix(C)
+        # make sure both count_matrix and transition_matrix are sparse CSR matrices
+        if not scipy.sparse.isspmatrix(count_matrix):
+            count_matrix = scipy.sparse.csr_matrix(count_matrix)
         else:
-            C = C.tocsr()
-        if not scipy.sparse.isspmatrix(P):
-            P = scipy.sparse.csr_matrix(P)
+            count_matrix = count_matrix.tocsr()
+            
+        if not scipy.sparse.isspmatrix(transition_matrix):
+            transition_matrix = scipy.sparse.csr_matrix(transition_matrix)
         else:
-            P = P.tocsr()
-        row, col = C.nonzero()
-        return np.sum( np.log(np.asarray(P[row,col])) * np.asarray(C[row,col]) )
+            transition_matrix = transition_matrix.tocsr()
+        row, col = count_matrix.nonzero()
+        
+        return np.sum(np.log(np.asarray(transition_matrix[row, col])) \
+            * np.asarray(count_matrix[row, col]))
 
-def EstimateReversibleCountMatrix(C, Prior=0., InitialGuess = None):
+
+def mle_reversible_count_matrix(count_matrix, prior=0.0, initial_guess=None):
     """Calculates the maximum-likelihood symmetric count matrix for a givnen observed count matrix.
-
+    
     This function uses a Newton conjugate-gradient algorithm to maximize the likelihood
     of a reversible transition probability matrix.
     
     Parameters
     ----------
-    C : array or sparse matrix
+    count_matrix : array or sparse matrix
         Transition count matrix.
-    Prior : float
+    prior : float
         If not zero, add this value to the count matrix for every transition
         that has occured in either direction.
-    InitialGuess : array or sparse matrix
+    initial_guess : array or sparse matrix
         Initial guess for the symmetric count matrix uses as starting point for
         likelihood maximization. If None, the naive symmetrized guess 0.5*(C+C.T)
         is used.
-
+        
     Returns
     -------
     reversible_counts : array or sparse matrix
         Symmetric count matrix. If C is sparse then the returned matrix is also sparse, and
         dense otherwise.
-
+        
     """
-
-    def negativeLogLikelihoodFromCountEstimatesSparse(Xupdata,row,col,N,C):
+    C = count_matrix
+    
+    def negativeLogLikelihoodFromCountEstimatesSparse(Xupdata, row, col, N, C):
         """Calculates the negative log likelihood that a symmetric count matrix X gave
     rise to an observed transition count matrix C, as well as the gradient
     d -log L / d X_ij."""
-
+        
         assert np.alltrue(Xupdata > 0)        
-
-        Xup = scipy.sparse.csr_matrix((Xupdata, (row,col)), shape=(N,N))                    # Xup is the upper triagonal (inluding the main diagonal) of the symmetric count matrix
-        X = Xup + Xup.T - scipy.sparse.spdiags(Xup.diagonal(),0,Xup.shape[0],Xup.shape[1])  # X is the complete symmetric count matrix
+        
+        Xup = scipy.sparse.csr_matrix((Xupdata, (row, col)), shape=(N, N))                    # Xup is the upper triagonal (inluding the main diagonal) of the symmetric count matrix
+        X = Xup + Xup.T - scipy.sparse.spdiags(Xup.diagonal(), 0, Xup.shape[0], Xup.shape[1])  # X is the complete symmetric count matrix
         Xs = np.array(X.sum(axis=1)).ravel()                                                # Xs is the array of row sums of X: Xs_i = sum_j X_ij
-        XsInv = scipy.sparse.spdiags(1./Xs, 0, len(Xs), len(Xs))
+        XsInv = scipy.sparse.spdiags(1.0 / Xs, 0, len(Xs), len(Xs))
         P = (XsInv * X).tocsr()                                                             # P is now the matrix P_ij = X_ij / sum_j X_ij
-        logP = scipy.sparse.csr_matrix((np.log(P.data),P.indices,P.indptr))
+        logP = scipy.sparse.csr_matrix((np.log(P.data), P.indices, P.indptr))
         logL = np.sum(C.multiply(logP).data)                                                # logL is the log of the likelihood: sum_ij C_ij log(X_ij / Xs_i)
-
+        
         Cs = np.array(C.sum(axis=1)).ravel()                                                # Cs is the array of row sums of C: Cs_i = sum_j C_ij
         srow, scol = X.nonzero()                                                            # remember the postitions of the non-zero elements of X
-        Udata = np.array((C[srow,scol] / X[srow,scol]) - (Cs[srow]/Xs[srow])).ravel()       # calculate the derivative: d(log L)/dX_ij = C_ij/X_ij - Cs_i/Xs_i
-        U = scipy.sparse.csr_matrix((Udata,(srow,scol)),shape=(N,N))                        # U is the matrix U_ij = d(log L) / dX_ij
-
+        Udata = np.array((C[srow, scol] / X[srow, scol]) - (Cs[srow] / Xs[srow])).ravel()       # calculate the derivative: d(log L)/dX_ij = C_ij/X_ij - Cs_i/Xs_i
+        U = scipy.sparse.csr_matrix((Udata, (srow, scol)), shape=(N, N))                        # U is the matrix U_ij = d(log L) / dX_ij
+        
         # so far, we have assumed that all the partial derivatives wrt. X_ij are independent
         # however, the degrees of freedom are only X_ij for i <= j
         # for i != j, the total change in log L is d(log L)/dX_ij + d(log L)/dX_ji
-
-        gradient = (U + U.T - scipy.sparse.spdiags(U.diagonal(),0,U.shape[0],U.shape[1]) ).tocsr()
-
+        
+        gradient = (U + U.T - scipy.sparse.spdiags(U.diagonal(), 0, U.shape[0], U.shape[1]) ).tocsr()
+        
         # now we have to convert the non-zero elements of the upper triangle into the
         # same 1-d array structure that was used for Xupdata
-
-        gradient = np.array(gradient[row,col]).reshape(-1)
-
+        
+        gradient = np.array(gradient[row, col]).reshape(-1)
+        
         #print  "max g:", np.max(gradient), "min g:", np.min(gradient), "|g|^2", (gradient*gradient).sum(), "g * X", (gradient*Xupdata).sum()
         return -logL, -gradient
-
+        
     # current implementation only for sparse matrices
     # if given a dense matrix, sparsify it, and turn the result back to a dense array
     if not scipy.sparse.isspmatrix(C):
-        return EstimateReversibleCountMatrix(scipy.sparse.csr_matrix(C), Prior=Prior, InitialGuess=InitialGuess).toarray()
-
+        return mle_reversible_count_matrix(scipy.sparse.csr_matrix(C), prior=prior, initial_guess=initial_guess).toarray()
+        
     N = C.shape[0]
-    assert C.shape[1] == N, "Count matrix is not square, but has shape " + str(C.shape)
-
+    if not C.shape[1] == N:
+        raise ValueError("Count matrix is not square, but has shape %s" % C.shape)
+        
     C = C.tocsr()
     C.eliminate_zeros()
-    if (Prior is not None) and (Prior != 0):        # add prior if necessary
-        PriorMatrix=(C+C.transpose()).tocsr()
-        PriorMatrix.data*=0.
-        PriorMatrix.data+=Prior
-        C=C+PriorMatrix
-        print("Added prior value of %f to count matrix" % Prior)
-
+    # add prior if necessary
+    if (prior is not None) and (prior != 0):
+        PriorMatrix = (C+C.transpose()).tocsr()
+        PriorMatrix.data *= 0.
+        PriorMatrix.data += prior
+        C = C + PriorMatrix
+        print("Added prior value of %f to count matrix" % prior)
+        
     # initial guess for symmetric count matrix
-    if InitialGuess is None:
+    if initial_guess is None:
         X0 = 0.5 * (C + C.T)
     else:
-        X0 = scipy.sparse.csr_matrix(0.5 * (InitialGuess + InitialGuess.T))  # this guarantees that the initial guess is indeed symmetric (and sparse)
-    initialLogLikelihood = logLikelihood(C, EstimateTransitionMatrix(X0))
-
+        X0 = scipy.sparse.csr_matrix(0.5 * (initial_guess + initial_guess.T))  # this guarantees that the initial guess is indeed symmetric (and sparse)
+    initialLogLikelihood = log_likelihood(C, estimate_transition_matrix(X0))
+    
     # due to symmetry, we degrees of freedom for minimization are only the elments in the upper triangle of the matrix X (incl. main diagonal)
     X0up = scipy.sparse.triu(X0).tocoo()
     row = X0up.row
     col = X0up.col
-
+    
     # the variables used during minimization are those X_ij (i <= j) for which either C_ij or C_ji is greater than zero
     # those X_ij can be arbitrariliy small, but they must be positive
     # the function minimizer requires an inclusive bound, so we use some very small number instead of zero
     # (without loss of generality, b/c we can always multiply all X_ij by some large number without changing the likelihood)
     lower_bound = 1.E-10
     bounds = [[lower_bound, np.inf]] * len(X0up.data)
-
+    
     # Here comes the main loop
     # In principle, we would have to run the function minimizer only once. But in practice, minimization may fail
     # if the gradient term becomes too large, or minimization is slow if the gradient is too small.
@@ -1283,7 +731,7 @@ def EstimateReversibleCountMatrix(C, Prior=0., InitialGuess = None):
     # frequency and the target value. In principles, these choices should not affect the outcome of the maximization.
     rescale_every = 500
     rescale_target = 1.
-
+    
     Xupdata = X0up.data
     maximizationrun = 1
     totalnumberoffunctionevaluations = 0
@@ -1294,15 +742,19 @@ def EstimateReversibleCountMatrix(C, Prior=0., InitialGuess = None):
         gtg = (negative_gradient*negative_gradient).sum()
         scalefactor = np.sqrt(gtg / rescale_target)
         Xupdata[:] *= scalefactor
-
+        
         # now run the minimizer
-        Xupdata, nfeval, rc = scipy.optimize.fmin_tnc(negativeLogLikelihoodFromCountEstimatesSparse, Xupdata, args=(row, col, N, C), bounds=bounds, approx_grad=False, maxfun=rescale_every, disp=0,xtol=1E-20)
+        Xupdata, nfeval, rc = scipy.optimize.fmin_tnc(negativeLogLikelihoodFromCountEstimatesSparse,
+                                        Xupdata, args=(row, col, N, C), bounds=bounds,
+                                        approx_grad=False, maxfun=rescale_every, disp=0,
+                                        xtol=1E-20)
+                                        
         totalnumberoffunctionevaluations += nfeval
         negative_logL, negative_gradient = negativeLogLikelihoodFromCountEstimatesSparse(Xupdata, row, col, N, C)
         print "Log-Likelihood after", totalnumberoffunctionevaluations, "function evaluations:", -negative_logL
-        if rc in (0,1,2):
+        if rc in (0, 1, 2):
             break    # Converged
-        elif rc in (3,4):
+        elif rc in (3, 4):
             pass     # Not converged, keep going
         else:
             raise RuntimeError, "Likelihood maximization caused internal error (code " + str(rc) + "): " + str(scipy.optimize.tnc.RCSTRINGS[rc])
@@ -1310,22 +762,93 @@ def EstimateReversibleCountMatrix(C, Prior=0., InitialGuess = None):
     else:
         print "Warning: maximum could not be obtained."
     print  "Result of last maximization run (run " + str(maximizationrun) + "):", scipy.optimize.tnc.RCSTRINGS[rc]
-
-    Xup = scipy.sparse.coo_matrix((Xupdata, (row,col)), shape=(N,N))    
-    X = Xup + Xup.T - scipy.sparse.spdiags(Xup.diagonal(),0,Xup.shape[0],Xup.shape[1])    # reconstruct full symmetric matrix from upper triangle part
-
-    finalLogLikelihood = logLikelihood(C, EstimateTransitionMatrix(X))
+    
+    Xup = scipy.sparse.coo_matrix((Xupdata, (row, col)), shape=(N, N))    
+    
+    # reconstruct full symmetric matrix from upper triangle part
+    X = Xup + Xup.T - scipy.sparse.spdiags(Xup.diagonal(), 0, Xup.shape[0], Xup.shape[1])
+    
+    finalLogLikelihood = log_likelihood(C, estimate_transition_matrix(X))
     print "Log-Likelihood of final reversible transition probability matrix:", finalLogLikelihood
     print "Likelihood ratio:", np.exp(finalLogLikelihood - initialLogLikelihood)
-
+    
     # some  basic consistency checks
     if not np.alltrue(np.isfinite(X.data)):
         raise RuntimeError, "The obtained symmetrized count matrix is not finite."
     if not np.alltrue(X.data > 0):
         raise RuntimeError, "The obtained symmetrized count matrix is not strictly positive for all observed transitions, the smallest element is " + str(np.min(X.data))
-
+        
     #normalize X to have correct total number of counts
     X /= X.sum()
     X *= C.sum()
     
     return X
+
+
+
+######################################################################
+#  ALIASES FOR DEPRECATED FUNCTION NAMES
+#  THESE FUNCTIONS WERE ADDED FOR VERSION 2.6 AND
+#  CAN BE REMOVED IN VERSION 
+######################################################################
+@deprecated(msm_analysis.is_transition_matrix, '2.7')
+def IsTransitionMatrix():
+    pass
+@deprecated(msm_analysis.are_all_dimensions_same, '2.7')
+def AreAllDimensionsSame():
+    pass
+@deprecated(msm_analysis.check_dimensions, '2.7')
+def CheckDimensions():
+    pass
+@deprecated(msm_analysis.check_transition, '2.7')
+def CheckTransition():
+    pass
+@deprecated(get_counts_from_traj, '2.7')
+def GetTransitionCountMatrixSparse():
+    pass
+@deprecated(estimate_rate_matrix, '2.7')
+def EstimateRateMatrix():
+    pass
+@deprecated(estimate_transition_matrix, '2.7')
+def EstimateTransitionMatrix():
+    pass
+@deprecated(msm_analysis.check_for_bad_eigenvalues, '2.7')
+def CheckForBadEigenvalues():
+    pass
+@deprecated(msm_analysis.get_eigenvectors, '2.7')
+def GetEigenvectors():
+    pass
+@deprecated(msm_analysis.get_implied_timescales, '2.7')
+def GetImpliedTimescales():
+    pass
+@deprecated(get_count_matrix_from_assignments, '2.7')
+def GetCountMatrixFromAssignments():
+    pass
+@deprecated(msm_analysis.sample, '2.7')
+def Sample():
+    pass
+@deprecated(msm_analysis.propagate_model, '2.7')
+def PropagateModel():
+    pass
+@deprecated(apply_mapping_to_assignments, '2.7')
+def ApplyMappingToAssignments():
+    pass
+@deprecated(apply_mapping_to_vector, '2.7')
+def ApplyMappingToVector():
+    pass
+@deprecated(ergodic_trim, '2.7')
+def ErgodicTrim():
+    pass
+@deprecated(mle_reversible_count_matrix, '2.7')
+def EstimateReversibleCountMatrix():
+    pass
+@deprecated(log_likelihood, '2.7')
+def logLikelihood():
+    pass
+@deprecated(renumber_states, '2.7')
+def RenumberSrates():
+    pass
+def GetEigenvectors_Right(*args, **kwargs):
+    warnings.warn('GetEigenvectors_Right is deprecated use get_eigenvectors() with the keyword Right=True')
+    kwargs['right'] = True
+    return msm_analysis.get_eigenvectors(*args, **kwargs)
