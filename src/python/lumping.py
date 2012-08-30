@@ -3,13 +3,15 @@ import scipy.io
 import numpy as np
 
 from msmbuilder import MSMLib
+from msmbuilder import msm_analysis
+from msmbuilder.utils import deprecated
 
 from numpy import dot, diag
-inv=np.linalg.inv
+inv = np.linalg.inv
 norm = np.linalg.norm
 tr = np.trace
 
-def NormalizeLeftEigenvectors(V):
+def normalize_left_eigenvectors(V):
     """Normalize the left eigenvectors
     
     Normalization condition is <v[:,i]/pi, v[:,i]> = 1
@@ -17,7 +19,8 @@ def NormalizeLeftEigenvectors(V):
     Parameters
     ----------
     V : ndarray
-        The left eigenvectors
+        The left eigenvectors, as a two-dimensional array where the kth 
+        eigenvectors is V[:,k]
     
     Notes
     -----
@@ -27,8 +30,8 @@ def NormalizeLeftEigenvectors(V):
     pi/=pi.sum()
     
     for k in xrange(1,V.shape[-1]):
-        x=V[:,k]
-        x/=abs(np.dot(x/pi,x))**.5
+        x = V[:,k]
+        x /= abs(np.dot(x/pi,x))**.5
 
 def trim_eigenvectors_by_flux(lam, vl, flux_cutoff):
     """Trim eigenvectors that have low equilibrium flux.
@@ -55,7 +58,7 @@ def trim_eigenvectors_by_flux(lam, vl, flux_cutoff):
         Left eigenvectors after discarding low-flux eigenvectors.
     
     """
-    NormalizeLeftEigenvectors(vl)
+    normalize_left_eigenvectors(vl)
 
     N = len(lam)
 
@@ -218,8 +221,8 @@ def pcca_plus(T, N, flux_cutoff=None, do_minimization=True,objective_function = 
     
     """
     n = T.shape[0]
-    lam,vl = MSMLib.GetEigenvectors(T,N)
-    NormalizeLeftEigenvectors(vl)
+    lam,vl = msm_analysis.get_eigenvectors(T, N)
+    normalize_left_eigenvectors(vl)
 
     if flux_cutoff != None:
         lam,vl = trim_eigenvectors_by_flux(lam,vl, flux_cutoff)
@@ -229,9 +232,9 @@ def pcca_plus(T, N, flux_cutoff=None, do_minimization=True,objective_function = 
 
     vr = vl.copy()
     for i in range(N):
-        vr[:,i] /= pi
-        vr[:,i] *= np.sign(vr[0,i])
-        vr[:,i] /= np.sqrt(dot(vr[:,i]*pi,vr[:,i]))
+        vr[:, i] /= pi
+        vr[:, i] *= np.sign(vr[0,i])
+        vr[:, i] /= np.sqrt(dot(vr[:,i]*pi,vr[:,i]))
 
     A, chi, microstate_mapping = opt_soft(vr, N, pi, lam, T, do_minimization=do_minimization,objective_function=objective_function)
 
@@ -549,7 +552,7 @@ def PCCA(T,num_macro,tolerance=1E-5,flux_cutoff=None):
     Notes
     -----
     To construct a Macrostate MSM, you then need to map your Assignment data to
-    the new states (e.g. MSMLib.ApplyMappingToAssignments).
+    the new states (e.g. MSMLib.apply_mapping_to_assignments).
     
     References
     ----------
@@ -560,29 +563,29 @@ def PCCA(T,num_macro,tolerance=1E-5,flux_cutoff=None):
     """
 
     n = T.shape[0]
-    lam,vl = MSMLib.GetEigenvectors(T,num_macro)
-    NormalizeLeftEigenvectors(vl)
+    lam, vl = msm_analysis.get_eigenvectors(T, num_macro)
+    normalize_left_eigenvectors(vl)
 
-    if flux_cutoff != None:
-        lam,vl = trim_eigenvectors_by_flux(lam,vl, flux_cutoff)
+    if flux_cutoff is not None:
+        lam, vl = trim_eigenvectors_by_flux(lam, vl, flux_cutoff)
         num_macro = len(lam)
     
     pi = vl[:,0]
 
     vr = vl.copy()
     for i in range(num_macro):
-        vr[:,i] /= pi
-        vr[:,i] *= np.sign(vr[0,i])
-        vr[:,i] /= np.sqrt(dot(vr[:,i]*pi,vr[:,i]))
+        vr[:, i] /= pi
+        vr[:, i] *= np.sign(vr[0, i])
+        vr[:, i] /= np.sqrt(dot(vr[:, i] * pi,vr[:, i]))
 
     #Remove the stationary eigenvalue and eigenvector.
     lam = lam[1:]
-    vr = vr[:,1:]
+    vr = vr[:, 1:]
 
     microstate_mapping = np.zeros(n,'int')
 
     #Function to calculate the spread of a single eigenvector.
-    spread = lambda x: x.max()-x.min()
+    spread = lambda x: x.max() - x.min()
     """
     1.  Iterate over the eigenvectors, starting with the slowest.
     2.  Calculate the spread of that eigenvector within each existing macrostate.
@@ -590,10 +593,15 @@ def PCCA(T,num_macro,tolerance=1E-5,flux_cutoff=None):
     4.  Split the macrostate based on the sign of the eigenvector.  
     """
     
-    for i in range(num_macro-1):#Thus, if we want 2 states, we split once.
-        v = vr[:,i]
-        AllSpreads = np.array([spread(v[microstate_mapping==k]) for k in range(i+1)])
+    for i in range(num_macro - 1):#Thus, if we want 2 states, we split once.
+        v = vr[:, i]
+        AllSpreads = np.array([spread(v[microstate_mapping == k]) for k in range(i+1)])
         StateToBeSplit = np.argmax(AllSpreads)
-        microstate_mapping[(microstate_mapping==StateToBeSplit)&(v>=tolerance)] = i+1
+        microstate_mapping[(microstate_mapping == StateToBeSplit)&(v >= tolerance)] = i+1
 
     return(microstate_mapping)
+
+
+@deprecated(normalize_left_eigenvectors, '2.7')
+def NormalizeLeftEigenvectors():
+    pass
