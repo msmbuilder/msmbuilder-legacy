@@ -4,9 +4,10 @@ import os
 
 DeleteWhenFinished=True
 
-ReferenceDir = os.path.abspath("./UnitTestReference/")
-WorkingDir   = os.path.abspath("./UnitTestWorkingDir/")
-TutorialDir   = os.path.abspath("../Tutorial/")
+this_file_dir = os.path.abspath(os.path.dirname(__file__))
+ReferenceDir = os.path.join(this_file_dir, "UnitTestReference/")
+WorkingDir   = os.path.join(this_file_dir, "UnitTestWorkingDir/")
+TutorialDir   = os.path.join(this_file_dir, "../Tutorial/")
 
 PDBFn         = TutorialDir+"/native.pdb"
 ProjectFn     = "ProjectInfo.h5"
