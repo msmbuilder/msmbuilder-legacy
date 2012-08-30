@@ -927,27 +927,27 @@ class RMSD(AbstractDistanceMetric):
             2.  We pre-calculate matrix magnitudes (ConfG)"""
             
             if NumAtoms is None or G is None:
-                NumConfs=len(XYZData)
-                NumAtoms=XYZData.shape[1]
+                NumConfs = len(XYZData)
+                NumAtoms = XYZData.shape[1]
                 
                 self.centerConformations(XYZData)
             
-                NumAtomsWithPadding=4+NumAtoms-NumAtoms%4
+                NumAtomsWithPadding = 4 + NumAtoms - NumAtoms % 4
             
                 # Load data and generators into aligned arrays
                 XYZData2 = np.zeros((NumConfs, 3, NumAtomsWithPadding), dtype=np.float32)
                 for i in range(NumConfs):
-                    XYZData2[i,0:3,0:NumAtoms] = XYZData[i].transpose()
+                    XYZData2[i, 0:3, 0:NumAtoms] = XYZData[i].transpose()
                 
                 #Precalculate matrix magnitudes
                 ConfG = np.zeros((NumConfs,),dtype=np.float32)
                 for i in xrange(NumConfs):
-                    ConfG[i] = self.calcGvalue(XYZData[i,:,:])
+                    ConfG[i] = self.calcGvalue(XYZData[i, :, :])
                 
-                self.XYZData=XYZData2
-                self.G=ConfG
-                self.NumAtoms=NumAtoms
-                self.NumAtomsWithPadding=NumAtomsWithPadding
+                self.XYZData = XYZData2
+                self.G = ConfG
+                self.NumAtoms = NumAtoms
+                self.NumAtomsWithPadding = NumAtomsWithPadding
                 self.CheckCentered()
             else:
                 self.XYZData = XYZData
@@ -970,9 +970,9 @@ class RMSD(AbstractDistanceMetric):
         def CheckCentered(self, Epsilon=1E-5):
             """Raise an exception if XYZAtomMajor has nonnzero center of mass(CM)."""
             
-            XYZ=self.XYZData.transpose(0,2,1)
-            x=np.array([max(abs(XYZ[i].mean(0))) for i in xrange(len(XYZ))]).max()
-            if x>Epsilon:
+            XYZ = self.XYZData.transpose(0, 2, 1)
+            x = np.array([max(abs(XYZ[i].mean(0))) for i in xrange(len(XYZ))]).max()
+            if x > Epsilon:
                 raise Exception("The coordinate data does not appear to have been centered correctly.")
         
         @staticmethod
@@ -981,8 +981,8 @@ class RMSD(AbstractDistanceMetric):
             
             for ci in xrange(XYZList.shape[0]):
                 X=XYZList[ci].astype('float64')#To improve the accuracy of RMSD, it can help to do certain calculations in double precision.
-                X-=X.mean(0)
-                XYZList[ci]=X.astype('float32')
+                X -= X.mean(0)
+                XYZList[ci] = X.astype('float32')
             return
         
         @staticmethod
