@@ -4,6 +4,7 @@ a trajectory
 '''
 import numpy as np
 from msmbuilder import _contact_wrap
+import warnings
 
 def atom_distances(xyzlist, atom_contacts):
     '''
