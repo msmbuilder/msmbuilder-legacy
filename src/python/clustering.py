@@ -6,12 +6,12 @@ import random
 import numpy as np
 try:
     import fastcluster
-except:
-    print "Cannot import fastcluster."
+except ImportError:
+    pass
 import scipy.cluster.hierarchy
 
 
-from msmbuilder import metrics, drift
+from msmbuilder import metrics
 from msmbuilder.Trajectory import Trajectory
 from msmbuilder.Serializer import Serializer
 from msmbuilder.utils import uneven_zip, deprecated
@@ -194,7 +194,6 @@ def deterministic_subsample(trajectories, stride, start=0):
     
     if isinstance(trajectories, Trajectory):
        traj = trajectories
-       length = len(traj['XYZList'])
        traj['XYZList'] = traj['XYZList'][start::stride]
        return traj
     else:
@@ -234,12 +233,12 @@ def empty_trajectory_like(traj):
     return new_traj    
 
 
-def p_norm(Data, p=2):
+def p_norm(data, p=2):
     """p_norm of an ndarray with XYZ coordinates
     
     Parameters
     ----------
-    Data : ndarray
+    data : ndarray
         XYZ coordinates. TODO: Shape?
     p : {int, "max"}, optional
         power of p_norm
@@ -250,12 +249,12 @@ def p_norm(Data, p=2):
         the answer
     """
     
-    if p =="max":
-        return Data.max()
+    if p == "max":
+        return data.max()
     else:
-        p=float(p)
-        n=float(Data.shape[0])
-        return ((Data**p).sum()/n)**(1/p)
+        p = float(p)
+        n = float(data.shape[0])
+        return ((data**p).sum()/n)**(1/p)
 
 
 #####################################################################
@@ -953,39 +952,7 @@ class BaseFlatClusterer(object):
         for i, traj_distances in enumerate(twoD):
             output[i][0:len(traj_distances)] = traj_distances
         return output
-    
-    @deprecated
-    def assign_new_trajectories(self, trajectories, checkpoint_callback=None):
-        """Assign some new trajectories based on the generators identified by from the trajectory
-        you passed to the constructor
         
-        if you supply a checkpoint_callback, it should be a function that takes
-        two arguments: the first is the trajectory index and the second is the
-        1D array of assignments. It will get called after each trajectory in trajectories
-        is assigned. DO NOT MODIFY the assignments (the 2nd argument), or else you
-        will break everything.
-        """
-        self._ensure_generators_computed()
-        
-        if checkpoint_callback is None:
-            checkpoint_callback = lambda i, a: sys.stdout.write('Assigned %d, length %d\n' % (i, len(a)))
-        
-        lengths = [len(traj['XYZList']) for traj in trajectories]
-        assignments = -1 * np.ones(len(lengths), max(lengths), dtype='int')
-        new_ptrajs = [self._metric.prepare_trajectory(traj) for traj in trajectories]
-        
-        pgens = self.ptraj[self._generator_indices]
-        
-        for i, new_traj in enumerate(trajectories):
-            new_ptraj = self._metric.prepare_trajectory(new_traj)
-            for j in xrange(len(new_traj['XYZList'])):
-                d = self._metric.one_to_all(new_ptraj, pgens, j)
-            assignments[i,j] = np.argmin(d)
-            checkpoint_callback(i, assignments[i, :])
-        
-        return assignments
-    
-    
     def get_generators_as_traj(self):
         """Get a trajectory containing the generators
         
@@ -1002,15 +969,6 @@ class BaseFlatClusterer(object):
         output['XYZList'] = self._concatenated['XYZList'][self._generator_indices]
         return output
     
-    def save_to_disk(self, filename):
-        # save generator_indices, metric, 
-        raise NotImplementedError('sorry')
-    
-    @classmethod
-    def load_from_disk(cls, filename):
-        raise NotImplementedError('sorry')
-    
-
 
 class KCenters(BaseFlatClusterer):
     def __init__(self, metric, trajectories, k=None, distance_cutoff=None, seed=0):

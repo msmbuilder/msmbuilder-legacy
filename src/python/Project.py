@@ -33,7 +33,7 @@ import multiprocessing
 import cPickle
 try:
     from deap import dtm
-except:
+except ImportError:
     pass
 
 #def GetUniqueRandomIntegers(MaxN,NumInt):
@@ -206,8 +206,7 @@ class Project(Serializer):
     
     def GetEmptyTrajectory(self):
         """This creates a trajectory with the correct atoms and residues, but leaves the coordinate data empty (XYZList)."""
-        #Traj=self.LoadTraj(0)
-        Traj=Trajectory.LoadTrajectoryFile( self['ConfFilename'] )
+        Traj = Trajectory.LoadTrajectoryFile(self['ConfFilename'])
         Traj.pop("XYZList")
         return(Traj)
     

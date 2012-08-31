@@ -23,7 +23,7 @@ def _setup_containers(assignments_path, distances_path, num_trajs, longest):
         
         try:
             completed_trajectories = s['completed_trajectories']
-        except:
+        except KeyError:
             completed_trajectories = (all_assignments[:, 0] >= 0)
         
     else:
