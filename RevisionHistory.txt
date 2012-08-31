@@ -1,3 +1,13 @@
+MSMBuilder 2.6.dev # the current development version: work so far
+1. Migrate from SVN to Github for version control
+2. Rename all the functions on MSMLib to be pep8 compliant. Aliases have been added for the old names
+3. Split MSMLib into 2 files: MSMLib and msm_analysis. msm_analysis contains all the code
+   for eigenvectors, sampling from models, etc. MSMLib contains code for building models
+4. Removed AssignMPI.py, and added a new SimTk project -- msmbuilder.parallel_assign
+   with better code.
+5. Added more unit tests
+6. Various pep8 fixes
+
 MSMBuilder 2.5.1
 1.  Fixes to Tutorials
 2.  Moved Ward and SCRE to AdvancedMethods tutorial
