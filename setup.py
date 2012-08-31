@@ -6,6 +6,7 @@ __author__ = "Kyle A. Beauchamp"
 __version__ = VERSION
 
 import os, sys
+import platform
 from distutils.core import setup,Extension
 import distutils.sysconfig
 import numpy
@@ -13,29 +14,40 @@ import glob
 
 requirements = ['scipy', 'numpy', 'matplotlib', 'deap', 'fastcluster']
 
+# Add something to the link line for OSX10.7
+base_link_args = []
+if platform.mac_ver()[0] != '': # if we're on a mac
+    if int(platform.mac_ver()[0].split('.')[1]) >= 7: # if the OS X version number is greater than or equal to 7
+        base_link_args.extend(['-L/Developer/SDKs/MacOSX10.6.sdk/usr/lib/'])
+
+# If you're using EPD python distribution, which we recommend, the lib directory
+# of your installation contains Intel MKL shared object files
+epd_mkl = ['-L%s' % distutils.sysconfig.get_config_var('LIBDIR'),]
+
 # Declare the C extension modules
 XTC = Extension('msmbuilder/libxdrfile',
-                  sources = [
+                sources = [
                     "src/ext/xdrfile-1.1b/src/trr2xtc.c",
                     "src/ext/xdrfile-1.1b/src/xdrfile.c",
                     "src/ext/xdrfile-1.1b/src/xdrfile_trr.c",
                     "src/ext/xdrfile-1.1b/src/xdrfile_xtc.c",
                             ],
-                  extra_compile_args=[],
-                  #RTM 6/5/12 - Removed a extra_link_args=['shared'] which was killing the build on OSX
-                  include_dirs = ["src/ext/xdrfile-1.1b/include/"]
-                  )
+                 extra_compile_args=[],
+                 extra_link_args = base_link_args,
+                 include_dirs = ["src/ext/xdrfile-1.1b/include/"]
+                )
 DCD = Extension('msmbuilder/dcdplugin_s',
                 sources = [ "src/ext/molfile_plugin/dcdplugin_s.c" ],
                 libraries=['m'],
+                extra_link_args=base_link_args,
                 include_dirs = ["src/ext/molfile_plugin/include/",
                                 "src/ext/molfile_plugin"]
                 )
 IRMSD = Extension('msmbuilder/_rmsdcalc',
                   sources = ["src/ext/IRMSD/theobald_rmsd.c",
                              "src/ext/IRMSD/rmsd_numpy_array.c"],
-                  extra_compile_args=["-std=c99","-O2","-shared","-msse2","-msse3","-fopenmp"],
-                  extra_link_args=['-lgomp'],
+                  extra_compile_args = ["-std=c99","-O2","-shared","-msse2","-msse3","-fopenmp"],
+                  extra_link_args = base_link_args + ['-lgomp'],
                   include_dirs = [numpy.get_include(), os.path.join(numpy.get_include(), 'numpy')]
                   )
 LPRMSD = Extension('msmbuilder/_lprmsd',
@@ -47,59 +59,46 @@ LPRMSD = Extension('msmbuilder/_lprmsd',
                    extra_compile_args=["-std=c99","-O2","-shared","-msse2","-msse3","-Wno-unused","-fopenmp","-m64"],
                    ##
                    # Note: LPRMSD is hard to compile because it uses the C interface to BLAS, which isn't installed on all operating systems.
-                   # I (Lee-Ping) am working on this, but if you need help with installation, feel free to ask or email me.
-                   ##
-                   # This link line uses plain BLAS, which requires 'libblas.so' to be in the dynamic linker search path.
-                   # If this doesn't work, make sure you have a link to 'libblas.so' in one of your directories, 
-                   # for example: (/home/leeping/local/lib/libblas.so), and add '-L/home/leeping/local/lib' to the list below.
-                   # extra_link_args=['-lblas','-lgomp']
-                   ##
-                   # If you have ATLAS compiled, try the following:
-                   # extra_compile_args=["-std=c99","-O2","-shared","-msse2","-msse3","-Wno-unused","-fopenmp","-m64","-I/home/leeping/local/include"],
-                   # extra_link_args=['-L/home/leeping/local/lib','-latlas','-lcblas','-lgomp']
                    ##
                    # Intel 11.1 MKL link line - it should work on any machine with the Intel compiler installed.
                    # Make sure that the directories containing the MKL libraries are correct.
-                   # This inexplicably fails on Certainty.
                    #extra_link_args=['/opt/intel/Compiler/11.1/072/mkl/lib/em64t/libmkl_solver_lp64_sequential.a',
                    #                 '-Wl,--start-group','/opt/intel/Compiler/11.1/072/mkl/lib/em64t/libmkl_intel_lp64.a',
                    #                 '/opt/intel/Compiler/11.1/072/mkl/lib/em64t/libmkl_sequential.a',
                    #                 '/opt/intel/Compiler/11.1/072/mkl/lib/em64t/libmkl_core.a',
                    #                 '-Wl,--end-group','-lpthread','-lm','-lgomp']
                    
-                   # EPD python, which we recommend, contains MKL shared object files, so this should "just work".
-                   #extra_link_args=['-L%s' % distutils.sysconfig.get_config_var('LIBDIR'), '-Wl', '-lpthread', '-lm', '-lgomp'] 
-                       # -Wl throws an error with gcc-4.8 LP says it doesn't do anything here anyway
-                   extra_link_args=['-L%s' % distutils.sysconfig.get_config_var('LIBDIR'),'-lpthread', '-lm', '-lgomp']
+                   extra_link_args = base_link_args + epd_mkl + \
+                        ['-latlas','-lcblas'] + ['-lpthread', '-lm', '-lgomp'],
 
                    )
 DISTANCE = Extension('msmbuilder/_distance_wrap',
                       sources = ["src/ext/scipy_distance/distance.c",
                                  "src/ext/scipy_distance/distance_wrap.c"],
-                      extra_compile_args=["-std=c99","-O3","-shared","-msse2",
+                      extra_compile_args = ["-std=c99","-O3","-shared","-msse2",
                                           "-msse3","-fopenmp", "-Wall"],
-                      extra_link_args=['-lgomp'],
+                      extra_link_args = base_link_args + ['-lgomp'],
                       include_dirs = [numpy.get_include(), os.path.join(numpy.get_include(), 'numpy')])
 DIHEDRAL = Extension('msmbuilder/_dihedral_wrap',
                      sources = ["src/ext/dihedral/dihedral.c",
                                 "src/ext/dihedral/dihedral_wrap.c"],
-                     extra_compile_args=["-std=c99","-O3","-shared",
+                     extra_compile_args = ["-std=c99","-O3","-shared",
                                          "-fopenmp", "-Wall"],
-                     extra_link_args=['-lgomp'],
+                     extra_link_args = base_link_args + ['-lgomp'],
                      include_dirs = [numpy.get_include(), os.path.join(numpy.get_include(), 'numpy')])
 CONTACT = Extension('msmbuilder/_contact_wrap',
                     sources = ["src/ext/contact/contact.c",
                                "src/ext/contact/contact_wrap.c"],
                     extra_compile_args=["-std=c99","-O3","-shared",
                                         "-fopenmp", "-Wall"],
-                    extra_link_args=['-lgomp'],
+                    extra_link_args = base_link_args + ['-lgomp'],
                     include_dirs = [numpy.get_include(), os.path.join(numpy.get_include(), 'numpy')])
 RG = Extension('msmbuilder/_rg_wrap',
                sources = ["src/ext/rg/rg.c",
                           "src/ext/rg/rg_wrap.c"],
                extra_compile_args=["-std=c99","-O3","-shared",
                                    "-fopenmp", "-Wall"],
-               extra_link_args=['-lgomp'],
+               extra_link_args = base_link_args + ['-lgomp'],
                include_dirs = [numpy.get_include(), os.path.join(numpy.get_include(), 'numpy')])
 
 
