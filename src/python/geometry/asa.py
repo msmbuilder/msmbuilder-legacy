@@ -1,3 +1,31 @@
+# This file is part of MSMBuilder.
+#
+# Copyright 2011 Stanford University
+#
+# MSMBuilder is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+"""
+Calculate the solvent accessible surface area (ASA) for a single frame
+in a trajectory.
+
+Note: This code is quite slow because it requires a triply nested for loop
+in python. If you need to use it for a big system or a lot of frames,
+I think its possible that about ~5 hours of work writing the algorithm in
+C could speed it up by >50x.
+"""
+
+
 from __future__ import division
 import numpy as np
 from scipy.spatial.distance import pdist, cdist, squareform
