@@ -117,7 +117,7 @@ def buildKeywordDictionary(use_LPRMSD=True):
                                           "msmbuilder.geometry"]
     setupKeywords["package_dir"]       = {"msmbuilder": "src/python",
                                           "msmbuilder.scripts": "scripts/"}
-    setupKeywords["scripts"]           = glob.glob("scripts/*.py")
+    setupKeywords["scripts"]           = filter(lambda elem: '_' not in elem, glob.glob('scripts/*'))
     setupKeywords["package_data"]      = {
         "msmbuilder"                   : ["AUTHORS","COPYING"]
                                          }
