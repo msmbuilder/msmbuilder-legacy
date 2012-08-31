@@ -17,12 +17,11 @@ from glob import glob
 import smtplib
 from email.mime.text import MIMEText
 
-from numpy import argmax, concatenate
+from numpy import argmax
 
 import subprocess
 from subprocess import PIPE
 
-import multiprocessing
 from multiprocessing import Pool
 try:
     from deap import dtm
@@ -31,9 +30,7 @@ except:
 
 from msmbuilder import Trajectory
 from msmbuilder.metrics import RMSD
-from msmbuilder import Conformation
 from msmbuilder import Project
-from msmbuilder import Serializer
 from msmbuilder.utils import make_methods_pickable, keynat
 make_methods_pickable()
 
@@ -70,8 +67,8 @@ class FahProject(object):
         self.projectinfo_file = projectinfo_file
 
 		# check that the PDB exists
-		if not os.path.exists(self.pdb):
-			print >> sys.stderr, "(FahProject) Warning: Cannot find %s" % self.pdb
+        if not os.path.exists(self.pdb):
+            print >> sys.stderr, "(FahProject) Warning: Cannot find %s" % self.pdb
         
         # load in the memory state
         if os.path.exists( projectinfo_file ):
@@ -98,10 +95,10 @@ class FahProject(object):
         # restart the server, wait 60s to let it come back up
         print "Restarting server: %s" % self.work_server
         stop_cmd  = "/etc/init.d/FAHWorkServer-%s stop" % self.work_server
-		start_cmd = "/etc/init.d/FAHWorkServer-%s start" % self.work_server	
+        start_cmd = "/etc/init.d/FAHWorkServer-%s start" % self.work_server	
         r = subprocess.call(stop_cmd, shell=True, stdin=PIPE, stdout=PIPE, stderr=PIPE)
         time.sleep(60)
-		r = subprocess.call(stop_cmd, shell=True, stdin=PIPE, stdout=PIPE, stderr=PIPE)	
+        r = subprocess.call(stop_cmd, shell=True, stdin=PIPE, stdout=PIPE, stderr=PIPE)	
         
         # check that we came back up OK, if not freak out
         processname = "FAHWorkServer-%s" % self.work_server
@@ -221,14 +218,14 @@ class _inject(object):
     
     # un-nest the local namespace from the parent class
     def __init__(self, outerclass):
-		"""
-		Initialize the _inject subclass of FahProject. Should not
-		be called by the user!
-		"""
+        """
+        Initialize the _inject subclass of FahProject. Should not
+        be called by the user!
+        """
 	
-		raise NotImplementedError('If youd like to use this functionality, email TJ'
-								  '<tjlane@stanford.edu> and send love and affection')
-	
+        raise NotImplementedError('If youd like to use this functionality, email TJ'
+    								  '<tjlane@stanford.edu> and send love and affection')
+    	
         self.__dict__.update(outerclass.__dict__)
         self.send_error_email = outerclass.send_error_email
         self.restart_server = outerclass.restart_server
@@ -236,12 +233,12 @@ class _inject(object):
         # if we are on a workserver,
         if self.work_server != None:
             self.set_project_basepath()
-    
+        
     
     def set_project_basepath(self):
-		"""
-		Finds and internally stores a FAH Project's path.
-		"""
+        """
+        Finds and internally stores a FAH Project's path.
+        """
         search = glob("/home/*/server2/data/SVR*/PROJ%d" % self.project_number)
         if len(search) != 1:
             raise Exception("Could not find unique FAH project: %d on %s" % (self.project_number,
@@ -320,10 +317,10 @@ class _retrieve(object):
 
     # un-nest the local namespace from the parent class
     def __init__(self, outerclass):
-		"""
-		Initialize the _retrieve subclass of FahProject. Should not
-		be called by the user!
-		"""
+        """
+        Initialize the _retrieve subclass of FahProject. Should not
+        be called by the user!
+        """
         self.__dict__.update(outerclass.__dict__)
         self.save_memory_state = outerclass.save_memory_state
         
@@ -724,19 +721,19 @@ class _retrieve(object):
     
     
     def list_xtcs_in_dir(self, dir):
-		"""
-		Find all the xtc files in `dir`.
-		
-		Parameters
-		----------
-		dir : str
-			Path of the directory to look in.
-		
-		Returns
-		-------
-		xtc_files : list
-			List of the xtcs in `dir`.
-		"""
+        """
+        Find all the xtc files in `dir`.
+        
+        Parameters
+        ----------
+        dir : str
+        Path of the directory to look in.
+        		
+        Returns
+        -------
+        xtc_files : list
+        List of the xtcs in `dir`.
+        """
         pattern = re.compile('\D+(\d+)[.]xtc')
         xtc_files = [e for e in os.listdir(dir) if pattern.search(e)]
         xtc_files.sort(key=self.integer_component)
