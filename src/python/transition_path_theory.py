@@ -16,7 +16,8 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-"""Functions for calculating Transition Path Theory calculations.
+"""
+Functions for performing Transition Path Theory calculations.
 
 Examples:
 Mean First Passage Times
@@ -63,6 +64,10 @@ def DijkstraTopPaths(A, B, NFlux, NumPaths=10, NodeWipe=False):
         The nodes between which exists the path bottleneck
     Fluxes : a list of floats
         The flux through each path
+
+	To Do
+	-----
+	-- Add periodic flow check
     """
 
 
@@ -198,7 +203,7 @@ def Dijkstra(A, B, NFlux):
 
 
 def BackRelax(s, b, pi, NFlux):
-    """
+    r"""
     Updates a Djikstra calculation once a bottleneck is cut, quickly
     recalculating only cost of nodes that change due to the cut.
 
@@ -552,21 +557,100 @@ def all_to_all_mfpt(tprob, populations=None):
     return mfpt
 
 
-def GetBCommittors(U,F,T0,EquilibriumPopulations,maxiter=100000,X0=None,Dense=False):
-    """Get the backward committors of the reaction U -> F.  T0 is the transition matrix.  EquilibriumPopulations are required for the backward committors but not the foward commitors because we assume detailed balance when calculating the backward committors.  If you are have small matrices, it can be faster to use dense linear algebra.  If you don't use dense linear algebra, you might want to specify an initial vector X0 and the maximum number of iterations for controlling the sparse equation solver."""
-    A,b,Q0=GetBCommittorsEqn(U,F,T0,EquilibriumPopulations)
-    if X0!=None:
-        Q0=X0
+def GetBCommittors(U, F, T0, EquilibriumPopulations, maxiter=100000, X0=None, Dense=False):
+    """
+	Get the backward committors of the reaction U -> F.
+	
+	EquilibriumPopulations are required for the backward committors 
+	but not the foward commitors because we assume detailed balance 
+	when calculating the backward committors.  If you are have small 
+	matrices, it can be faster to use dense linear algebra.  If you 
+	don't use dense linear algebra, you might want to specify an 
+	initial vector X0 and the maximum number of iterations for 
+	controlling the sparse equation solver.  
+	
+	Parameters
+	----------
+	U : array_like, int
+		The set of unfolded/reactant states.
+		
+	F : array_like, int
+		The set of folded/product states.
+		
+	T0 : mm_matrix	
+		The transition matrix.
+		
+	EquilibriumPopulations : array_like, float
+		Populations of the states.
+		
+	maxiter : int
+		Maximium number of iterations in Ax=b solver.
+		
+	X0 : array_like, float
+		Initial guess for b in Ax=b
+		
+	Dense : bool
+		Employ dense linear algebra. Will speed up the calculation
+		for small matrices.
+		
+	Returns
+	-------
+	Q : array_like
+		The backward committors for the reaction U -> F.	
+	"""
+	
+    A, b, Q0 = GetBCommittorsEqn(U,F,T0,EquilibriumPopulations)
+
+    if X0 != None:
+        Q0 = X0
 
     if Dense==False:
         Q=SolveEqn(A,b,Q0,maxiter)
     else:
         Q=np.linalg.solve(A.toarray(),b)
+
     return Q
 
 
-def GetFCommittors(U,F,T0,maxiter=100000,X0=None,Dense=False):
-    """Get the forward committors of the reaction U -> F.  T0 is the transition matrix.  If you are have small matrices, it can be faster to use dense linear algebra.  If you don't use dense linear algebra, you might want to specify an initial vector X0 and the maximum number of iterations for controlling the sparse equation solver."""
+def GetFCommittors(U, F, T0, maxiter=100000, X0=None, Dense=False):
+    """
+	Get the forward committors of the reaction U -> F.
+	
+	If you are have small matrices, it can be faster to use dense 
+	linear algebra. If you don't use dense linear algebra, you 
+	might want to specify an initial vector X0 and the maximum 
+	number of iterations for controlling the sparse equation solver.
+	
+	Parameters
+	----------
+	U : array_like, int
+		The set of unfolded/reactant states.
+		
+	F : array_like, int
+		The set of folded/product states.
+		
+	T0 : mm_matrix	
+		The transition matrix.
+		
+	EquilibriumPopulations : array_like, float
+		Populations of the states.
+		
+	maxiter : int
+		Maximium number of iterations in Ax=b solver.
+		
+	X0 : array_like, float
+		Initial guess for b in Ax=b
+		
+	Dense : bool
+		Employ dense linear algebra. Will speed up the calculation
+		for small matrices.
+		
+	Returns
+	-------
+	Q : array_like
+		The forward committors for the reaction U -> F.
+	"""
+	
     A,b,Q0=GetFCommittorsEqn(U,F,T0)
     if X0!=None:
         Q0=X0
@@ -574,11 +658,33 @@ def GetFCommittors(U,F,T0,maxiter=100000,X0=None,Dense=False):
         Q=SolveEqn(A,b,Q0,maxiter)
     else:
         Q=np.linalg.solve(A.toarray(),b)
-    return(Q)
+
+    return Q
 
 
-def GetBCommittorsEqn(U,F,T0,EquilibriumPopulations):
-    """Construct the matrix equations used for finding backwards committors for the reaction U -> F.  T0 is the transition matrix, Equilibruim is the vector of equilibruim populations"""
+def GetBCommittorsEqn(U, F, T0, EquilibriumPopulations):
+    """
+	Construct the matrix equations used for finding backwards 
+	committors for the reaction U -> F.
+	
+	Parameters
+	----------
+	U : array_like, int
+		The set of unfolded/reactant states.
+		
+	F : array_like, int
+		The set of folded/product states.
+		
+	T0 : mm_matrix	
+		The transition matrix.
+		
+	EquilibriumPopulations : array_like, float
+		Populations of the states.
+		
+	Returns
+	-------
+	TJL : Don't know, KAB please fill in
+	"""
 
     n=len(EquilibriumPopulations)
     DE=scipy.sparse.eye(n,n,0,format='lil')
@@ -587,11 +693,36 @@ def GetBCommittorsEqn(U,F,T0,EquilibriumPopulations):
     DEInv.setdiag(1./EquilibriumPopulations)
     TR=(DEInv.dot(T0.transpose())).dot(DE)
 
-    return(GetFCommittorsEqn(F,U,TR))
+    return GetFCommittorsEqn(F,U,TR)
 
 
-def GetFCommittorsEqn(A,B,T0,maxiter=100000):
-    """Construct the matrix equations used for finding committors for the reaction U -> F.  T0 is the transition matrix, Equilibruim is the vector of equilibruim populations"""
+def GetFCommittorsEqn(A, B, T0, maxiter=100000):
+    """
+	Construct the matrix equations used for finding committors 
+	for the reaction U -> F.  T0 is the transition matrix, 
+	Equilibruim is the vector of equilibruim populations.
+	
+	Parameters
+	----------
+	A : array_like, int
+		The set of unfolded/reactant states.
+		
+	B : array_like, int
+		The set of folded/product states.
+		
+	T0 : mm_matrix	
+		The transition matrix.
+		
+	maxiter : int
+		Maximium number of iterations in Ax=b solver.
+		
+	Returns
+	-------
+	TJL : Don't know, KAB please fill in
+	"""
+	
+	# TJL to KAB : please be consistent with variable names!
+	
     n=T0.shape[0]
     T=scipy.sparse.eye(n,n,0,format='lil')-T0
     T=T.tolil()
@@ -615,16 +746,32 @@ def GetFCommittorsEqn(A,B,T0,maxiter=100000):
     Q0=np.ones(n)
     for a in A:
         Q0[a]=0.0
-    return(T,RHS,Q0)
+    return (T,RHS,Q0)
 
 
 def GetFlux(E,F,R,T):
-    """Get the flux matrix.
-    INPUT
-    E - the equilibirum populations
-    F - forward committors
-    R - backwards committors
-    T - transition matrix. """
+    """
+	Get the flux matrix.
+	
+	Parameters
+	----------
+    E : array_like, float
+		The equilibirum populations
+		
+    F : array_like, int
+		Forward committors
+		
+    R : array_like, int
+		backwards committors
+		
+    T : mm_matrix
+		transition matrix.
+		
+	Returns
+	------
+	P : mm_read
+		The flux matrix
+	"""
     Indx,Indy=T.nonzero()
 
     n=len(E)
@@ -636,17 +783,30 @@ def GetFlux(E,F,R,T):
     P=np.dot(np.dot(X.tocsr(),T.tocsr()),Y.tocsr())
     P=P.tolil()
     P.setdiag(np.zeros(n))
-    return(P)
+    return P
 
 
 def GetNetFlux(E,F,R,T):
     """Returns a (net) matrix Flux where Flux[i,j] is the flux from i to j.
 
-    INPUT
-    E - the equilibirum populations
-    F - forward committors
-    R - backwards committors
-    T - transition matrix. 
+	Parameters
+	----------
+    E : array_like, float
+		The equilibirum populations
+		
+    F : array_like, int
+		Forward committors
+		
+    R : array_like, int
+		backwards committors
+		
+    T : mm_matrix
+		transition matrix.
+		
+	Returns
+	------
+	NFlux : mm_read
+		The flux matrix
     """
 
     n=len(E)
@@ -658,11 +818,18 @@ def GetNetFlux(E,F,R,T):
         forward=Flux[i,j]
         reverse=Flux[j,i]
         NFlux[i,j]=max(0,forward-reverse)
-    return(NFlux)
+    return NFlux
         
     
 def AddPathwaysToMatrix(F, Pathway, PathFlux, Verbose=False):
-    """Given a matrix F that is to contain a subset of the fluxes, add Pathway with flux PathFlux."""
+    """
+	Given a matrix F that is to contain a subset of the fluxes, 
+	add Pathway with flux PathFlux.
+	"""
+	
+	# TJL: what is this good for???
+	print "Deprecation Warning: this function will be deprecated in a future version of MSMBuilder"
+	
     for k in range(len(Pathway)):
         if Verbose: print(k)
         P=Pathway[k]
@@ -672,7 +839,15 @@ def AddPathwaysToMatrix(F, Pathway, PathFlux, Verbose=False):
 
             
 def SolveEqn(A, b, X, nIter):
-    """This is a simple Jacobi solver for the equation Ax=b.  X is the starting vector, nIter is the number of iterations."""
+    """
+	This is a simple Jacobi solver for the equation Ax=b.  X is 
+	the starting vector, nIter is the number of iterations."""
+
+	# TJL: what is this good for???
+	# Should be a much better version in scipy...
+	print "Deprecation Warning: this function will be deprecated in a future version of MSMBuilder"
+
+
     n=A.shape[0]
     #D=scipy.sparse.lil_diags([A.diagonal()],[0],(n,n))
     D=scipy.sparse.eye(n,n,0,format='lil')
@@ -685,5 +860,6 @@ def SolveEqn(A, b, X, nIter):
     R=R.tocsr()
     for i in range(nIter):
         X=DI*((b-R*X)) #changed from X=DI.matvec((b-R.matvec(X)))
+
     return(X)
     
