@@ -1,3 +1,0 @@
-These files contain code that should be considered experimental.  However, we feel the code is useful enough that it merits inclusion.
-
-Note that you will need to export the Extras directory to your PYTHONPATH before this code can be imported.
