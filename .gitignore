@@ -1,5 +1,11 @@
 *.py[co]
 
+# ignore mac metadata files
+._*
+
+# ignore unit tests workking dir
+TestFiles/UnitTestWorkingDir
+
 # the manifest file -- we only want to keep MANIFEST.in
 MANIFEST
 
