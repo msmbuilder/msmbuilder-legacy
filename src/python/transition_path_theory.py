@@ -64,9 +64,9 @@ def DijkstraTopPaths(A, B, NFlux, NumPaths=10, NodeWipe=False):
     Fluxes : a list of floats
         The flux through each path
 
-	To Do
-	-----
-	-- Add periodic flow check
+    To Do
+    -----
+    -- Add periodic flow check
     """
 
 
@@ -555,36 +555,36 @@ def all_to_all_mfpt(tprob, populations=None):
 
 def GetBCommittors(U, F, T0, EquilibriumPopulations, X0=None, Dense=False):
     """
-	Get the backward committors of the reaction U -> F.
+    Get the backward committors of the reaction U -> F.
 	
-	EquilibriumPopulations are required for the backward committors 
-	but not the foward commitors because we assume detailed balance 
-	when calculating the backward committors.  If you are have small 
-	matrices, it can be faster to use dense linear algebra.  
+    EquilibriumPopulations are required for the backward committors 
+    but not the foward commitors because we assume detailed balance 
+    when calculating the backward committors.  If you are have small 
+    matrices, it can be faster to use dense linear algebra.  
 	
-	Parameters
-	----------
-	U : array_like, int
-		The set of unfolded/reactant states.
+    Parameters
+    ----------
+    U : array_like, int
+        The set of unfolded/reactant states.
 		
-	F : array_like, int
-		The set of folded/product states.
+    F : array_like, int
+        The set of folded/product states.
 		
-	T0 : mm_matrix	
-		The transition matrix.
+    T0 : mm_matrix	
+        The transition matrix.
 		
-	EquilibriumPopulations : array_like, float
-		Populations of the states.
+    EquilibriumPopulations : array_like, float
+        Populations of the states.
 						
-	Dense : bool
-		Employ dense linear algebra. Will speed up the calculation
-		for small matrices.
+    Dense : bool
+        Employ dense linear algebra. Will speed up the calculation
+        for small matrices.
 		
-	Returns
-	-------
-	Q : array_like
-		The backward committors for the reaction U -> F.	
-	"""
+    Returns
+    -------
+    Q : array_like
+        The backward committors for the reaction U -> F.	
+    """
 	
     A, b = GetBCommittorsEqn(U,F,T0,EquilibriumPopulations)
 
@@ -598,34 +598,34 @@ def GetBCommittors(U, F, T0, EquilibriumPopulations, X0=None, Dense=False):
 
 def GetFCommittors(U, F, T0, Dense=False):
     """
-	Get the forward committors of the reaction U -> F.
+    Get the forward committors of the reaction U -> F.
+
+    If you are have small matrices, it can be faster to use dense 
+    linear algebra. 
 	
-	If you are have small matrices, it can be faster to use dense 
-	linear algebra. 
-	
-	Parameters
-	----------
-	U : array_like, int
-		The set of unfolded/reactant states.
+    Parameters
+    ----------
+    U : array_like, int
+        The set of unfolded/reactant states.
+
+    F : array_like, int
+        The set of folded/product states.
 		
-	F : array_like, int
-		The set of folded/product states.
+    T0 : mm_matrix	
+        The transition matrix.
+
+    EquilibriumPopulations : array_like, float
+        Populations of the states.
+			
+    Dense : bool
+        Employ dense linear algebra. Will speed up the calculation
+        for small matrices.
 		
-	T0 : mm_matrix	
-		The transition matrix.
-		
-	EquilibriumPopulations : array_like, float
-		Populations of the states.
-				
-	Dense : bool
-		Employ dense linear algebra. Will speed up the calculation
-		for small matrices.
-		
-	Returns
-	-------
-	Q : array_like
-		The forward committors for the reaction U -> F.
-	"""
+    Returns
+    -------
+    Q : array_like
+        The forward committors for the reaction U -> F.
+    """
 	
     A,b = GetFCommittorsEqn(U,F,T0)
 
@@ -639,29 +639,31 @@ def GetFCommittors(U, F, T0, Dense=False):
 
 def GetBCommittorsEqn(U, F, T0, EquilibriumPopulations):
     """
-	Construct the matrix equations used for finding backwards 
-	committors for the reaction U -> F.
+    Construct the matrix equations used for finding backwards 
+    committors for the reaction U -> F.
 	
-	Parameters
-	----------
-	U : array_like, int
-		The set of unfolded/reactant states.
+    Parameters
+    ----------
+    U : array_like, int
+        The set of unfolded/reactant states.
 		
-	F : array_like, int
-		The set of folded/product states.
+    F : array_like, int
+        The set of folded/product states.
 		
-	T0 : mm_matrix	
-		The transition matrix.
+    T0 : mm_matrix	
+        The transition matrix.
 		
-	EquilibriumPopulations : array_like, float
-		Populations of the states.
+    EquilibriumPopulations : array_like, float
+        Populations of the states.
 		
-	Returns
-	-------
-     A : the sparse matrix for committors (Ax = b)
+    Returns
+    -------
+     A : mm_matrix 
+        the sparse matrix for committors (Ax = b)
  
-     b : the vector on right hand side of (Ax = b)
-	"""
+     b : nd_array
+         the vector on right hand side of (Ax = b)
+    """
 
     n = len(EquilibriumPopulations)
     DE = scipy.sparse.eye(n,n,0,format='lil')
@@ -675,27 +677,29 @@ def GetBCommittorsEqn(U, F, T0, EquilibriumPopulations):
 
 def GetFCommittorsEqn(A, B, T0):
     """
-	Construct the matrix equations used for finding committors 
-	for the reaction U -> F.  T0 is the transition matrix, 
-	Equilibruim is the vector of equilibruim populations.
+    Construct the matrix equations used for finding committors 
+    for the reaction U -> F.  T0 is the transition matrix, 
+    Equilibruim is the vector of equilibruim populations.
 	
-	Parameters
-	----------
-	A : array_like, int
-		The set of unfolded/reactant states.
+    Parameters
+    ----------
+    A : array_like, int
+        The set of unfolded/reactant states.
+
+    B : array_like, int
+        The set of folded/product states.
 		
-	B : array_like, int
-		The set of folded/product states.
-		
-	T0 : mm_matrix	
-		The transition matrix.
+    T0 : mm_matrix	
+        The transition matrix.
 				
-	Returns
-	-------
-     A : the sparse matrix for committors (Ax = b)
+    Returns
+    -------
+     A : mm_matrix
+        the sparse matrix for committors (Ax = b)
  
-     b : the vector on right hand side of (Ax = b)
-	"""
+     b : array_like
+         the vector on right hand side of (Ax = b)
+    """
 	
 	# TJL to KAB : please be consistent with variable names!
 	
@@ -725,27 +729,27 @@ def GetFCommittorsEqn(A, B, T0):
 
 def GetFlux(E,F,R,T):
     """
-	Get the flux matrix.
+    Get the flux matrix.
 	
-	Parameters
-	----------
+    Parameters
+    ----------
     E : array_like, float
-		The equilibirum populations
+        The equilibirum populations
 		
     F : array_like, int
-		Forward committors
+        Forward committors
 		
     R : array_like, int
-		backwards committors
+        backwards committors
 		
     T : mm_matrix
-		transition matrix.
+        transition matrix.
 		
-	Returns
-	------
-	P : mm_read
-		The flux matrix
-	"""
+    Returns
+    ------
+    P : mm_read
+        The flux matrix
+    """
     Indx,Indy = T.nonzero()
 
     n = len(E)
@@ -761,26 +765,27 @@ def GetFlux(E,F,R,T):
 
 
 def GetNetFlux(E,F,R,T):
-    """Returns a (net) matrix Flux where Flux[i,j] is the flux from i to j.
+    """
+    Returns a (net) matrix Flux where Flux[i,j] is the flux from i to j.
 
-	Parameters
-	----------
+    Parameters
+    ----------
     E : array_like, float
-		The equilibrium populations
+        The equilibrium populations
 		
     F : array_like, int
-		Forward committors
+        Forward committors
 		
     R : array_like, int
-		backwards committors
+        backwards committors
 		
     T : mm_matrix
-		transition matrix.
+        transition matrix.
 		
-	Returns
-	------
-	NFlux : mm_read
-		The flux matrix
+    Returns
+    ------
+    NFlux : mm_read
+        The flux matrix
     """
 
     n = len(E)
