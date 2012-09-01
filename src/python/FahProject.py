@@ -37,27 +37,29 @@ make_methods_pickable()
 
 class FahProject(object):
     """
-	A generic class for interacting with Folding@home projects
+    A generic class for interacting with Folding@home projects
 	
-	Parameters
-	----------
-	pdb : str
-		The pdb file on disk associated with the project.
+    Parameters
+    ----------
+    pdb : str
+        The pdb file on disk associated with the project.
 		
-	project_number: int
-		The project number assocaited with the project.
+    project_number: int
+        The project number assocaited with the project.
 		
-	projectinfo_file : str
-		Name of the project info file.
+    projectinfo_file : str
+        Name of the project info file.
 		
-	work_server : str
-		Hostname of the work server to interact with.
+    work_server : str
+        Hostname of the work server to interact with.
 		
-	email : str
-		email to forward alerts to
-	"""
+    email : str
+        email to forward alerts to
+    """
 
-    def __init__(self, pdb, project_number=0001, projectinfo_file="ProjectInfo.h5", work_server=None, email=None):
+    def __init__(self, pdb, project_number=0001, 
+                 projectinfo_file="ProjectInfo.h5", 
+                 work_server=None, email=None):
         
         # metadata associated with a FAH project
         self.project_number   = project_number
@@ -125,13 +127,13 @@ class FahProject(object):
     
     def send_error_email(self, error_msg):
         """ 
-		Sends an error message to the registered email.
+        Sends an error message to the registered email.
 		
-		Parameters
-		----------
-		error_msg : str
-			The string to include in the email.
-		"""
+        Parameters
+        ----------
+        error_msg : str
+            The string to include in the email.
+        """
         
         if email == None:
             print "Cannot send error email - no email provided"
@@ -154,18 +156,18 @@ class FahProject(object):
     
     def save_memory_state(self):
         """
-		Saves the 'memory state' to disk in a serialized format.
+        Saves the 'memory state' to disk in a serialized format.
 
-		Notes
-		-----
-		When saving, we encode the keys into base16 with a leading 'a',
+        Notes
+        -----
+        When saving, we encode the keys into base16 with a leading 'a',
         because the HDF5 Serializer doesnt' like '/' characters and is
         super picky in general
 
-		See Also
-		--------
-		load_memory_state
-		"""
+        See Also
+        --------
+        load_memory_state
+        """
             
         project_info = Project.LoadFromHDF( projectinfo_file )
         project_info["Memory"] = cPickle.dumps( self.memory )
@@ -176,22 +178,22 @@ class FahProject(object):
     
     def load_memory_state(self, projectinfo_file):
         """
-		Loads the 'memory state' from a serialized file on disk
+        Loads the 'memory state' from a serialized file on disk
 		
-		Parameters
-		----------
-		projectinfo_file : str
-			The file on disk from which to read.
+        Parameters
+        ----------
+        projectinfo_file : str
+            The file on disk from which to read.
 
-		Notes
-		-----
-		When reading the memory state, we have to decode base16, and
+        Notes
+        -----
+        When reading the memory state, we have to decode base16, and
         also remove leading 'a' characters
 
-		See Also
-		--------
-		save_memory_state
-		"""
+        See Also
+        --------
+        save_memory_state
+        """
         
         print "\nLoading memory state from: %s" % projectinfo_file
         
@@ -203,18 +205,18 @@ class FahProject(object):
 
 class _inject(object):
     """
-	Contains all of the methods for directing a FAH project. These
+    Contains all of the methods for directing a FAH project. These
     functions will change what is on the workserver, modifying files
     and creating new files to manage sampling.
-	"""
+    """
     
-	#################################################################
-	#
-	# The below code is still under development. We are waiting on a
-	# few more things to progress in the FAH WS code API, and also
-	# advances in MSMAccelerator, which will make these methods useful.
-	# -- TJL, Aug. '12
-	#
+    #################################################################
+    #
+    # The below code is still under development. We are waiting on a
+    # few more things to progress in the FAH WS code API, and also
+    # advances in MSMAccelerator, which will make these methods useful.
+    # -- TJL, Aug. '12
+    #
     
     # un-nest the local namespace from the parent class
     def __init__(self, outerclass):
@@ -248,9 +250,9 @@ class _inject(object):
     
     def new_run(self):
         """
-		Creates a new run in the project directory, and adds that run
+        Creates a new run in the project directory, and adds that run
         to the project.xml file. Does not directly reboot the server.
-		"""
+        """
         
         # create the new run directory
         raise NotImplementedError()
@@ -259,13 +261,13 @@ class _inject(object):
     
     def stop_run(self, run):
         """
-		Stops all CLONES in a RUN.
+        Stops all CLONES in a RUN.
 		
-		Parameters
-		----------
-		run : int
-			The run to stop.
-		"""
+        Parameters
+        ----------
+        run : int
+            The run to stop.
+        """
         
         print "Shutting down RUN%d" % run
         clone_dirs = glob(run_dir + "CLONE*")
@@ -280,17 +282,17 @@ class _inject(object):
     
     def stop_clone(self, run, clone):
         """
-		Stops the specified RUN/CLONE by changing the name of
+        Stops the specified RUN/CLONE by changing the name of
         the WU's trr, adding .STOP to the end.
 
-		Parameters
-		----------
-		run : int
-			The run containing the clone to stop.
+        Parameters
+        ----------
+        run : int
+            The run containing the clone to stop.
 			
-		clone : int
-			The clone to stop.
-		"""
+        clone : int
+            The clone to stop.
+        """
         
         clone_dir = os.path.join(self.project_basepath, 'RUN%d/' % run, 'CLONE%d/' % clone)
         
@@ -310,10 +312,10 @@ class _inject(object):
 
 class _retrieve(object):
     """
-	Contains all of the functions necessary for getting data from
+    Contains all of the functions necessary for getting data from
     the workserver. Functions are able to navagate the WS directory
     structure and get trajectories and other information.
-	"""
+    """
 
     # un-nest the local namespace from the parent class
     def __init__(self, outerclass):
@@ -326,8 +328,8 @@ class _retrieve(object):
         
         
     def write_all_trajectories(self, input_dir, output_dir, stride, max_rmsd, 
-							   min_gens, center_conformations, num_proc, 
-							   input_style, update=False):
+                               min_gens, center_conformations, num_proc, 
+                               input_style, update=False):
         """
         Convert all of the trajectories in the FAH project in input_dir to
         lh5 trajectory files which will be placed in output dir.
@@ -337,50 +339,50 @@ class _retrieve(object):
         This functionality can be more cleanly called through the update_trajectories()
         method.
 
-		Parameters
-		----------
-		input_dir : str
-			The directory to look for XTC/DCD files in.
+        Parameters
+        ----------
+        input_dir : str
+            The directory to look for XTC/DCD files in.
 			
-		output_dir : str
-			The place to write the converted lh5s
+        output_dir : str
+            The place to write the converted lh5s
 			
-		stride : int
-			The size of the stride to employ. E.g., if stride = 3, the script
-			keeps every 3rd MD snapshot from the original data. Useful to throw
-			away highly correlated data if snapshots were saved frequently.
+        stride : int
+            The size of the stride to employ. E.g., if stride = 3, the script
+            keeps every 3rd MD snapshot from the original data. Useful to throw
+            away highly correlated data if snapshots were saved frequently.
+
+        max_rmsd : float
+            Throw away any data that is further than `max_rmsd` (in nm) from the
+            pdb file associated with the project. This is used as a sanity check
+            to prevent including, e.g. data from a simulation that is blowing up.
+
+        min_gens : int
+            Discard trajectories with fewer than `min_gens` generations.
+
+        center_conformations : bool
+            Whether to center the converted (lh5) conformations.
 			
-		max_rmsd : float
-			Throw away any data that is further than `max_rmsd` (in nm) from the
-			pdb file associated with the project. This is used as a sanity check
-			to prevent including, e.g. data from a simulation that is blowing up.
+        num_proc : int
+            Number of processors to employ. Note that this function is typically
+            I/O limited, so paralellism is unlikely to yield much gain.
 			
-		min_gens : int
-			Discard trajectories with fewer than `min_gens` generations.
-			
-		center_conformations : bool
-			Whether to center the converted (lh5) conformations.
-			
-		num_proc : int
-			Number of processors to employ. Note that this function is typically
-			I/O limited, so paralellism is unlikely to yield much gain.
-			
-		input_style : {'FAH', 'FILE'}
-			If you use input_style = 'FAH', this code uses knowledge of the
-	        RUN*/CLONE* directory structure to yield all the CLONE directories.
-	        If you use input_style = 'FILE', this code uses os.walk() which is
-	        A LOT slower because it has to stat every file, but is capable of 
-	        recursively searching for xtc files to arbitrary depths.
+        input_style : {'FAH', 'FILE'}
+            If you use input_style = 'FAH', this code uses knowledge of the
+            RUN*/CLONE* directory structure to yield all the CLONE directories.
+            If you use input_style = 'FILE', this code uses os.walk() which is
+            A LOT slower because it has to stat every file, but is capable of 
+            recursively searching for xtc files to arbitrary depths.
 	
-		update : bool
-			If `True`, then tries to figure out what data has already been converted
-			by reading the "memory state" in the provided ProjectInfo file, and only
-			converts new data. If `False`, does a fresh re-convert.
+        update : bool
+            If `True`, then tries to figure out what data has already been converted
+            by reading the "memory state" in the provided ProjectInfo file, and only
+            converts new data. If `False`, does a fresh re-convert.
 
 
-		Notes
-		-----
-		Since sometimes a conversion fails, we collect all trajectories at the
+        Notes
+        -----
+        Since sometimes a conversion fails, we collect all trajectories at the
         end and renumber them such that they are contiguously numbered.
         """
         
@@ -677,13 +679,13 @@ class _retrieve(object):
         A LOT slower because it has to stat every file, but is capable of recursively
         searching for xtc files to arbitrary depths.
 
-		Parameters
-		----------
-		input_dir : str
-			The directory to read xtcs from
+        Parameters
+        ----------
+        input_dir : str
+            The directory to read xtcs from
 		
-		input_style : {'FILE', 'FAH'}
-			Which search strategy to employ.
+        input_style : {'FILE', 'FAH'}
+            Which search strategy to employ.
         """
         
         if input_style == 'FAH':
@@ -727,12 +729,12 @@ class _retrieve(object):
         Parameters
         ----------
         dir : str
-        Path of the directory to look in.
+            Path of the directory to look in.
         		
         Returns
         -------
         xtc_files : list
-        List of the xtcs in `dir`.
+            List of the xtcs in `dir`.
         """
         pattern = re.compile('\D+(\d+)[.]xtc')
         xtc_files = [e for e in os.listdir(dir) if pattern.search(e)]
@@ -742,19 +744,19 @@ class _retrieve(object):
     
     
     def integer_component(self, filename):
-        '''
-		Extract a the numeric part of the filename for sorting
+        """
+        Extract a the numeric part of the filename for sorting
+
+        Parameters
+        ----------
+        filename : str
+           The file name to parse.
 		
-		Parameters
-		----------
-		filename : str
-			The file name to parse.
-		
-		Returns
-		-------
-		substr : str
-			The numeric part of the filename for sorting.
-		'''
+        Returns
+        -------
+        substr : str
+            The numeric part of the filename for sorting.
+        """
         pattern = re.compile('\D+(\d+)[.]xtc')
         try:
             substr = pattern.match(filename).group(1)
