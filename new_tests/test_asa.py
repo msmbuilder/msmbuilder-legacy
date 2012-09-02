@@ -6,6 +6,8 @@ from nose.tools import ok_, eq_
 from common import fixtures_dir
 
 from msmbuilder import Trajectory
+
+from msmbuilder.geometry.reference_asa import calculate_asa as reference_asa
 from msmbuilder.geometry.asa import calculate_asa, ATOMIC_RADII
 
 
@@ -15,7 +17,7 @@ def test_asa_0():
             'AtomNames': ['H']}
             
     probe_radius = 0.14
-    calc_area = np.sum(calculate_asa(traj, probe_radius=probe_radius))
+    calc_area = np.sum(reference_asa(traj, probe_radius=probe_radius))
     true_area = 4 * np.pi * (ATOMIC_RADII['H'] + probe_radius)**2
 
     npt.assert_approx_equal(calc_area, true_area)
@@ -34,7 +36,7 @@ def test_asa_1():
     # check the asa as we vary the separation
     for i, sep in enumerate(separations):
         traj['XYZList'][0, 0, 1] = sep
-        areas[i] = np.sum(calculate_asa(traj, probe_radius=probe_radius))
+        areas[i] = np.sum(reference_asa(traj, probe_radius=probe_radius))
     
     npt.assert_approx_equal(areas[0], true)
     npt.assert_approx_equal(areas[-1], 2*true)
@@ -44,6 +46,13 @@ def test_asa_1():
 
 def test_asa_2():
     t = Trajectory.LoadTrajectoryFile(os.path.join(fixtures_dir(), 'trj0.lh5'))
+    py_asa = np.sum(reference_asa(t, frame_indx=0))
+    c_asa = np.sum(calculate_asa(t[0])) # calculate only frame 0
+    c_asa_2 = np.sum(calculate_asa(t)[0]) # calculate on all frames
     true_frame_0_asa = 3.55564826906
 
-    npt.assert_approx_equal(true_frame_0_asa,  np.sum(calculate_asa(t, frame_indx=0)))
+    npt.assert_approx_equal(true_frame_0_asa, py_asa)
+    npt.assert_approx_equal(true_frame_0_asa, c_asa)
+    npt.assert_approx_equal(true_frame_0_asa, c_asa_2)
+    
+    
