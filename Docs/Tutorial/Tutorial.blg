@@ -1,0 +1,51 @@
+This is BibTeX, Version 0.99c (TeX Live 2009/Debian)
+The top-level auxiliary file: Tutorial.aux
+The style file: plain.bst
+Database file #1: Tutorial.bib
+I was expecting a `,' or a `}'---line 195 of file Tutorial.bib
+ : 
+ : @article{piana2011computational,
+(Error may have been on previous line)
+I'm skipping whatever remains of this entry
+You've used 7 entries,
+            2118 wiz_defined-function locations,
+            552 strings with 5361 characters,
+and the built_in function-call counts, 2707 in all, are:
+= -- 260
+> -- 156
+< -- 0
++ -- 62
+- -- 54
+* -- 231
+:= -- 469
+add.period$ -- 21
+call.type$ -- 7
+change.case$ -- 48
+chr.to.int$ -- 0
+cite$ -- 7
+duplicate$ -- 77
+empty$ -- 187
+format.name$ -- 54
+if$ -- 535
+int.to.chr$ -- 0
+int.to.str$ -- 7
+missing$ -- 7
+newline$ -- 38
+num.names$ -- 14
+pop$ -- 34
+preamble$ -- 1
+purify$ -- 41
+quote$ -- 0
+skip$ -- 51
+stack$ -- 0
+substring$ -- 199
+swap$ -- 7
+text.length$ -- 0
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 28
+warning$ -- 0
+while$ -- 25
+width$ -- 8
+write$ -- 79
+(There was 1 error message)

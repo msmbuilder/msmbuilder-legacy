@@ -1,0 +1,44 @@
+\begin{thebibliography}{1}
+
+\bibitem{msmb2}
+K.A. Beauchamp, G.R. Bowman, T.J. Lane, L.~Maibaum, I.S. Haque, and V.S. Pande.
+\newblock Msmbuilder2: Modeling conformational dynamics at the picosecond to
+  millisecond scale.
+\newblock {\em J. Chem. Theory Comput.}, 7(10):3412--3419, 2011.
+
+\bibitem{Bowman2009c}
+G.~R. Bowman, K.~A. Beauchamp, G.~Boxer, and V.~S. Pande.
+\newblock {{P}rogress and challenges in the automated construction of {M}arkov
+  state models for full protein systems}.
+\newblock {\em J. Chem. Phys.}, 131:124101, Sep 2009.
+
+\bibitem{Bowman2009a}
+G.R. Bowman, X.~Huang, and V.S. Pande.
+\newblock Using generalized ensemble simulations and markov state models to
+  identify conformational states.
+\newblock {\em Methods}, 49(2):197--201, 2009.
+
+\bibitem{Deuflhard2000}
+P.~Deuflhard, W.~Huisinga, A.~Fischer, and C.~Schütte.
+\newblock Identification of almost invariant aggregates in reversible nearly
+  uncoupled markov chains.
+\newblock {\em Linear Algebra Appl.}, 315(1-3):39--59, 2000.
+
+\bibitem{Deuflhard2005}
+P.~Deuflhard and M.~Weber.
+\newblock Robust perron cluster analysis in conformation dynamics.
+\newblock {\em Linear Algebra Appl.}, 398:161--184, 2005.
+
+\bibitem{Jha2005}
+A.K. Jha, A.~Colubri, M.H. Zaman, S.~Koide, T.R. Sosnick, and K.F. Freed.
+\newblock Helix, sheet, and polyproline ii frequencies and strong nearest
+  neighbor effects in a restricted coil library.
+\newblock {\em Biochemistry}, 44(28):9691--9702, 2005.
+
+\bibitem{kube2007coarse}
+S.~Kube and M.~Weber.
+\newblock A coarse graining method for the identification of transition rates
+  between molecular conformations.
+\newblock {\em J. Chem. Phys.}, 126:024103, 2007.
+
+\end{thebibliography}

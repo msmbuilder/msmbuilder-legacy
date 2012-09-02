@@ -1,0 +1,36 @@
+\BOOKMARK [1][-]{section.1}{Table of Contents}{}
+\BOOKMARK [1][-]{section.2}{Installation}{}
+\BOOKMARK [2][-]{subsection.2.1}{Prerequisites}{section.2}
+\BOOKMARK [2][-]{subsection.2.2}{Install Python and Python Packages}{section.2}
+\BOOKMARK [2][-]{subsection.2.3}{Download and Install MSMBuilder}{section.2}
+\BOOKMARK [1][-]{section.3}{MSMBuilder Design and Usage}{}
+\BOOKMARK [1][-]{section.4}{Tutorial}{}
+\BOOKMARK [2][-]{subsection.4.1}{MSM Construction}{section.4}
+\BOOKMARK [3][-]{subsubsection.4.1.1}{Overview of MSM Construction}{subsection.4.1}
+\BOOKMARK [2][-]{subsection.4.2}{Alanine Dipeptide Tutorial}{section.4}
+\BOOKMARK [3][-]{subsubsection.4.2.1}{Move to tutorial directory, prepare trajectories}{subsection.4.2}
+\BOOKMARK [3][-]{subsubsection.4.2.2}{Create an MSMBuilder Project}{subsection.4.2}
+\BOOKMARK [3][-]{subsubsection.4.2.3}{Cluster your data}{subsection.4.2}
+\BOOKMARK [3][-]{subsubsection.4.2.4}{Alternative Clustering Protocols}{subsection.4.2}
+\BOOKMARK [3][-]{subsubsection.4.2.5}{Validate microstate model with relaxation timescales.}{subsection.4.2}
+\BOOKMARK [3][-]{subsubsection.4.2.6}{Construct MSM at appropriate lagtime}{subsection.4.2}
+\BOOKMARK [3][-]{subsubsection.4.2.7}{Construct a Macrostate MSM}{subsection.4.2}
+\BOOKMARK [3][-]{subsubsection.4.2.8}{Examining the macrostate decomposition}{subsection.4.2}
+\BOOKMARK [3][-]{subsubsection.4.2.9}{Calculate Macrostate Implied Timescales}{subsection.4.2}
+\BOOKMARK [3][-]{subsubsection.4.2.10}{Visualizing Structures with Pymol}{subsection.4.2}
+\BOOKMARK [2][-]{subsection.4.3}{MSMBuilder Scripts}{section.4}
+\BOOKMARK [3][-]{subsubsection.4.3.1}{ConvertDataToHDF.py}{subsection.4.3}
+\BOOKMARK [3][-]{subsubsection.4.3.2}{CreateAtomIndices.py}{subsection.4.3}
+\BOOKMARK [3][-]{subsubsection.4.3.3}{Cluster.py}{subsection.4.3}
+\BOOKMARK [3][-]{subsubsection.4.3.4}{Assign.py / AssignHierarchical.py}{subsection.4.3}
+\BOOKMARK [3][-]{subsubsection.4.3.5}{CalculateImpliedTimescales.py}{subsection.4.3}
+\BOOKMARK [3][-]{subsubsection.4.3.6}{PlotImpliedTimescales.py}{subsection.4.3}
+\BOOKMARK [3][-]{subsubsection.4.3.7}{BuildMSM.py}{subsection.4.3}
+\BOOKMARK [3][-]{subsubsection.4.3.8}{GetRandomConfs.py}{subsection.4.3}
+\BOOKMARK [3][-]{subsubsection.4.3.9}{CalculateClusterRadii.py}{subsection.4.3}
+\BOOKMARK [3][-]{subsubsection.4.3.10}{CalculateRMSD.py}{subsection.4.3}
+\BOOKMARK [3][-]{subsubsection.4.3.11}{CalculateProjectRMSD.py}{subsection.4.3}
+\BOOKMARK [3][-]{subsubsection.4.3.12}{DoTPT.py}{subsection.4.3}
+\BOOKMARK [3][-]{subsubsection.4.3.13}{SavePDBs.py}{subsection.4.3}
+\BOOKMARK [3][-]{subsubsection.4.3.14}{PCCA.py}{subsection.4.3}
+\BOOKMARK [1][-]{section.5}{Frequently Asked Questions}{}
