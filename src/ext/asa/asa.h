@@ -1,2 +1,3 @@
-void asa_frame(const float* frame, const int n_atoms, const float* atom_radii,
-               const float* sphere_points, const int n_sphere_points, float* areas);
+void asa_trajectory(const float* xyzlist, const int n_frames, const int n_atoms,
+                    const float* atom_radii, const int n_sphere_points,
+                    float* array_of_areas);
