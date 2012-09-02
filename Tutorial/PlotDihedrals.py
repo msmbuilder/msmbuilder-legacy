@@ -74,5 +74,12 @@ plot([0,180], [-50,-50],'k')
 plot([0,0],[-180,180],'k')
 plot([-100,-100],[50,180],'k')
 plot([-100,-100],[-180,-100],'k')
+
+
+annotate("PPII",[-30,150],fontsize='x-large')
+annotate(r"$\beta$",[-130,150],fontsize='x-large')
+annotate(r"$\alpha$",[-100,0],fontsize='x-large')
+annotate(r"$\alpha_L$",[100,30],fontsize='x-large')
+annotate(r"$\gamma$",[100,-150],fontsize='x-large')
 show()
 

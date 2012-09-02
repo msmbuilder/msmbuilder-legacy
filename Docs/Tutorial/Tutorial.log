@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=pdflatex 2012.7.25)  27 AUG 2012 15:28
+This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=pdflatex 2012.8.28)  2 SEP 2012 14:36
 entering extended mode
  %&-line parsing enabled.
 **Tutorial.tex
@@ -545,14 +545,13 @@ Overfull \hbox (73.12523pt too wide) in paragraph at lines 194--194
 acro4/ -A PCCA+[] 
  []
 
-<figures/Macro4.pdf, id=232, 587.19376pt x 442.65375pt>
+<figures/Macro4.pdf, id=232, 578.16pt x 433.62pt>
 File: figures/Macro4.pdf Graphic file (type pdf)
-
-<use figures/Macro4.pdf>
-<figures/Macro5.pdf, id=234, 587.19376pt x 442.65375pt>
+ <use figures/Macro4.pdf>
+<figures/Macro5.pdf, id=234, 578.16pt x 433.62pt>
 File: figures/Macro5.pdf Graphic file (type pdf)
-
-<use figures/Macro5.pdf> [8]
+ <use figures/Macro5.pdf>
+[8]
 Overfull \hbox (17.5502pt too wide) in paragraph at lines 228--228
 []\OT1/cmtt/m/n/12 -o Macro4/ImpliedTimescales.dat -a Macro4/MacroAssignments.h
 5 -e 3[] 
@@ -570,7 +569,7 @@ Overfull \hbox (85.47523pt too wide) in paragraph at lines 257--257
 PDBs/State3-0.pdb[] 
  []
 
-<figures/ala.png, id=328, 1204.5pt x 1204.5pt>
+<figures/ala.png, id=340, 1204.5pt x 1204.5pt>
 File: figures/ala.png Graphic file (type png)
  <use figures/ala.png> [11]
 [12 <./figures/ala.png>] [13] [14] [15]
@@ -629,9 +628,9 @@ msfonts/cm/cmtt12.pfb></usr/share/texmf-texlive/fonts/type1/public/mathpazo/fpl
 mri.pfb></usr/share/texmf-texlive/fonts/type1/urw/palatino/uplb8a.pfb></usr/sha
 re/texmf-texlive/fonts/type1/urw/palatino/uplr8a.pfb></usr/share/texmf-texlive/
 fonts/type1/urw/palatino/uplri8a.pfb>
-Output written on Tutorial.pdf (20 pages, 1292697 bytes).
+Output written on Tutorial.pdf (20 pages, 1298313 bytes).
 PDF statistics:
- 452 PDF objects out of 1000 (max. 8388607)
+ 464 PDF objects out of 1000 (max. 8388607)
  103 named destinations out of 1000 (max. 500000)
  309 words of extra memory for PDF output out of 10000 (max. 10000000)
 

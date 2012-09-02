@@ -120,7 +120,7 @@ ConvertDataToHDF.py  -s native.pdb -i XTC
 \end{verbatim}
 
 \subsubsection{Cluster your data}
-The following command clusters your data using the RMSD metric using a hybrid k-centers k-medoids approach.  K-centers clustering continues until the intercluster distance (-d) is 0.045 nm.  At that point, 50 iterations (-l) of hybrid k-medoids are performed to refine those clusters.
+The following command clusters your data using the RMSD metric using a hybrid k-centers k-medoids approach.  The clustering continues until the intercluster distance is 0.045 nm.  At that point, 50 iterations of a 
 
 \begin{verbatim}
 Cluster.py rmsd hybrid -d 0.045 -l 50
