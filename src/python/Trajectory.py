@@ -25,8 +25,9 @@ import tables
 import numpy as np
 
 from msmbuilder import PDB
-from msmbuilder import ConformationBaseClass, Conformation
-from msmbuilder import Serializer
+from schwancrtools.Conformation_crs import ConformationBaseClass
+#from msmbuilder.Serializer import Serializer
+from schwancrtools.Serializer_crs import Serializer
 from msmbuilder import xtc
 from msmbuilder import dcd
 
@@ -441,10 +442,10 @@ class Trajectory(ConformationBaseClass):
     
     
     @classmethod
-    def LoadFromHDF(cls,Filename,JustInspect=False):
+    def LoadFromHDF(cls,Filename,JustInspect=False,Stride=None,AtomIndices=None):
         """Load a conformation that was previously saved as HDF."""
         if not JustInspect:
-            S=Serializer.LoadFromHDF(Filename)
+            S=Serializer.LoadFromHDF(Filename,Stride=Stride,AtomIndices=AtomIndices)
             A=cls(S)
             return(A)
         else:
@@ -455,10 +456,10 @@ class Trajectory(ConformationBaseClass):
     
     
     @classmethod
-    def LoadFromLHDF(cls,Filename,JustInspect=False,Precision=default_precision):
+    def LoadFromLHDF(cls,Filename,JustInspect=False,Precision=default_precision,Stride=None,AtomIndices=None):
         """Load a conformation that was previously saved as HDF."""
         if not JustInspect:
-            S=Serializer.LoadFromHDF(Filename)
+            S=Serializer.LoadFromHDF(Filename,Stride=Stride,AtomIndices=AtomIndices)
             A=cls(S)
             A["XYZList"]=_ConvertFromLossyIntegers(A["XYZList"],Precision)
             return(A)
@@ -467,7 +468,23 @@ class Trajectory(ConformationBaseClass):
             Shape=F1.root.XYZList.shape
             F1.close()
             return(Shape)
-    
+
+    @classmethod
+    def EnumChunksFromLHDF(cls,Filename,JustInspect=False,Precision=default_precision,Stride=None,AtomIndices=None,ChunkSize=1000):
+        """Load a conformation that was previously saved as HDF. However, instead of reading the 
+        entire thing we enumerate through chunks of length ChunkSize and yield each chunk"""
+        if not JustInspect:
+            for S in Serializer.EnumChunksFromHDF(Filename,Stride=Stride,AtomIndices=AtomIndices,ChunkSize=ChunkSize):
+                A=cls(S)
+                A["XYZList"]=_ConvertFromLossyIntegers(A["XYZList"],Precision)
+                yield A
+        else:
+            F1=tables.File(Filename)
+            Shape=F1.root.XYZList.shape
+            F1.close()
+            yield Shape
+
+        return
     
     @classmethod
     def ReadXTCFrame(cls,TrajFilename,WhichFrame):
