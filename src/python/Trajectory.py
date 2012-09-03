@@ -568,7 +568,6 @@ class Trajectory(ConformationBaseClass):
         if not JustInspect:
             A = list( cls.EnumChunksFromHDF( TrajFilename, Stride=Stride, AtomIndices=AtomIndices, ChunkSize=MAXINT32 ) )[0]
             return A
-
         else:
             F1=tables.File(TrajFilename)
             Shape=F1.root.XYZList.shape
@@ -598,7 +597,6 @@ class Trajectory(ConformationBaseClass):
             A = cls.LoadFromHDF( TrajFilename, Stride=Stride, AtomIndices=AtomIndices )
             A['XYZList'] = _ConvertFromLossyIntegers( A['XYZList'], Precision )
             return A
-
         else:
             F1=tables.File(TrajFilename)
             Shape=F1.root.XYZList.shape
