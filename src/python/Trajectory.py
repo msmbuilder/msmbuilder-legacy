@@ -25,9 +25,9 @@ import tables
 import numpy as np
 
 from msmbuilder import PDB
-from schwancrtools.Conformation_crs import ConformationBaseClass
+from msmbuilder.Conformation import ConformationBaseClass
 #from msmbuilder.Serializer import Serializer
-from schwancrtools.Serializer_crs import Serializer
+from msmbuilder import Serializer
 from msmbuilder import xtc
 from msmbuilder import dcd
 
