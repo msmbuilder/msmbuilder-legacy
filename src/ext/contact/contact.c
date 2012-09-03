@@ -3,6 +3,7 @@
 #include <math.h>
 
 
+
 inline float sqeuclidean3(const float a[], const float b[]) {
   //Calculate the dot product between length-three vectors b and c
   return (a[0] - b[0])*(a[0] - b[0]) + (a[1] - b[1])*(a[1] - b[1]) + (a[2] - b[2])*(a[2] - b[2]) ;
