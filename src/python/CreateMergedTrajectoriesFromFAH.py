@@ -66,7 +66,7 @@ def CreateMergedTrajectoriesFromFAH(PDBFilename,DataDir,NumRuns,NumClones,InFile
     try:
         os.mkdir(OutDir)
     except OSError:
-        logger.warning("The directory %s already exists." % OutDir)
+        logger.warning("The directory %s already exists.", OutDir)
     RunList=[]
     CloneList=[]
     NumGensList=[]
