@@ -59,7 +59,7 @@ def add_argument(group, dest, help=None, type=None, choices=None, nargs=None, de
 
     kwargs = {}
     if action == 'store_true' or action == 'store_false':
-        type = bool
+        type = None
     if type != None:
         kwargs['type']=type
     if action is not None:
@@ -68,6 +68,8 @@ def add_argument(group, dest, help=None, type=None, choices=None, nargs=None, de
         kwargs['nargs'] = nargs
     if choices is not None:
         kwargs['choices'] = choices
+        if type != None:
+            kwargs['choices'] = [ type(c) for c in choices ]
 
     long = '--{name}'.format(name=dest)
     found_short = False
