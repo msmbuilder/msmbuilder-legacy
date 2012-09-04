@@ -119,16 +119,16 @@ file.
 \nOutput: tCounts.mtx, tProb.mtx, Populations.dat,  Mapping.dat,
 Assignments.Fixed.h5, tCounts.UnSym.mtx""")
     parser.add_argument('assignments')
-    parser.add_argument('symmetrize', description="""Method by which to estimate a
+    parser.add_argument('symmetrize', help="""Method by which to estimate a
         symmetric counts matrix. Symmetrization ensures reversibility, but may skew
         dynamics. We recommend maximum likelihood estimation (MLE) when tractable,
         else try Transpose. It is strongly recommended you read the documentation
         surrounding this choice.""", default='MLE',
         choices=['MLE', 'Transpose', 'None'])
-    parser.add_argument('lagtime', description='''Lag time to use in model (in
+    parser.add_argument('lagtime', help='''Lag time to use in model (in
         number of snapshots. EG, if you have snapshots every 200ps, and set the
         lagtime=50, you'll get a model with a lagtime of 10ns)''', type=int)
-    parser.add_argument('prior', description='''Strength of Symmetric Prior.
+    parser.add_argument('prior', help='''Strength of Symmetric Prior.
         This prior mitigates the effect of sinks when estimating a reversible
         counts matrix (MLE Estimator).''', default=0.0, type=float)
     parser.add_argument('output_dir')

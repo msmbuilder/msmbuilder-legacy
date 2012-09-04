@@ -29,15 +29,17 @@ parser = arglib.ArgumentParser(description="""
 this as a template for a pylab session
 
 We recommend modifying this script for your own purposes""")
-parser.add_argument('input', description='Path to ImpledTimescales.dat',
-    type=arglib.LoadTxtType(dtype=float), default='ImpliedTimescales.dat')
-parser.add_argument('dt', description='Time between snapshots in your data',
+parser.add_argument('input', help='Path to ImpledTimescales.dat',
+    default='ImpliedTimescales.dat')
+parser.add_argument('dt', help='Time between snapshots in your data',
     default=1, type=float)
-parser.add_argument('filename', description='Filename to save plot to. Leave blank to render plot to sceen', default='') 
-parser.add_argument('title', description='Title for plot', default='Relaxation Timescale versus Lagtime')
+parser.add_argument('filename', help='Filename to save plot to. Leave blank to render plot to sceen', default='') 
+parser.add_argument('title', help='Title for plot', default='Relaxation Timescale versus Lagtime')
 args = parser.parse_args()
 
-scatter(args.input[:,0] * args.dt, args.input[:,1] * args.dt)
+input = np.loadtxt( args.input )
+
+scatter(input[:,0] * args.dt, input[:,1] * args.dt)
 yscale('log')
 title(args.title)
 xlabel('Lag Time')

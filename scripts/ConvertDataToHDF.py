@@ -166,7 +166,7 @@ gets discarded. Further, the FahProject object retains a little more discard
 functionality.
 """)
 
-    parser.add_argument('project', type=str, description='''The ProjectInfo (.h5) file
+    parser.add_argument('project', type=str, help='''The ProjectInfo (.h5) file
         that contains a mapping of the previous work done. If you specify a file that 
         exists on disk, conversion will pick up where it left off and simply add data
         to what has already been done. If you specify a file that doesn't exist, the
@@ -175,26 +175,26 @@ functionality.
         automatically retrieves the conversion parameters you were using before and uses
         them - all other options you specify will be IGNORED.''')
     parser.add_argument('pdb')
-    parser.add_argument('input_dir', description='''Path to the parent directory
+    parser.add_argument('input_dir', help='''Path to the parent directory
         containing subdirectories with MD (.xtc) data. See the description above
         for the appropriate formatting for directory architecture.''')
-    parser.add_argument('source', description='''Data source: "file", "file_dcd" or
+    parser.add_argument('source', help='''Data source: "file", "file_dcd" or
         "fah". This is the style of trajectory data that gets fed into MSMBuilder.
         If a file, then it requires each trajectory be housed in a separate directory
         like (PROJECT/TRAJ*/frame*.xtc). If 'fah', then standard FAH-style directory
         architecture is required.''', default='file', choices=['fah', 'file', 'file_dcd'])
-    parser.add_argument('mingen', description='''Minimum number of XTC frames 
+    parser.add_argument('mingen', help='''Minimum number of XTC frames 
         required to include data in Project.  Used to discard extremely short 
         trajectories.  Only allowed in conjunction with source = 'FAH'.''',
         default=0, type=int)
-    parser.add_argument('stride', description='''Integer number to subsample by.
+    parser.add_argument('stride', help='''Integer number to subsample by.
         Every "u-th" frame will be taken from the data and converted to msmbuilder
         format''', default=1, type=int)
-    parser.add_argument('rmsd_cutoff', description='''A safe-guard that discards any
+    parser.add_argument('rmsd_cutoff', help='''A safe-guard that discards any
         structure with and RMSD higher than the specified value (in nanometers,
         with respect to the input PDB file). Pass -1 to disable this feature''',
         default=-1, type=float)
-    parser.add_argument('parallel', description='''Run the conversion in parallel.
+    parser.add_argument('parallel', help='''Run the conversion in parallel.
         multiprocessing launches multiple python interpreters to use all of your cores.
         dtm uses mpi, and requires python's "deap" module to be installed. To execute the
         code over mpi using dtm, you need to start the command with mpirun -np <num_procs>.

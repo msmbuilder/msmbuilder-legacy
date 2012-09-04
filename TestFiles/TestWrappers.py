@@ -114,7 +114,7 @@ class TestWrappers(unittest.TestCase):
 
     def test_c_Cluster(self):
         # We need to be sure to skip the stochastic k-mediods
-        cmd = "Cluster.py -p {project} -S {stride} rmsd -a {atomindices} kcenters -d {rmsdcutoff}".format(project=ProjectFn, stride=Stride, atomindices="AtomIndices.dat", rmsdcutoff=RMSDCutoff)
+        cmd = "Cluster.py -p {project} -s {stride} rmsd -a {atomindices} kcenters -d {rmsdcutoff}".format(project=ProjectFn, stride=Stride, atomindices="AtomIndices.dat", rmsdcutoff=RMSDCutoff)
         print cmd
 
         os.system(cmd)
@@ -214,7 +214,7 @@ class TestWrappers(unittest.TestCase):
         #AInd = np.loadtxt("AtomIndices.dat", int)
         #CalculateRMSD.run(C1, Traj, AInd, "RMSD.dat")
         outpath = os.path.join(WorkingDir, "RMSD.dat")
-        os.system('CalculateRMSD.py -s %s -i %s -a %s -o %s -p %s' % (PDBFn, "Data/Gens.lh5", "AtomIndices.dat", outpath, ProjectFn))
+        os.system('CalculateRMSD.py -s %s -i %s -a %s -o %s' % (PDBFn, "Data/Gens.lh5", "AtomIndices.dat", outpath))
         
         cr   = np.loadtxt(outpath)
         cr_r = np.loadtxt(os.path.join(ReferenceDir, "RMSD.dat"))

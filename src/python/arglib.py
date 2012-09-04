@@ -1,14 +1,9 @@
 import sys, os
 import argparse
-import numpy as np
-import functools
-from msmbuilder import Serializer
-from msmbuilder import Project
-from msmbuilder import Trajectory
 from msmbuilder.License import LicenseString
 from msmbuilder.Citation import CiteString
-import scipy.io
-from collections import namedtuple
+from msmbuilder import metric_parsers
+
 import warnings
 
 def _iter_both_cases(string):
@@ -21,23 +16,6 @@ def _iter_both_cases(string):
         yield c
         yield c.swapcase()
 
-def _LoadType(load_function):
-    def F(path):
-        if not os.path.exists(path):
-            raise IOError('Could not find file %s' % path)
-        try:
-            return load_function(path)
-        except:
-            raise IOError('Could not open %s' % path)
-    return F
-    
-ProjectType = _LoadType(Project.LoadFromHDF)
-SerializerType = _LoadType(Serializer.LoadFromHDF)
-TrajectoryType = _LoadType(Trajectory.LoadTrajectoryFile)
-
-def LoadTxtType(**kwargs):
-    return functools.partial(np.loadtxt, **kwargs)
-    
 def die_if_path_exists(path):
     if isinstance(path, list):
         map(die_if_path_exists, path)
@@ -59,67 +37,59 @@ def ensure_path_exists(path):
     if not os.path.exists(path):
         print >> sys.stderr, "%s: Error: Can't find %s" % (name, path)
     
-RESERVED = {'assignments': ('-a', 'Path to assignments file.', 'Data/Assignments.h5', SerializerType),
-            'project': ('-p', 'Path to ProjectInfo file.', 'ProjectInfo.h5', ProjectType),
-            'tProb': ('-t', 'Path to transition matrix.', 'Data/tProb.mtx', scipy.io.mmread),
+RESERVED = {'assignments': ('-a', 'Path to assignments file.', 'Data/Assignments.h5', str),
+            'project': ('-p', 'Path to ProjectInfo file.', 'ProjectInfo.h5', str),
+            'tProb': ('-t', 'Path to transition matrix.', 'Data/tProb.mtx', str),
             'output_dir': ('-o', 'Location to save results.', 'Data/', str),
-            'pdb': ('-s', 'Path to PDB structure file.', None, str)}
+            'pdb': ('-s', 'Path to PDB structure file.', None, str),}
 
-nestedtype = namedtuple('nestedtype', 'innertype')
-
-def add_argument(group, name, description=None, type=None, choices=None, nargs=None, default=None, action=None):
+def add_argument(group, dest, help=None, type=None, choices=None, nargs=None, default=None, action=None):
     """
     Wrapper around arglib.ArgumentParser.add_argument. Gives you a short name
     directly from your longname
     """
-    if name in RESERVED:
-        short = RESERVED[name][0]
-        if description is None:
-            description = RESERVED[name][1]
+    if dest in RESERVED:
+        short = RESERVED[dest][0]
+        if help is None:
+            help = RESERVED[dest][1]
         if default is None:
-            default = RESERVED[name][2]
+            default = RESERVED[dest][2]
         if type is None:
-            type = RESERVED[name][3]
+            type = RESERVED[dest][3]
 
-    if type is None and nargs is None:
-        type = str
-    if nargs is not None:
-        if type is None:
-            type = nestedtype(str)
-        else:
-            type = nestedtype(type)        
-    
     kwargs = {}
-    
     if action == 'store_true' or action == 'store_false':
-        type = bool
-    
+        type = None
+    if type != None:
+        kwargs['type']=type
     if action is not None:
         kwargs['action'] = action
     if nargs is not None:
         kwargs['nargs'] = nargs
     if choices is not None:
         kwargs['choices'] = choices
+        if type != None:
+            kwargs['choices'] = [ type(c) for c in choices ]
 
-    long = '--{name}'.format(name=name)
+    long = '--{name}'.format(name=dest)
     found_short = False
     
-    for char in _iter_both_cases(name):
-        if not name in RESERVED:
+    for char in _iter_both_cases(dest):
+        if not dest in RESERVED:
             short = '-%s' % char
 
         args = (short, long)
 
         if default is None:
             kwargs['required'] = True
-            kwargs['help'] = description
+            kwargs['help'] = help
         else:
-            if description is None:
+            if help is None:
                 helptext = 'Default: {default}'.format(default=default)
             else:
-                if description[-1] != '.':
-                    description += '.'
-                helptext = '{description} Default: {default}'.format(description=description, default=default)
+                if help[-1] != '.':
+                    help += '.'
+                helptext = '{help} Default: {default}'.format(help=help, default=default)
             kwargs['help'] = helptext
             kwargs['default'] = default
         try:
@@ -131,7 +101,7 @@ def add_argument(group, name, description=None, type=None, choices=None, nargs=N
     if not found_short:
         raise ValueError('Could not find short name')
     
-    return name, type
+    return dest, type
 
 class ArgumentParser(object):
     "MSMBuilder specific wrapper around argparse.ArgumentParser"
@@ -142,15 +112,31 @@ class ArgumentParser(object):
         Parameters
         ----------
         description: (str, optional)
-        
+        get_metric: (bool, optional) - Pass true if you want to use the metric parser and get a metric instance returned
         
         """
-        
+
+        self.extra_groups = []
+        self.metric_parsers = []
+
+        self.print_argparse_bug_warning = False        
+
         if 'description' in kwargs:
             kwargs['description'] += ('\n' + '-'*80)
         kwargs['formatter_class'] = argparse.RawDescriptionHelpFormatter
         
+        if 'get_metric' in kwargs:
+            self.get_metric = bool(kwargs.pop('get_metric')) # pop gets the value plus removes the entry
+        else:
+            self.get_metric = False
+
         self.parser = argparse.ArgumentParser(*args, **kwargs)
+
+        self.parser.add_argument('-q','--quiet',dest='quiet',help='Pass this flag to run in quiet mode.',default=False,action='store_true')
+
+        if self.get_metric:
+            metric_parsers.add_metric_parsers( self )
+
         self.parser.prog = os.path.split(sys.argv[0])[1]
         self.required = self.parser.add_argument_group(title='required arguments')
         self.wdefaults = self.parser.add_argument_group(title='arguments with defaults')
@@ -161,20 +147,22 @@ class ArgumentParser(object):
         for v in RESERVED.values():
             self.short_strings.add(v[0])
             
-        self.extra_groups = []
     
     def add_argument_group(self, title):
         self.extra_groups.append(self.parser.add_argument_group(title=title))
     
-    def add_argument(self, name, description=None, type=None, choices=None, nargs=None, default=None, action=None):
-        if name in RESERVED and default is None:
-            default = RESERVED[name][2]
+    def add_argument(self, dest, help=None, type=None, choices=None, nargs=None, default=None, action=None):
+        if dest in RESERVED and default is None:
+            default = RESERVED[dest][2]
 
         if action == 'store_true':
             default = False
         elif action == 'store_false':
             default = True
-        
+
+        if (nargs in ['+','*','?']) and ( self.get_metric ):
+            self.print_argparse_bug_warning = True
+
         if choices:    
             for choice in choices:
                 if not isinstance(choice, str):
@@ -188,16 +176,34 @@ class ArgumentParser(object):
         if len(self.extra_groups) > 0:
             group = self.extra_groups[-1]
 
-        name, type = add_argument(group, name, description, type, choices, nargs, default, action)
+        name, type = add_argument(group, dest, help, type, choices, nargs, default, action)
 
         self.name_to_type[name] = type
      
+    def add_subparsers(self, *args, **kwargs):
+        return self.parser.add_subparsers(*args,**kwargs)
+
     def parse_args(self, args=None, namespace=None, print_banner=True):
         if print_banner:
             print LicenseString
             print CiteString
+
+        if self.print_argparse_bug_warning:
+            print "#"*80
+            print "\n"
+            warnings.warn('Known bug in argparse regarding subparsers and optional arguments with nargs=[+*?] (http://bugs.python.org/issue9571)')
+            print "\n"
+            print "#"*80
+
         namespace = self.parser.parse_args(args=args, namespace=namespace)
-        return self._typecast(namespace)
+
+        print namespace
+        #namespace = self._typecast(namespace)
+        if self.get_metric: # if we want to get the metric, then we have to construct it
+            metric = metric_parsers.construct_metric( namespace )
+            return namespace, metric
+
+        return namespace
     
     def _typecast(self, namespace):
         """Work around for the argparse bug with respect to defaults and FileType not
@@ -209,7 +215,4 @@ class ArgumentParser(object):
                 setattr(namespace, name, type(getattr(namespace, name)))
                 
         return namespace
-        
-if __name__ == "__main__":
-    import doctest
-    doctest.testmod()
+

@@ -43,11 +43,9 @@ a handle on how big they are before you trim. Recall the radius is the
 *maximum* distance.
 
 Output: A trimmed assignments file (Assignments.Trimmed.h5).""")
-    parser.add_argument('assignments', default='Data/Assignments.Fixed.h5',
-        type=arglib.SerializerType)
-    parser.add_argument('assignments_rmsd', default='Data/Assignments.h5.RMSD',
-        type=arglib.SerializerType)
-    parser.add_argument('rmsd_cutoff', description="""RMSD value at which to trim,
+    parser.add_argument('assignments', default='Data/Assignments.Fixed.h5')
+    parser.add_argument('assignments_rmsd', default='Data/Assignments.h5.RMSD')
+    parser.add_argument('rmsd_cutoff', help="""RMSD value at which to trim,
         in nm. Data further than this value in RMSD from its generator will be
         discarded.""", type=float)
     parser.add_argument('output', default='Data/Assignments.Trimmed.h5')
@@ -55,7 +53,10 @@ Output: A trimmed assignments file (Assignments.Trimmed.h5).""")
     
     arglib.die_if_path_exists(args.output)
     
-    trimmed = run(args.assignments['Data'], args.assignments_rmsd['Data'], args.rmsd_cutoff)
+    assignments = Serializer.LoadData( args.assignments )
+    assignments_rmsd = Serializer.LoadData( args.assignments_rmsd )
+
+    trimmed = run(assignments, assignments_rmsd, args.rmsd_cutoff)
     
     Serializer.SaveData(args.output, trimmed)
     print 'Wrote %s' % args.output

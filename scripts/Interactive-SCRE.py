@@ -3,9 +3,8 @@
 """
 
 import scipy.io
-from msmbuilder import Serializer, MSMLib, SCRE
+from msmbuilder import Serializer, MSMLib, SCRE, arglib
 import numpy as np
-import argparse
 import string
 import matplotlib
 
@@ -81,8 +80,8 @@ def scre_iteration(assignments,K0,lagtime_list,M,X,populations):
 run = interactive_scre
 
 if __name__ == "__main__":
-	parser = argparse.ArgumentParser(description=__doc__)
-	parser.add_argument('-o','--output_dir',    help='(input) Project Filename')
+	parser = arglib.ArgumentParser(description=__doc__)
+	parser.add_argument('output_dir')
 	parser.add_argument('-a','--assignments_filename',help='(input) Assignmentss filename')
 	args = vars(parser.parse_args())
 	

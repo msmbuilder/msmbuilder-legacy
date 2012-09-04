@@ -20,6 +20,7 @@
 import os, sys
 import numpy as np
 from msmbuilder.metrics import RMSD
+from msmbuilder import Project
 from msmbuilder import Trajectory
 from msmbuilder import Serializer
 from msmbuilder import arglib
@@ -42,18 +43,22 @@ if __name__ == '__main__':
     parser = arglib.ArgumentParser(description="""
 Calculate the RMSD between an input PDB and all conformations in your project.
 Output as a HDF5 file (load using Serializer.LoadData())""")
-    parser.add_argument('pdb', type=arglib.TrajectoryType)
-    parser.add_argument('atom_indices', description='Indices of atoms to compare',
-        type=arglib.LoadTxtType(dtype=int), default='AtomIndices.dat')
-    parser.add_argument('output', description='''Output file name. Output is an
+    parser.add_argument('pdb')
+    parser.add_argument('atom_indices', help='Indices of atoms to compare',
+        default='AtomIndices.dat')
+    parser.add_argument('output', help='''Output file name. Output is an
         .h5 file with RMSD entries corresponding to the Assignments.h5 file.''',
         default='Data/RMSD.h5')
     parser.add_argument('project')
     args = parser.parse_args()
     
     arglib.die_if_path_exists(args.output)
-    
-    distances = run(args.project, args.pdb, args.atom_indices)
+
+    project = Project.LoadFromHDF( args.project )    
+    pdb = Trajectory.LoadTrajectoryFile( args.pdb )
+    atom_indices = np.loadtxt( args.atom_indices ).astype(int)
+
+    distances = run(project, pdb, atom_indices)
     
     print 'Saving', args.output
     Serializer.SaveData(args.output, distances)
