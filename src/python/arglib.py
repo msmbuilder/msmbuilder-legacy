@@ -215,7 +215,4 @@ class ArgumentParser(object):
                 setattr(namespace, name, type(getattr(namespace, name)))
                 
         return namespace
-        
-if __name__ == "__main__":
-    import doctest
-    doctest.testmod()
+
