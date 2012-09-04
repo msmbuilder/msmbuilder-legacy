@@ -3,6 +3,13 @@ from msmbuilder.arglib import ArgumentParser, add_argument
 
 from common import expected_failure, raises, eq_
 
+def test_iterator():
+    from msmbuilder.arglib import _iter_both_cases
+    got = [e for e in _iter_both_cases("string")]
+    expected = ['s', 'S', 't', 'T', 'r', 'R', 'i', 'I', 'n', 'N', 'g', 'G']
+
+    eq_(got, expected)
+
 
 class tester():
     def setup(self):
