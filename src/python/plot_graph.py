@@ -115,4 +115,4 @@ def PlotNetwork(G,OutputFile="Graph.dot"):
         logger.error("could not plot graph to screen.  Check X / Matplotlib settings.")
         
     networkx.write_dot(G, OutputFile)
-    logger.info("Wrote: %s" % OutputFile)
+    logger.info("Wrote: %s", OutputFile)
