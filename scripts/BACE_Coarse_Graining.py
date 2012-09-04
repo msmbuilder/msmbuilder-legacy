@@ -51,6 +51,9 @@ import numpy as np
 import os
 import scipy.io
 import scipy.sparse
+import logging
+logger = logging.getLogger(__file__)
+
 
 def getInds(c, stateInds, chunkSize, isSparse, updateSingleState=None):
     indices = []
@@ -79,7 +82,7 @@ def getInds(c, stateInds, chunkSize, isSparse, updateSingleState=None):
 
 def run(c, nMacro, nProc, multiDist, outDir, filterFunc, chunkSize=100):
     # perform filter
-    print "Checking for states with insufficient statistics"
+    logger.info("Checking for states with insufficient statistics")
     c, map, statesKeep = filterFunc(c, nProc)
 
     # get num counts in each state (or weight)
@@ -105,9 +108,9 @@ def run(c, nMacro, nProc, multiDist, outDir, filterFunc, chunkSize=100):
         os.mkdir(outDir)
     fBayesFact = open("%s/bayesFactors.dat" % outDir, 'w')
     dMat, minX, minY = calcDMat(c, w, fBayesFact, indRecalc, dMat, nProc, statesKeep, multiDist, unmerged, chunkSize)
-    print "Coarse-graining..."
+    logger.info("Coarse-graining...")
     while nCurrentStates > nMacro:
-        print "  Iteration %d, merging %d states" % (i, nCurrentStates)
+        logger.info("Iteration %d, merging %d states", i, nCurrentStates)
         c, w, indRecalc, dMat, map, statesKeep, unmerged, minX, minY = mergeTwoClosestStates(c, w, fBayesFact, indRecalc, dMat, nProc, map, statesKeep, minX, minY, multiDist, unmerged, chunkSize)
         nCurrentStates -= 1
         np.savetxt("%s/map%d.dat" % (outDir, nCurrentStates), map, fmt="%d")
@@ -292,7 +295,7 @@ def filterFuncDense(c, nProc):
     # prune states with Bayes factors less than 3:1 ratio (log(3) = 1.1)
     statesPrune = np.where(d<1.1)[0]
     statesKeep = np.where(d>=1.1)[0]
-    print "Merging %d states with insufficient statistics into their kinetically-nearest neighbor" % statesPrune.shape[0]
+    logger.info("Merging %d states with insufficient statistics into their kinetically-nearest neighbor", statesPrune.shape[0])
 
     for s in statesPrune:
         dest = c[s,:].argmax()
@@ -343,7 +346,7 @@ def filterFuncSparse(c, nProc):
     # prune states with Bayes factors less than 3:1 ratio (log(3) = 1.1)
     statesPrune = np.where(d<1.1)[0]
     statesKeep = np.where(d>=1.1)[0]
-    print "Merging %d states with insufficient statistics into their kinetically-nearest neighbor" % statesPrune.shape[0]
+    logger.info("Merging %d states with insufficient statistics into their kinetically-nearest neighbor", statesPrune.shape[0])
 
     for s in statesPrune:
         dest = c.rows[s][np.argmax(c.data[s])]
@@ -378,7 +381,7 @@ Description output (put into directory specified with outDir):
         multiDist = multiDistSparse
         filterFunc = filterFuncSparse
         if args.forceDense:
-            print "Forcing dense"
+            logger.info("Forcing dense")
             c = c.toarray()
             multiDist = multiDistDense
             filterFunc = filterFuncDense
@@ -389,7 +392,7 @@ Description output (put into directory specified with outDir):
 
     if args.nProc == None:
         args.nProc = multiprocessing.cpu_count()
-    print "Set number of processors to", args.nProc
+    logger.info("Set number of processors to %s", args.nProc)
 
     run(c, args.nMacro, args.nProc, multiDist, args.outDir, filterFunc, chunkSize=100)
 

@@ -4,6 +4,7 @@ from msmbuilder.License import LicenseString
 from msmbuilder.Citation import CiteString
 from msmbuilder import metric_parsers
 import warnings
+from pprint import pprint
 
 import logging
 logger = logging.getLogger('arglib')
@@ -199,16 +200,14 @@ class ArgumentParser(object):
             print "#"*80
 
         namespace = self.parser.parse_args(args=args, namespace=namespace)
+        pprint(namespace.__dict__)
 
-        #namespace = self._typecast(namespace)
         if self.get_metric: # if we want to get the metric, then we have to construct it
             metric = metric_parsers.construct_metric( namespace )
             return namespace, metric
         
         if namespace.quiet:
             logger.setLevel(logging.WARNING)
-        
-        logger.info(namespace)
         
         return namespace
     
