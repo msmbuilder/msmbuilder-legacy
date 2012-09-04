@@ -30,7 +30,7 @@ debug = False # set to increase verbosity for coding purposes
 
 import numpy as np
 import scipy.sparse
-from msmbuilder import MSMLib
+from msmbuilder import msm_analysis
 
 
 def DijkstraTopPaths(A, B, NFlux, NumPaths=10, NodeWipe=False):
@@ -529,13 +529,13 @@ def all_to_all_mfpt(tprob, populations=None):
     """
 
     if populations is None:
-        eigens = MSMLib.GetEigenvectors(tprob,5)
+        eigens = msm_analysis.get_eigenvectors(tprob, 5)
         if np.count_nonzero(np.imag(eigens[1][:,0])) != 0:
             raise ValueError('First eigenvector has imaginary parts')
         populations = np.real(eigens[1][:,0])
 
     # ensure that tprob is a transition matrix
-    MSMLib.CheckTransition(tprob)
+    msm_analysis.check_transition(tprob)
     num_states = len(populations)
     if tprob.shape[0] != num_states:
         raise ValueError("Shape of tprob and populations vector don't match")
