@@ -223,7 +223,7 @@ class ArgumentParser(object):
             # set the level of the root logger
             logging.getLogger().setLevel(logging.WARNING)
 
-        if self.get_metric:  # if we want to get the metric, then we have to construct it
+        if self.get_metric or self.get_basic_metric: # if we want to get the metric, then we have to construct it
             metric = metric_parsers.construct_metric(namespace)
             return namespace, metric
 
