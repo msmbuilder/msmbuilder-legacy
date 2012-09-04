@@ -113,7 +113,9 @@ class ArgumentParser(object):
         get_metric: (bool, optional) - Pass true if you want to use the metric parser and get a metric instance returned
         
         """
-        
+
+        self.print_argparse_bug_warning = False        
+
         if 'description' in kwargs:
             kwargs['description'] += ('\n' + '-'*80)
         kwargs['formatter_class'] = argparse.RawDescriptionHelpFormatter
@@ -152,7 +154,10 @@ class ArgumentParser(object):
             default = False
         elif action == 'store_false':
             default = True
-        
+
+        if (nargs in ['+','*','?']) and ( self.get_metric ):
+            self.print_argparse_bug_warning = True
+
         if choices:    
             for choice in choices:
                 if not isinstance(choice, str):
@@ -178,10 +183,17 @@ class ArgumentParser(object):
             print LicenseString
             print CiteString
 
+        if self.print_argparse_bug_warning:
+            print "#"*80
+            print "\n"
+            warnings.warn('Known bug in argparse regarding subparsers and optional arguments with nargs=[+*?] (http://bugs.python.org/issue9571)')
+            print "\n"
+            print "#"*80
+
         namespace = self.parser.parse_args(args=args, namespace=namespace)
 
+        print namespace
         #namespace = self._typecast(namespace)
-
         if self.get_metric: # if we want to get the metric, then we have to construct it
             metric = metric_parsers.construct_metric( namespace )
             return namespace, metric
