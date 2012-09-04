@@ -28,12 +28,16 @@ Committors
 
 import numpy as np
 import scipy.sparse
+<<<<<<< HEAD
 from msmbuilder import MSMLib
 import logging
 logger = logging.getLogger('tpt')
 
 # turn on debugging printout
 # logger.setLogLevel(logging.DEBUG)
+=======
+from msmbuilder import msm_analysis
+>>>>>>> e73a62fd0a34c6b6e72046b5cea1e0b9dcd21439
 
 
 def DijkstraTopPaths(A, B, NFlux, NumPaths=10, NodeWipe=False):
@@ -534,13 +538,13 @@ def all_to_all_mfpt(tprob, populations=None):
     """
 
     if populations is None:
-        eigens = MSMLib.GetEigenvectors(tprob,5)
+        eigens = msm_analysis.get_eigenvectors(tprob, 5)
         if np.count_nonzero(np.imag(eigens[1][:,0])) != 0:
             raise ValueError('First eigenvector has imaginary parts')
         populations = np.real(eigens[1][:,0])
 
     # ensure that tprob is a transition matrix
-    MSMLib.CheckTransition(tprob)
+    msm_analysis.check_transition(tprob)
     num_states = len(populations)
     if tprob.shape[0] != num_states:
         raise ValueError("Shape of tprob and populations vector don't match")
