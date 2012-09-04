@@ -25,6 +25,9 @@ from msmbuilder import Trajectory
 from msmbuilder import Serializer
 from msmbuilder import arglib
 
+import logging
+logger = logging.getLogger(__file__)
+
 
 def run(project, pdb, atom_indices):    
     distances = -1 * np.ones((project['NumTrajs'], max(project['TrajLengths'])))
@@ -60,5 +63,5 @@ Output as a HDF5 file (load using Serializer.LoadData())""")
 
     distances = run(project, pdb, atom_indices)
     
-    print 'Saving', args.output
     Serializer.SaveData(args.output, distances)
+    logger.info('Saved to %s', args.output)

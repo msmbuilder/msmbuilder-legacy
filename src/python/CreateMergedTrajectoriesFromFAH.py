@@ -30,6 +30,8 @@ try:
     from deap import dtm
 except:
     pass
+import logging
+logger = logging.getLogger('CreateMergedTraj')
 
 def CreateMergedTrajectoriesFromFAH(PDBFilename,DataDir,NumRuns,NumClones,InFilenameRoot="frame",OutFilenameRoot="trj",OutDir="./Trajectories",OutFileType=".lh5",WhichRunsClones=None,Stride=1,NamingConvention=0,AtomIndices=None,Usetrjcat=False,MaxRMSD=7,DiscardHighRMSD=True,MaxGen=100000,MinGen=0,DiscardFirstN=0,trjcatFlags=["-cat"],ProjectFilename="ProjectInfo.ph5",CenterConformations=True,SkipTrajCat=False):
     """Create an MSMBuilder Project from a FAH project, making fragmented trajectories (generations) whole.
@@ -64,7 +66,7 @@ def CreateMergedTrajectoriesFromFAH(PDBFilename,DataDir,NumRuns,NumClones,InFile
     try:
         os.mkdir(OutDir)
     except OSError:
-        print("Warning: the directory %s already exists."%OutDir)
+        logger.warning("The directory %s already exists.", OutDir)
     RunList=[]
     CloneList=[]
     NumGensList=[]
@@ -77,7 +79,7 @@ def CreateMergedTrajectoriesFromFAH(PDBFilename,DataDir,NumRuns,NumClones,InFile
         for Clone in range(NumClones):
             ConvertRunClone(Run,Clone,TrajNumber,Conf1,DataDir,RunList,CloneList,NumGensList,Usetrjcat=Usetrjcat,trjcatFlags=trjcatFlags,DiscardFirstN=DiscardFirstN,Stride=Stride,WhichRunsClones=WhichRunsClones,OutDir=OutDir,InFilenameRoot=InFilenameRoot,OutFilenameRoot=OutFilenameRoot,OutFileType=OutFileType,MinGen=MinGen,MaxGen=MaxGen,AtomIndices=AtomIndices,DiscardHighRMSD=DiscardHighRMSD,MaxRMSD=MaxRMSD,PDBFilename=PDBFilename,CenterConformations=CenterConformations,SkipTrajCat=SkipTrajCat, NamingConvention=NamingConvention)
             
-    print("Creating Project File")
+    logger.info("Creating Project File")
     P1=Project.CreateProjectFromDir(ConfFilename=PDBFilename,TrajFileType=OutFileType,RunList=RunList,CloneList=CloneList,NumGensList=NumGensList,Filename=ProjectFilename)
     return(P1)
 
@@ -142,16 +144,16 @@ def ConvertRunClone(Run,Clone,TrajNumber,Conf1,DataDir,RunList,CloneList,NumGens
     pconf1 = pconf1 = RMSD(AtomIndices).prepare_trajectory({'XYZList': array([Conf1['XYZ']])})
     
     
-    print("RUN%d CLONE%d "%(Run,Clone))
+    logger.info("RUN%d CLONE%d", Run, Clone)
     if WhichRunsClones!=None:
         if [Run,Clone] not in WhichRunsClones:
-            print("RUN%d CLONE%d was not selected for inclusion in this project; skipping."%(Run,Clone))
+            logger.warning("RUN%d CLONE%d was not selected for inclusion in this project; skipping.", Run, Clone)
             return
     FilenameList=[]
     NumGens=DetermineNumGens(Run,Clone,InFilenameRoot,FilenameList,DataDir,NamingConvention=NamingConvention)
     NumGens=min(MaxGen,NumGens)
     if NumGens<MinGen or NumGens<=0:
-        print("Skipping Run %d Clone %d; too few generations (%d) available."%(Run,Clone,NumGens))
+        logger.warning("Skipping Run %d Clone %d; too few generations (%d) available.", Run,Clone,NumGens)
         return
     FilenameList=FilenameList[0:NumGens]
     OutFilename="%s/%s%d%s"%(OutDir,OutFilenameRoot,TrajNumber,OutFileType)
@@ -163,11 +165,14 @@ def ConvertRunClone(Run,Clone,TrajNumber,Conf1,DataDir,RunList,CloneList,NumGens
                     corrupted_xtcs = True
                     xtc_ind = 1
                     while corrupted_xtcs:
-                        print "WARNING: Found corrupted XTC: %s" % FilenameList[-xtc_ind]
-                        print "Attempting to recover by discarding this %d-to-last frame..." % xtc_ind
-                        try: Traj=Trajectory.LoadFromXTC(FilenameList[:-xtc_ind], Conf=Conf1)
-                        except IOError: xtc_ind += 1 
-                        else: corrupted_xtcs = False
+                        logger.warning("Found corrupted XTC: %s", FilenameList[-xtc_ind])
+                        logger.warning("Attempting to recover by discarding this %d-to-last frame...", xtc_ind)
+                        try:
+                            Traj=Trajectory.LoadFromXTC(FilenameList[:-xtc_ind], Conf=Conf1)
+                        except IOError:
+                            xtc_ind += 1 
+                        else:
+                            corrupted_xtcs = False
             else:
                 CMD="trjcat -f %s %s"%(string.join(FilenameList),string.join(trjcatFlags))
                 os.system(CMD)
@@ -182,7 +187,7 @@ def ConvertRunClone(Run,Clone,TrajNumber,Conf1,DataDir,RunList,CloneList,NumGens
                 ptraj = RMSD().prepare_trajectory(Traj)
                 rmsd = RMSD().one_to_all(pconf1, ptraj, 0)
                 if max(rmsd)>MaxRMSD:
-                    print("Frame %d has RMSD %f and appears to be blowing up or damaged.  Dropping Trajectory."%(argmax(rmsd),max(rmsd)))
+                    logger.warning("Frame %d has RMSD %f and appears to be blowing up or damaged.  Dropping Trajectory.", argmax(rmsd), max(rmsd))
                     return   
             if CenterConformations==True:
                 RMSD.TheoData.centerConformations(Traj["XYZList"])
@@ -193,7 +198,7 @@ def ConvertRunClone(Run,Clone,TrajNumber,Conf1,DataDir,RunList,CloneList,NumGens
             Traj=Trajectory.LoadFromXTC("trajout.xtc",PDBFilename=PDBFilename)
             os.remove("trajout.xtc")
     else:
-        print("Already Found File %s; skipping"%OutFilename)
+        logger.warning("Already Found File %s; skipping", OutFilename)
     RunList.append(Run)
     CloneList.append(Clone)
     NumGensList.append(NumGens)
@@ -219,7 +224,7 @@ def CreateMergedTrajectories(PDBFilename,ListOfXTCList,OutFilenameRoot="trj",
     try:
         os.mkdir(OutDir)
     except OSError:
-        print("ERROR: the directory %s already exists.  Exiting!"%OutDir)
+        logger.error("The directory %s already exists.  Exiting!", OutDir)
         return
     
 
@@ -238,7 +243,7 @@ def _ConvertFilenameList(args):
         FilenameList, i, PDBFilename, InFileType, OutDir, OutFilenameRoot, OutFileType, Stride, AtomIndices = args
         #FilenameList=ListOfXTCList[i]
         if len(FilenameList)>0:
-            print FilenameList
+            logger.info(FilenameList)
             if InFileType =='.dcd': # TG should auto-switch instead
                 Traj=Trajectory.LoadFromDCD(FilenameList,PDBFilename=PDBFilename)
             else:
