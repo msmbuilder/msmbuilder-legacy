@@ -27,6 +27,8 @@ def add_metric_parsers(parser):
         on multiple cores (but not multiple boxes) using OMP.''')
     add_argument(rmsd, '-a', dest='rmsd_atom_indices', help='Atom indices to use in RMSD calculation. Pass "all" to use all atoms.', 
         default='AtomIndices.dat')
+    parser.metric_parsers.append(rmsd)
+
     #rmsd_subparsers = rmsd.add_subparsers()
     #rmsd_subparsers.metric = 'rmsd'
 
@@ -44,6 +46,7 @@ def add_metric_parsers(parser):
     add_argument(dihedral, '-p', dest='dihedral_p', default=2, help='p used for metric=minkowski (otherwise ignored)')
     add_argument(dihedral, '-m', dest='dihedral_metric', default='euclidean',
         help='which distance metric', choices=metrics.Dihedral.allowable_scipy_metrics)
+    parser.metric_parsers.append(dihedral)
 #    dihedral_subparsers = dihedral.add_subparsers()
 #    dihedral_subparsers.metric = 'dihedral'
 
@@ -61,6 +64,7 @@ def add_metric_parsers(parser):
     Sets of indistinguishable atoms that can be permuted to minimize the RMSD. On disk this should be stored as
     a list of newline separated indices with a "--" separating the sets of indices if there are
     more than one set of indistinguishable atoms.  Use "-- (integer)" to include a subset in the RMSD (to avoid undesirable boundary effects.)''')
+    parser.metric_parsers.append(lprmsd)
 #    lprmsd_subparsers = lprmsd.add_subparsers()
 #    lprmsd_subparsers.metric = 'lprmsd'
 
@@ -85,6 +89,7 @@ def add_metric_parsers(parser):
     add_argument(contact, '-f', dest='contact_cutoff_file', help='File containing residue specific cutoff distances (supercedes the scalar cutoff distance if present).',default=None)
     add_argument(contact, '-s', dest='contact_scheme', default='closest-heavy', help='contact scheme.',
         choices=['CA', 'closest', 'closest-heavy'])
+    parser.metric_parsers.append(contact)
     #contact_subparsers = contact.add_subparsers()
     #contact_subparsers.metric = 'contact'
     
@@ -97,6 +102,7 @@ def add_metric_parsers(parser):
     add_argument(atompairs, '-p', dest='atompairs_p', default=2, help='p used for metric=minkowski (otherwise ignored)')
     add_argument(atompairs, '-m', dest='atompairs_metric', default='cityblock',
         help='which distance metric', choices=metrics.AtomPairs.allowable_scipy_metrics)
+    parser.metric_parsers.append(atompairs)
     #atompairs_subparsers = atompairs.add_subparsers()
     #atompairs_subparsers.metric = 'atompairs'
     
@@ -106,6 +112,7 @@ def add_metric_parsers(parser):
         and requires significant knowledge of the source code's architecture to pull off.""")
     add_argument(picklemetric, '-i', dest='picklemetric_input', required=True,
         help="Path to pickle file for the metric")
+    parser.metric_parsers.append(picklemetric)
 #    picklemetric_subparsers = picklemetric.add_subparsers()
 #    picklemetric_subparsers.metric = 'custom'
     
