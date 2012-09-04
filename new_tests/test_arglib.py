@@ -54,7 +54,7 @@ class tester():
         self.cmd('-a 1')
         eq_(self.v.a, 1.0)
     
-    @expected_failure
+  #  @expected_failure
     def test_6(self):
         self.add('a', choices=[1, 2], type=int)
         self.cmd('-a 1')
