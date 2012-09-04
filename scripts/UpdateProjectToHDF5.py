@@ -140,8 +140,8 @@ if __name__ == "__main__":
     the clustering stages.  This because the atom numbers will change upon sub-selection.""")
     parser.add_argument('atom_indices', 'Path to atom indices file for RMSD')
     parser.add_argument('pdb')
-    parser.add_argument('trajlist', description='Path to MSMBuilder1-style trajlist')
-    parser.add_argument('datatype', description='Format to store data in.',
+    parser.add_argument('trajlist', help='Path to MSMBuilder1-style trajlist')
+    parser.add_argument('datatype', help='Format to store data in.',
         choices=['lh5', 'h5', 'xtc'], default='lh5')
     args = parser.parse_args()
 
