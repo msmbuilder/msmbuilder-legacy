@@ -8,23 +8,27 @@
 #parser.add_option('-u',dest='stride',default=1,type=int,help='Stride to subsample at to train the PCA for. [ 1 ]')
 
 #options, args = parser.parse_args()
-from schwancrtools import ArgLib_E, sshfs_tools
+from msmbuilder import arglib, sshfs_tools, tICA
 import numpy as np
 from schwancrtools import tPCA, dataIO, msmTools
 from msmbuilder import Project, Serializer
 from schwancrtools.Trajectory_crs import Trajectory
 import os, sys, re
 import scipy
- 
-options, prep_metric = ArgLib_E.parse(['projectfn','stride','atomindices'],
-     new_arglist=[('outFN','--out','--outputFN',"Output filename to save the results to",'PCAData.h5'),
-                  ('dt','--dt','--delta-time',"Time to calcualte the cross correlations (frames)",None),
-                  ('procs','-P','--procs',"Processors to use in calculating the correlations.",1),
-                  ('minlength','--ml','--min-length',"Minimum length a trajectory needs to be in order to use it.",0),],
-      metric_parsers=True)
 
+parser = arglib.ArgumentParser( get_basic_metric = True )
+parser.add_argument('project')
+parser.add_argument('stride',help='stride to subsample input trajectories',type=int,default=1)
+parser.add_argument('atom_indices',help='atom indices to restrict trajectories to',default=None)
+parser.add_argument('out_fn',help='output filename to save results to',default='tICAData.h5')
+parser.add_argument('delta_time',help='delta time to use in calclating the time-lag correlation matrix',type=int)
+parser.add_argument('procs',help='number of processors to use with multiprocessing',type=int,default=1)
+parser.add_argument('min_length',help='only train on trajectories greater than some number of frames',type=int,default=0)
+
+args, prep_metric = parser.parse_args()
+print args
 print prep_metric
-
+exit()
 if os.path.exists( options.outFN ):
     print "Out filename (%s) already exists..." % options.outFN
     exit()
