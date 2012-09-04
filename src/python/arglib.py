@@ -210,7 +210,7 @@ class ArgumentParser(object):
 
         print namespace
         #namespace = self._typecast(namespace)
-        if self.get_metric: # if we want to get the metric, then we have to construct it
+        if self.get_metric or self.get_basic_metric: # if we want to get the metric, then we have to construct it
             metric = metric_parsers.construct_metric( namespace )
             return namespace, metric
 

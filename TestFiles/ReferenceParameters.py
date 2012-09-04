@@ -12,6 +12,7 @@ TutorialDir   = os.path.join(this_file_dir, "../Tutorial/")
 PDBFn         = TutorialDir+"/native.pdb"
 ProjectFn     = "ProjectInfo.h5"
 GensPath      = "Data/Gens.lh5"
+tICADataFn    = ReferenceDir+"/tICAData.h5"
 
 print "Set working dir: %s"   % WorkingDir
 print "Set reference dir: %s" % ReferenceDir

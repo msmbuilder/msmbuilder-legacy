@@ -17,13 +17,10 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 """
-Tests all the wrapper scripts. One test per wrapper. This should provide a
-general test for the entire software package, since the wrapper scripts
-sit at the very highest level and call nearly all the important functionality
-underneath.
-
-There exists some test to directly test other important parts of the software.
-These have been added more piecemeal over time as needed.
+Tests the tICA metric scripts:
+    tICA_train.py
+    Cluster.py tica
+    Assign.py tica
 
 Tests are deemed successful by comparing to a previously generated 'reference'
 MSM. This MSM has been thoroughly checked out, so if the given output is
@@ -52,20 +49,6 @@ from msmbuilder import Conformation
 from msmbuilder import Serializer
 from msmbuilder import MSMLib
 
-### Local Imports ###
-#from msmbuilder.scripts import Assign
-from msmbuilder.scripts import BuildMSM
-from msmbuilder.scripts import CalculateClusterRadii
-from msmbuilder.scripts import CalculateImpliedTimescales
-from msmbuilder.scripts import CalculateRMSD
-from msmbuilder.scripts import CalculateProjectRMSD
-#from msmbuilder.scripts import Cluster
-from msmbuilder.scripts import ConvertDataToHDF
-from msmbuilder.scripts import CreateAtomIndices
-from msmbuilder.scripts import GetRandomConfs
-from msmbuilder.scripts import PCCA
-from msmbuilder.scripts import SavePDBs
-
 from ReferenceParameters import *
 try:
     os.mkdir(WorkingDir)
@@ -85,45 +68,8 @@ class TestWrappers(unittest.TestCase):
         numpy.testing.assert_array_equal(t1["ResidueNames"], t2["ResidueNames"])
         numpy.testing.assert_array_almost_equal(t1["XYZList"], t2["XYZList"])
 
-    def test_a_ConvertDataToHDF(self):
-        os.chdir(WorkingDir)
-        shutil.copy(PDBFn,"./")
-                    #def run(projectfn, PDBfn, InputDir, source, mingen, stride, rmsd_cutoff,  parallel='None'):
-        ConvertDataToHDF.run(ProjectFn, PDBFn, TutorialDir+"/XTC", "file", 0, 1, 0,1000000)
-        P1 = Project.LoadFromHDF(ProjectFn)
-        
-        r_P1 = Project.LoadFromHDF(os.path.abspath(os.path.join('..', ReferenceDir, ProjectFn)))
-        
-        #self.assertEqual(P1['ConfFilename'], r_P1['ConfFilename'])
-        self.assertEqual(P1['NumTrajs'], r_P1['NumTrajs'])
-        self.assertEqual(P1['TrajFileBaseName'], r_P1['TrajFileBaseName'])
-
-        """The following assert removed by KAB 12-12-11 because it was broken by
-        recent changes to the path conventions in Project files.
-        self.assertEqual(P1['TrajFilePath'], r_P1['TrajFilePath'])
-        """
-        
-        self.assertEqual(P1['TrajFileType'], r_P1['TrajFileType'])
-        numpy.testing.assert_array_equal(P1['TrajLengths'], r_P1['TrajLengths'])
-        
-    def test_b_CreateAtomIndices(self):
-        AInd = CreateAtomIndices.run(PDBFn, 'minimal')
-        np.savetxt("AtomIndices.dat", AInd, "%d")
-        r_AInd=np.loadtxt(ReferenceDir + "/AtomIndices.dat", int)
-        numpy.testing.assert_array_equal(AInd, r_AInd)
-
-    def test_ba_tICA_train(self):
-        cmd = "tICA_train.py -P 1 -d 10 -p {project} -s {stride} dihedral -a phi/psi".format(project=ProjectFn, stride=Stride )
-        print cmd
-        
-        os.system(cmd)
-        
-        tICA = Serializer.LoadFromHDF( 'tICAData.h5' )
-
-        r_tICA = Serializer.LoadFromHDF( tICADataFn )
-
-        numpy.testing.assert_array_equal( tICA['vecs'], r_tICA['vecs'] )
-        numpy.testing.assert_array_equal( tICA['vals'], r_tICA['vals'] )
+    def test_b_tICA_train(self):
+        cmd = "tICA_train.py -a all -d 10 -p {project} -s {stride} -o tICA.h5 -P 1".format(project=ProjectFn,stride=Stride, atomindices=
 
     def test_c_Cluster(self):
         # We need to be sure to skip the stochastic k-mediods
