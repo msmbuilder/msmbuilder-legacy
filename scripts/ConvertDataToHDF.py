@@ -54,7 +54,7 @@ def yield_trajectory_filelist_from_dir( InputDir, itype ):
          if toadd:
              Flist.append(toadd)
 
-    logger.info("Loading data: %s", FList)
+    logger.info("Loading data: %s", Flist)
 
     return Flist
 
