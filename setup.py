@@ -5,7 +5,7 @@ VERSION="2.6.dev"
 __author__ = "Kyle A. Beauchamp"
 __version__ = VERSION
 
-import os, sys
+import os, sys, re
 import platform
 from distutils.core import setup,Extension
 import distutils.sysconfig
@@ -117,7 +117,7 @@ def buildKeywordDictionary(use_LPRMSD=True):
                                           "msmbuilder.geometry"]
     setupKeywords["package_dir"]       = {"msmbuilder": "src/python",
                                           "msmbuilder.scripts": "scripts/"}
-    setupKeywords["scripts"]           = filter(lambda elem: '_' not in elem, glob.glob('scripts/*'))
+    setupKeywords["scripts"]           = filter(lambda elem: not re.search('^__',elem), glob.glob('scripts/*'))
     setupKeywords["package_data"]      = {
         "msmbuilder"                   : ["AUTHORS","COPYING"]
                                          }
