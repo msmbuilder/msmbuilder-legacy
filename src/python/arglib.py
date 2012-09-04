@@ -43,19 +43,19 @@ RESERVED = {'assignments': ('-a', 'Path to assignments file.', 'Data/Assignments
             'output_dir': ('-o', 'Location to save results.', 'Data/', str),
             'pdb': ('-s', 'Path to PDB structure file.', None, str),}
 
-def add_argument(group, name, description=None, type=None, choices=None, nargs=None, default=None, action=None):
+def add_argument(group, dest, help=None, type=None, choices=None, nargs=None, default=None, action=None):
     """
     Wrapper around arglib.ArgumentParser.add_argument. Gives you a short name
     directly from your longname
     """
-    if name in RESERVED:
-        short = RESERVED[name][0]
-        if description is None:
-            description = RESERVED[name][1]
+    if dest in RESERVED:
+        short = RESERVED[dest][0]
+        if help is None:
+            help = RESERVED[dest][1]
         if default is None:
-            default = RESERVED[name][2]
+            default = RESERVED[dest][2]
         if type is None:
-            type = RESERVED[name][3]
+            type = RESERVED[dest][3]
 
     kwargs = {}
     if action == 'store_true' or action == 'store_false':
@@ -69,25 +69,25 @@ def add_argument(group, name, description=None, type=None, choices=None, nargs=N
     if choices is not None:
         kwargs['choices'] = choices
 
-    long = '--{name}'.format(name=name)
+    long = '--{name}'.format(name=dest)
     found_short = False
     
-    for char in _iter_both_cases(name):
-        if not name in RESERVED:
+    for char in _iter_both_cases(dest):
+        if not dest in RESERVED:
             short = '-%s' % char
 
         args = (short, long)
 
         if default is None:
             kwargs['required'] = True
-            kwargs['help'] = description
+            kwargs['help'] = help
         else:
-            if description is None:
+            if help is None:
                 helptext = 'Default: {default}'.format(default=default)
             else:
-                if description[-1] != '.':
-                    description += '.'
-                helptext = '{description} Default: {default}'.format(description=description, default=default)
+                if help[-1] != '.':
+                    help += '.'
+                helptext = '{help} Default: {default}'.format(help=help, default=default)
             kwargs['help'] = helptext
             kwargs['default'] = default
         try:
@@ -99,7 +99,7 @@ def add_argument(group, name, description=None, type=None, choices=None, nargs=N
     if not found_short:
         raise ValueError('Could not find short name')
     
-    return name, type
+    return dest, type
 
 class ArgumentParser(object):
     "MSMBuilder specific wrapper around argparse.ArgumentParser"
@@ -114,6 +114,9 @@ class ArgumentParser(object):
         
         """
 
+        self.extra_groups = []
+        self.metric_parsers = []
+
         self.print_argparse_bug_warning = False        
 
         if 'description' in kwargs:
@@ -122,6 +125,8 @@ class ArgumentParser(object):
         
         if 'get_metric' in kwargs:
             self.get_metric = bool(kwargs.pop('get_metric')) # pop gets the value plus removes the entry
+        else:
+            self.get_metric = False
 
         self.parser = argparse.ArgumentParser(*args, **kwargs)
 
@@ -140,15 +145,13 @@ class ArgumentParser(object):
         for v in RESERVED.values():
             self.short_strings.add(v[0])
             
-        self.extra_groups = []
-
     
     def add_argument_group(self, title):
         self.extra_groups.append(self.parser.add_argument_group(title=title))
     
-    def add_argument(self, name, description=None, type=None, choices=None, nargs=None, default=None, action=None):
-        if name in RESERVED and default is None:
-            default = RESERVED[name][2]
+    def add_argument(self, dest, help=None, type=None, choices=None, nargs=None, default=None, action=None):
+        if dest in RESERVED and default is None:
+            default = RESERVED[dest][2]
 
         if action == 'store_true':
             default = False
@@ -171,7 +174,7 @@ class ArgumentParser(object):
         if len(self.extra_groups) > 0:
             group = self.extra_groups[-1]
 
-        name, type = add_argument(group, name, description, type, choices, nargs, default, action)
+        name, type = add_argument(group, dest, help, type, choices, nargs, default, action)
 
         self.name_to_type[name] = type
      
