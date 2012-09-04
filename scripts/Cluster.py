@@ -22,12 +22,21 @@ def add_argument(group, *args, **kwargs):
             kwargs['help'] += ' {d}'.format(d=d)
         else:
             kwargs['help'] = d
-    print args
     group.add_argument(*args, **kwargs)
 
 ################################################################################
 
-parser = arglib.ArgumentParser(get_metric=True)
+parser = arglib.ArgumentParser(description='''
+    Cluster.py: Cluster MD trajectories into microstates
+    
+    Output: Assignments.h5, and other files depending on your choice of distance
+    metric and/or clustering algorithm.
+    
+    Note that there are many distance metrics and clustering algorithms available
+    Many of which have multiple options and parameters.
+    
+    MAKE LIBERAL USE OF THE -h OPTION. The help text changes significantly
+    depending on which level in the options tree you are currently in''',get_metric=True)
 parser.add_argument('project')
 parser.add_argument( dest='stride', help='Subsample by striding',
     default=1, type=int)
@@ -164,7 +173,7 @@ def check_paths(args):
             die_if_path_exists(args.distances)
 
     
-def main(args):
+def main(args, metric):
     check_paths(args)
     
     if args.alg == 'sclarans' and args.stride != 1:
@@ -174,8 +183,6 @@ stochastic subsampling. If you cant fit all your frames into  memory at the same
 could stride a little at the begining, but its not recommended."""
         sys.exit(1)
     
-    metric = construct_metric(args)
-
     trajs = load_trajectories(args.project, args.stride)
     print 'Loaded %d trajs' % len(trajs)
     
@@ -195,29 +202,15 @@ could stride a little at the begining, but its not recommended."""
             Serializer.SaveData(args.distances, distances)
 
 if __name__ == '__main__':
-    print LicenseString
-    print CiteString
-    print ''
-    print 'Cluster.py: Cluster MD trajectories into microstates'
-    print 
-    print 'Output: Assignments.h5, and other files depending on your choice of distance'
-    print 'metric and/or clustering algorithm.'
-    print 
-    print 'Note that %d distance metrics and %d clustering algorithms are available' % (len(parser.metric_parsers), 5)
-    print 'Many of which have multiple options and parameters.'
-    print 
-    print 'MAKE LIBERAL USE OF THE -h OPTION. The help text changes significantly'
-    print 'depending on which level in the options tree you are currently in'
-    
-    print '\n' + '-' * 80
-    args = parser.parse_args()
+
+    args, metric = parser.parse_args()
     pprint(args.__dict__)
     
     if hasattr(args, 'sclarans_parallel')  and args.sclarans_parallel == 'dtm':
         from deap import dtm
         dtm.start(main, args)
     else:
-        main(args)
+        main(args, metric)
 
 
     

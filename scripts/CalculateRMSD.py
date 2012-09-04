@@ -22,11 +22,8 @@ from msmbuilder import Trajectory
 from msmbuilder.metrics import RMSD
 from msmbuilder import arglib
 
-def run(project, pdb, traj_fn, atom_indices):
+def run(pdb, traj, atom_indices):
 
-    #project = Project.LoadFromHDF(options.projectfn)
-    traj = Trajectory.LoadTrajectoryFile(traj_fn,Conf=project.Conf)
-    
     # you could replace this with your own metric if you like
     metric = RMSD(atom_indices)
 
@@ -45,18 +42,21 @@ can be any trajectory-like format, including generators and random conformation
 files. Output: a flat file vector of RMSDs, in nm. Note that MSMBuilder's RMSD
 calculator is highly optimized, so this calculation should be rapid. Output: 
 RMSD.dat, a flat text file of the RMSDs.""")
-    parser.add_argument('pdb', type=arglib.TrajectoryType)
-    parser.add_argument('input', description='Path to a trajectory-like file')
-    parser.add_argument('project')
-    parser.add_argument('atom_indices', description='Indices of atoms to compare',
-        type=arglib.LoadTxtType(dtype=int), default='AtomIndices.dat')
-    parser.add_argument('output', description='Flat text file for the output',
+    parser.add_argument('pdb')
+    parser.add_argument('input', help='Path to a trajectory-like file')
+    parser.add_argument('atom_indices', help='Indices of atoms to compare',
+        default='AtomIndices.dat')
+    parser.add_argument('output', help='Flat text file for the output',
         default='RMSD.dat')
     args = parser.parse_args()
     
     arglib.die_if_path_exists(args.output)
     
-    distances = run(args.project, args.pdb, args.input, args.atom_indices)
+    pdb = Trajectory.LoadTrajectoryFile( args.pdb )
+    atom_indices = np.loadtxt( args.atom_indices ).astype(int)
+    traj = Trajectory.LoadTrajectoryFile( args.input )
+
+    distances = run(pdb, traj, atom_indices)
     print 'Saving Output: %s' % args.output
     np.savetxt(args.output, distances)
 

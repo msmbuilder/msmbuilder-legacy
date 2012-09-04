@@ -70,9 +70,9 @@ to use GetRandomConfs.py""")
     parser.add_argument('project')
     parser.add_argument('assignments', default='Data/Assignments.Fixed.h5')
     parser.add_argument('conformations_per_state', default=5, type=int,
-        description='Number of conformations to sample from each state')
+        help='Number of conformations to sample from each state')
     parser.add_argument('states', nargs='+', type=int,
-        description='''Which states to sample from. Pass a list of integers, separated
+        help='''Which states to sample from. Pass a list of integers, separated
         by whitespace. To specify ALL of the states (Although the script GetRandomConfs.py
         is more efficient for this purpose), pass the integer -1.''')
     parser.add_argument('output_dir', default='PDBs')

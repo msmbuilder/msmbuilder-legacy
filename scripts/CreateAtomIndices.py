@@ -141,7 +141,7 @@ if __name__ == "__main__":
   parser = arglib.ArgumentParser(description="Creates an atom indices file from a PDB.")
   parser.add_argument('pdb')
   parser.add_argument('output', default='AtomIndices.dat')
-  parser.add_argument('atom_type', description='''Atoms to include in index file.
+  parser.add_argument('atom_type', help='''Atoms to include in index file.
     One of four options: (1) minimal (CA, CB, C, N, O, recommended), (2) heavy,
     (3) alpha (carbons), or (4) all.  Use "all" in cases where protein
     nomenclature may be inapproprate, although you may want to define your own

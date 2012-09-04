@@ -58,9 +58,9 @@ Note that this script is not yet equipped to handle different distance metrics
 Output: A flat txt file, 'ClusterRadii.dat', the average RMSD distance to the
 generator in nm.""")
     parser.add_argument('assignments', type=str, default='Data/Assignments.Fixed.h5')
-    parser.add_argument('assignments_rmsd', description='''Path to assignment
+    parser.add_argument('assignments_rmsd', help='''Path to assignment
         RMSD file.''', default='Data/Assignments.h5.RMSD')
-    parser.add_argument('procs', description="""Number of physical processors/cores
+    parser.add_argument('procs', help="""Number of physical processors/cores
         to use""", default=1, type=int)
     parser.add_argument('output', default='ClusterRadii.dat')
     args = parser.parse_args()

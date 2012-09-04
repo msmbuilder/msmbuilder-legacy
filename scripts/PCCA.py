@@ -77,14 +77,14 @@ Output: MacroAssignments.h5, a new assignments HDF file, for the Macro MSM.""")
     parser.add_argument('num_macrostates', type=int)
     parser.add_argument('tProb')
     parser.add_argument('output_dir')
-    parser.add_argument('algorithm', description='Which algorithm to use', choices=['PCCA', 'PCCA+'], default='PCCA')
+    parser.add_argument('algorithm', help='Which algorithm to use', choices=['PCCA', 'PCCA+'], default='PCCA')
     parser.add_argument_group('Extra PCCA+ Options')
-    parser.add_argument('flux_cutoff', description='''Discard eigenvectors below
+    parser.add_argument('flux_cutoff', help='''Discard eigenvectors below
         this flux''', default='None', type=float_or_none)
-    parser.add_argument('objective_function', description='''Minimize which PCCA+
+    parser.add_argument('objective_function', help='''Minimize which PCCA+
         objective function (crisp_metastability, metastability, or crispness)''',
                         default="crisp_metastability")
-    parser.add_argument('do_minimization', description='Use PCCA+ minimization', default=True)
+    parser.add_argument('do_minimization', help='Use PCCA+ minimization', default=True)
     
     args = parser.parse_args()
     

@@ -5,7 +5,6 @@ import numpy as np
 #from msmbuilder import arglib
 import argparse
 from msmbuilder import Trajectory
-from msmbuilder.scripts.Cluster import add_argument, construct_metric
 from msmbuilder import arglib
 from msmbuilder.assigning import assign_with_checkpoint
 from msmbuilder import metrics
