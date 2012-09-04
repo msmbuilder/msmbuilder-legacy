@@ -534,7 +534,7 @@ class Trajectory(ConformationBaseClass):
     @classmethod        
     def LoadFromLHDF(cls, TrajFilename, JustInspect=False, Precision=default_precision, Stride=None, AtomIndices=None ):
 
-        if not JustInspact:
+        if not JustInspect:
             A = cls.LoadFromHDF( TrajFilename, Stride=Stride, AtomIndices=AtomIndices )
             A['XYZList'] = _ConvertFromLossyIntegers( A['XYZList'], Precision )
             return A
