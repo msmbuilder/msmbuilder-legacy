@@ -53,12 +53,12 @@ the first N conformations are from cluster 0, the next N from cluster 1, etc.
 Output default: XRandomConfs.lh5, where X=Number of Conformations.""")
     parser.add_argument('project')
     parser.add_argument('assignments', default='Data/Assignments.Fixed.h5')
-    parser.add_argument('output', description="""The name of the RandomConfs
+    parser.add_argument('output', help="""The name of the RandomConfs
         trajectory (.lh5) to write. XRandomConfs.lh5, where X=Number of
         Conformations.""", default='XRandomConfs')
-    parser.add_argument('conformations_per_state', description='''Number of
+    parser.add_argument('conformations_per_state', help='''Number of
         conformations to randomly sample from your data per state''', type=int)
-    parser.add_argument('format', description='''Format to output the data in. Note
+    parser.add_argument('format', help='''Format to output the data in. Note
         that the PDB format is uncompressed and not efficient. For XTC, you can view
         the trajectory using your project's topology file''', default='lh5',
         choices=['pdb', 'xtc', 'lh5'])    

@@ -19,7 +19,7 @@
 
 import sys
 import os
-import numpy
+import numpy as np
 import scipy.io
 
 from msmbuilder.transition_path_theory import GetBCommittors
@@ -48,30 +48,27 @@ if __name__ == "__main__":
 (2) BCommittors.dat - the backward committors (numpy savetxt)
 (3) NFlux.mtx - the net flux matrix (scipy sparse fmt)""")
     parser.add_argument('tProb')
-    parser.add_argument('starting', description='''Vector of states in the
-        starting/reactants/unfolded ensemble.''', default='U_states.dat',
-        type=arglib.LoadTxtType(dtype=int))
-    parser.add_argument('ending', description='''Vector of states in the
-        ending/products/folded ensemble.''', default='F_states.dat',
-        type=arglib.LoadTxtType(dtype=int))
-    parser.add_argument('populations', description='''State equilibrium populations
-        file, in numpy .dat format.''', default='Data/Populations.dat',
-        type=arglib.LoadTxtType())
+    parser.add_argument('starting', help='''Vector of states in the
+        starting/reactants/unfolded ensemble.''', default='U_states.dat')
+    parser.add_argument('ending', help='''Vector of states in the
+        ending/products/folded ensemble.''', default='F_states.dat')
+    parser.add_argument('populations', help='''State equilibrium populations
+        file, in numpy .dat format.''', default='Data/Populations.dat')
     parser.add_argument('output_dir', default='.')
     args = parser.parse_args()
     
-    T = args.tProb
-    U = args.starting
-    F = args.ending
-    Pops = args.populations
+    T = scipy.io.mmread( args.tProb )
+    U = np.loadtxt( args.starting ).astype(int)
+    F = np.loadtxt( args.ending ).astype(int)
+    Pops = np.loadtxt( args.populations ).astype(int)
 
     # deal with case where have single start or end state
     if U.shape == ():
-        tmp = numpy.zeros(1, dtype=int)
+        tmp = np.zeros(1, dtype=int)
         tmp[0] = int(U)
         U = tmp.copy()
     if F.shape == ():
-        tmp = numpy.zeros(1, dtype=int)
+        tmp = np.zeros(1, dtype=int)
         tmp[0] = int(F)
         F = tmp.copy()
 
@@ -82,7 +79,7 @@ if __name__ == "__main__":
     
     Bc, Fc, NFlux = run(T, U, F, Pops)
     
-    numpy.savetxt(output_flist[0], Bc)
-    numpy.savetxt(output_flist[1], Fc)
+    np.savetxt(output_flist[0], Bc)
+    np.savetxt(output_flist[1], Fc)
     scipy.io.mmwrite(output_flist[2], NFlux)
     print "Wrote: %s" % ', '.join(output_flist)

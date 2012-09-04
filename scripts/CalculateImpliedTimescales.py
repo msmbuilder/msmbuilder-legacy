@@ -57,18 +57,18 @@ if __name__ == "__main__":
 the argument 'lagtime'. Returns: ImpliedTimescales.dat, a flat file that
 contains all the lag times.\n""")
     parser.add_argument('assignments', type=str)
-    parser.add_argument('lagtime', description="""The lagtime range to calculate.
+    parser.add_argument('lagtime', help="""The lagtime range to calculate.
         Pass two ints as X,Y with NO WHITESPACE, where X is the lowest
         timescale you want and Y is the biggest. EG: '-l 5,50'.""")
-    parser.add_argument('output', description="""The name of the  implied
+    parser.add_argument('output', help="""The name of the  implied
         timescales data file (use .dat extension)""", default='ImpliedTimescales.dat')
-    parser.add_argument('procs', description='''Number of concurrent processes
+    parser.add_argument('procs', help='''Number of concurrent processes
         (cores) to use''', default=1, type=int)
-    parser.add_argument('eigvals', description="""'Number of eigenvalues
+    parser.add_argument('eigvals', help="""'Number of eigenvalues
         (implied timescales) to retrieve at each lag time""", default=10, type=int)
-    parser.add_argument('interval', description="""Number of times (intervals)
+    parser.add_argument('interval', help="""Number of times (intervals)
         to calculate lagtimes for""", default=20, type=int)
-    parser.add_argument('symmetrize', description="""Method by which to estimate a
+    parser.add_argument('symmetrize', help="""Method by which to estimate a
         symmetric counts matrix. Symmetrization ensures reversibility, but may skew
         dynamics. We recommend maximum likelihood estimation (MLE) when tractable,
         else try Transpose. It is strongly recommended you read the documentation
