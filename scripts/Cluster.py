@@ -54,7 +54,7 @@ parser.add_argument('output_dir', help='''Output directory to save clustering da
 
 ################################################################################
 
-for metric_parser in parser.metric_parsers: # arglib stores the metric subparsers in that list
+for metric_parser in parser.metric_parser_list: # arglib stores the metric subparsers in that list
 
     subparser = metric_parser.add_subparsers( description='''Choose one of the following 
         clustering algorithms.''', dest='alg' )
