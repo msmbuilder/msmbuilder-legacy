@@ -85,11 +85,11 @@ run = interactive_scre
 if __name__ == "__main__":
     parser = arglib.ArgumentParser(description=__doc__)
     parser.add_argument('output_dir')
-    parser.add_argument('-a','--assignments_filename',help='(input) Assignmentss filename')
-    args = vars(parser.parse_args())
+    parser.add_argument('assignments')
+    args = parser.parse_args()
     
-    assignments_filename = args["assignments_filename"]
-    output_dir = args["output_dir"]
+    assignments_filename = args.assignments
+    output_dir = args.output_dir
 
     assignments = Serializer.LoadData(assignments_filename)
     K = run(assignments)
