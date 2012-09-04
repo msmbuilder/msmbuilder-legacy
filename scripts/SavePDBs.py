@@ -23,6 +23,8 @@ from msmbuilder import arglib
 from collections import defaultdict
 import numpy as np
 import random
+import logging
+logger = logging.getLogger(__file__)
 
 def run(project, assignments, conformations_per_state, states, output_dir):
     if states == "all":
@@ -46,17 +48,17 @@ def run(project, assignments, conformations_per_state, states, output_dir):
             confs = inverse_assignments[s][0:conformations_per_state]
         else:
             confs = inverse_assignments[s]
-            print 'Not enough assignments in state %s' % s
+            logger.warning('Not enough assignments in state %s', s)
         
         for i, (traj, frame) in enumerate(confs):
             outfile = os.path.join(output_dir, 'State%d-%d.pdb' % (s, i))
             if not os.path.exists(outfile):
-                print 'Saving state %d (traj %d, frame %d) as %s' % (s, traj, frame, outfile)
+                logger.info('Saving state %d (traj %d, frame %d) as %s', s, traj, frame, outfile)
                 xyz = project.ReadFrame(traj, frame)
                 empty_traj['XYZList'] = np.array([xyz])
                 empty_traj.SaveToPDB(outfile)
             else:
-                print 'Skipping %s. Already exists' % outfile
+                logger.warning('Skipping %s. Already exists', outfile)
                 
 if __name__ == '__main__':
     parser = arglib.ArgumentParser(description="""
@@ -79,7 +81,7 @@ to use GetRandomConfs.py""")
     args = parser.parse_args()
     
     if -1 in args.states:
-        print "Ripping PDBs for all states"
+        logger.info("Ripping PDBs for all states")
         args.states = 'all'
     
     run(args.project, args.assignments['Data'], args.conformations_per_state,

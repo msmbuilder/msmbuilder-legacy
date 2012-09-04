@@ -14,6 +14,8 @@ from msmbuilder.Citation import CiteString
 from msmbuilder.arglib import ensure_path_exists, die_if_path_exists
 import argparse
 import numpy as np
+import logging
+logger = logging.getLogger(__file__)
 
 def add_argument(group, *args, **kwargs):
     if 'default' in kwargs:
@@ -60,7 +62,6 @@ for metric_parser in parser.metric_parsers: # arglib stores the metric subparser
         clustering algorithms.''', dest='alg' )
 
     kcenters = subparser.add_parser('kcenters') 
-#    kcenters.set_defaults(alg='kcenters', metric=subparser.metric)
     add_argument(kcenters, '-s', help='seed for initial cluster center.', default=0, type=int, dest='kcenters_seed')
     kcenters_cutoff = kcenters.add_argument_group('cutoff (use one)').add_mutually_exclusive_group(required=True)
     add_argument(kcenters_cutoff, '-k', help='number of clusters',
@@ -70,7 +71,6 @@ for metric_parser in parser.metric_parsers: # arglib stores the metric subparser
     
     
     hybrid = subparser.add_parser('hybrid')
-#    hybrid.set_defaults(alg='hybrid', metric=subparser.metric)
     add_argument(hybrid, '-l', dest='hybrid_local_num_iters', default=10, type=int)
     add_argument(hybrid, '-g', dest='hybrid_global_iters', default=0, type=int)
     add_argument(hybrid, '-i', dest='hybrid_ignore_max_objective', type=bool, default=False)
@@ -83,7 +83,6 @@ for metric_parser in parser.metric_parsers: # arglib stores the metric subparser
     
 
     clarans = subparser.add_parser('clarans')
-#    clarans.set_defaults(alg='clarans', metric=subparser.metric)
     claransR = clarans.add_argument_group('required')
     add_argument(claransR, '-k', help='number of clusters',
         type=int, dest='clarans_num_clusters')
@@ -95,7 +94,6 @@ for metric_parser in parser.metric_parsers: # arglib stores the metric subparser
         help='Perform loval swaps or global swaps.')
 
     sclarans = subparser.add_parser('sclarans')
-#    sclarans.set_defaults(alg='sclarans', metric=subparser.metric)
     sclaransR = sclarans.add_argument_group('required')
     add_argument(sclaransR, '-k', help='number of clusters',
         type=int, dest='sclarans_num_clusters', required=True)
@@ -113,7 +111,6 @@ for metric_parser in parser.metric_parsers: # arglib stores the metric subparser
         help='Perform in parallel.', default='none')
 
     hier = subparser.add_parser('hierarchical')
-#    hier.set_defaults(alg='hierarchical', metric=subparser.metric)
     add_argument(hier, '-m', default='ward', help='method. default=ward',
         choices=['single', 'complete', 'average', 'weighted', 'centroid', 'median', 'ward'], dest='hierarchical_method')
     add_argument(hier, '-o', dest='hierarchical_save_zmatrix', help='Save Z-matrix to disk', default='Data/Zmatrix.h5')
@@ -155,8 +152,8 @@ def cluster(metric, trajs, args):
             parallel=args.sclarans_parallel)
     elif args.alg == 'hierarchical':
         clusterer = clustering.Hierarchical(metric, trajs, method=args.hierarchical_method)
-        print 'Saving zmatrix to %s' % args.hierarchical_save_zmatrix
         clusterer.save_to_disk(args.hierarchical_save_zmatrix)
+        logging.info('ZMatrix saved to %s. Use AssignHierarchical.py to assign the data', args.hierarchical_save_zmatrix)
     else:
         raise ValueError('!')
     
@@ -177,34 +174,32 @@ def main(args, metric):
     check_paths(args)
     
     if args.alg == 'sclarans' and args.stride != 1:
-        print >> sys.stderr, """\nYou don't want to use a stride with sclarans. The whole point of
+        logging.error("""\nYou don't want to use a stride with sclarans. The whole point of
 sclarans is to use a shrink multiple to accomplish the same purpose, but in parallel with
 stochastic subsampling. If you cant fit all your frames into  memory at the same time, maybe you
-could stride a little at the begining, but its not recommended."""
+could stride a little at the begining, but its not recommended.""")
         sys.exit(1)
     
     trajs = load_trajectories(args.project, args.stride)
-    print 'Loaded %d trajs' % len(trajs)
+    logging.info('Loaded %d trajs', len(trajs))
     
     clusterer = cluster(metric, trajs, args)
     
     if not isinstance(clusterer, clustering.Hierarchical):
         generators = clusterer.get_generators_as_traj()
-        print 'Saving %s' % args.generators
+        logging.info('Saving %s', args.generators)
         generators.SaveToLHDF(args.generators)
         if args.stride == 1:
             assignments = clusterer.get_assignments()
             distances = clusterer.get_distances()
             
-            print 'Saving %s' % args.assignments
-            print 'Saving %s' % args.distances
+            logging.info('Since stride=1, Saving %s', args.assignments)
+            logging.info('Since stride=1, Saving %s', args.distances)
             Serializer.SaveData(args.assignments, assignments)
             Serializer.SaveData(args.distances, distances)
 
 if __name__ == '__main__':
-
     args, metric = parser.parse_args()
-    pprint(args.__dict__)
     
     if hasattr(args, 'sclarans_parallel')  and args.sclarans_parallel == 'dtm':
         from deap import dtm

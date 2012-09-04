@@ -26,22 +26,25 @@ from msmbuilder import Serializer
 from msmbuilder import arglib
 from msmbuilder import msm_analysis
 
+import logging
+logger = logging.getLogger(__file__)
+
 
 def run(MinLagtime, MaxLagtime, Interval, NumEigen, AssignmentsFn, symmetrize, nProc, output):
 
     arglib.die_if_path_exists(output)
     
     # Setup some model parameters
-    Assignments=Serializer.LoadData(AssignmentsFn)
-    NumStates=max(Assignments.flatten())+1
+    Assignments = Serializer.LoadData(AssignmentsFn)
+    NumStates = max(Assignments.flatten())+1
     if NumStates <= NumEigen-1: 
-        NumEigen=NumStates-2
-        print "Number of requested eigenvalues exceeds the rank of the transition matrix! Defaulting to the maximum possible number of eigenvalues."
+        NumEigen = NumStates-2
+        logger.warning("Number of requested eigenvalues exceeds the rank of the transition matrix! Defaulting to the maximum possible number of eigenvalues.")
     del Assignments
 
-    print "Getting %d eigenvalues (timescales) for each lagtime..." % NumEigen
+    logger.info("Getting %d eigenvalues (timescales) for each lagtime...", NumEigen)
     lagTimes = range(MinLagtime, MaxLagtime+1, Interval)
-    print "Building MSMs at the following lag times:",  lagTimes
+    logger.info("Building MSMs at the following lag times: %s", lagTimes)
 
     # Get the implied timescales (eigenvalues)
     impTimes = msm_analysis.get_implied_timescales(AssignmentsFn, NumStates,

@@ -16,29 +16,28 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-"""MSMBuilder: Markov State Models from Molecular Dynamics Simulations.
-
-Authors:
-Kyle A. Beauchamp
-Gregory R. Bowman
-Thomas J. Lane
-Lutz Maibaum
-Vijay Pande
-Copyright 2011 Stanford University
-"""
-
 # list of all the modules (files) that are part of msmbuilder scripts
 __all__ = [
 "Assign",
+"AssignHierarchical",
+"Bace_Coars_Graining",
 "BuildMSM",
 "CalculateClusterRadii",
 "CalculateImpliedTimescales",
 "CalculateRMSD",
+"CalculateProjectRMSD",
 "Cluster",
 "ConvertDataToHDF",
 "CreateAtomIndices",
+"DoTPT",
+"FindPaths",
+"Interactive-SCRE",
 "GetRandomConfs",
 "PCCA",
+"PlotImpliedTimescales",
+"RebuildProject",
+"TrimAssignments",
+"UpdateProjectToHDF5",
 "SavePDBs"
 ]
 

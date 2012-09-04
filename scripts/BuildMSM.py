@@ -23,51 +23,8 @@ import scipy.io
 from msmbuilder import arglib
 from msmbuilder import Serializer
 from msmbuilder import MSMLib
-
-# def EstimateUnSym(Counts,Assignments):
-#     """Implements the following protocol:
-#     1.  Use Tarjan's algorithm to find maximal (strongly) ergodic subgraph.
-#     2.  Estimate a general (non-reversible) transition matrix.
-#     3.  Calculate populations from stationary eigenvector.
-#     """
-#     print "Doing no symmetrization. Warning: the resulting model may not satisfy detailed balance and could have complex eigenvalues."
-#     CountsAfterTrimming, Mapping = MSMLib.ErgodicTrim(Counts)
-#     ReversibleCounts = CountsAfterTrimming
-#     MSMLib.ApplyMappingToAssignments(Assignments,Mapping)
-#     TC = MSMLib.EstimateTransitionMatrix(ReversibleCounts)
-#     EigAns = MSMLib.GetEigenvectors(TC,5)
-#     Populations = EigAns[1][:,0]
-#     return (CountsAfterTrimming, ReversibleCounts, TC, Populations, Mapping)
-# 
-# def EstimateSym(Counts,Assignments):
-#     """Implements the following protocol:
-#     1.  Symmetrize counts via C' = C+C.transpose()
-#     2.  Use Tarjan's algorithm to find maximal (strongly) ergodic subgraph.
-#     3.  Estimate a reversible transition matrix.
-#     4.  Calculate populations from normalized row sums of count matrix.
-#     """
-#     Counts = 0.5*(Counts + Counts.transpose())
-#     ReversibleCounts,Mapping = MSMLib.ErgodicTrim(Counts)
-#     MSMLib.ApplyMappingToAssignments(Assignments,Mapping)
-#     TC = MSMLib.EstimateTransitionMatrix(ReversibleCounts)
-#     Populations = np.array(ReversibleCounts.sum(0)).flatten()
-#     Populations /= Populations.sum()
-#     CountsAfterTrimming = ReversibleCounts
-#     return (CountsAfterTrimming, ReversibleCounts, TC, Populations, Mapping)
-# 
-# def EstimateMLE(Counts,Assignments,Prior=0.):
-#     """Implements the following protocol:
-#     1.  Use Tarjan's algorithm to find maximal (strongly) ergodic subgraph.
-#     2.  Estimate (via MLE) a reversible transition (TC) and count matrix (ReversibleCounts).
-#     3.  Calculate populations from row sums of count matrix.
-#     """
-#     CountsAfterTrimming,Mapping = MSMLib.ErgodicTrim(Counts)
-#     MSMLib.ApplyMappingToAssignments(Assignments,Mapping)
-#     ReversibleCounts = MSMLib.EstimateReversibleCountMatrix(CountsAfterTrimming,Prior=Prior)
-#     TC = MSMLib.EstimateTransitionMatrix(ReversibleCounts)
-#     Populations = np.array(ReversibleCounts.sum(0)).flatten()
-#     Populations /= Populations.sum()
-#     return (CountsAfterTrimming, ReversibleCounts, TC, Populations,Mapping)
+import logging
+logger = logging.getLogger(__file__)
 
 def run(LagTime, assignments, Symmetrize='MLE', Prior=0.0, OutDir="./Data/"):
 
@@ -93,7 +50,7 @@ def run(LagTime, assignments, Symmetrize='MLE', Prior=0.0, OutDir="./Data/"):
     
     # Print a statement showing how much data was discarded in trimming
     percent = (1.0 - float(n_after_trim) / float(n_states)) * 100.0
-    print "WARNING: Ergodic trimming discarded: %f percent of your data" % percent 
+    logger.warning("Ergodic trimming discarded: %f percent of your data", percent)
  
     # Save all output
     np.savetxt(FnPops, populations)
@@ -104,7 +61,7 @@ def run(LagTime, assignments, Symmetrize='MLE', Prior=0.0, OutDir="./Data/"):
     Serializer.SaveData(FnAss, assignments)
 
     for output in outputlist:
-        print "Wrote: %s"%output
+        logger.info("Wrote: %s", output)
 
     return
 
