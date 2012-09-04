@@ -1,14 +1,9 @@
 import sys, os
 import argparse
-import numpy as np
-import functools
-from msmbuilder import Serializer
-from msmbuilder import Project
-from msmbuilder import Trajectory
 from msmbuilder.License import LicenseString
 from msmbuilder.Citation import CiteString
-import scipy.io
-from collections import namedtuple
+from msmbuilder import metric_parsers
+
 import warnings
 
 def _iter_both_cases(string):
@@ -21,23 +16,6 @@ def _iter_both_cases(string):
         yield c
         yield c.swapcase()
 
-def _LoadType(load_function):
-    def F(path):
-        if not os.path.exists(path):
-            raise IOError('Could not find file %s' % path)
-        try:
-            return load_function(path)
-        except:
-            raise IOError('Could not open %s' % path)
-    return F
-    
-ProjectType = _LoadType(Project.LoadFromHDF)
-SerializerType = _LoadType(Serializer.LoadFromHDF)
-TrajectoryType = _LoadType(Trajectory.LoadTrajectoryFile)
-
-def LoadTxtType(**kwargs):
-    return functools.partial(np.loadtxt, **kwargs)
-    
 def die_if_path_exists(path):
     if isinstance(path, list):
         map(die_if_path_exists, path)
@@ -59,13 +37,11 @@ def ensure_path_exists(path):
     if not os.path.exists(path):
         print >> sys.stderr, "%s: Error: Can't find %s" % (name, path)
     
-RESERVED = {'assignments': ('-a', 'Path to assignments file.', 'Data/Assignments.h5', SerializerType),
-            'project': ('-p', 'Path to ProjectInfo file.', 'ProjectInfo.h5', ProjectType),
-            'tProb': ('-t', 'Path to transition matrix.', 'Data/tProb.mtx', scipy.io.mmread),
+RESERVED = {'assignments': ('-a', 'Path to assignments file.', 'Data/Assignments.h5', str),
+            'project': ('-p', 'Path to ProjectInfo file.', 'ProjectInfo.h5', str),
+            'tProb': ('-t', 'Path to transition matrix.', 'Data/tProb.mtx', str),
             'output_dir': ('-o', 'Location to save results.', 'Data/', str),
-            'pdb': ('-s', 'Path to PDB structure file.', None, str)}
-
-nestedtype = namedtuple('nestedtype', 'innertype')
+            'pdb': ('-s', 'Path to PDB structure file.', None, str),}
 
 def add_argument(group, name, description=None, type=None, choices=None, nargs=None, default=None, action=None):
     """
@@ -81,19 +57,11 @@ def add_argument(group, name, description=None, type=None, choices=None, nargs=N
         if type is None:
             type = RESERVED[name][3]
 
-    if type is None and nargs is None:
-        type = str
-    if nargs is not None:
-        if type is None:
-            type = nestedtype(str)
-        else:
-            type = nestedtype(type)        
-    
     kwargs = {}
-    
     if action == 'store_true' or action == 'store_false':
         type = bool
-    
+    if type != None:
+        kwargs['type']=type
     if action is not None:
         kwargs['action'] = action
     if nargs is not None:
@@ -142,7 +110,7 @@ class ArgumentParser(object):
         Parameters
         ----------
         description: (str, optional)
-        
+        get_metric: (bool, optional) - Pass true if you want to use the metric parser and get a metric instance returned
         
         """
         
@@ -150,7 +118,16 @@ class ArgumentParser(object):
             kwargs['description'] += ('\n' + '-'*80)
         kwargs['formatter_class'] = argparse.RawDescriptionHelpFormatter
         
+        if 'get_metric' in kwargs:
+            self.get_metric = bool(kwargs.pop('get_metric')) # pop gets the value plus removes the entry
+
         self.parser = argparse.ArgumentParser(*args, **kwargs)
+
+        self.parser.add_argument('-q','--quiet',dest='quiet',help='Pass this flag to run in quiet mode.',default=False,action='store_true')
+
+        if self.get_metric:
+            metric_parsers.add_metric_parsers( self )
+
         self.parser.prog = os.path.split(sys.argv[0])[1]
         self.required = self.parser.add_argument_group(title='required arguments')
         self.wdefaults = self.parser.add_argument_group(title='arguments with defaults')
@@ -162,6 +139,7 @@ class ArgumentParser(object):
             self.short_strings.add(v[0])
             
         self.extra_groups = []
+
     
     def add_argument_group(self, title):
         self.extra_groups.append(self.parser.add_argument_group(title=title))
@@ -192,12 +170,23 @@ class ArgumentParser(object):
 
         self.name_to_type[name] = type
      
+    def add_subparsers(self, *args, **kwargs):
+        return self.parser.add_subparsers(*args,**kwargs)
+
     def parse_args(self, args=None, namespace=None, print_banner=True):
         if print_banner:
             print LicenseString
             print CiteString
+
         namespace = self.parser.parse_args(args=args, namespace=namespace)
-        return self._typecast(namespace)
+
+        #namespace = self._typecast(namespace)
+
+        if self.get_metric: # if we want to get the metric, then we have to construct it
+            metric = metric_parsers.construct_metric( namespace )
+            return namespace, metric
+
+        return namespace
     
     def _typecast(self, namespace):
         """Work around for the argparse bug with respect to defaults and FileType not
