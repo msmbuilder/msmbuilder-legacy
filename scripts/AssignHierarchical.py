@@ -24,10 +24,10 @@ from msmbuilder import arglib
 
 if __name__ == "__main__":
     parser = arglib.ArgumentParser(description='Assign data using a hierarchical clustering')
-    parser.add_argument('hierarichal_clustering_zmatrix', default='./Data/Zmatrix.h5', 
-        description='Path to hierarchical clustering zmatrix', type=Hierarchical.load_from_disk)
-    parser.add_argument('num_states', description='Number of States', default='none')
-    parser.add_argument('cutoff_distance', description='Maximum cophenetic distance', default='none')
+    parser.add_argument('hierarchical_clustering_zmatrix', default='./Data/Zmatrix.h5', 
+        description='Path to hierarchical clustering zmatrix' )
+    parser.add_argument('num_states', help='Number of States', default='none')
+    parser.add_argument('cutoff_distance', help='Maximum cophenetic distance', default='none')
     parser.add_argument('assignments', type=str)
     args = parser.parse_args()
     
@@ -38,6 +38,6 @@ if __name__ == "__main__":
         sys.exit(1)
     arglib.die_if_path_exists(args.assignments)
     
-    assignments = args.hierarichal_clustering_zmatrix.get_assignments(k=k, cutoff_distance=d)
-    
+    assignments = hierarchical_clustering_zmatrix.get_assignments(k=k, cutoff_distance=d)
+
     Serializer.SaveData(args.assignments, assignments)
