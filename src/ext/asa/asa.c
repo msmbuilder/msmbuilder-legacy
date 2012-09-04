@@ -52,9 +52,21 @@ void asa_frame(const float* frame, const int n_atoms, const float* atom_radii,
         // Get all the atoms close to atom `i`
         n_neighbor_indices = 0;
         for (j = 0; j < n_atoms; j++) {
-            if (i != j && euclidean3(frame+i*3, frame+j*3) < atom_radii[i] + atom_radii[j]) {
+            if (i == j) {
+              continue;
+            }
+            
+            r = euclidean3(frame+i*3, frame+j*3);
+            if (r < atom_radii[i] + atom_radii[j]) {
                 neighbor_indices[n_neighbor_indices]  = j;
                 n_neighbor_indices++;
+            }
+            
+            if (r < 1.9e-5) {
+              printf("ERROR: THIS CODE IS KNOWN TO FAIL WHEN ATOMS ARE VIRTUALLY");
+              printf("ON TOP OF ONE ANOTHER. YOU SUPPLIED TWO ATOMS %f", r);
+              printf("APART. QUITTING NOW");
+              exit(1);
             }
         }
         

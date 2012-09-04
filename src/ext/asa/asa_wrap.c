@@ -121,7 +121,9 @@ extern PyObject *_asa_traj(PyObject *self, PyObject *args) {
 }
 
 
-
+/*
+Biolerplate to make these functions available in python
+*/
 static PyMethodDef _asa_methods[] = {
   {"asa_traj", _asa_traj, METH_VARARGS},
   {"asa_frame", _asa_frame, METH_VARARGS},
