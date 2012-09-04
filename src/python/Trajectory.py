@@ -440,52 +440,111 @@ class Trajectory(ConformationBaseClass):
         A["XYZList"]=np.array(A["XYZList"])
         return(A)
     
-    
     @classmethod
-    def LoadFromHDF(cls,Filename,JustInspect=False,Stride=None,AtomIndices=None):
-        """Load a conformation that was previously saved as HDF."""
-        if not JustInspect:
-            S=Serializer.LoadFromHDF(Filename,Stride=Stride,AtomIndices=AtomIndices)
-            A=cls(S)
-            return(A)
-        else:
-            F1=tables.File(Filename)
-            Shape=F1.root.XYZList.shape
-            F1.close()
-            return(Shape)
-    
-    
-    @classmethod
-    def LoadFromLHDF(cls,Filename,JustInspect=False,Precision=default_precision,Stride=None,AtomIndices=None):
-        """Load a conformation that was previously saved as HDF."""
-        if not JustInspect:
-            S=Serializer.LoadFromHDF(Filename,Stride=Stride,AtomIndices=AtomIndices)
-            A=cls(S)
-            A["XYZList"]=_ConvertFromLossyIntegers(A["XYZList"],Precision)
-            return(A)
-        else:
-            F1=tables.File(Filename)
-            Shape=F1.root.XYZList.shape
-            F1.close()
-            return(Shape)
+    def EnumChunksFromHDF(cls,TrajFilename,Stride=None,AtomIndices=None):
 
-    @classmethod
-    def EnumChunksFromLHDF(cls,Filename,JustInspect=False,Precision=default_precision,Stride=None,AtomIndices=None,ChunkSize=1000):
-        """Load a conformation that was previously saved as HDF. However, instead of reading the 
-        entire thing we enumerate through chunks of length ChunkSize and yield each chunk"""
-        if not JustInspect:
-            for S in Serializer.EnumChunksFromHDF(Filename,Stride=Stride,AtomIndices=AtomIndices,ChunkSize=ChunkSize):
-                A=cls(S)
-                A["XYZList"]=_ConvertFromLossyIntegers(A["XYZList"],Precision)
-                yield A
+        """Variation of the generic function to load HDF files to dict-like object
+        which enumerates chunks of the XYZList. This only really makes sense for 
+        trajectory objects.
+        ----------
+        Filename : str
+            Path to resource on disk to load from
+        loc : str, option
+            Resource root in HDF file
+        
+        """
+        RestrictAtoms = False
+        SubsampleXYZList = False
+        if AtomIndices != None:
+            RestrictAtoms = True
+        if Stride != None:
+            warnings.warn("Stride does not work with enumerating chunks. Setting stride to 1")
+
+        A=Serializer()
+        F=tables.File(Filename,'r')
+        # load all the data other than XYZList
+
+        if RestrictAtoms:
+            A['AtomID'] = np.array( F.getNode('/AtomID')[:] ).astype(int)
+            A['AtomNames'] = np.array( F.getNode('/AtomNames')[:] )
+            A['ChainID'] = np.array( F.getNode('/ChainID')[:] ).astype(int)
+            A['ResidueID'] = np.array( F.getNode('/ResidueID')[:] ).astype(int)
+            A['ResidueNames'] = np.array( F.getNode('/ResidueNames')[:] )
+
+            # IndexList is a VLArray, so we need to read the whole list with node.read() (same as node[:]) and then loop through each
+                # row (resiudue) and remove the atom indices that are not wanted
+            A['IndexList'] = [ [ i for i in row if (i in AtomIndices) ] for row in F.getNode('/IndexList')[:] ]
+            
         else:
-            F1=tables.File(Filename)
-            Shape=F1.root.XYZList.shape
-            F1.close()
-            yield Shape
+            A['AtomID'] = np.array( F.getNode('/AtomID')[:] ).astype(int)
+            A['AtomNames'] = np.array( F.getNode('/AtomNames')[:] )
+            A['ChainID'] = np.array( F.getNode('/ChainID')[:] ).astype(int)
+            A['ResidueID'] = np.array( F.getNode('/ResidueID')[:] ).astype(int)
+            A['ResidueNames'] = np.array( F.getNode('/ResidueNames')[:] )
+            
+            A['IndexList'] = F.getNode('/ResidueNames')[:]
+
+        # Loaded everything except XYZList
+
+        Shape = F.root.XYZList.shape
+        begin_range_list = np.arange(0,Shape[0],ChunkSize) 
+        end_range_list = np.concatenate( (R0s[1:], [Shape[0]]) )
+
+        A['SerializerFilename'] = os.path.abspath(Filename)
+
+        for r0,r1 in zip( begin_range_list, end_range_list ):
+
+            A['XYZList'] = np.array( F.root.XYZList.read( start=r0, stop=r1, step=Stride ) )
+
+            if RestrictAtoms:
+                A['XYZList'] = A['XYZList'][:, AtomIndices]
+
+            yield cls(A)
+
+        F.close()
 
         return
-    
+
+    @classmethod
+    def EnumChunksFromLHDF(cls, TrajFilename, Precision=default_precision, Stride=None, AtomIndices=None):
+        
+        for A in cls.EnumChunksFromHDF( TrajFilename, Stride, AtomIndices ):
+            A['XYZList'] = _ConvertFromLossyIntegers( A['XYZList'], Precision )
+            yield A
+
+        return
+
+    @classmethod
+    def LoadFromHDF(cls, TrajFilename, JustInspect=False, Stride=None, AtomIndices=None ):
+        
+        if not JustInspect:
+            temp_xyzlist = []
+            for A in cls.EnumChunksFromHDF( TrajFilename, Stride=Stride, AtomIndices=AtomIndices ):
+                temp_xyzlist.extend( A['XYZList'] )
+
+            A['XYZList'] = np.array( temp_xyzlist )
+            return A
+
+        else:
+            F1=tables.File(Filename)
+            Shape=F1.root.XYZList.shape
+            F1.close()
+            return(Shape)
+
+    @classmethod        
+    def LoadFromLHDF(cls, TrajFilename, JustInspect=False, Precision=default_precision, Stride=None, AtomIndices=None ):
+
+        if not JustInspact:
+            A = cls.LoadFromHDF( TrajFilename, Stride=Stride, AtomIndices=AtomIndices )
+            A['XYZList'] = _ConvertFromLossyIntegers( A['XYZList'], Precision )
+            return A
+
+        else:
+            F1=tables.File(Filename)
+            Shape=F1.root.XYZList.shape
+            F1.close()
+            return(Shape)
+
     @classmethod
     def ReadXTCFrame(cls,TrajFilename,WhichFrame):
         """Read a single frame from XTC trajectory file without loading file into memory."""
