@@ -77,6 +77,7 @@ def configuration(parent_package='',top_path=None):
                      sources=glob('src/ext/IRMSD/*.c'),
                      extra_compile_args = ["-std=c99","-O2",
                                            "-msse2","-msse3","-fopenmp"],
+                     extra_link_args = ['-lgomp'],
                      include_dirs = [numpy.get_include(), os.path.join(numpy.get_include(), 'numpy')])
     
     for e in [xtc, dcd, rmsd]:
