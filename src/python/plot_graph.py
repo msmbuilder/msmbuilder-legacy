@@ -24,8 +24,6 @@ import numpy as np
 import networkx
 import sys
 import re
-import logging
-logger = logging.getLogger('plot_graph')
 
 def CreateNetwork(Matrix, EqPops, Directed=True, EdgeScale=2, PopCutoff=0.01, EdgeCutoff=0.1, ImageList=None, Labels=None):
     """Creates a NetworkX graph (or DiGraph) object.
@@ -78,7 +76,7 @@ def CreateNetwork(Matrix, EqPops, Directed=True, EdgeScale=2, PopCutoff=0.01, Ed
         G=networkx.from_scipy_sparse_matrix(Matrix,create_using=networkx.DiGraph())
     else:
         G=networkx.from_scipy_sparse_matrix(Matrix)
-    logger.info("Rendering %d nodes...", n)
+    print "Rendering %d nodes..." % n
             
     # Write attributes to G
     for i in range(n):
@@ -93,7 +91,7 @@ def CreateNetwork(Matrix, EqPops, Directed=True, EdgeScale=2, PopCutoff=0.01, Ed
 
     #Save image paths if desired.
     if ImageList!=None:
-        logger.info("Found %d images - attempting to include them in the .dot file", len(ImageList))
+        print "Found %d images - attempting to include them in the .dot file" % len(ImageList)
         ImageList=np.array(ImageList)
         for Image in ImageList:
             match = re.findall( '(\d+)', Image )
@@ -102,7 +100,7 @@ def CreateNetwork(Matrix, EqPops, Directed=True, EdgeScale=2, PopCutoff=0.01, Ed
                 if state in Ind:
                     Gind = int(np.where( Ind == state)[0])
                     G.node[Gind]["image"]=Image
-                    logger.info("Found an image for state: %d", state)
+                    print "Found an image for state: %d" % state
 
     return(G)
 
@@ -112,7 +110,7 @@ def PlotNetwork(G,OutputFile="Graph.dot"):
     try:
         networkx.draw_graphviz(G)
     except:
-        logger.error("could not plot graph to screen.  Check X / Matplotlib settings.")
+        print("Warning: could not plot graph to screen.  Check X / Matplotlib settings.")
         
     networkx.write_dot(G, OutputFile)
-    logger.info("Wrote: %s", OutputFile)
+    print "Wrote: %s" % OutputFile

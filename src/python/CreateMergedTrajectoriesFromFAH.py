@@ -165,14 +165,11 @@ def ConvertRunClone(Run,Clone,TrajNumber,Conf1,DataDir,RunList,CloneList,NumGens
                     corrupted_xtcs = True
                     xtc_ind = 1
                     while corrupted_xtcs:
-                        logger.warning("Found corrupted XTC: %s", FilenameList[-xtc_ind])
-                        logger.warning("Attempting to recover by discarding this %d-to-last frame...", xtc_ind)
-                        try:
-                            Traj=Trajectory.LoadFromXTC(FilenameList[:-xtc_ind], Conf=Conf1)
-                        except IOError:
-                            xtc_ind += 1 
-                        else:
-                            corrupted_xtcs = False
+                        print "WARNING: Found corrupted XTC: %s" % FilenameList[-xtc_ind]
+                        print "Attempting to recover by discarding this %d-to-last frame..." % xtc_ind
+                        try: Traj=Trajectory.LoadFromXTC(FilenameList[:-xtc_ind], Conf=Conf1)
+                        except IOError: xtc_ind += 1 
+                        else: corrupted_xtcs = False
             else:
                 CMD="trjcat -f %s %s"%(string.join(FilenameList),string.join(trjcatFlags))
                 os.system(CMD)
@@ -187,7 +184,7 @@ def ConvertRunClone(Run,Clone,TrajNumber,Conf1,DataDir,RunList,CloneList,NumGens
                 ptraj = RMSD().prepare_trajectory(Traj)
                 rmsd = RMSD().one_to_all(pconf1, ptraj, 0)
                 if max(rmsd)>MaxRMSD:
-                    logger.warning("Frame %d has RMSD %f and appears to be blowing up or damaged.  Dropping Trajectory.", argmax(rmsd), max(rmsd))
+                    print("Frame %d has RMSD %f and appears to be blowing up or damaged.  Dropping Trajectory."%(argmax(rmsd),max(rmsd)))
                     return   
             if CenterConformations==True:
                 RMSD.TheoData.centerConformations(Traj["XYZList"])
@@ -198,7 +195,7 @@ def ConvertRunClone(Run,Clone,TrajNumber,Conf1,DataDir,RunList,CloneList,NumGens
             Traj=Trajectory.LoadFromXTC("trajout.xtc",PDBFilename=PDBFilename)
             os.remove("trajout.xtc")
     else:
-        logger.warning("Already Found File %s; skipping", OutFilename)
+        print("Already Found File %s; skipping"%OutFilename)
     RunList.append(Run)
     CloneList.append(Clone)
     NumGensList.append(NumGens)
@@ -224,7 +221,7 @@ def CreateMergedTrajectories(PDBFilename,ListOfXTCList,OutFilenameRoot="trj",
     try:
         os.mkdir(OutDir)
     except OSError:
-        logger.error("The directory %s already exists.  Exiting!", OutDir)
+        print("ERROR: the directory %s already exists.  Exiting!"%OutDir)
         return
     
 
@@ -243,7 +240,7 @@ def _ConvertFilenameList(args):
         FilenameList, i, PDBFilename, InFileType, OutDir, OutFilenameRoot, OutFileType, Stride, AtomIndices = args
         #FilenameList=ListOfXTCList[i]
         if len(FilenameList)>0:
-            logger.info(FilenameList)
+            print FilenameList
             if InFileType =='.dcd': # TG should auto-switch instead
                 Traj=Trajectory.LoadFromDCD(FilenameList,PDBFilename=PDBFilename)
             else:
