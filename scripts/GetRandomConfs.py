@@ -23,11 +23,14 @@ import os
 from msmbuilder import Project
 from msmbuilder import Serializer
 from msmbuilder import arglib
+import logging
+logger = logging.getLogger(__name__)
 
 def run(project, assignments, num_confs_per_state, output, format):
     arglib.die_if_path_exists(output)
     num_states = max(assignments.flatten()) + 1
-    print "Pulling", num_confs_per_state, "for each of", num_states
+    logger.info("Pulling %s confs for each of %s confs", num_confs_per_state, num_states)
+    
     random_confs = project.GetRandomConfsFromEachState(assignments, num_states, num_confs_per_state)
     
     if format == 'pdb':
@@ -38,9 +41,9 @@ def run(project, assignments, num_confs_per_state, output, format):
         random_confs.SaveToXTC(output)
     else:
         raise ValueError('Unrecognized format')
-    print "Wrote output to:", output
-
-    return
+   
+    logger.info("Saved output to %s", output)
+    
 
 
 if __name__ == "__main__":

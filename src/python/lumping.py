@@ -5,6 +5,8 @@ import numpy as np
 from msmbuilder import MSMLib
 from msmbuilder import msm_analysis
 from msmbuilder.utils import deprecated
+import logging
+logger = logging.getLogger('lumping')
 
 from numpy import dot, diag
 inv = np.linalg.inv
@@ -68,21 +70,21 @@ def trim_eigenvectors_by_flux(lam, vl, flux_cutoff):
     
     KeepInd = np.where(flux_list>=flux_cutoff)[0]
 
-    print("Implied timescales (UNITLESS)")
-    print(-1/np.log(lam))
-    print("Flux")
-    print(flux_list)
-    print("Keeping %d eigenvectors after flux cutoff %f"%(len(KeepInd),flux_cutoff))
+    logger.info("Implied timescales (UNITLESS)")
+    logger.info(-1/np.log(lam))
+    logger.info("Flux")
+    logger.info(flux_list)
+    logger.info("Keeping %d eigenvectors after flux cutoff %f", len(KeepInd), flux_cutoff)
 
     lam = lam[KeepInd]
     vl = vl[:,KeepInd]
     flux_list = flux_list[KeepInd]
     
-    print("After Flux calculation, Implied timescales (UNITLESS):")
-    print(-1/np.log(lam))
+    logger.info("After Flux calculation, Implied timescales (UNITLESS):")
+    logger.info(-1/np.log(lam))
 
-    print("After Flux calculation, fluxes.")
-    print(flux_list)
+    logger.info("After Flux calculation, fluxes.")
+    logger.info(flux_list)
 
     return lam, vl
 
@@ -288,19 +290,18 @@ def opt_soft(vr, N, pi, lam, T, do_minimization=True, objective_function="crisp_
 
         obj = lambda x: -1*objective(x,vr,square_map,lam,T,pi,objective_function=objective_function)
 
-        print("Initial value of objective function: %f"%obj(alpha))
+        logger.info("Initial value of objective function: %f", obj(alpha))
 
         alpha = scipy.optimize.anneal(obj,alpha,lower=0.0,maxiter=1,schedule="boltzmann",dwell=1000,feps=1E-3,boltzmann=2.0,T0=1.0)[0]
 
         alpha = scipy.optimize.fmin(obj,alpha,full_output=True,xtol=1E-4,ftol=1E-4,maxfun=5000,maxiter=100000)[0]
 
-        print("*********")
-        print("Final values.\n f = %f"%(-1*obj(alpha)))
+        logger.info("Final values.\n f = %f"%(-1*obj(alpha)))
 
         A = to_square(alpha,square_map)
 
     else:
-        print("Skipping Minimization")
+        logger.warning("Skipping Minimization")
 
     A = fill_A(A, vr )
 
@@ -446,10 +447,10 @@ def objective(alpha,vr,square_map,lam,T,pi,barrier_penalty=20000.,objective_func
 
     pi_macro = np.array([pi[mapping==i].sum() for i in range(N)])
     if len(np.unique(mapping))!= N or has_constraint_violation(A,vr):
-        print("Warning: constraint violation detected.")
+        logger.warning("Constraint violation detected.")
         obj -= barrier_penalty
 
-    print("f = %f"%(obj.real))
+    logger.info("f = %f", obj.real)
     
 
     return obj
