@@ -30,7 +30,7 @@ from schwancrtools.Conformation_crs import ConformationBaseClass
 from schwancrtools.Serializer_crs import Serializer
 from msmbuilder import xtc
 from msmbuilder import dcd
-
+import warnings
 
 MAXINT16=32766
 default_precision = 1000
@@ -441,7 +441,7 @@ class Trajectory(ConformationBaseClass):
         return(A)
     
     @classmethod
-    def EnumChunksFromHDF(cls,TrajFilename,Stride=None,AtomIndices=None):
+    def EnumChunksFromHDF(cls,TrajFilename,Stride=None,AtomIndices=None,ChunkSize=100000):
 
         """Variation of the generic function to load HDF files to dict-like object
         which enumerates chunks of the XYZList. This only really makes sense for 
@@ -458,18 +458,19 @@ class Trajectory(ConformationBaseClass):
         if AtomIndices != None:
             RestrictAtoms = True
         if Stride != None:
-            warnings.warn("Stride does not work with enumerating chunks. Setting stride to 1")
+            while ChunkSize % Stride != 0:
+                ChunkSize -= 1
 
         A=Serializer()
-        F=tables.File(Filename,'r')
+        F=tables.File(TrajFilename,'r')
         # load all the data other than XYZList
 
         if RestrictAtoms:
-            A['AtomID'] = np.array( F.getNode('/AtomID')[:] ).astype(int)
-            A['AtomNames'] = np.array( F.getNode('/AtomNames')[:] )
-            A['ChainID'] = np.array( F.getNode('/ChainID')[:] ).astype(int)
-            A['ResidueID'] = np.array( F.getNode('/ResidueID')[:] ).astype(int)
-            A['ResidueNames'] = np.array( F.getNode('/ResidueNames')[:] )
+            A['AtomID'] = np.array( F.getNode('/AtomID')[:] ).astype(int)[:, AtomIndices]
+            A['AtomNames'] = np.array( F.getNode('/AtomNames')[:] )[:, AtomIndices]
+            A['ChainID'] = np.array( F.getNode('/ChainID')[:] )[:, AtomIndices]
+            A['ResidueID'] = np.array( F.getNode('/ResidueID')[:] ).astype(int)[:, AtomIndices]
+            A['ResidueNames'] = np.array( F.getNode('/ResidueNames')[:] )[:, AtomIndices]
 
             # IndexList is a VLArray, so we need to read the whole list with node.read() (same as node[:]) and then loop through each
                 # row (resiudue) and remove the atom indices that are not wanted
@@ -478,7 +479,7 @@ class Trajectory(ConformationBaseClass):
         else:
             A['AtomID'] = np.array( F.getNode('/AtomID')[:] ).astype(int)
             A['AtomNames'] = np.array( F.getNode('/AtomNames')[:] )
-            A['ChainID'] = np.array( F.getNode('/ChainID')[:] ).astype(int)
+            A['ChainID'] = np.array( F.getNode('/ChainID')[:] )
             A['ResidueID'] = np.array( F.getNode('/ResidueID')[:] ).astype(int)
             A['ResidueNames'] = np.array( F.getNode('/ResidueNames')[:] )
             
@@ -488,9 +489,9 @@ class Trajectory(ConformationBaseClass):
 
         Shape = F.root.XYZList.shape
         begin_range_list = np.arange(0,Shape[0],ChunkSize) 
-        end_range_list = np.concatenate( (R0s[1:], [Shape[0]]) )
+        end_range_list = np.concatenate( (begin_range_list[1:], [Shape[0]]) )
 
-        A['SerializerFilename'] = os.path.abspath(Filename)
+        A['SerializerFilename'] = os.path.abspath(TrajFilename)
 
         for r0,r1 in zip( begin_range_list, end_range_list ):
 
@@ -526,7 +527,7 @@ class Trajectory(ConformationBaseClass):
             return A
 
         else:
-            F1=tables.File(Filename)
+            F1=tables.File(TrajFilename)
             Shape=F1.root.XYZList.shape
             F1.close()
             return(Shape)
@@ -540,7 +541,7 @@ class Trajectory(ConformationBaseClass):
             return A
 
         else:
-            F1=tables.File(Filename)
+            F1=tables.File(TrajFilename)
             Shape=F1.root.XYZList.shape
             F1.close()
             return(Shape)
