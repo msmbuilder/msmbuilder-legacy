@@ -62,6 +62,8 @@ from msmbuilder.Serializer import Serializer
 from msmbuilder.geometry import dihedral as _dihedralcalc
 from msmbuilder.geometry import contact as _contactcalc
 from msmbuilder.geometry import rg as _rgcalc
+import logging
+logger = logging.getLogger('metrics')
 #######################################################
 # Toggle to use faster (no typechecking, so unsafe too)
 # version of scipy.spatial.distance.cdist which is 
@@ -1432,9 +1434,7 @@ class Dihedral(Vectorized, AbstractDistanceMetric):
                 raise ValueError('indices must contain ints')
             if not indices.shape[1] == 4:
                 raise ValueError('indices must be N x 4')
-            print '#'*70
-            print 'OVERRIDING angles={} and using custom indices instead'.format(angles)
-            print '#'*70
+            logger.warning('OVERRIDING angles=%s and using custom indices instead', angles)
     
     def __repr__(self):
         "String representation of the object"
@@ -2242,6 +2242,6 @@ class HybridPNorm(Hybrid):
             d = self.base_metrics[i].all_pairwise(prepared_traj.datas[i])
             d = (self.weights[i]*d)**self.p
             distances = d if distances is None else distances + (self.weights[i]*d)
-            print 'got %s' % i
+            logger.info('got %s', i)
         return distances**(1.0 / self.p)
 

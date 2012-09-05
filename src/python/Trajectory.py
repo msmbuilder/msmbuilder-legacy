@@ -29,6 +29,8 @@ from msmbuilder import ConformationBaseClass, Conformation
 from msmbuilder import Serializer
 from msmbuilder import xtc
 from msmbuilder import dcd
+import logging
+logger = logging.getLogger('Trajectory')
 
 
 MAXINT16=32766
@@ -44,7 +46,7 @@ def _ConvertToLossyIntegers(X,Precision):
         X*=float(Precision)
         Rounded=X.astype("int32")
         X/=float(Precision)
-        print("Data range too large for int16: try removing center of mass motion, check for 'blowing up, or just use .h5 or .xtc format.'")
+        logger.error("Data range too large for int16: try removing center of mass motion, check for 'blowing up, or just use .h5 or .xtc format.'")
     return(Rounded)
 
 def _ConvertFromLossyIntegers(X,Precision):
@@ -359,7 +361,7 @@ class Trajectory(ConformationBaseClass):
                     
             A["XYZList"]=np.array( A["XYZList"] )
             if num_redundant != 0:
-                print "Found and discarded %d redunant snapshots in loaded traj" % num_redundant
+                logger.warning("Found and discarded %d redunant snapshots in loaded traj", num_redundant)
 
         # in inspection mode
         else:
@@ -611,6 +613,6 @@ class Trajectory(ConformationBaseClass):
                 i += 1
 
         if n != 0:
-            print "Warning: found and eliminated %d redundant snapshots in trajectory" % n
+            logger.warning("Found and eliminated %d redundant snapshots in trajectory", n)
             
         return trajectory

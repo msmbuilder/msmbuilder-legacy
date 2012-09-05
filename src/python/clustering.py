@@ -22,6 +22,9 @@ try:
 except:
     pass
 
+import logging
+logger = logging.getLogger('clustering')
+
 #####################################################################
 #                                                                   #
 #                       Begin Helper Functions                      #
@@ -360,9 +363,12 @@ def _kcenters(metric, ptraj, k=None, distance_cutoff=None, seed=0, verbose=True)
     
     generator_indices = []
     for i in xrange(k):
-        print "K-centers: Finding generator %i" % i,
         new_ind = seed if i == 0 else np.argmax(distance_list)
-        print ": will finish when % .4f drops below % .4f" % (distance_list[new_ind], distance_cutoff) if k == sys.maxint else ""
+        if k == sys.maxint:
+            logger.info("K-centers: Finding generator %i. Will finish when % .4f drops below % .4f", i, distance_list[new_ind], distance_cutoff)
+        else:
+            logger.info("K-centers: Finding generator %i", i)
+        
         if distance_list[new_ind] < distance_cutoff:
             break
         new_distance_list = metric.one_to_all(ptraj, ptraj, new_ind)
@@ -372,7 +378,7 @@ def _kcenters(metric, ptraj, k=None, distance_cutoff=None, seed=0, verbose=True)
         generator_indices.append(new_ind)
         
     if verbose:
-        print 'KCenters found %d generators' % (i+1) # CRS added +1 
+        logger.info('KCenters found %d generators', i+1)
     
     return np.array(generator_indices), assignments, distance_list
 
@@ -452,19 +458,14 @@ def _clarans(metric, ptraj, k, num_local_minima, max_neighbors, local_swap=True,
     if not k == len(initial_medoids):
         raise ValueError('Initial medoids not the same length as k')
     
-    if verbose:
-        printer = sys.stdout
-    else:
-        printer = open('/dev/null', 'w')
-        
-        
+    
     initial_pmedoids = ptraj[initial_medoids]
     initial_cost = np.sum(initial_distance)
     min_cost = initial_cost
     
     # these iterations could be parallelized
     for i in xrange(num_local_minima):
-        print >> printer, '%s of %s local minima' % (i, num_local_minima)
+        logger.info('%s of %s local minima', i, num_local_minima)
         
         # the cannonical clarans approach is to initialize the medoids that you
         # start from randomly, but instead we use the kcenters medoids.
@@ -499,7 +500,7 @@ def _clarans(metric, ptraj, k, num_local_minima, max_neighbors, local_swap=True,
             new_distances = distance_to_current.copy()
             new_assignments = assignments.copy()
             
-            print >> printer, '  swapping %s for %s...' % (old_medoid, trial_medoid),
+            logger.info('swapping %s for %s...', old_medoid, trial_medoid)
             
             distance_to_trial = metric.one_to_all(ptraj, ptraj, trial_medoid)
             assigned_to_trial = np.where(distance_to_trial < distance_to_current)[0]
@@ -510,11 +511,11 @@ def _clarans(metric, ptraj, k, num_local_minima, max_neighbors, local_swap=True,
                                  (distance_to_trial >= distance_to_current))[0]
             for l in ambiguous:
                 if len(ptraj) <= l:
-                    print len(ptraj)
-                    print l
-                    print ptraj.dtype
-                    print l.dtype
-                #print len(ptraj), l
+                    logger.error(len(ptraj))
+                    logger.error(l)
+                    logger.error(ptraj.dtype)
+                    logger.error(l.dtype)
+
                 d = metric.one_to_all(ptraj, pmedoids, l)
                 argmin =  np.argmin(d)
                 new_assignments[l] = new_medoids[argmin]
@@ -522,7 +523,7 @@ def _clarans(metric, ptraj, k, num_local_minima, max_neighbors, local_swap=True,
             
             new_cost = np.sum(new_distances)
             if new_cost < current_cost:
-                print >> printer, 'Accept'
+                logger.info('Accept')
                 medoids = new_medoids
                 assignments = new_assignments
                 distance_to_current = new_distances
@@ -531,7 +532,7 @@ def _clarans(metric, ptraj, k, num_local_minima, max_neighbors, local_swap=True,
                 j = 0
             else:
                 j += 1
-                print >> printer, 'Reject'
+                logger.info('Reject')
         
         if current_cost < min_cost:
             min_cost = current_cost
@@ -643,11 +644,11 @@ def _hybrid_kmedoids(metric, ptraj, k=None, distance_cutoff=None, num_iters=10, 
             new_distances = distance_to_current.copy()
             new_assignments = assignments.copy()
             
-            print 'Sweep %d, swapping medoid %d (conf %d) for conf %d...' % (iteration, medoid_i, old_medoid, trial_medoid)
+            logger.info('Sweep %d, swapping medoid %d (conf %d) for conf %d...', iteration, medoid_i, old_medoid, trial_medoid)
             
             distance_to_trial = metric.one_to_all(ptraj, ptraj, trial_medoid)
             if distance_to_trial[old_medoid] < too_close_cutoff:
-                print 'Too close'
+                logger.info('Too close')
                 continue
             
             assigned_to_trial = np.where(distance_to_trial < distance_to_current)[0]
@@ -664,16 +665,16 @@ def _hybrid_kmedoids(metric, ptraj, k=None, distance_cutoff=None, num_iters=10, 
                         
             new_obj_func = p_norm(new_distances, p=norm_exponent)
             new_max_norm = p_norm(new_distances, p='max')
-            print "New f = %f, Old f = %f     ||      New Max Norm %f,  Old Max Norm = %f" % (new_obj_func, obj_func, new_max_norm, max_norm)
+            
             if new_obj_func < obj_func and (new_max_norm <= max_norm or ignore_max_objective is True):
-                print "Accept"
+                logger.info("Accept. New f = %f, Old f = %f", new_obj_func, obj_func)
                 medoids = new_medoids
                 assignments = new_assignments
                 distance_to_current = new_distances
                 obj_func = new_obj_func
                 max_norm = new_max_norm
             else:
-                print 'Reject'
+                logger.info("Reject. New f = %f, Old f = %f", new_obj_func, obj_func)
     
     return medoids, assignments, distance_to_current
 
@@ -736,15 +737,15 @@ class Hierarchical(object):
         self.traj_lengths = np.array([len(traj['XYZList']) for traj in trajectories])
         #self.ptrajs = [self.metric.prepare_trajectory(traj) for traj in self.trajectories]
         
-        print 'Preparing...'
+        logger.info('Preparing...')
         flat_trajectory = concatenate_trajectories(trajectories)
         pflat_trajectory = metric.prepare_trajectory(flat_trajectory)
         
-        print 'Getting all to all pairwise distance matrix...'
+        logger.info('Getting all to all pairwise distance matrix...')
         dmat = metric.all_pairwise(pflat_trajectory)
-        print 'Done'
+        logger.info('Done with all2all')
         self.Z = fastcluster.linkage(dmat, method=method, preserve_input=False)
-        print 'Got Z matrix'
+        logger.info('Got Z matrix')
         #self.Z = scipy.cluster.hierarchy.linkage(dmat, method=method)
     
     def _oneD_assignments(self, k=None, cutoff_distance=None):
