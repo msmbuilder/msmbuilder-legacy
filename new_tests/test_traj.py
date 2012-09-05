@@ -10,8 +10,8 @@ from msmbuilder import Trajectory
 
 def test_traj_0():
     
-    aind = np.random.randint( 22, size=4)
-    stride = np.random.randint( 100 )
+    aind = np.unique( np.random.randint( 22, size=4) )
+    stride = np.random.randint(1, 100 )
     
     r_traj = Trajectory.LoadFromLHDF( os.path.join( fixtures_dir(), 'trj0.lh5' ), Stride=1 )
     r_traj.RestrictAtomIndices( aind )
@@ -32,3 +32,6 @@ def test_traj_0():
         else:
             npt.assert_array_equal( traj[key], r_traj[key] )
 
+def test_traj_1():
+    for i in range(20):
+        test_traj_0()
