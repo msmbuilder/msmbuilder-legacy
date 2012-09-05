@@ -1,6 +1,9 @@
 import sys, os
 import numpy as np
-from msmbuilder import Serializer, Trajectory
+from msmbuilder.Serializer import Serializer
+from msmbuilder.Trajectory import Trajectory
+import logging
+logger = logging.getLogger('assigning')
 
 def _setup_containers(assignments_path, distances_path, num_trajs, longest):
     "helper method"
@@ -26,7 +29,7 @@ def _setup_containers(assignments_path, distances_path, num_trajs, longest):
             completed_trajectories = (all_assignments[:,0] >= 0)
         
     else:
-        print "Creating serializer containers"
+        logger.info("Creating serializer containers")
         completed_trajectories = np.array([False] * num_trajs)
         Serializer({'Data': all_assignments,
                     'completed_trajectories': completed_trajectories
@@ -76,9 +79,9 @@ def assign_with_checkpoint(metric, project, generators, assignments_path, distan
     
     for i in xrange(project['NumTrajs']):
         if completed_trajectories[i]:
-            print 'Skipping trajectory %d -- already assigned' % i
+            logger.info('Skipping trajectory %s -- already assigned', i)
             continue
-        print 'Assigning trajectory %d' % i
+        logger.info('Assigning trajectory %s', i)
         
         ptraj = metric.prepare_trajectory(project.LoadTraj(i))
         distances = -1 * np.ones(len(ptraj), dtype=np.float32)

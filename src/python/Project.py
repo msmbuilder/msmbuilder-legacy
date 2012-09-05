@@ -36,13 +36,9 @@ try:
 except ImportError:
     pass
 
-#def GetUniqueRandomIntegers(MaxN,NumInt):
-#    """Get random numbers, with replacement."""
-#    x=np.random.random_integers(0,MaxN,NumInt)
-#    while len(np.unique(x))<NumInt:
-#        x2=np.random.random_integers(0,MaxN,NumInt-len(np.unique(x)))
-#        x=np.concatenate((np.unique(x),x2))
-#    return(x)
+import logging
+logger = logging.getLogger('Project')
+
 
 class Project(Serializer):
     """The Project class controls access to a collection of trajectories."""
@@ -73,7 +69,7 @@ class Project(Serializer):
         try:
             self.Conf=Conformation.LoadFromPDB(self["ConfFilename"])
         except IOError:
-            print("Could not find %s; trying current directory."%self["ConfFilename"])
+            logger.info("Could not find %s; trying current directory.", self["ConfFilename"])
             self.Conf=Conformation.LoadFromPDB(os.path.basename(self["ConfFilename"]))
     
     @classmethod   
@@ -107,7 +103,7 @@ class Project(Serializer):
         if NumTraj==0:
             raise Exception("Could not find any trajectories in %s" % TrajFilePath)
         else:
-            print "Creating a project file from %d trajectories in %s" % (NumTraj, TrajFilePath)
+            logger.info("Creating a project file from %d trajectories in %s", NumTraj, TrajFilePath)
 
         LenList=[]
         for i in range(NumTraj):
@@ -181,17 +177,17 @@ class Project(Serializer):
         n1=len(Which)
         n2=max(self["TrajLengths"])
         if ResultDim!=None:
-            print(n1,n2,ResultDim[0],ResultDim[1])
+            logger.info('%s %s %s %s', n1, n2, ResultDim[0], ResultDim[1])
             Ans=np.ones((n1,n2,ResultDim[0],ResultDim[1]),dtype='float32')#Hack assuming rank 2--need to generalize this.
             for i in xrange(Ans.shape[0]):
                 Ans[i,:]=-1
-            print("constructed answer matrix")
+            logger.info("constructed answer matrix")
         else:
             Ans=np.ones((n1,n2))
             Ans*=-1
         l=0
         for k in Which:
-            print(k)
+            logger.info(k)
             R1=self.LoadTraj(k)
             R1["XYZList"][::Stride]
             if ByTraj==False:#Calculate a function of each array of XYZ coordinates
@@ -219,7 +215,7 @@ class Project(Serializer):
         Trj=self.GetEmptyTrajectory()
         Trj["XYZList"]=[]
         for i in range(NumStates):
-            print("Getting Conformations For state %d"%i)
+            logger.info("Getting Conformations For state %d", i)
             XYZList=self.GetRandomConfsFromState(Ass,i,NumConf,Subsampling=Subsampling,JustGetIndices=JustGetIndices)
             Trj["XYZList"].append(XYZList)
         Trj["XYZList"]=np.array(Trj["XYZList"])
@@ -396,7 +392,7 @@ def _convert_filename_list( args):
      output_directory, new_traj_root, stride, atom_indices) = args
 
     if len(file_list) > 0:
-        print file_list
+        logger.info(file_list)
         
         if input_file_type =='.dcd':
             traj = Trajectory.LoadFromDCD(file_list, PDBFilename=pdb_filename)

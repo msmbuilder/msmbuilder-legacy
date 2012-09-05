@@ -26,6 +26,8 @@ import cPickle
 from msmbuilder import FahProject
 from msmbuilder import Project
 from msmbuilder.utils import keynat
+import logging
+logger = logging.getLogger(__name__)
 
 try:
     from deap import dtm
@@ -37,23 +39,22 @@ from msmbuilder.arglib import ArgumentParser, die_if_path_exists
 
 def yield_trajectory_filelist_from_dir( InputDir, itype ):
 
-    print "\nWARNING: Sorting trajectory files by numerical values in their names."
-    print "Ensure that numbering is as intended."
+    logger.warning("WARNING: Sorting trajectory files by numerical values in their names.")
+    logger.warning("Ensure that numbering is as intended.")
 
     traj_dirs = glob.glob(InputDir+"/*")
     traj_dirs.sort(key=keynat)
 
     Flist = [] # will hold a list of all the files
 
-    print "\nFound", len(traj_dirs), "trajectories."
+    logger.info("Found %s trajectories", len(traj_dirs))
     for traj_dir in traj_dirs:
          toadd = glob.glob( traj_dir + '/*'+itype )
          toadd.sort(key=keynat)
          if toadd:
              Flist.append(toadd)
 
-    print "\nLoading data:"
-    print Flist
+    logger.info("Loading data: %s", Flist)
 
     return Flist
 
@@ -63,7 +64,7 @@ def run(projectfn, PDBfn, InputDir, source, mingen, stride, rmsd_cutoff,
 
     # check if we are doing an update or a fresh run
     if os.path.exists( projectfn ):
-        print "Found project info file encoding previous work, running in update mode..."
+        logger.info("Found project info file encoding previous work, running in update mode...")
         update = True
     else:
         update = False
@@ -73,7 +74,7 @@ def run(projectfn, PDBfn, InputDir, source, mingen, stride, rmsd_cutoff,
         die_if_path_exists("Trajectories")
         die_if_path_exists("ProjectInfo.h5")
 
-    print "Looking for", source, "style data in", InputDir
+    logger.info("Looking for %s stype data in %s", source, InputDir)
     
     # Source "gpugrid" is a synonym for 'file_dcd'
     if source == "gpugrid":
@@ -113,18 +114,18 @@ def run(projectfn, PDBfn, InputDir, source, mingen, stride, rmsd_cutoff,
         input_style = source.upper()
         try:
             project_number = re.match('\w+(\d+)\w+', InputDir).group()
-            print "Converting FAH Project %d" % project_number
+            logger.info("Converting FAH Project %d", project_number)
         except:
             project_number = 0 # this number is not critical
         
         # check parallelism mode, and set the number of processors accordingly 
         if parallel == 'multiprocessing':
             num_proc = int(os.sysconf('SC_NPROCESSORS_ONLN'))
-            print "Found and using %d processors in parallel" % num_proc
+            logger.info("Found and using %d processors in parallel", num_proc)
         elif parallel == 'None':
             num_proc = 1
         else:
-            print "Allowed parallel options for FAH: None or multiprocessing"
+            logger.error("Allowed parallel options for FAH: None or multiprocessing")
             raise Exception("Error parsing parallel option: %s" % parallel)
 
         fahproject = FahProject( PDBfn, project_number=project_number, projectinfo_file=projectfn )
@@ -139,8 +140,8 @@ def run(projectfn, PDBfn, InputDir, source, mingen, stride, rmsd_cutoff,
         raise Exception("Invalid argument for source: %s" % source)
 
     assert os.path.exists(projectfn)
-    print "\nFinished data conversion successfully."
-    print "Generated: %s, Trajectories/, Data/" % projectfn
+    logger.info("Finished data conversion successfully.")
+    logger.info("Generated: %s, Trajectories/, Data/", projectfn)
 
     return
 
@@ -207,7 +208,7 @@ functionality.
     if rmsd_cutoff<=0.:
         rmsd_cutoff=1000.
     else:
-        print "WARNING: Will discard any frame that is %f nm from the PDB conformation..." % rmsd_cutoff
+        logger.warning("Will discard any frame that is %f nm from the PDB conformation...", rmsd_cutoff)
     
     if args.parallel == 'dtm' and args.source != 'file':
         raise NotImplementedError('Sorry. At this point parallelism is only implemented for file-style')

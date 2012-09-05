@@ -8,6 +8,8 @@ import os
 from msmbuilder import Project
 from msmbuilder import CreateMergedTrajectoriesFromFAH
 from msmbuilder import arglib
+import logging
+logger = logging.getLogger(__name__)
 
 
 parser = arglib.ArgumentParser(description="Search for local trajectories and create a ProjectInfo.h5 file.")
@@ -20,6 +22,6 @@ if not os.path.exists(args.project):
     Project.CreateProjectFromDir(Filename=args.project,
                                  ConfFilename=args.pdb,
                                  TrajFileType=args.filetype)
-    print 'Created %s' % args.project
+    logger.info('Created %s', args.project)
 else:
-    print '%s already exists.' % args.project
+    logger.error('%s already exists.', args.project)

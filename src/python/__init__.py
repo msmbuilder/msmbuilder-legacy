@@ -43,14 +43,15 @@ __all__ = [
 "plot_graph", 
 "Project", 
 "Serializer", 
-"ssaCalculator",
-"ssaTools",
 "Trajectory", 
 "transition_path_theory"
 "xtc",
 "utils"
-"mm"
 ]
+
+import logging
+__LOGGING_FORMAT = '%(asctime)s: %(levelname)s: %(message)s'
+logging.basicConfig(format=__LOGGING_FORMAT, level=logging.INFO, datefmt="%Y-%m-%d %H:%M:%S")
 
 import PDB
 from Serializer import Serializer

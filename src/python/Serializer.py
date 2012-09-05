@@ -26,11 +26,12 @@ import tables
 import os
 import scipy.sparse
 import numpy as np
+import warnings
 
 try:
     Filter=tables.Filters(complevel=9,complib='blosc',shuffle=True)
 except:
-    print("Warning: missing BLOSC, no compression will used.")
+    warnings.warn("missing BLOSC, no compression will used.")
     Filter = tables.Filters()
 
 class Serializer(dict):
