@@ -27,7 +27,7 @@ from msmbuilder import FahProject
 from msmbuilder import Project
 from msmbuilder.utils import keynat
 import logging
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 try:
     from deap import dtm

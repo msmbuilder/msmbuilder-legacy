@@ -28,7 +28,7 @@ from msmbuilder.transition_path_theory import GetNetFlux
 
 from msmbuilder import arglib
 import logging
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 def run(TC, Uv, Fv, Populations):
 

@@ -24,7 +24,7 @@ from msmbuilder import Project
 from msmbuilder import Serializer
 from msmbuilder import arglib
 import logging
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 def run(project, assignments, num_confs_per_state, output, format):
     arglib.die_if_path_exists(output)

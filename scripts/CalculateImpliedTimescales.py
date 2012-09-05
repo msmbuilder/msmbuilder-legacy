@@ -27,7 +27,7 @@ from msmbuilder import arglib
 from msmbuilder import msm_analysis
 
 import logging
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 
 def run(MinLagtime, MaxLagtime, Interval, NumEigen, AssignmentsFn, symmetrize, nProc, output):
