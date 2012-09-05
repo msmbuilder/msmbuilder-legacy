@@ -442,16 +442,25 @@ class Trajectory(ConformationBaseClass):
     
     @classmethod
     def EnumChunksFromHDF(cls,TrajFilename,Stride=None,AtomIndices=None,ChunkSize=100000):
+        """
+        Function to read trajectory files which have been saved as HDF.
 
-        """Variation of the generic function to load HDF files to dict-like object
-        which enumerates chunks of the XYZList. This only really makes sense for 
-        trajectory objects.
-        ----------
-        Filename : str
-            Path to resource on disk to load from
-        loc : str, option
-            Resource root in HDF file
-        
+        This function is an iterable, so should be used like:
+
+        from msmbuilder import Trajectory
+        for trajectory_chunk in Trajectory.EnumChunksFromHDF( 
+            ... # Do something with each chunk. The chunk looks like a regular Trajectory instance
+
+        Inputs:
+        - TrajFilename : Filename to find the trajectory
+        - Stride [ None ] : Integer number of frames to subsample the trajectory
+        - AtomIndices [ None ] : np.ndarray of atom indices to read in (0-indexed)
+        - ChunkSize [ 100000 ] : Integer number of frames to read in a chunk
+            NOTE: ChunkSize will change in order to be a multiple of the input Stride
+                This is necessary in order to make sure the Stride and chunks line up
+
+        Outputs:
+        - Nothing. This is an iterable function, so it yields Trajectory instances
         """
         RestrictAtoms = False
         SubsampleXYZList = False
@@ -510,7 +519,28 @@ class Trajectory(ConformationBaseClass):
 
     @classmethod
     def EnumChunksFromLHDF(cls, TrajFilename, Precision=default_precision, Stride=None, AtomIndices=None, ChunkSize=100000):
-        
+        """
+        Method to read trajectory files which have been saved as LHDF.
+        Note that this method simply calls the EnumChunksFromHDF method.
+
+        This function is an iterable, so should be used like:
+
+        from msmbuilder import Trajectory
+        for trajectory_chunk in Trajectory.EnumChunksFromLHDF( 
+            ... # Do something with each chunk. The chunk looks like a regular Trajectory instance
+
+        Inputs:
+        - TrajFilename : Filename to find the trajectory
+        - Precision [ 1000 ] : Precision used when saving as lossy integers
+        - Stride [ None ] : Integer number of frames to subsample the trajectory
+        - AtomIndices [ None ] : np.ndarray of atom indices to read in (0-indexed)
+        - ChunkSize [ 100000 ] : Integer number of frames to read in a chunk
+            NOTE: ChunkSize will change in order to be a multiple of the input Stride
+                This is necessary in order to make sure the Stride and chunks line up
+
+        Outputs:
+        - Nothing. This is an iterable function, so it yields Trajectory instances
+        """
         for A in cls.EnumChunksFromHDF( TrajFilename, Stride, AtomIndices, ChunkSize ):
             A['XYZList'] = _ConvertFromLossyIntegers( A['XYZList'], Precision )
             yield A
@@ -519,7 +549,22 @@ class Trajectory(ConformationBaseClass):
 
     @classmethod
     def LoadFromHDF(cls, TrajFilename, JustInspect=False, Stride=None, AtomIndices=None ):
+        """
+        Method to load a trajectory which was saved as HDF
         
+        Inputs:
+        - TrajFilename : Filename to find the trajectory
+        - JustInspect [ False ] : If True, then the method returns the shape of the
+            XYZList stored on disk
+        - Stride [ None ] : Integer number of frames to subsample the trajectory
+        - AtomIndices [ None ] : np.ndarray of atom indices to read in (0-indexed)
+        - ChunkSize [ 100000 ] : Integer number of frames to read in a chunk
+            NOTE: ChunkSize will change in order to be a multiple of the input Stride
+                This is necessary in order to make sure the Stride and chunks line up
+
+        Outputs:
+        - A : Trajectory instance read from disk
+        """
         if not JustInspect:
             A = list( cls.EnumChunksFromHDF( TrajFilename, Stride=Stride, AtomIndices=AtomIndices, ChunkSize=MAXINT32 ) )[0]
             return A
@@ -532,7 +577,23 @@ class Trajectory(ConformationBaseClass):
 
     @classmethod        
     def LoadFromLHDF(cls, TrajFilename, JustInspect=False, Precision=default_precision, Stride=None, AtomIndices=None ):
+        """
+        Method to load a trajectory which was saved as LHDF
+        
+        Inputs:
+        - TrajFilename : Filename to find the trajectory
+        - JustInspect [ False ] : If True, then the method returns the shape of the
+            XYZList stored on disk
+        - Stride [ None ] : Integer number of frames to subsample the trajectory
+        - Precision [ 1000 ] : Precision used when saving as lossy integers
+        - AtomIndices [ None ] : np.ndarray of atom indices to read in (0-indexed)
+        - ChunkSize [ 100000 ] : Integer number of frames to read in a chunk
+            NOTE: ChunkSize will change in order to be a multiple of the input Stride
+                This is necessary in order to make sure the Stride and chunks line up
 
+        Outputs:
+        - A : Trajectory instance read from disk
+        """ 
         if not JustInspect:
             A = cls.LoadFromHDF( TrajFilename, Stride=Stride, AtomIndices=AtomIndices )
             A['XYZList'] = _ConvertFromLossyIntegers( A['XYZList'], Precision )
