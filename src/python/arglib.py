@@ -2,8 +2,8 @@ import sys, os
 import argparse
 from msmbuilder.License import LicenseString
 from msmbuilder.Citation import CiteString
-from msmbuilder import metric_parsers
-
+from msmbuilder.metrics import parsers as metric_parsers
+from pprint import pprint
 import warnings
 
 def _iter_both_cases(string):
@@ -206,7 +206,7 @@ class ArgumentParser(object):
             logging.getLogger().setLevel(logging.WARNING)
 
         if self.get_metric: # if we want to get the metric, then we have to construct it
-            metric = metric_parsers.construct_metric( namespace )
+            metric = metric_parsers.construct_metric(namespace)
             return namespace, metric
 
         return namespace

@@ -2,11 +2,8 @@
 import sys, os
 import pickle
 import numpy as np
-
 from msmbuilder.metrics import (LPRMSD, RMSD, Dihedral,
                                 BooleanContact, AtomPairs)
-
-
 
 def add_argument(group, *args, **kwargs):
     if 'default' in kwargs:

@@ -1,6 +1,6 @@
 import numpy as np
 from baseclasses import Vectorized, AbstractDistanceMetric
-from msmbuilder import _dihedralcalc
+from msmbuilder.geometry import dihedral as _dihedralcalc
 
 class Dihedral(Vectorized, AbstractDistanceMetric):
     """Distance metric for calculating distances between frames based on their

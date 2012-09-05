@@ -2,7 +2,7 @@ import numpy as np
 import itertools
 from numbers import Number
 from baseclasses import Vectorized, AbstractDistanceMetric
-from msmbuilder import _contactcalc
+from msmbuilder.geometry import contact as _contactcalc
 
 
 class ContinuousContact(Vectorized, AbstractDistanceMetric):

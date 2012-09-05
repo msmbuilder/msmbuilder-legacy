@@ -51,6 +51,10 @@ def configuration(parent_package='',top_path=None):
     config.add_subpackage('scripts',
                           subpackage_path=None)
 
+    # add metrics subpackage
+    config.add_subpackage('metrics',
+                          subpackage_path='src/python/metrics')
+
     # add geometry subpackage
     config.add_subpackage('geometry',
                           subpackage_path='src/python/geometry')
