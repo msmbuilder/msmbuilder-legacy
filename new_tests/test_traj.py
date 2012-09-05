@@ -10,7 +10,7 @@ from msmbuilder import Trajectory
 
 def test_traj_0():
     
-    aind = np.array([ 0, 10, 13 ])
+    aind = np.random.randint( 22, size=4)
     stride = np.random.randint( 100 )
     
     r_traj = Trajectory.LoadFromLHDF( os.path.join( fixtures_dir(), 'trj0.lh5' ), Stride=1 )
@@ -28,7 +28,7 @@ def test_traj_0():
             for row, r_row in zip( traj[key], r_traj[key] ):
                 npt.assert_array_equal( row, r_row )
         elif key == 'XYZList':
-            npt.assert_array_almost_equal( traj[key].flatten(), r_traj[key].flatten() )
+            npt.assert_array_almost_equal( traj[key], r_traj[key])
         else:
             npt.assert_array_equal( traj[key], r_traj[key] )
 
