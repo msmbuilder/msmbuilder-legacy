@@ -18,6 +18,8 @@ import numpy as np
 import itertools
 from scipy import optimize
 import copy
+import logging
+logger = logging.getLogger('LPRMSD')
 
 PT = {'H' : 1.0079, 'He' : 4.0026, 
       'Li' : 6.941, 'Be' : 9.0122, 'B' : 10.811, 'C' : 12.0107, 'N' : 14.0067, 'O' : 15.9994, 'F' : 18.9984, 'Ne' : 20.1797, 
@@ -48,12 +50,15 @@ def ReadPermFile(fnm):
         if (ln != 0 and '--' in s) or (ln == len(fopen) - 1):
             LL.append(np.array(L))
             if len(s.split()) > 1:
-                try: K.append(int(s.split()[1]))
-                except: print "The syntax of this line is incorrect:", line,
+                try:
+                    K.append(int(s.split()[1]))
+                except:
+                    logger.error("The syntax of this line is incorrect: %s", line)
             else:
                 K.append(len(L))
             L = []
-        else: continue
+        else:
+            continue
     return (LL, K)
 
 class LPTraj(Trajectory):
@@ -115,7 +120,7 @@ def AlignToMoments(elem,xyz1,xyz2=None):
     Thresh = 1e-3
     if np.abs(determ - 1.0) > Thresh:
         if np.abs(determ + 1.0) > Thresh:
-            print "AHOOGA, determinant is % .3f" % determ
+            logger.error("AHOOGA, determinant is % .3f", determ)
         BB[:,2] *= -1
     xyzr = np.array(np.mat(BB).T * np.mat(xyz).T).T.copy()
     if xyz2 != None:

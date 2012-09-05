@@ -134,7 +134,7 @@ def construct_metric(args):
         from msmbuilder.metric_LPRMSD import LPRMSD, LPTraj, ReadPermFile
 
         if args.lprmsd_atom_indices != 'all':
-            atom_inds = np.loadtxt( args.lprmsd_atom_indices )
+            atom_inds = np.loadtxt(args.lprmsd_atom_indices, dtype=np.int)
         else:
             atom_inds = None
 

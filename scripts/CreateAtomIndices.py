@@ -22,6 +22,8 @@ import numpy as np
 
 from msmbuilder import Conformation
 from msmbuilder import arglib
+import logging
+logger = logging.getLogger(__name__)
 
 def run(PDBfn, atomtype):
   
@@ -116,7 +118,9 @@ def run(PDBfn, atomtype):
       toKeepDict[key] = ["CA"]
   elif atomtype == "all":
     pass
-  else: print "Error: Cannot understand atom type:", atomtype; sys.exit(1)
+  else:
+      logger.error("Cannot understand atom type: %s", atomtype)
+      sys.exit(1)
 
   C1 = Conformation.LoadFromPDB(PDBfn)
 
@@ -153,4 +157,4 @@ if __name__ == "__main__":
   indices = run(args.pdb, args.atom_type)
   
   np.savetxt(args.output, indices, '%d')
-  print 'Wrote %s' % args.output
+  logger.info('Saved output to %s', args.output)
