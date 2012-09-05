@@ -458,7 +458,9 @@ class Trajectory(ConformationBaseClass):
         if AtomIndices != None:
             RestrictAtoms = True
         if Stride != None:
-            while ChunkSize % Stride != 0:
+            while ChunkSize % Stride != 0: # Need to do this in order to make sure we stride correctly.
+                                            # since we read in chunks, and then we need the strides
+                                            # to line up
                 ChunkSize -= 1
 
         A=Serializer()
