@@ -24,8 +24,7 @@ metadata = {
     'license': 'GPL v3.0',
     'url': 'https://simtk.org/home/msmbuilder',
     'download_url': 'https://simtk.org/home/msmbuilder',
-    'install_requires': ['scipy', 'numpy', 'matplotlib',
-                         'deap', 'fastcluster'],
+    'install_requires': ['deap', 'fastcluster'],
     'platforms': ["Linux", "Mac OS X"],
     'description': "Python Code for Building Markov State Models",
     'long_description': """MSMBuilder (https://simtk.org/home/msmbuilder)
@@ -73,6 +72,7 @@ def configuration(parent_package='',top_path=None):
                      sources=glob('src/ext/IRMSD/*.c'),
                      extra_compile_args = ["-std=c99","-O2",
                                            "-msse2","-msse3","-fopenmp"],
+                     extra_link_args=['-lgomp'],
                      include_dirs = [numpy.get_include(), os.path.join(numpy.get_include(), 'numpy')])
     
     for e in [xtc, dcd, rmsd]:
@@ -125,19 +125,27 @@ def add_lprmsd_and_setup():
             failure = False
             break
 
-        except SystemExit as e:
+        except SystemExit:
             pass
 
     if failure:
-        print '\n' + '#'*70 + '\n'
-        print 'I could not compile the LPRMSD distance metric, which depends on the C'
-        print 'inteface to BLAS -- the basic linear algebra subroutines. (The fortran'
-        print 'interface is the more common code.'
-        print 'I tried using both "-latlas", and "-lcblas", along with not giving any'
-        print 'extra link line arguments, and only including the python libdir'
-        print '(%s)' %sysconfig.get_config_var('LIBDIR')
-        print 'which, on the Enthought python distribution (academic version), includes'
-        print 'Intel MKL shared object files'
+        print '\n' + '#'*70
+        print '''
+                      \033[91mBuild Failure\033[0m
+
+The most likely reason for build failure is an inability to compile
+The LPRMSD distance metric, which depends on the C inteface to BLAS
+-- the basic linear algebra subroutines. (The fortran interface is
+the more common code.) Take a look up in the printout above for
+details.
+
+The LPRMSD module is not required for general use of MSMBuilder.
+
+Note: I tried using both "-latlas", and "-lcblas", along with not
+giving anyextra link line arguments, and only including the python
+libdir (%s)
+which, on the Enthought python distribution (academic version), includes
+Intel MKL shared object files''' %  sysconfig.get_config_var('LIBDIR')
         print '\n' + '#'*70 + '\n'
         
 
