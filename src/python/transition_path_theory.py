@@ -28,7 +28,6 @@ Committors
 
 import numpy as np
 import scipy.sparse
-<<<<<<< HEAD
 from msmbuilder import MSMLib
 import logging
 logger = logging.getLogger('tpt')
@@ -37,7 +36,6 @@ logger = logging.getLogger('tpt')
 # logger.setLogLevel(logging.DEBUG)
 =======
 from msmbuilder import msm_analysis
->>>>>>> e73a62fd0a34c6b6e72046b5cea1e0b9dcd21439
 
 
 def DijkstraTopPaths(A, B, NFlux, NumPaths=10, NodeWipe=False):
