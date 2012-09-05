@@ -846,7 +846,7 @@ def EstimateReversibleCountMatrix():
 def logLikelihood():
     pass
 @deprecated(renumber_states, '2.7')
-def RenumberSrates():
+def RenumberStates():
     pass
 def GetEigenvectors_Right(*args, **kwargs):
     warnings.warn('GetEigenvectors_Right is deprecated use get_eigenvectors() with the keyword Right=True')
