@@ -116,6 +116,11 @@ def streaming_assign_with_checkpoint(metric, project, generators, assignments_pa
 
     This version is the same as the original assign_with_checkpoint function, except that 
     it streams through each trajectory rather than loading the entire trajectory at a time"""
+
+    if not project['TrajFileType'] in ['.lh5', '.h5']:
+        warnings.warn("Streaming assign currently only works with .lh5 or .h5 files.")
+        return assign_with_checkpoint( metric, project, generators, assignments_path, distances_path, checkpoint )
+
     pgens = metric.prepare_trajectory(generators)
     
     num_gens = len(pgens)
