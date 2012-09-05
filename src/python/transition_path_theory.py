@@ -31,7 +31,7 @@ from msmbuilder import MSMLib
 from msmbuilder import msm_analysis
 
 
-def DijkstraTopPaths(A, B, NFlux, NumPaths=10, NodeWipe=False):
+def DijkstraTopPaths(sources, sinks, net_flux, num_paths=10, node_wipe=False):
     r"""
     Calls the Dijkstra algorithm to find the top 'NumPaths'. 
 
@@ -41,15 +41,15 @@ def DijkstraTopPaths(A, B, NFlux, NumPaths=10, NodeWipe=False):
 
     Parameters
     ----------
-    A : array_like, int 
-        The indices of the source states (i.e. for state A in rxn A -> B)
-    B : array_like, int
-        Indices of sink states (state B)
-    NFlux : sparse matrix
-        Matrix of the net flux from A to B, see function GetFlux
-    NumPaths : int 
+    sources : array_like, int 
+        The indices of the source states
+    sinks : array_like, int
+        Indices of sink states
+    net_flux : sparse matrix
+        Matrix of the net flux from `sources` to `sinks`, see function compute_net_flux
+    num_paths : int 
         The number of paths to find
-    NodeWipe : bool 
+    node_wipe : bool 
         If true, removes the bottleneck-generating node from the graph, instead
         of just the bottleneck (not recommended, a debugging functionality)
 
@@ -67,29 +67,29 @@ def DijkstraTopPaths(A, B, NFlux, NumPaths=10, NodeWipe=False):
     -- Add periodic flow check
     """
 
-    # first, do some checking on the input, esp. A and B
+    # first, do some checking on the input, esp. `sources` and `sinks`
     # we want to make sure all objects are iterable and the sets are disjoint
     try:
-        l = len(A)
+        l = len(sources)
     except:
-        A = list([int(A)])
-        print "Warning: passed object 'A' was not iterable, converted it to:", A
+        sources = list([int(sources)])
+        print "Warning: passed object 'sources' was not iterable, converted it to:", sources
     try: 
-        l = len(B)
+        l = len(sinks)
     except: 
-        B = list([int(B)])
-        print "Warning: passed object 'B' was not iterable, converted it to:", B
-    if np.any( A == B ):
-        raise ValueError("Sets A and B must be disjoint to find paths between them")
+        sinks = list([int(sinks)])
+        print "Warning: passed object 'sinks' was not iterable, converted it to:", sinks
+    if np.any( sources == sinks ):
+        raise ValueError("Sets `sources` and `sinks` must be disjoint to find paths between them")
 
     # initialize objects
     Paths = []
     Fluxes = []
     Bottlenecks = []
-    NFlux = NFlux.tolil()
+    net_flux = net_flux.tolil()
 
     # run the initial Dijkstra pass
-    pi, b = Dijkstra(A, B, NFlux)
+    pi, b = Dijkstra(sources, sinks, net_flux)
 
     print "Path Num | Path | Bottleneck | Flux" 
 
@@ -98,7 +98,7 @@ def DijkstraTopPaths(A, B, NFlux, NumPaths=10, NodeWipe=False):
     while not done:
 
         # First find the highest flux pathway
-        (Path, (b1,b2), Flux) = Backtrack(B, b, pi, NFlux)
+        (Path, (b1,b2), Flux) = Backtrack(sinks, b, pi, net_flux)
 
         # Add each result to a Paths, Bottlenecks, Fluxes list
         if Flux == 0:
@@ -111,13 +111,13 @@ def DijkstraTopPaths(A, B, NFlux, NumPaths=10, NodeWipe=False):
 
         # Cut the bottleneck, start relaxing from B side of the cut
         if NodeWipe: 
-            NFlux[:, b2] = 0
+            net_flux[:, b2] = 0
             print "Wiped node:", b2
-        else: NFlux[b1, b2] = 0
+        else: net_flux[b1, b2] = 0
 
-        G = scipy.sparse.find(NFlux)
+        G = scipy.sparse.find(net_flux)
         Q = [b2]
-        b, pi, NFlux = BackRelax(b2, b, pi, NFlux)
+        b, pi, NFlux = BackRelax(b2, b, pi, net_flux)
         
         # Then relax the graph and repeat
         # But only if we still need to
@@ -126,7 +126,7 @@ def DijkstraTopPaths(A, B, NFlux, NumPaths=10, NodeWipe=False):
                 w = Q.pop()
                 for v in G[1][np.where( G[0] == w )]:
                     if pi[v] == w:
-                        b, pi, NFlux = BackRelax(v, b, pi, NFlux)
+                        b, pi, NFlux = BackRelax(v, b, pi, net_flux)
                         Q.append(v)
                 Q = sorted(Q, key=lambda v: b[v])
 
@@ -603,7 +603,7 @@ def calc_committors(sources, sinks, tprob, dense=False):
     for b in sinks:
         IdB[b] = 1.0
         
-    RHS = tprob * IdB # changed from RHS=T0.matvec(IdB) --TJL, matvec deprecated
+    RHS = tprob * IdB
     
     for a in sources:
         RHS[a] = 0.0
@@ -678,41 +678,52 @@ def compute_fluxes(sources, sinks, tprob, populations=None, committors=None):
     return fluxes
 
 
-def GetNetFlux(E,F,R,T):
+def compute_net_fluxes(sources, sinks, tprob, populations=None, committors=None):
     """
-    Returns a (net) matrix Flux where Flux[i,j] is the flux from i to j.
+    Computes the transition path theory net flux matrix.
 
     Parameters
     ----------
-    E : array_like, float
-        The equilibrium populations
+    sources : array_like, int
+        The set of unfolded/reactant states.
+
+    sinks : array_like, int
+        The set of folded/product states.
 		
-    F : array_like, int
-        Forward committors
+    tprob : mm_matrix	
+        The transition matrix.
 		
-    R : array_like, int
-        backwards committors
-		
-    T : mm_matrix
-        transition matrix.
 		
     Returns
     ------
-    NFlux : mm_read
-        The flux matrix
+    net_fluxes : mm_matrix
+        The net flux matrix
+        
+        
+    Optional Parameters
+    -------------------
+    populations : nd_array, float
+        The equilibrium populations, if not provided is re-calculated
+        
+    committors : nd_array, float
+        The committors associated with `sources`, `sinks`, and `tprob`.
+        If not provided, is calculated from scratch. If provided, `sources`
+        and `sinks` are ignored.
     """
 
-    n = len(E)
-    Flux = GetFlux(E,F,R,T)
-    ind = Flux.nonzero()
-    NFlux = scipy.sparse.lil_matrix((n,n))
-    for k in range(len(ind[0])):
-        i,j = ind[0][k],ind[1][k]
-        forward = Flux[i,j]
-        reverse = Flux[j,i]
-        NFlux[i,j] = max(0,forward - reverse)
+    n = tprob.shape[0]
+    
+    flux = compute_net_fluxes(sources, sinks, tprob, populations, committors)
+    ind = flux.nonzero()
+    
+    net_flux = scipy.sparse.lil_matrix( (n,n) )
+    for k in range( len(ind[0]) ):
+        i,j = ind[0][k], ind[1][k]
+        forward = flux[i,j]
+        reverse = flux[j,i]
+        net_flux[i,j] = max(0, forward - reverse)
         
-    return NFlux
+    return net_flux
 
 
 ######################################################################
@@ -883,6 +894,11 @@ def GetFCommittors():
 def GetFlux():
     print "WARNING: The call signature for the new function has changed."
     pass
+
+@deprecated(compute_net_fluxes, '2.7')
+def GetNetFlux():
+    print "WARNING: The call signature for the new function has changed."
+    pass
     
 @deprecated(calc_avg_TP_time, '2.7')
 def CalcAvgTPTime():
@@ -891,3 +907,4 @@ def CalcAvgTPTime():
 @deprecated(calc_ensemble_mfpt, '2.7')
 def CalcAvgFoldingTime():
     pass
+    
