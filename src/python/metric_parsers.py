@@ -85,7 +85,7 @@ def add_metric_parsers(parser):
         not multiple boxes) using OMP.''')
     add_argument(contact, '-c', dest='contact_which', default='all',
         help='Path to file containing 2D array of the contacts you want, or the string "all".')
-    add_argument(contact, '-C', dest='contact_cutoff', default=0.5, help='Cutoff distance in nanometers.')
+    add_argument(contact, '-C', dest='contact_cutoff', default=0.5, help='Cutoff distance in nanometers. If you pass -1, then the contact "map" will be a matrix of residue-residue distances. Passing a number greater than 0 means the residue-residue distance matrix will be converted to a boolean matrix, one if the distance is less than the specified cutoff')
     add_argument(contact, '-f', dest='contact_cutoff_file', help='File containing residue specific cutoff distances (supercedes the scalar cutoff distance if present).',default=None)
     add_argument(contact, '-s', dest='contact_scheme', default='closest-heavy', help='contact scheme.',
         choices=['CA', 'closest', 'closest-heavy'])
@@ -158,11 +158,17 @@ def construct_metric(args):
 
         if args.contact_cutoff_file != None: #getattr(args, 'contact_cutoff_file'):
             contact_cutoff = np.loadtxt(args.contact_cutoff_file, np.float)            
+        elif args.contact_cutoff != None:
+            contact_cutoff = float( args.contact_cutoff )
         else:
             contact_cutoff = None
              
-        metric = metrics.BooleanContact(contacts=contact_which,
-            cutoff=contact_cutoff, scheme=args.contact_scheme)
+        if contact_cutoff != None and contact_cutoff < 0:
+            metric = metrics.ContinuousContact(contacts=contact_which,
+                scheme=args.contact_scheme)
+        else:
+            metric = metrics.BooleanContact(contacts=contact_which,
+                cutoff=contact_cutoff, scheme=args.contact_scheme)
      
     elif args.metric == 'atompairs':
         if args.atompairs_which != None:
