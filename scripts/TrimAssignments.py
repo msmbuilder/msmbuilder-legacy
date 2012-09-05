@@ -21,10 +21,12 @@ import sys
 import numpy as np
 from msmbuilder import Serializer
 from msmbuilder import arglib
+import logging
+logger = logging.getLogger(__name__)
 
 def run(assignments, ass_rmsd, rmsdcutoff):
     number = np.count_nonzero(ass_rmsd > rmsdcutoff)
-    print 'Discarding %d assignments' % number
+    logger.info('Discarding %d assignments', number)
     
     assignments[ np.where(ass_rmsd > rmsdcutoff) ] = -1
     return assignments
@@ -59,4 +61,4 @@ Output: A trimmed assignments file (Assignments.Trimmed.h5).""")
     trimmed = run(assignments, assignments_rmsd, args.rmsd_cutoff)
     
     Serializer.SaveData(args.output, trimmed)
-    print 'Wrote %s' % args.output
+    logger.info('Saved output to %s', args.output)
