@@ -19,8 +19,7 @@
 """Contains classes for dealing with conformations.
 """
 import numpy as np
-from msmbuilder import PDB
-from schwancrtools.Serializer_crs import Serializer
+from msmbuilder import PDB, Serializer
 
 class ConformationBaseClass(Serializer):
     """Base class for Trajectory and Conformation classes.  Not for separate use."""
