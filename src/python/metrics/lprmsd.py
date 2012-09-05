@@ -7,13 +7,11 @@ Modified version of RMSD distance metric that does the following:
 
 """
 
-from msmbuilder.metrics import AbstractDistanceMetric, RMSD
+from baseclasses import AbstractDistanceMetric
+from rmsd import RMSD
 from msmbuilder import _lprmsd
 from msmbuilder.Trajectory import Trajectory
-# this is a forked version of the msmbuilder rmsdcalc
-# with a new method that does the one_to_many efficiently inside the c code
-# since python array slicing can be really slow. Big speedup using this
-# for the drift calculation
+
 import numpy as np
 import itertools
 from scipy import optimize
