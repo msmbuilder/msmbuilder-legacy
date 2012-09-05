@@ -1,8 +1,6 @@
 import sys, os
 import numpy as np
-from schwancrtools.Serializer_crs import Serializer
-from schwancrtools.Trajectory_crs import Trajectory
-from schwancrtools import sshfs_tools
+from msmbuilder import Serializer, Trajectory
 
 def _setup_containers(assignments_path, distances_path, num_trajs, longest):
     "helper method"
@@ -104,10 +102,6 @@ def assign_with_checkpoint(metric, project, generators, assignments_path, distan
             os.rename(assignments_tmp, assignments_path)
             os.rename(distances_tmp, distances_path)
 
-        if ((i+1)%10):
-            sshfs_tools.remount()
-
-    sshfs_tools.remount()
     return all_assignments, all_distances
 
 def streaming_assign_with_checkpoint(metric, project, generators, assignments_path, distances_path, checkpoint=1,chunk_size=10000):
@@ -167,10 +161,6 @@ def streaming_assign_with_checkpoint(metric, project, generators, assignments_pa
             os.rename(assignments_tmp, assignments_path)
             os.rename(distances_tmp, distances_path)
 
-        if ((i+1)%10):
-            sshfs_tools.remount()
-
-    sshfs_tools.remount()
     return all_assignments, all_distances
 
     
