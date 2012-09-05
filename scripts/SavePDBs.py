@@ -24,7 +24,8 @@ from collections import defaultdict
 import numpy as np
 import random
 import logging
-logger = logging.getLogger(__file__)
+from msmbuilder import Serializer
+logger = logging.getLogger(__name__)
 
 def run(project, assignments, conformations_per_state, states, output_dir):
     if states == "all":
@@ -84,6 +85,6 @@ to use GetRandomConfs.py""")
         logger.info("Ripping PDBs for all states")
         args.states = 'all'
     
-    run(args.project, args.assignments['Data'], args.conformations_per_state,
+    run(args.project, Serializer.LoadData(args.assignments), args.conformations_per_state,
          args.states, args.output_dir)
 

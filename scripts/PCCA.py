@@ -26,7 +26,7 @@ from msmbuilder import MSMLib
 from msmbuilder import lumping
 from msmbuilder import arglib
 import logging
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 float_or_none = lambda s: None if s.lower() == 'none' else float(s)
 
@@ -35,7 +35,7 @@ def run_pcca(num_macrostates, assignments, tProb, output_dir):
     MacroMapFn = os.path.join(output_dir, "MacroMapping.dat")
     arglib.die_if_path_exists([MacroAssignmentsFn, MacroMapFn])
 
-    logging.info("Running PCCA...")
+    logger.info("Running PCCA...")
     MAP = lumping.PCCA(tProb, num_macrostates)
 
     # MAP the new assignments and save, make sure don't

@@ -24,7 +24,7 @@ from msmbuilder import arglib
 from msmbuilder import Serializer
 from msmbuilder import MSMLib
 import logging
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 def run(LagTime, assignments, Symmetrize='MLE', Prior=0.0, OutDir="./Data/"):
 

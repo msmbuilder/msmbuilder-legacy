@@ -23,7 +23,7 @@ import numpy as np
 from msmbuilder import Conformation
 from msmbuilder import arglib
 import logging
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 def run(PDBfn, atomtype):
   

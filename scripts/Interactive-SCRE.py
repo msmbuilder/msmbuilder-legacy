@@ -9,7 +9,7 @@ import numpy as np
 import string
 import matplotlib
 import logging
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 def interactive_scre(assignments):
     Counts = MSMLib.GetCountMatrixFromAssignments(assignments,LagTime = 1)

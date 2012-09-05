@@ -10,7 +10,7 @@ from msmbuilder.assigning import assign_with_checkpoint
 from msmbuilder import metrics
 from msmbuilder import Project
 import logging
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 def main():
     parser = arglib.ArgumentParser(description="""

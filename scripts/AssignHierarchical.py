@@ -22,7 +22,7 @@ from msmbuilder import Serializer
 from msmbuilder.clustering import Hierarchical
 from msmbuilder import arglib
 import logging
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 def main():
     parser = arglib.ArgumentParser(description='Assign data using a hierarchical clustering')

@@ -27,7 +27,7 @@ from msmbuilder import arglib
 from msmbuilder import Serializer
 
 import logging
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 def run(args):
     assignFn, rmsdFn, MinState, MaxState = args

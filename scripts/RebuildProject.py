@@ -9,7 +9,7 @@ from msmbuilder import Project
 from msmbuilder import CreateMergedTrajectoriesFromFAH
 from msmbuilder import arglib
 import logging
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 
 parser = arglib.ArgumentParser(description="Search for local trajectories and create a ProjectInfo.h5 file.")

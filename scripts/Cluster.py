@@ -12,10 +12,9 @@ from msmbuilder.utils import format_block
 from msmbuilder.License import LicenseString
 from msmbuilder.Citation import CiteString 
 from msmbuilder.arglib import ensure_path_exists, die_if_path_exists
-import argparse
 import numpy as np
 import logging
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 def add_argument(group, *args, **kwargs):
     if 'default' in kwargs:
@@ -153,7 +152,7 @@ def cluster(metric, trajs, args):
     elif args.alg == 'hierarchical':
         clusterer = clustering.Hierarchical(metric, trajs, method=args.hierarchical_method)
         clusterer.save_to_disk(args.hierarchical_save_zmatrix)
-        logging.info('ZMatrix saved to %s. Use AssignHierarchical.py to assign the data', args.hierarchical_save_zmatrix)
+        logger.info('ZMatrix saved to %s. Use AssignHierarchical.py to assign the data', args.hierarchical_save_zmatrix)
     else:
         raise ValueError('!')
     
@@ -174,27 +173,27 @@ def main(args, metric):
     check_paths(args)
     
     if args.alg == 'sclarans' and args.stride != 1:
-        logging.error("""\nYou don't want to use a stride with sclarans. The whole point of
+        logger.error("""You don't want to use a stride with sclarans. The whole point of
 sclarans is to use a shrink multiple to accomplish the same purpose, but in parallel with
 stochastic subsampling. If you cant fit all your frames into  memory at the same time, maybe you
 could stride a little at the begining, but its not recommended.""")
         sys.exit(1)
     
     trajs = load_trajectories(args.project, args.stride)
-    logging.info('Loaded %d trajs', len(trajs))
-    
+    logger.info('Loaded %d trajs', len(trajs))
+
     clusterer = cluster(metric, trajs, args)
     
     if not isinstance(clusterer, clustering.Hierarchical):
         generators = clusterer.get_generators_as_traj()
-        logging.info('Saving %s', args.generators)
+        logger.info('Saving %s', args.generators)
         generators.SaveToLHDF(args.generators)
         if args.stride == 1:
             assignments = clusterer.get_assignments()
             distances = clusterer.get_distances()
             
-            logging.info('Since stride=1, Saving %s', args.assignments)
-            logging.info('Since stride=1, Saving %s', args.distances)
+            logger.info('Since stride=1, Saving %s', args.assignments)
+            logger.info('Since stride=1, Saving %s', args.distances)
             Serializer.SaveData(args.assignments, assignments)
             Serializer.SaveData(args.distances, distances)
 

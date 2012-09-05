@@ -26,11 +26,11 @@ def die_if_path_exists(path):
     
     directory = os.path.split(path)[0]
     if len(directory) > 0 and not os.path.exists(directory):
-        logging.info('Creating directory %s', directory)
+        logger.info('Creating directory %s', directory)
         os.makedirs(directory)
     if os.path.exists(path):
         name = os.path.split(sys.argv[0])[1]
-        logging.error('%s: Error: %s already exists!. Exiting.', name, path)
+        logger.error('%s: Error: %s already exists!. Exiting.', name, path)
         sys.exit(1)
     
     return None
@@ -38,7 +38,7 @@ def die_if_path_exists(path):
 def ensure_path_exists(path):
     name = os.path.split(sys.argv[0])[1]
     if not os.path.exists(path):
-        logging.error("%s: Error: Can't find %s", name, path)
+        logger.error("%s: Error: Can't find %s", name, path)
         sys.exit(1)
     
 RESERVED = {'assignments': ('-a', 'Path to assignments file.', 'Data/Assignments.h5', str),
@@ -200,15 +200,17 @@ class ArgumentParser(object):
             print "#"*80
 
         namespace = self.parser.parse_args(args=args, namespace=namespace)
-        pprint(namespace.__dict__)
+
+        if print_banner:
+            pprint(namespace.__dict__)
+
+        if namespace.quiet:
+            # set the level of the root logger
+            logging.getLogger().setLevel(logging.WARNING)
 
         if self.get_metric: # if we want to get the metric, then we have to construct it
             metric = metric_parsers.construct_metric( namespace )
             return namespace, metric
-        
-        if namespace.quiet:
-            logger.setLevel(logging.WARNING)
-        
         return namespace
     
     def _typecast(self, namespace):

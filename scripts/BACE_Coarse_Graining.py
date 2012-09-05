@@ -52,7 +52,7 @@ import os
 import scipy.io
 import scipy.sparse
 import logging
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 
 def getInds(c, stateInds, chunkSize, isSparse, updateSingleState=None):

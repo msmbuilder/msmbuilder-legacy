@@ -28,7 +28,7 @@ from msmbuilder import transition_path_theory
 from msmbuilder import Serializer
 from msmbuilder import arglib
 import logging
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 def run(NFlux, A, B, n):
 
