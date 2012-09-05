@@ -6,7 +6,7 @@ VERSION="2.6.dev"
 __author__ = "MSMBuilder Team"
 __version__ = VERSION
 
-import os, sys
+import os, sys, shutil
 from copy import deepcopy
 from glob import glob
 # setuptools needs to come before numpy.distutils to get install_requires
@@ -42,7 +42,7 @@ def configuration(parent_package='',top_path=None):
                            package_path='src/python')
     config.set_options(assume_default_configuration=True,
                        delegate_options_to_subpackages=True,
-                       quiet=True)
+                       quiet=False)
 
     # add the scipts, so they can be called from the command line
     config.add_scripts([e for e in glob('scripts/*.py') if not e.endswith('__.py')])
@@ -79,8 +79,17 @@ def configuration(parent_package='',top_path=None):
                                            "-msse2","-msse3","-fopenmp"],
                      extra_link_args = ['-lgomp'],
                      include_dirs = [numpy.get_include(), os.path.join(numpy.get_include(), 'numpy')])
-    
-    for e in [xtc, dcd, rmsd]:
+
+    # lp rmsd
+    lprmsd = Extension('msmbuilder._lprmsd',
+                       sources = glob('src/ext/LPRMSD/*.c'),
+                       extra_compile_args = ["-std=c99","-O2",
+                                             "-msse2","-msse3","-Wno-unused","-fopenmp","-m64"],
+                       extra_link_args = ['-lcblas', '-lpthread', '-lm', '-lgomp'],
+                       include_dirs = ['/usr/include/', numpy.get_include(),
+                                       os.path.join(numpy.get_include(), 'numpy')])
+
+    for e in [xtc, dcd, rmsd, lprmsd]:
         config.ext_modules.append(e)
         
     # add all of the distance metrics with the same compile_args, link_args, etc
@@ -97,54 +106,7 @@ def configuration(parent_package='',top_path=None):
     
     return config
 
-def add_lprmsd_and_setup():
-    """LPRMSD depends on the C interface to BLAS, which is hard to find. This method
-    trys building it by looking in a few places sequentially."""
-
-    # the basic extension
-    lprmsd = Extension('msmbuilder._lprmsd',
-                       sources = glob('src/ext/LPRMSD/*.c'),
-                       extra_compile_args = ["-std=c99","-O2",
-                                             "-msse2","-msse3","-Wno-unused","-fopenmp","-m64"],
-                       extra_link_args = ['-lpthread', '-lm', '-lgomp'],
-                       include_dirs = [numpy.get_include(),
-                                       os.path.join(numpy.get_include(), 'numpy')])
-    
-    # the extra link lines we're going to try
-    attempts = [{'extra_link_args' : []},
-                {'extra_link_args': ['-latlas']},
-                {'extra_link_args': ['-lcblas']}]
-
-    failure = True
-
-    for group in attempts:
-        e = deepcopy(lprmsd)
-        if 'extra_link_args' in group:
-            e.extra_link_args.extend(group['extra_link_args'])
-        
-        try:
-            mymeta = deepcopy(metadata)
-            mymeta['ext_modules'] = [e]
-            mymeta['configuration'] = configuration
-            setup(**mymeta)
-            failure = False
-            break
-
-        except SystemExit as e:
-            pass
-
-    if failure:
-        print '\n' + '#'*70 + '\n'
-        print 'I could not compile the LPRMSD distance metric, which depends on the C'
-        print 'inteface to BLAS -- the basic linear algebra subroutines. (The fortran'
-        print 'interface is the more common code.'
-        print 'I tried using both "-latlas", and "-lcblas", along with not giving any'
-        print 'extra link line arguments, and only including the python libdir'
-        print '(%s)' %sysconfig.get_config_var('LIBDIR')
-        print 'which, on the Enthought python distribution (academic version), includes'
-        print 'Intel MKL shared object files'
-        print '\n' + '#'*70 + '\n'
-        
 
 if __name__ == '__main__':
-    add_lprmsd_and_setup()
+    metadata['configuration'] = configuration
+    setup(**metadata)
