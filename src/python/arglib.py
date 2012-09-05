@@ -5,6 +5,10 @@ from msmbuilder.Citation import CiteString
 from msmbuilder.metrics import parsers as metric_parsers
 from pprint import pprint
 import warnings
+import logging
+logger = logging.getLogger('arglib')
+
+
 
 def _iter_both_cases(string):
     """Iterate over the chars in a strings in both cases
