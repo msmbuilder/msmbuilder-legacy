@@ -26,7 +26,6 @@ import tables
 import os
 import scipy.sparse
 import numpy as np
-import warnings
 
 try:
     Filter=tables.Filters(complevel=9,complib='blosc',shuffle=True)
@@ -101,81 +100,7 @@ class Serializer(dict):
         F.close()
     
     @classmethod
-    def EnumChunksFromHDF(cls,Filename,loc="/",Stride=None,AtomIndices=None,ChunkSize=1000):
-        """Variation of the generic function to load HDF files to dict-like object
-        which enumerates chunks of the XYZList. This only really makes sense for 
-        trajectory objects.
-
-        This is a generic function for loading HDF files into dictionary-like
-        objects.  For each subclass, the constructor calls this function, which
-        loads all available data.  Then, the class-specific constructor makes a
-        few finishing touches.  The different if statements in this function
-        refer to exceptions in the way we load things from HDF5.  For example,
-        residues cannot be represented as simple arrays, so we have to dance a
-        bit to load them.  Similarly, IndexLists (a list of which atom indices
-        belong to which residue number) cannot be stored as a simple array, so
-        we store them as VLArrays (VL= Variable Length).
-        
-        Parameters
-        ----------
-        Filename : str
-            Path to resource on disk to load from
-        loc : str, option
-            Resource root in HDF file
-        
-        """
-        RestrictAtoms = False
-        SubsampleXYZList = False
-        if AtomIndices != None:
-            RestrictAtoms = True
-        if Stride != None:
-            warnings.warn("Stride does not work with enumerating chunks. Setting stride to 1")
-
-        A=Serializer()
-        F=tables.File(Filename,'r')
-        # load all the data other than XYZList
-        for d in F.listNodes(loc):
-            if d.name=='XYZList':
-                continue
-            if type(d)==tables.VLArray:
-                if RestrictAtoms:
-                    A[d.name] = [ [ i for i in row if (i in AtomIndices) ] for row in d.read() ]
-                else:
-                    A.update([[d.name,d.read()]])
-                continue
-            if d[:].size==1:
-                A[d.name]=d[:].item()
-                continue
-            if d.shape[0]==1: 
-                A[d.name]=np.array(d.read())
-                continue
-            if RestrictAtoms: # This is ResidueID, AtomNames, etc. or XYZList if not restricting atoms or striding.
-                A[d.name]=np.array(d[:])[:,AtomIndices]
-            else:
-                A[d.name]=d[:]
-
-        Shape = F.root.XYZList.shape
-        R0s = np.arange(0,Shape[0],ChunkSize)
-        R1s = np.concatenate( (R0s[1:], [Shape[0]]) )
-
-        A['SerializerFilename'] = os.path.abspath(Filename)
-
-        for r0,r1 in zip( R0s, R1s ):
-         #   print r0, r1
-            A['XYZList'] = np.array( F.root.XYZList.read( start=r0, stop=r1 ) )
-            if SubsampleXYZList:
-                A['XYZList'] = A['XYZList'][::Stride]
-            if RestrictAtoms:
-                A['XYZList'] = A['XYZList'][:, AtomIndices]
-
-            yield cls(A)
-            
-        F.close()
-
-        return 
-
-    @classmethod
-    def LoadFromHDF(cls,Filename,loc="/",Stride=None,AtomIndices=None):
+    def LoadFromHDF(cls,Filename,loc="/"):
         """Generic function to load HDF files to dict-like object
         
         This is a generic function for loading HDF files into dictionary-like
@@ -196,49 +121,20 @@ class Serializer(dict):
             Resource root in HDF file
         
         """
-        RestrictAtoms = False
-        SubsampleXYZList = False
-        if AtomIndices != None:
-            RestrictAtoms = True
-        if Stride != None:
-            SubsampleXYZList = True           
-        else: 
-            Stride=1
-
+        
         A=Serializer()
         F=tables.File(Filename,'r')
         for d in F.listNodes(loc):
-            if (d.name=='XYZList') and (RestrictAtoms or SubsampleXYZList): # then we have a trajectory and we want to subsample or use atomindices
-                n0 = d.shape[0]
-                n = Stride * 100
-                numChunks = int(n0 / n) + int(n0 % n)
-                if RestrictAtoms and SubsampleXYZList:
-                    A[d.name] = np.concatenate([ np.array(d.read(start=i*n,stop=(i+1)*n))[::Stride,AtomIndices] for i in xrange(numChunks) ])
-                    continue
-                elif RestrictAtoms and not SubsampleXYZList:
-                    A[d.name] = np.concatenate([ np.array(d.read(start=i*n,stop=(i+1)*n))[:,AtomIndices] for i in xrange(numChunks) ])
-                    continue
-                elif not RestrictAtoms and SubsampleXYZList:
-                    A[d.name] = np.concatenate([ np.array(d.read(start=i*n,stop=(i+1)*n))[::Stride] for i in xrange(numChunks) ])
-                    continue
-                else:
-                    print "Should not have gotten here..."
             if type(d)==tables.VLArray:
-                if RestrictAtoms:
-                    A[d.name] = [ [ i for i in row if (i in AtomIndices) ] for row in d.read() ]
-                else:
-                    A.update([[d.name,d.read()]])
+                A.update([[d.name,d.read()]])
                 continue
             if d[:].size==1:
                 A[d.name]=d[:].item()
                 continue
-            if d.shape[0]==1: 
+            if d.shape[0]==1:
                 A[d.name]=np.array(d.read())
                 continue
-            if RestrictAtoms: # This is ResidueID, AtomNames, etc. or XYZList if not restricting atoms or striding.
-                A[d.name]=np.array(d[:])[:,AtomIndices]
-            else:
-                A[d.name]=d[:]
+            A[d.name]=d[:]
         F.close()
         A['SerializerFilename'] = os.path.abspath(Filename)
         return(cls(A))
