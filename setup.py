@@ -92,7 +92,7 @@ def configuration(parent_package='',top_path=None):
     
     return config
 
-def setup_lprmsd():
+def add_lprmsd_and_setup():
     """LPRMSD depends on the C interface to BLAS, which is hard to find. This method
     trys building it by looking in a few places sequentially."""
 
@@ -120,7 +120,7 @@ def setup_lprmsd():
         try:
             mymeta = deepcopy(metadata)
             mymeta['ext_modules'] = [e]
-            mymeta['name'] = 'msmbuilder._lprmsd'
+            mymeta['configuration'] = configuration
             setup(**mymeta)
             failure = False
             break
@@ -142,8 +142,4 @@ def setup_lprmsd():
         
 
 if __name__ == '__main__':
-    metadata['configuration'] = configuration
-    setup(**metadata)
-    
-    # now that we're done compiling the main stuff, build LPRMSD
-    setup_lprmsd()
+    add_lprmsd_and_setup()
