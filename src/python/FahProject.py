@@ -29,7 +29,7 @@ except:
     pass
 
 from msmbuilder import Trajectory
-from msmbuilder.metrics.rmsd import RMSD
+from msmbuilder.metrics import RMSD
 from msmbuilder import Project
 from msmbuilder.utils import make_methods_pickable, keynat
 make_methods_pickable()
