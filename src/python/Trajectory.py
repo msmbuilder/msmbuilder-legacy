@@ -25,14 +25,14 @@ import tables
 import numpy as np
 
 from msmbuilder import PDB
-from schwancrtools.Conformation_crs import ConformationBaseClass
-#from msmbuilder.Serializer import Serializer
-from schwancrtools.Serializer_crs import Serializer
+from msmbuilder import Serializer
+from msmbuilder import ConformationBaseClass, Conformation
 from msmbuilder import xtc
 from msmbuilder import dcd
 import warnings
 
-MAXINT16=32766
+MAXINT16=np.iinfo(np.int16).max
+MAXINT32=np.iinfo(np.int32).max
 default_precision = 1000
 
 def _ConvertToLossyIntegers(X,Precision):
@@ -468,24 +468,26 @@ class Trajectory(ConformationBaseClass):
         # load all the data other than XYZList
 
         if RestrictAtoms:
-            A['AtomID'] = np.array( F.getNode('/AtomID')[:] ).astype(int)[:, AtomIndices]
-            A['AtomNames'] = np.array( F.getNode('/AtomNames')[:] )[:, AtomIndices]
-            A['ChainID'] = np.array( F.getNode('/ChainID')[:] )[:, AtomIndices]
-            A['ResidueID'] = np.array( F.getNode('/ResidueID')[:] ).astype(int)[:, AtomIndices]
-            A['ResidueNames'] = np.array( F.getNode('/ResidueNames')[:] )[:, AtomIndices]
+            A['AtomID'] = np.array( F.root.AtomID[AtomIndices], dtype=np.int32 )
+            A['AtomNames'] = np.array( F.root.AtomNames[AtomIndices] )
+            A['ChainID'] = np.array( F.root.ChainID[AtomIndices])
+            A['ResidueID'] = np.array( F.root.ResidueID[AtomIndices], dtype=np.int32 )
+            A['ResidueNames'] = np.array( F.root.ResidueNames[AtomIndices] )
 
             # IndexList is a VLArray, so we need to read the whole list with node.read() (same as node[:]) and then loop through each
-                # row (resiudue) and remove the atom indices that are not wanted
-            A['IndexList'] = [ [ i for i in row if (i in AtomIndices) ] for row in F.getNode('/IndexList')[:] ]
+                # row (residue) and remove the atom indices that are not wanted
+            A['IndexList'] = [ [ i for i in row if (i in AtomIndices) ] for row in F.root.IndexList[:] ]
             
         else:
-            A['AtomID'] = np.array( F.getNode('/AtomID')[:] ).astype(int)
-            A['AtomNames'] = np.array( F.getNode('/AtomNames')[:] )
-            A['ChainID'] = np.array( F.getNode('/ChainID')[:] )
-            A['ResidueID'] = np.array( F.getNode('/ResidueID')[:] ).astype(int)
-            A['ResidueNames'] = np.array( F.getNode('/ResidueNames')[:] )
+            A['AtomID'] = np.array( F.root.AtomID[:], dtype=np.int32 )
+            A['AtomNames'] = np.array( F.root.AtomNames[:] )
+            A['ChainID'] = np.array( F.root.ChainID[:])
+            A['ResidueID'] = np.array( F.root.ResidueID[:], dtype=np.int32 )
+            A['ResidueNames'] = np.array( F.root.ResidueNames[:] )
             
-            A['IndexList'] = F.getNode('/ResidueNames')[:]
+            A['IndexList'] = F.root.IndexList[:]
+
+        A['SerializerFilename'] = os.path.abspath(TrajFilename)
 
         # Loaded everything except XYZList
 
@@ -493,14 +495,12 @@ class Trajectory(ConformationBaseClass):
         begin_range_list = np.arange(0,Shape[0],ChunkSize) 
         end_range_list = np.concatenate( (begin_range_list[1:], [Shape[0]]) )
 
-        A['SerializerFilename'] = os.path.abspath(TrajFilename)
-
         for r0,r1 in zip( begin_range_list, end_range_list ):
 
-            A['XYZList'] = np.array( F.root.XYZList.read( start=r0, stop=r1, step=Stride ) )
-
             if RestrictAtoms:
-                A['XYZList'] = A['XYZList'][:, AtomIndices]
+                A['XYZList'] = np.array( F.root.XYZList[ r0 : r1 : Stride, AtomIndices ] )
+            else:
+                A['XYZList'] = np.array( F.root.XYZList[ r0 : r1 : Stride ] )
 
             yield cls(A)
 
@@ -509,9 +509,9 @@ class Trajectory(ConformationBaseClass):
         return
 
     @classmethod
-    def EnumChunksFromLHDF(cls, TrajFilename, Precision=default_precision, Stride=None, AtomIndices=None):
+    def EnumChunksFromLHDF(cls, TrajFilename, Precision=default_precision, Stride=None, AtomIndices=None, ChunkSize=100000):
         
-        for A in cls.EnumChunksFromHDF( TrajFilename, Stride, AtomIndices ):
+        for A in cls.EnumChunksFromHDF( TrajFilename, Stride, AtomIndices, ChunkSize ):
             A['XYZList'] = _ConvertFromLossyIntegers( A['XYZList'], Precision )
             yield A
 
@@ -521,11 +521,7 @@ class Trajectory(ConformationBaseClass):
     def LoadFromHDF(cls, TrajFilename, JustInspect=False, Stride=None, AtomIndices=None ):
         
         if not JustInspect:
-            temp_xyzlist = []
-            for A in cls.EnumChunksFromHDF( TrajFilename, Stride=Stride, AtomIndices=AtomIndices ):
-                temp_xyzlist.extend( A['XYZList'] )
-
-            A['XYZList'] = np.array( temp_xyzlist )
+            A = list( cls.EnumChunksFromHDF( TrajFilename, Stride=Stride, AtomIndices=AtomIndices, ChunkSize=MAXINT32 ) )[0]
             return A
 
         else:
