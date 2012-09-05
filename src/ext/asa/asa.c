@@ -6,10 +6,11 @@
 #endif
 
 
-inline float euclidean3(const float* v1, const float* v2) {
-    return sqrt((v1[0] - v2[0])*(v1[0] - v2[0]) + 
-                (v1[1] - v2[1])*(v1[1] - v2[1]) +
-                (v1[2] - v2[2])*(v1[2] - v2[2]));
+static inline float euclidean3(const float* v1, const float* v2) {
+    float d0 = v1[0] - v2[0];
+    float d1 = v1[1] - v2[1];
+    float d2 = v1[2] - v2[2];   
+    return sqrt(d0*d0 + d1*d1 + d2*d2);
 }
 
 void asa_frame(const float* frame, const int n_atoms, const float* atom_radii,
@@ -172,7 +173,7 @@ void asa_trajectory(const float* xyzlist, const int n_frames, const int n_atoms,
     
     #pragma omp parallel private(wb1, wb2)
     {
-        // malloc the work buffers for eah thred
+        // malloc the work buffers for each thread
         wb1 = (int*) malloc(n_atoms*sizeof(int));
         wb2 = (float*) malloc(3*n_sphere_points*sizeof(float));
 

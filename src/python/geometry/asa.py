@@ -28,7 +28,7 @@ ATOMIC_RADII = {'H': 0.120, 'N': 0.155, 'NA': 0.227,
                 'ZN': 0.139, 'HG': 0.18, 'XE': 0.18,
                 'AU': 0.18, 'LI': 0.18, '.': 0.18 }
 
-def annoate_traj_with_radii(traj):
+def annotate_traj_with_radii(traj):
     """Add the key 'Radius' to traj, with the van Der Waals radii of the atoms
 
     Acts in place
@@ -68,8 +68,8 @@ def calculate_asa(traj, probe_radius=0.14, n_sphere_points=960):
         The accessible surface area of each atom in every frame
     """
     if not traj.has_key("Radius"):
-        annoate_traj_with_radii(traj)
-    annoate_traj_with_radii(traj)
+        annotate_traj_with_radii(traj)
+    annotate_traj_with_radii(traj)
     
     xyzlist = traj['XYZList']
     atom_radii = (traj['Radius'] + probe_radius).astype(np.float32)
