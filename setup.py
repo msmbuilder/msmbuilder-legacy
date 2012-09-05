@@ -82,7 +82,7 @@ def configuration(parent_package='',top_path=None):
     dist = Extension('msmbuilder._distance_wrap', sources=glob('src/ext/scipy_distance/*.c'))
     dihedral = Extension('msmbuilder._dihedral_wrap', sources=glob('src/ext/dihedral/*.c'))
     contact = Extension('msmbuilder._contact_wrap', sources=glob('src/ext/contact/*.c'))
-    rg = Extension('msmbuilder._rg_wrap', sources=glob('src/ext/dihedral/*.c'))
+    rg = Extension('msmbuilder._rg_wrap', sources=glob('src/ext/rg/*.c'))
 
     for ext in [dist, dihedral, contact, rg]:
         ext.extra_compile_args = ["-O3", "-fopenmp", "-Wall"]
