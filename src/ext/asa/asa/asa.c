@@ -6,10 +6,11 @@
 #endif
 
 
-inline float euclidean3(const float* v1, const float* v2) {
-    return sqrt((v1[0] - v2[0])*(v1[0] - v2[0]) + 
-                (v1[1] - v2[1])*(v1[1] - v2[1]) +
-                (v1[2] - v2[2])*(v1[2] - v2[2]));
+static inline float euclidean3(const float* v1, const float* v2) {
+    float d0 = v1[0] - v2[0];
+    float d1 = v1[1] - v2[1];
+    float d2 = v1[2] - v2[2];   
+    return sqrt(d0*d0 + d1*d1 + d2*d2);
 }
 
 void asa_frame(const float* frame, const int n_atoms, const float* atom_radii,
@@ -52,9 +53,21 @@ void asa_frame(const float* frame, const int n_atoms, const float* atom_radii,
         // Get all the atoms close to atom `i`
         n_neighbor_indices = 0;
         for (j = 0; j < n_atoms; j++) {
-            if (i != j && euclidean3(frame+i*3, frame+j*3) < atom_radii[i] + atom_radii[j]) {
+            if (i == j) {
+              continue;
+            }
+            
+            r = euclidean3(frame+i*3, frame+j*3);
+            if (r < atom_radii[i] + atom_radii[j]) {
                 neighbor_indices[n_neighbor_indices]  = j;
                 n_neighbor_indices++;
+            }
+            
+            if (r < 1.9e-5) {
+              printf("ERROR: THIS CODE IS KNOWN TO FAIL WHEN ATOMS ARE VIRTUALLY");
+              printf("ON TOP OF ONE ANOTHER. YOU SUPPLIED TWO ATOMS %f", r);
+              printf("APART. QUITTING NOW");
+              exit(1);
             }
         }
         
@@ -125,9 +138,8 @@ void generate_sphere_points(float* sphere_points, int n_points) {
 }
 
 
-void asa_trajectory(const float* xyzlist, const int n_frames, const int n_atoms,
-                   const float* atom_radii, const int n_sphere_points,
-                   float* array_of_areas) {
+void asa_trajectory(const int n_frames, const int n_atoms, const float* xyzlist,
+		    const float* atom_radii, const int n_sphere_points, float* array_of_areas){
     // Calculate the accessible surface area of each atom in each frame of
     // a trajectory
     // 
@@ -160,7 +172,7 @@ void asa_trajectory(const float* xyzlist, const int n_frames, const int n_atoms,
     
     #pragma omp parallel private(wb1, wb2)
     {
-        // malloc the work buffers for eah thred
+        // malloc the work buffers for each thread
         wb1 = (int*) malloc(n_atoms*sizeof(int));
         wb2 = (float*) malloc(3*n_sphere_points*sizeof(float));
 
