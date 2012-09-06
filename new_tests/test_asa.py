@@ -2,12 +2,9 @@ import os, sys
 import numpy as np
 import numpy.testing as npt
 from nose.tools import ok_, eq_
-
 from common import fixtures_dir
-
 from msmbuilder import Trajectory
 
-from msmbuilder.geometry.reference_asa import calculate_asa as reference_asa
 from msmbuilder.geometry.asa import calculate_asa, ATOMIC_RADII
 
 
@@ -52,7 +49,7 @@ def test_asa_2():
     t = Trajectory.LoadTrajectoryFile(os.path.join(fixtures_dir(), 'trj0.lh5'))
     val1 = np.sum(calculate_asa(t[0])) # calculate only frame 0
     val2 = np.sum(calculate_asa(t)[0]) # calculate on all frames
-    true_frame_0_asa = 3.55564826906
+    true_frame_0_asa = 2.859646797180176
     
     npt.assert_approx_equal(true_frame_0_asa, val1)
     npt.assert_approx_equal(true_frame_0_asa, val2)
