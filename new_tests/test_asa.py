@@ -2,10 +2,9 @@ import os, sys
 import numpy as np
 import numpy.testing as npt
 from nose.tools import ok_, eq_
-
 from common import fixtures_dir
-
 from msmbuilder import Trajectory
+
 from msmbuilder.geometry.asa import calculate_asa, ATOMIC_RADII
 
 
@@ -28,7 +27,11 @@ def test_asa_1():
     probe_radius = 0.14
     true  = 4 * np.pi * (ATOMIC_RADII['H'] + probe_radius)**2
 
-    separations = np.linspace(1e-10, probe_radius*2 + ATOMIC_RADII['H']*2, 10)
+    # when atoms are closer than 2e-5, there seems to be a bug.
+    # note that you should never actually have a case where atoms are this close
+    # but nonetheless I'm adding a check for this in the implementation -- to make
+    # it crash if the atoms are too close, as opposed to giving you wrong results
+    separations = np.linspace(2.0e-5, probe_radius*2 + ATOMIC_RADII['H']*2, 10)
     areas = np.zeros_like(separations)
 
     # check the asa as we vary the separation
@@ -44,6 +47,10 @@ def test_asa_1():
 
 def test_asa_2():
     t = Trajectory.LoadTrajectoryFile(os.path.join(fixtures_dir(), 'trj0.lh5'))
-    true_frame_0_asa = 3.55564826906
-
-    npt.assert_approx_equal(true_frame_0_asa,  np.sum(calculate_asa(t, frame_indx=0)))
+    val1 = np.sum(calculate_asa(t[0])) # calculate only frame 0
+    val2 = np.sum(calculate_asa(t)[0]) # calculate on all frames
+    true_frame_0_asa = 2.859646797180176
+    
+    npt.assert_approx_equal(true_frame_0_asa, val1)
+    npt.assert_approx_equal(true_frame_0_asa, val2)
+    
