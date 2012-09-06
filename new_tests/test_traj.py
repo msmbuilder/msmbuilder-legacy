@@ -14,9 +14,10 @@ def test_traj_0():
     stride = np.random.randint(1, 100 )
     
     r_traj = Trajectory.LoadFromLHDF( os.path.join( fixtures_dir(), 'trj0.lh5' ), Stride=1 )
+
     r_traj.RestrictAtomIndices( aind )
 
-    r_traj['XYZList'] = r_traj['XYZList'][ ::stride, aind ]
+    r_traj['XYZList'] = r_traj['XYZList'][ ::stride ]
 
     traj = Trajectory.LoadFromLHDF( os.path.join( fixtures_dir(), 'trj0.lh5' ), Stride = stride, AtomIndices = aind )
 
