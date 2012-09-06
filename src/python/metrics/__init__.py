@@ -14,4 +14,4 @@ from baseclasses import AbstractDistanceMetric
 from lprmsd import LPRMSD
 from rmsd import RMSD
 from dihedral import Dihedral
-from contact import BooleanContact, AtomPairs
+from contact import BooleanContact, AtomPairs, ContinuousContact

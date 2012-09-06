@@ -137,7 +137,7 @@ class ArgumentParser(object):
 
         self.parser = argparse.ArgumentParser(*args, **kwargs)
 
-        self.parser.add_argument('-q','--quiet',dest='quiet',help='[ CURRENTLY NOT IMPLEMENTED ]. Pass this flag to run in quiet mode.',default=False,action='store_true')
+        self.parser.add_argument('-q','--quiet',dest='quiet',help='Pass this flag to run in quiet mode.',default=False,action='store_true')
 
         if self.get_metric:
             metric_parsers.add_metric_parsers( self )
