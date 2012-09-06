@@ -17,7 +17,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-import sys
 import os
 import numpy as np
 import scipy.io
@@ -27,17 +26,19 @@ from msmbuilder.transition_path_theory import GetFCommittors
 from msmbuilder.transition_path_theory import GetNetFlux
 
 from msmbuilder import arglib
+import logging
+logger = logging.getLogger(__name__)
 
 def run(TC, Uv, Fv, Populations):
 
     # Get committors and flux
-    print "Getting committors and flux..."
-    Bc = GetBCommittors(Uv, Fv, TC, Populations, maxiter=100000, X0=None, Dense=False)
-    print "Calculated reverse committors."
-    Fc = GetFCommittors(Uv, Fv, TC, maxiter=100000, X0=None, Dense=False)
-    print "Calculated forward committors."
+    logger.info("Getting committors and flux...")
+    Bc = GetBCommittors(Uv, Fv, TC, Populations,  Dense=False)
+    logger.info("Calculated reverse committors.")
+    Fc = GetFCommittors(Uv, Fv, TC,  Dense=False)
+    logger.info("Calculated forward committors.")
     NFlux = GetNetFlux(Populations, Fc, Bc, TC)
-    print "Calculated net flux."
+    logger.info("Calculated net flux.")
     
     return Bc, Fc, NFlux
 
@@ -82,4 +83,4 @@ if __name__ == "__main__":
     np.savetxt(output_flist[0], Bc)
     np.savetxt(output_flist[1], Fc)
     scipy.io.mmwrite(output_flist[2], NFlux)
-    print "Wrote: %s" % ', '.join(output_flist)
+    logger.info("Saved output to %s", ', '.join(output_flist))

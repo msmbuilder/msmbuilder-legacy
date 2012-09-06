@@ -1,8 +1,9 @@
 import sys, os
 import numpy as np
-from schwancrtools.Serializer_crs import Serializer
-from schwancrtools.Trajectory_crs import Trajectory
-from schwancrtools import sshfs_tools
+from msmbuilder.Serializer import Serializer
+from msmbuilder.Trajectory import Trajectory
+import logging
+logger = logging.getLogger('assigning')
 
 def _setup_containers(assignments_path, distances_path, num_trajs, longest):
     "helper method"
@@ -28,7 +29,7 @@ def _setup_containers(assignments_path, distances_path, num_trajs, longest):
             completed_trajectories = (all_assignments[:,0] >= 0)
         
     else:
-        print "Creating serializer containers"
+        logger.info("Creating serializer containers")
         completed_trajectories = np.array([False] * num_trajs)
         Serializer({'Data': all_assignments,
                     'completed_trajectories': completed_trajectories
@@ -78,9 +79,9 @@ def assign_with_checkpoint(metric, project, generators, assignments_path, distan
     
     for i in xrange(project['NumTrajs']):
         if completed_trajectories[i]:
-            print 'Skipping trajectory %d -- already assigned' % i
+            logger.info('Skipping trajectory %s -- already assigned', i)
             continue
-        print 'Assigning trajectory %d' % i
+        logger.info('Assigning trajectory %s', i)
         
         ptraj = metric.prepare_trajectory(project.LoadTraj(i))
         distances = -1 * np.ones(len(ptraj), dtype=np.float32)
@@ -104,10 +105,6 @@ def assign_with_checkpoint(metric, project, generators, assignments_path, distan
             os.rename(assignments_tmp, assignments_path)
             os.rename(distances_tmp, distances_path)
 
-        if ((i+1)%10):
-            sshfs_tools.remount()
-
-    sshfs_tools.remount()
     return all_assignments, all_distances
 
 def streaming_assign_with_checkpoint(metric, project, generators, assignments_path, distances_path, checkpoint=1,chunk_size=10000):
@@ -122,6 +119,11 @@ def streaming_assign_with_checkpoint(metric, project, generators, assignments_pa
 
     This version is the same as the original assign_with_checkpoint function, except that 
     it streams through each trajectory rather than loading the entire trajectory at a time"""
+
+    if not project['TrajFileType'] in ['.lh5', '.h5']:
+        warnings.warn("Streaming assign currently only works with .lh5 or .h5 files.")
+        return assign_with_checkpoint( metric, project, generators, assignments_path, distances_path, checkpoint )
+
     pgens = metric.prepare_trajectory(generators)
     
     num_gens = len(pgens)
@@ -167,10 +169,6 @@ def streaming_assign_with_checkpoint(metric, project, generators, assignments_pa
             os.rename(assignments_tmp, assignments_path)
             os.rename(distances_tmp, distances_path)
 
-        if ((i+1)%10):
-            sshfs_tools.remount()
-
-    sshfs_tools.remount()
     return all_assignments, all_distances
 
     

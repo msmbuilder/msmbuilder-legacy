@@ -26,6 +26,9 @@ import numpy
 from msmbuilder import arglib
 from msmbuilder import Serializer
 
+import logging
+logger = logging.getLogger(__name__)
+
 def run(args):
     assignFn, rmsdFn, MinState, MaxState = args
     Assignments = Serializer.LoadData(assignFn)
@@ -37,10 +40,13 @@ def run(args):
     radii = numpy.zeros(NumStates)
 
     for i in range(MinState, MaxState):
-        print "Calculating radius of state:", i
+        logger.info("Calculating radius of state: %s", i)
         snapshots = numpy.where(Assignments == i)[0]
-        if len(snapshots) > 0: radii[i] = RMSDs[snapshots].mean()
-        else: radii[i] = -1; print "WARNING: No assignments found for cluster:", i
+        if len(snapshots) > 0:
+            radii[i] = RMSDs[snapshots].mean()
+        else:
+            radii[i] = -1
+            logger.warning("No assignments found for cluster %s", i)
 
     return radii
 
@@ -72,7 +78,7 @@ generator in nm.""")
     NumStates = Serializer.LoadData(args.assignments).max() + 1
     StateRange = NumStates / args.procs
     for k in range(args.procs):
-        print "Partition:", k, "Range:", k * StateRange, (k + 1) * StateRange - 1
+        logger.info("Partition: %s Range: %s - %s", k, k * StateRange, (k + 1) * StateRange - 1)
         MinStates.append(k*StateRange)
         MaxStates.append((k + 1) * StateRange - 1)
     MaxStates[-1] = NumStates #Ensure that we go to the end
@@ -82,10 +88,10 @@ generator in nm.""")
     result = pool.map_async(run, input)
     result.wait()
     radii = result.get()
-
-    #print radii
+    
     radii = numpy.array(radii).sum(axis=0)
-    assert len(radii) == NumStates
+    if not len(radii) == NumStates:
+        raise ValueError('mismatch')
 
     numpy.savetxt(args.output, radii)
-    print "Wrote:", args.output
+    logger.info("Wrote: %s", args.output)

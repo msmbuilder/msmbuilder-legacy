@@ -25,6 +25,8 @@ from msmbuilder import Serializer
 from msmbuilder import MSMLib
 from msmbuilder import lumping
 from msmbuilder import arglib
+import logging
+logger = logging.getLogger(__name__)
 
 float_or_none = lambda s: None if s.lower() == 'none' else float(s)
 
@@ -33,7 +35,7 @@ def run_pcca(num_macrostates, assignments, tProb, output_dir):
     MacroMapFn = os.path.join(output_dir, "MacroMapping.dat")
     arglib.die_if_path_exists([MacroAssignmentsFn, MacroMapFn])
 
-    print "Running PCCA..."
+    logger.info("Running PCCA...")
     MAP = lumping.PCCA(tProb, num_macrostates)
 
     # MAP the new assignments and save, make sure don't
@@ -43,7 +45,7 @@ def run_pcca(num_macrostates, assignments, tProb, output_dir):
     np.savetxt(MacroMapFn, MAP, "%d")
     Serializer.SaveData(MacroAssignmentsFn,assignments)
     
-    print "Wrote: {af}, {mf}".format(af=MacroAssignmentsFn, mf=MacroMapFn)
+    logger.info("Saved output to: %s, %s", MacroAssignmentsFn, MacroMapFn)
     
 def run_pcca_plus(num_macrostates, assignments, tProb, output_dir, flux_cutoff=0.0,objective_function="crispness",do_minimization=True):
     MacroAssignmentsFn = os.path.join(output_dir, "MacroAssignments.h5")
@@ -52,7 +54,7 @@ def run_pcca_plus(num_macrostates, assignments, tProb, output_dir, flux_cutoff=0
     AFn = os.path.join(output_dir, 'A.dat')
     arglib.die_if_path_exists([MacroAssignmentsFn, MacroMapFn, ChiFn, AFn])
     
-    print "Running PCCA+..."
+    logger.info("Running PCCA+...")
     A, chi, vr, MAP = lumping.pcca_plus(tProb, num_macrostates, flux_cutoff=flux_cutoff,
         do_minimization=do_minimization, objective_function=objective_function)
 
@@ -62,7 +64,7 @@ def run_pcca_plus(num_macrostates, assignments, tProb, output_dir, flux_cutoff=0
     np.savetxt(AFn, A)
     np.savetxt(MacroMapFn, MAP,"%d")
     Serializer.SaveData(MacroAssignmentsFn, assignments)
-    print '\nWrote %s' % ', '.join([ChiFn, AFn, MacroMapFn, MacroAssignmentsFn])
+    logger.info('Saved output to: %s, %s, %s, %s', ChiFn, AFn, MacroMapFn, MacroAssignmentsFn)
 
 
 if __name__ == "__main__":
