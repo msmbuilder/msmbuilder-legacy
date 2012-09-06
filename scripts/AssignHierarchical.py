@@ -21,23 +21,31 @@ import sys, os
 from msmbuilder import Serializer
 from msmbuilder.clustering import Hierarchical
 from msmbuilder import arglib
+import logging
+logger = logging.getLogger(__name__)
 
-if __name__ == "__main__":
+def main():
     parser = arglib.ArgumentParser(description='Assign data using a hierarchical clustering')
-    parser.add_argument('hierarichal_clustering_zmatrix', default='./Data/Zmatrix.h5', 
-        description='Path to hierarchical clustering zmatrix', type=Hierarchical.load_from_disk)
-    parser.add_argument('num_states', description='Number of States', default='none')
-    parser.add_argument('cutoff_distance', description='Maximum cophenetic distance', default='none')
+    parser.add_argument('hierarchical_clustering_zmatrix', default='./Data/Zmatrix.h5', 
+        description='Path to hierarchical clustering zmatrix' )
+    parser.add_argument('num_states', help='Number of States', default='none')
+    parser.add_argument('cutoff_distance', help='Maximum cophenetic distance', default='none')
     parser.add_argument('assignments', type=str)
     args = parser.parse_args()
     
     k = int(args.num_states) if args.num_states != 'none' else None
     d = float(args.cutoff_distance) if args.cutoff_distance != 'none' else None
     if k is None and d is None:
-        print >> sys.stderr, '%s: Error: You need to supply either a number of states or a cutoff distance' % (os.path.split(sys.argv[0])[1])
+        logger.error('You need to supply either a number of states or a cutoff distance')
         sys.exit(1)
+    
     arglib.die_if_path_exists(args.assignments)
     
-    assignments = args.hierarichal_clustering_zmatrix.get_assignments(k=k, cutoff_distance=d)
+    assignments = hierarchical_clustering_zmatrix.get_assignments(k=k, cutoff_distance=d)
     
     Serializer.SaveData(args.assignments, assignments)
+    logger.info('Saved assignments to %s', args.assignments)
+    
+if __name__ == "__main__":
+    main()
+

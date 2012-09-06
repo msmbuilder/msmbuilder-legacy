@@ -23,11 +23,14 @@ import os
 from msmbuilder import Project
 from msmbuilder import Serializer
 from msmbuilder import arglib
+import logging
+logger = logging.getLogger(__name__)
 
 def run(project, assignments, num_confs_per_state, output, format):
     arglib.die_if_path_exists(output)
     num_states = max(assignments.flatten()) + 1
-    print "Pulling", num_confs_per_state, "for each of", num_states
+    logger.info("Pulling %s confs for each of %s confs", num_confs_per_state, num_states)
+    
     random_confs = project.GetRandomConfsFromEachState(assignments, num_states, num_confs_per_state)
     
     if format == 'pdb':
@@ -38,9 +41,9 @@ def run(project, assignments, num_confs_per_state, output, format):
         random_confs.SaveToXTC(output)
     else:
         raise ValueError('Unrecognized format')
-    print "Wrote output to:", output
-
-    return
+   
+    logger.info("Saved output to %s", output)
+    
 
 
 if __name__ == "__main__":
@@ -53,12 +56,12 @@ the first N conformations are from cluster 0, the next N from cluster 1, etc.
 Output default: XRandomConfs.lh5, where X=Number of Conformations.""")
     parser.add_argument('project')
     parser.add_argument('assignments', default='Data/Assignments.Fixed.h5')
-    parser.add_argument('output', description="""The name of the RandomConfs
+    parser.add_argument('output', help="""The name of the RandomConfs
         trajectory (.lh5) to write. XRandomConfs.lh5, where X=Number of
         Conformations.""", default='XRandomConfs')
-    parser.add_argument('conformations_per_state', description='''Number of
+    parser.add_argument('conformations_per_state', help='''Number of
         conformations to randomly sample from your data per state''', type=int)
-    parser.add_argument('format', description='''Format to output the data in. Note
+    parser.add_argument('format', help='''Format to output the data in. Note
         that the PDB format is uncompressed and not efficient. For XTC, you can view
         the trajectory using your project's topology file''', default='lh5',
         choices=['pdb', 'xtc', 'lh5'])    

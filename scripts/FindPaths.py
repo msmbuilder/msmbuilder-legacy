@@ -27,6 +27,8 @@ import scipy.io
 from msmbuilder import transition_path_theory
 from msmbuilder import Serializer
 from msmbuilder import arglib
+import logging
+logger = logging.getLogger(__name__)
 
 def run(NFlux, A, B, n):
 
@@ -53,22 +55,20 @@ Returns: an HDF5 file (default: Paths.h5), which contains three items:
 
 Paths.h5 can be read by RenderPaths.py which generates a .dot file capturing these paths.""")
     
-    parser.add_argument('number', description='''Number of pathways you want
+    parser.add_argument('number', help='''Number of pathways you want
         to retreive''', type=int)
-    parser.add_argument('flux_matrix', description='Net flux matrix from DoTPT.py',
-        default='NFlux.mtx', type=scipy.io.mmread)
-    parser.add_argument('starting', description='''Vector of states in the
-        starting/reactants/unfolded ensemble.''', default='U_states.dat',
-        type=arglib.LoadTxtType(dtype=int))
-    parser.add_argument('ending', description='''Vector of states in the
-        ending/products/folded ensemble.''', default='F_states.dat',
-        type=arglib.LoadTxtType(dtype=int))
+    parser.add_argument('flux_matrix', help='Net flux matrix from DoTPT.py',
+        default='NFlux.mtx')
+    parser.add_argument('starting', help='''Vector of states in the
+        starting/reactants/unfolded ensemble.''', default='U_states.dat')
+    parser.add_argument('ending', help='''Vector of states in the
+        ending/products/folded ensemble.''', default='F_states.dat')
     parser.add_argument('output', default='Paths.h5')
     args = parser.parse_args()
     
-    F = args.ending
-    U = args.starting
-    
+    F = np.loadtxt( args.ending ).astype(int)
+    U = np.loadtxt( args.starting ).astype(int)
+    flux_matrix = scipy.io.mmread( args.flux_matrix )
     # deal with case where have single start or end state
     if F.shape == ():
         tmp = np.zeros(1, dtype=int)
@@ -80,9 +80,9 @@ Paths.h5 can be read by RenderPaths.py which generates a .dot file capturing the
         U = tmp.copy()
     
     arglib.die_if_path_exists(args.output)
-    paths, bottlenecks, fluxes = run(args.flux_matrix, U, F, args.number)
+    paths, bottlenecks, fluxes = run(flux_matrix, U, F, args.number)
     
     Serializer({'Paths': paths,
                            'Bottlenecks': bottlenecks,
                            'fluxes': fluxes}).SaveToHDF(args.output)
-    print '\nSaved to %s' % args.output
+    logger.info('Saved output to %s', args.output)

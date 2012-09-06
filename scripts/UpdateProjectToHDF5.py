@@ -25,20 +25,22 @@ from msmbuilder import CreateMergedTrajectoriesFromFAH
 from msmbuilder import Serializer
 from msmbuilder import Project
 from msmbuilder import arglib
+import logging
+logger = logging.getLogger(__name__)
 
 
 def run(atomindicesFn, pdbFn, trajlistFn, datatype):
-    print "WARNING: This script assumes you have already removed duplicate frames from your input trajectories if they exist."
+    logger.warning("This script assumes you have already removed duplicate frames from your input trajectories if they exist.")
 
     # check directory structure
     if os.path.exists("Data/Assignments.h5"):
-        print "Data/Assignments.h5 already exists.  If you really want to recreate it, then delete Data/Assignments.h5 and re-run this script."
+        logger.error("Data/Assignments.h5 already exists.  If you really want to recreate it, then delete Data/Assignments.h5 and re-run this script.")
         sys.exit(0)
     if os.path.exists("ProjectInfo.h5"):
-        print "ProjectInfo.h5 already exists.  If you really want to recreate it, then delete ProjectInfo.h5 and re-run this script."
+        logger.error("ProjectInfo.h5 already exists.  If you really want to recreate it, then delete ProjectInfo.h5 and re-run this script.")
         sys.exit(0)
     if os.path.exists("Trajectories/trj0.%s" % datatype):
-        print "WARNING: The trajectories seem to have been converted to the desired format already.  This script will now assume the contents of the Trajectories directory are valid  If this is not the case, then you should delete or rename your Trajectories directory and re-run this script."
+        logger.warning("The trajectories seem to have been converted to the desired format already.  This script will now assume the contents of the Trajectories directory are valid  If this is not the case, then you should delete or rename your Trajectories directory and re-run this script.")
     # don't make Trajectories directory because done later in CreateMergedTrajectories method call
     if not os.path.exists("Data"):
         os.mkdir("Data")
@@ -52,7 +54,7 @@ def run(atomindicesFn, pdbFn, trajlistFn, datatype):
     f.close()
 
     # find maximum length of any trajectory
-    print "Converting assignments to hdf5."
+    logger.info("Converting assignments to hdf5.")
     maxLen = 0
     nMicro = 0
     LenList = []
@@ -103,16 +105,20 @@ def run(atomindicesFn, pdbFn, trajlistFn, datatype):
 
     # setup trajectories
     firstTrajFile = os.path.join("trajectories", trajList[0])
-    print firstTrajFile
+    logger.info(firstTrajFile)
     if not os.path.exists(firstTrajFile ):
-        print "No trajectory data found, no trajectory conversions to be done."
+        logger.warning("No trajectory data found, no trajectory conversions to be done.")
 
-        print("Creating Project File based on assignments")
-        DictContainer={"TrajLengths":numpy.array(LenList),"TrajFilePath":"Trajectories","TrajFileBaseName":"trj","TrajFileType":".lh5","ConfFilename":pdbFn}
-        P1=Project(DictContainer)
+        logger.info("Creating Project File based on assignments")
+        DictContainer = {"TrajLengths": numpy.array(LenList),
+                        "TrajFilePath": "Trajectories",
+                        "TrajFileBaseName": "trj",
+                        "TrajFileType": ".lh5",
+                        "ConfFilename": pdbFn}
+        P1 = Project(DictContainer)
         P1.SaveToHDF("ProjectInfo.h5")
     else:
-        print "Found trajectory data. Moving old trajectories directory to one called old_trajectories and converting to %s files in new Trajectories directory." % datatype
+        logger.warning("Found trajectory data. Moving old trajectories directory to one called old_trajectories and converting to %s files in new Trajectories directory.", datatype)
         os.system("mv trajectories old_trajectories")
         listOfXtcLists = []
         for traj in trajList:
@@ -124,10 +130,11 @@ def run(atomindicesFn, pdbFn, trajlistFn, datatype):
                 trajPartList.append("old_"+trajPartName+".xtc")
             f.close()
             listOfXtcLists.append(trajPartList)
-        print listOfXtcLists
+
+        logger.info('xtcs: %s', listOfXtcLists)
         CreateMergedTrajectoriesFromFAH.CreateMergedTrajectories(pdbFn, listOfXtcLists, AtomIndices=atomInd)
 
-        print("Creating Project File")
+        logger.info("Creating Project File")
         P1=Project.CreateProjectFromDir(ConfFilename=pdbFn,TrajFileType="."+datatype)
 
 if __name__ == "__main__":
@@ -140,8 +147,8 @@ if __name__ == "__main__":
     the clustering stages.  This because the atom numbers will change upon sub-selection.""")
     parser.add_argument('atom_indices', 'Path to atom indices file for RMSD')
     parser.add_argument('pdb')
-    parser.add_argument('trajlist', description='Path to MSMBuilder1-style trajlist')
-    parser.add_argument('datatype', description='Format to store data in.',
+    parser.add_argument('trajlist', help='Path to MSMBuilder1-style trajlist')
+    parser.add_argument('datatype', help='Format to store data in.',
         choices=['lh5', 'h5', 'xtc'], default='lh5')
     args = parser.parse_args()
 

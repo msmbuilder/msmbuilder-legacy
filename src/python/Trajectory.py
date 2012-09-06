@@ -25,13 +25,17 @@ import tables
 import numpy as np
 
 from msmbuilder import PDB
-from msmbuilder import ConformationBaseClass, Conformation
 from msmbuilder import Serializer
+from msmbuilder import ConformationBaseClass, Conformation
 from msmbuilder import xtc
 from msmbuilder import dcd
+import warnings
 
+import logging
+logger = logging.getLogger('Trajectory')
 
-MAXINT16=32766
+MAXINT16=np.iinfo(np.int16).max
+MAXINT32=np.iinfo(np.int32).max
 default_precision = 1000
 
 def _ConvertToLossyIntegers(X,Precision):
@@ -44,7 +48,7 @@ def _ConvertToLossyIntegers(X,Precision):
         X*=float(Precision)
         Rounded=X.astype("int32")
         X/=float(Precision)
-        print("Data range too large for int16: try removing center of mass motion, check for 'blowing up, or just use .h5 or .xtc format.'")
+        logger.error("Data range too large for int16: try removing center of mass motion, check for 'blowing up, or just use .h5 or .xtc format.'")
     return(Rounded)
 
 def _ConvertFromLossyIntegers(X,Precision):
@@ -160,6 +164,11 @@ class Trajectory(ConformationBaseClass):
             self['XYZList'] = np.vstack((self['XYZList'],other['XYZList']))
         return self
  
+    def RestrictAtomIndices(self, AtomIndices):
+        ConformationBaseClass.RestrictAtomIndices(self, AtomIndices )
+
+        self['XYZList'] = copy.copy( self['XYZList'][:, AtomIndices] )
+
     def SaveToLHDF(self,Filename,Precision=default_precision):
         """Save a Trajectory instance to a Lossy HDF File.
         
@@ -359,7 +368,7 @@ class Trajectory(ConformationBaseClass):
                     
             A["XYZList"]=np.array( A["XYZList"] )
             if num_redundant != 0:
-                print "Found and discarded %d redunant snapshots in loaded traj" % num_redundant
+                logger.warning("Found and discarded %d redunant snapshots in loaded traj", num_redundant)
 
         # in inspection mode
         else:
@@ -439,36 +448,171 @@ class Trajectory(ConformationBaseClass):
         A["XYZList"]=np.array(A["XYZList"])
         return(A)
     
-    
     @classmethod
-    def LoadFromHDF(cls,Filename,JustInspect=False):
-        """Load a conformation that was previously saved as HDF."""
-        if not JustInspect:
-            S=Serializer.LoadFromHDF(Filename)
-            A=cls(S)
-            return(A)
+    def EnumChunksFromHDF(cls,TrajFilename,Stride=None,AtomIndices=None,ChunkSize=100000):
+        """
+        Function to read trajectory files which have been saved as HDF.
+
+        This function is an iterable, so should be used like:
+
+        from msmbuilder import Trajectory
+        for trajectory_chunk in Trajectory.EnumChunksFromHDF( 
+            ... # Do something with each chunk. The chunk looks like a regular Trajectory instance
+
+        Inputs:
+        - TrajFilename : Filename to find the trajectory
+        - Stride [ None ] : Integer number of frames to subsample the trajectory
+        - AtomIndices [ None ] : np.ndarray of atom indices to read in (0-indexed)
+        - ChunkSize [ 100000 ] : Integer number of frames to read in a chunk
+            NOTE: ChunkSize will change in order to be a multiple of the input Stride
+                This is necessary in order to make sure the Stride and chunks line up
+
+        Outputs:
+        - Nothing. This is an iterable function, so it yields Trajectory instances
+        """
+        RestrictAtoms = False
+        SubsampleXYZList = False
+        if AtomIndices != None:
+            RestrictAtoms = True
+        if Stride != None:
+            while ChunkSize % Stride != 0: # Need to do this in order to make sure we stride correctly.
+                                            # since we read in chunks, and then we need the strides
+                                            # to line up
+                ChunkSize -= 1
+
+        A=Serializer()
+        F=tables.File(TrajFilename,'r')
+        # load all the data other than XYZList
+
+        if RestrictAtoms:
+            A['AtomID'] = np.array( F.root.AtomID[AtomIndices], dtype=np.int32 )
+            A['AtomNames'] = np.array( F.root.AtomNames[AtomIndices] )
+            A['ChainID'] = np.array( F.root.ChainID[AtomIndices])
+            A['ResidueID'] = np.array( F.root.ResidueID[AtomIndices], dtype=np.int32 )
+            A['ResidueNames'] = np.array( F.root.ResidueNames[AtomIndices] )
+
+            # IndexList is a VLArray, so we need to read the whole list with node.read() (same as node[:]) and then loop through each
+                # row (residue) and remove the atom indices that are not wanted
+            A['IndexList'] = [ [ i for i in row if (i in AtomIndices) ] for row in F.root.IndexList[:] ]
+            
         else:
-            F1=tables.File(Filename)
+            A['AtomID'] = np.array( F.root.AtomID[:], dtype=np.int32 )
+            A['AtomNames'] = np.array( F.root.AtomNames[:] )
+            A['ChainID'] = np.array( F.root.ChainID[:])
+            A['ResidueID'] = np.array( F.root.ResidueID[:], dtype=np.int32 )
+            A['ResidueNames'] = np.array( F.root.ResidueNames[:] )
+            
+            A['IndexList'] = F.root.IndexList[:]
+
+        A['SerializerFilename'] = os.path.abspath(TrajFilename)
+
+        # Loaded everything except XYZList
+
+        Shape = F.root.XYZList.shape
+        begin_range_list = np.arange(0,Shape[0],ChunkSize) 
+        end_range_list = np.concatenate( (begin_range_list[1:], [Shape[0]]) )
+
+        for r0,r1 in zip( begin_range_list, end_range_list ):
+
+            if RestrictAtoms:
+                A['XYZList'] = np.array( F.root.XYZList[ r0 : r1 : Stride, AtomIndices ] )
+            else:
+                A['XYZList'] = np.array( F.root.XYZList[ r0 : r1 : Stride ] )
+
+            yield cls(A)
+
+        F.close()
+
+        return
+
+    @classmethod
+    def EnumChunksFromLHDF(cls, TrajFilename, Precision=default_precision, Stride=None, AtomIndices=None, ChunkSize=100000):
+        """
+        Method to read trajectory files which have been saved as LHDF.
+        Note that this method simply calls the EnumChunksFromHDF method.
+
+        This function is an iterable, so should be used like:
+
+        from msmbuilder import Trajectory
+        for trajectory_chunk in Trajectory.EnumChunksFromLHDF( 
+            ... # Do something with each chunk. The chunk looks like a regular Trajectory instance
+
+        Inputs:
+        - TrajFilename : Filename to find the trajectory
+        - Precision [ 1000 ] : Precision used when saving as lossy integers
+        - Stride [ None ] : Integer number of frames to subsample the trajectory
+        - AtomIndices [ None ] : np.ndarray of atom indices to read in (0-indexed)
+        - ChunkSize [ 100000 ] : Integer number of frames to read in a chunk
+            NOTE: ChunkSize will change in order to be a multiple of the input Stride
+                This is necessary in order to make sure the Stride and chunks line up
+
+        Outputs:
+        - Nothing. This is an iterable function, so it yields Trajectory instances
+        """
+        for A in cls.EnumChunksFromHDF( TrajFilename, Stride, AtomIndices, ChunkSize ):
+            A['XYZList'] = _ConvertFromLossyIntegers( A['XYZList'], Precision )
+            yield A
+
+        return
+
+    @classmethod
+    def LoadFromHDF(cls, TrajFilename, JustInspect=False, Stride=None, AtomIndices=None ):
+        """
+        Method to load a trajectory which was saved as HDF
+        
+        Inputs:
+        - TrajFilename : Filename to find the trajectory
+        - JustInspect [ False ] : If True, then the method returns the shape of the
+            XYZList stored on disk
+        - Stride [ None ] : Integer number of frames to subsample the trajectory
+        - AtomIndices [ None ] : np.ndarray of atom indices to read in (0-indexed)
+        - ChunkSize [ 100000 ] : Integer number of frames to read in a chunk
+            NOTE: ChunkSize will change in order to be a multiple of the input Stride
+                This is necessary in order to make sure the Stride and chunks line up
+
+        Outputs:
+        - A : Trajectory instance read from disk
+        """
+        if not JustInspect:
+            A = list( cls.EnumChunksFromHDF( TrajFilename, Stride=Stride, AtomIndices=AtomIndices, ChunkSize=MAXINT32 ) )[0]
+            return A
+
+        else:
+            F1=tables.File(TrajFilename)
             Shape=F1.root.XYZList.shape
             F1.close()
             return(Shape)
-    
-    
-    @classmethod
-    def LoadFromLHDF(cls,Filename,JustInspect=False,Precision=default_precision):
-        """Load a conformation that was previously saved as HDF."""
+
+    @classmethod        
+    def LoadFromLHDF(cls, TrajFilename, JustInspect=False, Precision=default_precision, Stride=None, AtomIndices=None ):
+        """
+        Method to load a trajectory which was saved as LHDF
+        
+        Inputs:
+        - TrajFilename : Filename to find the trajectory
+        - JustInspect [ False ] : If True, then the method returns the shape of the
+            XYZList stored on disk
+        - Stride [ None ] : Integer number of frames to subsample the trajectory
+        - Precision [ 1000 ] : Precision used when saving as lossy integers
+        - AtomIndices [ None ] : np.ndarray of atom indices to read in (0-indexed)
+        - ChunkSize [ 100000 ] : Integer number of frames to read in a chunk
+            NOTE: ChunkSize will change in order to be a multiple of the input Stride
+                This is necessary in order to make sure the Stride and chunks line up
+
+        Outputs:
+        - A : Trajectory instance read from disk
+        """ 
         if not JustInspect:
-            S=Serializer.LoadFromHDF(Filename)
-            A=cls(S)
-            A["XYZList"]=_ConvertFromLossyIntegers(A["XYZList"],Precision)
-            return(A)
+            A = cls.LoadFromHDF( TrajFilename, Stride=Stride, AtomIndices=AtomIndices )
+            A['XYZList'] = _ConvertFromLossyIntegers( A['XYZList'], Precision )
+            return A
+
         else:
-            F1=tables.File(Filename)
+            F1=tables.File(TrajFilename)
             Shape=F1.root.XYZList.shape
             F1.close()
             return(Shape)
-    
-    
+
     @classmethod
     def ReadXTCFrame(cls,TrajFilename,WhichFrame):
         """Read a single frame from XTC trajectory file without loading file into memory."""
@@ -611,6 +755,6 @@ class Trajectory(ConformationBaseClass):
                 i += 1
 
         if n != 0:
-            print "Warning: found and eliminated %d redundant snapshots in trajectory" % n
+            logger.warning("Found and eliminated %d redundant snapshots in trajectory", n)
             
         return trajectory

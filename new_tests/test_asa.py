@@ -7,12 +7,13 @@ from common import fixtures_dir
 
 from msmbuilder import Trajectory
 
+from msmbuilder.geometry.reference_asa import calculate_asa as reference_asa
 from msmbuilder.geometry.asa import calculate_asa, ATOMIC_RADII
 
 
 def test_asa_0():    
     # make one atom at the origin
-    traj = {'XYZList': np.zeros((1,1,3), dtype=np.float32),
+    traj = {'XYZList': np.zeros((1,1,3)),
             'AtomNames': ['H']}
             
     probe_radius = 0.14
@@ -23,7 +24,7 @@ def test_asa_0():
 
 def test_asa_1():
     # two atoms
-    traj = {'XYZList': np.zeros((1,2,3), dtype=np.float32),
+    traj = {'XYZList': np.zeros((1,2,3)),
             'AtomNames': ['H', 'H']}
 
     probe_radius = 0.14
