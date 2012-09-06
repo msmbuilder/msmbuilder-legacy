@@ -51,13 +51,12 @@ def configuration(parent_package='',top_path=None):
     config.add_subpackage('scripts',
                           subpackage_path=None)
 
-    # add metrics subpackage
-    config.add_subpackage('metrics',
-                          subpackage_path='src/python/metrics')
-
     # add geometry subpackage
     config.add_subpackage('geometry',
                           subpackage_path='src/python/geometry')
+    # add metrics subpackage
+    config.add_subpackage('metrics',
+                          subpackage_path='src/python/metrics')
     
     #xtc reader
     xtc = Extension('msmbuilder.libxdrfile',
@@ -85,7 +84,7 @@ def configuration(parent_package='',top_path=None):
                        sources = glob('src/ext/LPRMSD/*.c'),
                        extra_compile_args = ["-std=c99","-O2",
                                              "-msse2","-msse3","-Wno-unused","-fopenmp","-m64"],
-                       extra_link_args = ['-lcblas', '-lpthread', '-lm', '-lgomp'],
+                       extra_link_args = ['-lblas', '-lpthread', '-lm', '-lgomp'],
                        include_dirs = ['/usr/include/', numpy.get_include(),
                                        os.path.join(numpy.get_include(), 'numpy')])
 
