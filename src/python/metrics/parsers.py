@@ -1,9 +1,10 @@
 #!/usr/bin/env python
-
 import sys, os
 import pickle
-from msmbuilder import metrics
 import numpy as np
+from msmbuilder.metrics import (LPRMSD, RMSD, Dihedral,
+                                BooleanContact, AtomPairs,
+                                ContinuousContact)
 
 def add_argument(group, *args, **kwargs):
     if 'default' in kwargs:
@@ -47,8 +48,8 @@ def add_basic_metric_parsers(metric_subparser):
         help='which dihedrals. Choose from phi, psi, chi. To choose multiple, seperate them with a slash')
     add_argument(dihedral, '-p', dest='dihedral_p', default=2, help='p used for metric=minkowski (otherwise ignored)')
     add_argument(dihedral, '-m', dest='dihedral_metric', default='euclidean',
-        help='which distance metric', choices=metrics.Dihedral.allowable_scipy_metrics)
-    metric_parser_list.append(dihedral)
+        help='which distance metric', choices=Dihedral.allowable_scipy_metrics)
+    parser.metric_parsers.append(dihedral)
 #    dihedral_subparsers = dihedral.add_subparsers()
 #    dihedral_subparsers.metric = 'dihedral'
 
@@ -87,7 +88,7 @@ def add_basic_metric_parsers(metric_subparser):
         not multiple boxes) using OMP.''')
     add_argument(contact, '-c', dest='contact_which', default='all',
         help='Path to file containing 2D array of the contacts you want, or the string "all".')
-    add_argument(contact, '-C', dest='contact_cutoff', default=0.5, help='Cutoff distance in nanometers.')
+    add_argument(contact, '-C', dest='contact_cutoff', default=0.5, help='Cutoff distance in nanometers. If you pass -1, then the contact "map" will be a matrix of residue-residue distances. Passing a number greater than 0 means the residue-residue distance matrix will be converted to a boolean matrix, one if the distance is less than the specified cutoff')
     add_argument(contact, '-f', dest='contact_cutoff_file', help='File containing residue specific cutoff distances (supercedes the scalar cutoff distance if present).',default=None)
     add_argument(contact, '-s', dest='contact_scheme', default='closest-heavy', help='contact scheme.',
         choices=['CA', 'closest', 'closest-heavy'])
@@ -103,8 +104,8 @@ def add_basic_metric_parsers(metric_subparser):
         help='path to file with 2D array of which atompairs to use.', default='AtomPairs.dat')
     add_argument(atompairs, '-p', dest='atompairs_p', default=2, help='p used for metric=minkowski (otherwise ignored)')
     add_argument(atompairs, '-m', dest='atompairs_metric', default='cityblock',
-        help='which distance metric', choices=metrics.AtomPairs.allowable_scipy_metrics)
-    metric_parser_list.append(atompairs)
+        help='which distance metric', choices=AtomPairs.allowable_scipy_metrics)
+    parser.metric_parsers.append(atompairs)
     #atompairs_subparsers = atompairs.add_subparsers()
     #atompairs_subparsers.metric = 'atompairs'
     
@@ -171,17 +172,15 @@ def construct_basic_metric(metric_name, args):
             atom_indices = np.loadtxt(args.rmsd_atom_indices, np.int)
         else:
             atom_indices = None
-        metric = metrics.RMSD(atom_indices)#, omp_parallel=args.rmsd_omp_parallel)
+        metric = RMSD(atom_indices)#, omp_parallel=args.rmsd_omp_parallel)
 
-    elif metric_name == 'dihedral':
-        metric = metrics.Dihedral(metric=args.dihedral_metric,
+    elif args.metric == 'dihedral':
+        metric = Dihedral(metric=args.dihedral_metric,
             p=args.dihedral_p, angles=args.dihedral_angles)
              
-    elif metric_name == 'lprmsd':
-        from msmbuilder.metric_LPRMSD import LPRMSD, LPTraj, ReadPermFile
-
+    elif args.metric == 'lprmsd':
         if args.lprmsd_atom_indices != 'all':
-            atom_inds = np.loadtxt( args.lprmsd_atom_indices )
+            atom_inds = np.loadtxt(args.lprmsd_atom_indices, dtype=np.int)
         else:
             atom_inds = None
 
@@ -205,11 +204,17 @@ def construct_basic_metric(metric_name, args):
 
         if args.contact_cutoff_file != None: #getattr(args, 'contact_cutoff_file'):
             contact_cutoff = np.loadtxt(args.contact_cutoff_file, np.float)            
+        elif args.contact_cutoff != None:
+            contact_cutoff = float( args.contact_cutoff )
         else:
             contact_cutoff = None
              
-        metric = metrics.BooleanContact(contacts=contact_which,
-            cutoff=contact_cutoff, scheme=args.contact_scheme)
+        if contact_cutoff != None and contact_cutoff < 0:
+            metric = ContinuousContact(contacts=contact_which,
+                scheme=args.contact_scheme)
+        else:
+            metric = BooleanContact(contacts=contact_which,
+                cutoff=contact_cutoff, scheme=args.contact_scheme)
      
     elif metric_name == 'atompairs':
         if args.atompairs_which != None:
@@ -217,7 +222,7 @@ def construct_basic_metric(metric_name, args):
         else:
             pairs = None
 
-        metric = metrics.AtomPairs(metric=args.atompairs_metric, p=args.atompairs_p,
+        metric = AtomPairs(metric=args.atompairs_metric, p=args.atompairs_p,
             atom_pairs=pairs)
              
     elif metric_name == 'custom':

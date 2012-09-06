@@ -9,6 +9,8 @@ from msmbuilder import arglib
 from msmbuilder.assigning import assign_with_checkpoint
 from msmbuilder import metrics
 from msmbuilder import Project
+import logging
+logger = logging.getLogger(__name__)
 
 def main():
     parser = arglib.ArgumentParser(description="""
@@ -45,7 +47,7 @@ microstate it is assigned to.""", get_metric=True)#, formatter_class=argparse.Ra
     # this runs assignment and prints them to disk
     all_asgn, all_dist = assign_with_checkpoint(metric, project, gens, assignments_path, distances_path)
 
-    print 'All Done!'
+    logger.info('All Done!')
 
 if __name__ == '__main__':
     main()

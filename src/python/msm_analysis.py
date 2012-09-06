@@ -26,6 +26,8 @@ import warnings
 
 from msmbuilder.utils import uneven_zip
 from msmbuilder import Serializer
+import logging
+logger = logging.getLogger('msm_analysis')
 
 
 # Set this value to true (msm_analysis.DisableErrorChecking=True) to ignore
@@ -229,7 +231,7 @@ def get_implied_timescales_helper(args):
         t_matrix = MSMLib.build_msm(assignments, lag_time, n_states, symmetrize, sliding_window,
             trimming)[2]
     except ValueError as e: 
-        print >> sys.stderr, e
+        logger.critical(e)
         sys.exit(1)
         
     #TJL: set Epsilon high, should not raise err here
@@ -324,8 +326,8 @@ def project_observable_onto_transition_matrix(observable, tprob, num_modes=25):
     """
     
     if num_modes+1 > tprob.shape[0]:
-        print "Warning: cannot get %d eigenmodes from a rank %d matrix" % (num_modes+1, tprob.shape[0])
-        print "Getting as many modes as possible..."
+        logger.warning("cannot get %d eigenmodes from a rank %d matrix", num_modes+1, tprob.shape[0])
+        logger.warning("Getting as many modes as possible...")
         num_modes = tprob.shape[0] - 1
         
     eigenvalues, eigenvectors = get_eigenvectors(tprob, num_modes+1, right=True)
@@ -539,7 +541,7 @@ def calc_expectation_timeseries(tprob, observable, init_pop=None, timepoints=10*
         psi_L[:, i] /= np.dot( psi_L[:, i], psi_R[:, i] )
         
     if lagtime:
-        print "Shortest timescale process included:", -lagtime / np.log( np.min(lambd) )
+        logger.info("Shortest timescale process included: %s", -lagtime / np.log( np.min(lambd)))
         
     # figure out the initial populations
     if init_pop == None:
@@ -555,7 +557,7 @@ def calc_expectation_timeseries(tprob, observable, init_pop=None, timepoints=10*
         mode_decay = front * np.power( lambd[i], np.arange(timepoints) ) * back
         timeseries += np.real(mode_decay)
         
-    print np.dot(pi, observable), timeseries[-1]
+    logger.info(np.dot(pi, observable), timeseries[-1])
     
     return timeseries
 
@@ -645,7 +647,7 @@ def check_transition(t_matrix, epsilon=0.00001):
     """
     
     if not DisableErrorChecking and not is_transition_matrix(t_matrix, epsilon):
-        print(t_matrix)
+        logger.critical(t_matrix)
         raise RuntimeError("T is not a row normalized stocastic matrix.  This is often caused by either numerical inaccuracies or by having states with zero counts.")
 
 

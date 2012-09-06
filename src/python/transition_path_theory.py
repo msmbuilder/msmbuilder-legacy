@@ -26,11 +26,15 @@ Pathways
 Committors
 """
 
-debug = False # set to increase verbosity for coding purposes
-
 import numpy as np
 import scipy.sparse
 from msmbuilder import MSMLib
+import logging
+logger = logging.getLogger('tpt')
+
+# turn on debugging printout
+# logger.setLogLevel(logging.DEBUG)
+from msmbuilder import msm_analysis
 
 
 def DijkstraTopPaths(A, B, NFlux, NumPaths=10, NodeWipe=False):
@@ -76,12 +80,12 @@ def DijkstraTopPaths(A, B, NFlux, NumPaths=10, NodeWipe=False):
         l = len(A)
     except:
         A = list([int(A)])
-        print "Warning: passed object 'A' was not iterable, converted it to:", A
+        logger.warning("passed object 'A' was not iterable, converted it to: %s", A)
     try: 
         l = len(B)
     except: 
         B = list([int(B)])
-        print "Warning: passed object 'B' was not iterable, converted it to:", B
+        logger.warning("passed object 'B' was not iterable, converted it to: %s", B)
     if np.any( A == B ):
         raise ValueError("Sets A and B must be disjoint to find paths between them")
 
@@ -94,7 +98,7 @@ def DijkstraTopPaths(A, B, NFlux, NumPaths=10, NodeWipe=False):
     # run the initial Dijkstra pass
     pi, b = Dijkstra(A, B, NFlux)
 
-    print "Path Num | Path | Bottleneck | Flux" 
+    logger.info("Path Num | Path | Bottleneck | Flux")
 
     i = 1
     done = False
@@ -105,17 +109,17 @@ def DijkstraTopPaths(A, B, NFlux, NumPaths=10, NodeWipe=False):
 
         # Add each result to a Paths, Bottlenecks, Fluxes list
         if Flux == 0:
-            print "Only %d possible pathways found. Stopping backtrack." % i
+            logger.info("Only %d possible pathways found. Stopping backtrack.", i)
             break
         Paths.append(Path)
         Bottlenecks.append( (b1,b2) )
         Fluxes.append(Flux)
-        print i, Path, (b1, b2), Flux
+        logger.info("%s | %s | %s | %s ", i, Path, (b1, b2), Flux)
 
         # Cut the bottleneck, start relaxing from B side of the cut
         if NodeWipe: 
             NFlux[:, b2] = 0
-            print "Wiped node:", b2
+            logger.info("Wiped node: %s", b2)
         else: NFlux[b1, b2] = 0
 
         G = scipy.sparse.find(NFlux)
@@ -137,7 +141,7 @@ def DijkstraTopPaths(A, B, NFlux, NumPaths=10, NodeWipe=False):
         if i == NumPaths+1: 
             done = True
         if Flux == 0: 
-            print "Only %d possible pathways found. Stopping backtrack." % i
+            logger.info("Only %d possible pathways found. Stopping backtrack.", i)
             done = True
 
     return Paths, Bottlenecks, Fluxes
@@ -196,7 +200,7 @@ def Dijkstra(A, B, NFlux):
 
         Q = sorted(Q, key=lambda v: b[v])
 
-    print "Searched", len(U)+len(B), "nodes"
+    logger.info("Searched %s nodes", len(U)+len(B))
 
     return pi, b
 
@@ -311,7 +315,9 @@ def Backtrack(B, b, pi, NFlux):
         path.reverse()
 
         bottleneck, Flux = FindPathBottleneck(path, NFlux)
-        if debug: print 'In Backtrack: Flux, bestflux:', Flux, bestflux
+
+        logger.debug('In Backtrack: Flux %s, bestflux %s', Flux, bestflux)
+        
         if Flux > bestflux: 
             bestpath = path
             bestflux = Flux
@@ -529,13 +535,13 @@ def all_to_all_mfpt(tprob, populations=None):
     """
 
     if populations is None:
-        eigens = MSMLib.GetEigenvectors(tprob,5)
+        eigens = msm_analysis.get_eigenvectors(tprob, 5)
         if np.count_nonzero(np.imag(eigens[1][:,0])) != 0:
             raise ValueError('First eigenvector has imaginary parts')
         populations = np.real(eigens[1][:,0])
 
     # ensure that tprob is a transition matrix
-    MSMLib.CheckTransition(tprob)
+    msm_analysis.check_transition(tprob)
     num_states = len(populations)
     if tprob.shape[0] != num_states:
         raise ValueError("Shape of tprob and populations vector don't match")
@@ -717,7 +723,7 @@ def GetFCommittorsEqn(A, B, T0):
     IdB = np.zeros(n)
     for b in B:
         IdB[b] = 1.0
-    print "done with setting up matrices"
+    logger.info("done with setting up matrices")
     RHS = T0*(IdB) # changed from RHS=T0.matvec(IdB) --TJL, matvec deprecated
     for a in A:
         RHS[a] = 0.0

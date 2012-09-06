@@ -2,9 +2,13 @@ import sys, os
 import argparse
 from msmbuilder.License import LicenseString
 from msmbuilder.Citation import CiteString
-from msmbuilder import metric_parsers
-
+from msmbuilder.metrics import parsers as metric_parsers
+from pprint import pprint
 import warnings
+import logging
+logger = logging.getLogger('arglib')
+
+
 
 def _iter_both_cases(string):
     """Iterate over the chars in a strings in both cases
@@ -23,11 +27,11 @@ def die_if_path_exists(path):
     
     directory = os.path.split(path)[0]
     if len(directory) > 0 and not os.path.exists(directory):
-        print 'Creating directory %s' % directory
+        logger.info('Creating directory %s', directory)
         os.makedirs(directory)
     if os.path.exists(path):
         name = os.path.split(sys.argv[0])[1]
-        print >> sys.stderr, '%s: Error: %s already exists!. Exiting.' % (name, path)
+        logger.error('%s: Error: %s already exists!. Exiting.', name, path)
         sys.exit(1)
     
     return None
@@ -35,7 +39,8 @@ def die_if_path_exists(path):
 def ensure_path_exists(path):
     name = os.path.split(sys.argv[0])[1]
     if not os.path.exists(path):
-        print >> sys.stderr, "%s: Error: Can't find %s" % (name, path)
+        logger.error("%s: Error: Can't find %s", name, path)
+        sys.exit(1)
     
 RESERVED = {'assignments': ('-a', 'Path to assignments file.', 'Data/Assignments.h5', str),
             'project': ('-p', 'Path to ProjectInfo file.', 'ProjectInfo.h5', str),
@@ -141,7 +146,7 @@ class ArgumentParser(object):
 
         self.parser = argparse.ArgumentParser(*args, **kwargs)
 
-        self.parser.add_argument('-q','--quiet',dest='quiet',help='[ CURRENTLY NOT IMPLEMENTED ]. Pass this flag to run in quiet mode.',default=False,action='store_true')
+        self.parser.add_argument('-q','--quiet',dest='quiet',help='Pass this flag to run in quiet mode.',default=False,action='store_true')
 
         if self.get_metric:
             self.metric_parser_list = metric_parsers.add_metric_parsers( self, add_layer_metrics=True )
@@ -208,10 +213,15 @@ class ArgumentParser(object):
 
         namespace = self.parser.parse_args(args=args, namespace=namespace)
 
-        print namespace
-        #namespace = self._typecast(namespace)
-        if self.get_metric or self.get_basic_metric: # if we want to get the metric, then we have to construct it
-            metric = metric_parsers.construct_metric( namespace )
+        if print_banner:
+            pprint(namespace.__dict__)
+
+        if namespace.quiet:
+            # set the level of the root logger
+            logging.getLogger().setLevel(logging.WARNING)
+
+        if self.get_metric: # if we want to get the metric, then we have to construct it
+            metric = metric_parsers.construct_metric(namespace)
             return namespace, metric
 
         return namespace
