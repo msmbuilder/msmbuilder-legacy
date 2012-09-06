@@ -59,6 +59,22 @@ def add_basic_metric_parsers(metric_subparser):
         help='which distance metric', choices=Dihedral.allowable_scipy_metrics)
     metric_parser_list.append(dihedral)
 
+    lprmsd = metric_subparser.add_parser('lprmsd',
+        description='''LPRMSD: RMSD with the ability to to handle permutation-invariant atoms.
+        Solves the assignment problem using a linear programming solution (LP). Can handle aligning
+        on some atoms and computing the RMSD on other atoms.:''')
+    add_argument(lprmsd, '-a', dest='lprmsd_atom_indices', help='Regular atom indices. Pass "all" to use all atoms.', default='AtomIndices.dat')
+    add_argument(lprmsd, '-l', dest='lprmsd_alt_indices', default=None,
+        help='''Optional alternate atom indices for RMSD. If you want to align the trajectories
+        using one set of atom indices but then compute the distance using a different
+        set of indices, use this option. If supplied, the regular atom_indices will
+        be used for the alignment and these indices for the distance calculation''')
+    add_argument(lprmsd, '-P', dest='lprmsd_permute_atoms', default=None, help='''Atom labels to be permuted.
+    Sets of indistinguishable atoms that can be permuted to minimize the RMSD. On disk this should be stored as
+    a list of newline separated indices with a "--" separating the sets of indices if there are
+    more than one set of indistinguishable atoms.  Use "-- (integer)" to include a subset in the RMSD (to avoid undesirable boundary effects.)''')
+    metric_parser_list.append(lprmsd)
+
     contact = metric_subparser.add_parser('contact',
         description='''CONTACT: For each frame in the simulation data, we extract the
         contact map (presence or absense of "contacts")  between residues. Each frame is then
@@ -92,6 +108,11 @@ def add_basic_metric_parsers(metric_subparser):
     add_argument(atompairs, '-m', dest='atompairs_metric', default='euclidean',
         help='which distance metric', choices=AtomPairs.allowable_scipy_metrics)
     metric_parser_list.append(atompairs)
+<<<<<<< HEAD
+=======
+    #atompairs_subparsers = atompairs.add_subparsers()
+    #atompairs_subparsers.metric = 'atompairs'
+>>>>>>> Bugfix in metrics.parsers.py introduced in merge. Only because I have 'layered' metrics now.
     
     picklemetric = metric_subparser.add_parser('custom', description="""CUSTOM: Use a custom
         distance metric. This requires defining your metric and saving it to a file using
