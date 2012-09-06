@@ -164,6 +164,11 @@ class Trajectory(ConformationBaseClass):
             self['XYZList'] = np.vstack((self['XYZList'],other['XYZList']))
         return self
  
+    def RestrictAtomIndices(self, AtomIndices):
+        ConformationBaseClass.RestrictAtomIndices(self, AtomIndices )
+
+        self['XYZList'] = copy.copy( self['XYZList'][:, AtomIndices] )
+
     def SaveToLHDF(self,Filename,Precision=default_precision):
         """Save a Trajectory instance to a Lossy HDF File.
         
