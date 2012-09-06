@@ -102,12 +102,10 @@ RG = Extension('msmbuilder/_rg_wrap',
                include_dirs = [numpy.get_include(), os.path.join(numpy.get_include(), 'numpy')])
 
 ASA = Extension('msmbuilder/_asa',
-               sources = ["src/ext/asa/asa.c",
-                          "src/ext/asa/asa_wrap.c"],
-               extra_compile_args=["-std=c99","-O3","-shared",
-                                   "-fopenmp", "-Wall"],
-               extra_link_args = base_link_args + ['-lgomp'],
-               include_dirs = [numpy.get_include(), os.path.join(numpy.get_include(), 'numpy')])
+               sources = ["src/asa/asa.c",
+                          "src/sa/asa.pyf"],
+                extra_link_args=['-lgomp'],
+                extra_compile_args=['-fopenmp'])
 
 
 

@@ -16,7 +16,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 import numpy as np
-from msmbuilder import _asa
+import _asa
 
 
 ATOMIC_RADII = {'H': 0.120, 'N': 0.155, 'NA': 0.227,
