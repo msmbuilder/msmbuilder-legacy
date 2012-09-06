@@ -5,6 +5,7 @@ import numpy as np
 from msmbuilder.metrics import (LPRMSD, RMSD, Dihedral,
                                 BooleanContact, AtomPairs,
                                 ContinuousContact)
+from msmbuilder.metrics.baseclasses import Vectorized
 
 def add_argument(group, *args, **kwargs):
     if 'default' in kwargs:
@@ -141,7 +142,7 @@ def add_layer_metric_parsers(metric_subparser):
 
     add_argument(tica,'-p',dest='p',help='p value for p-norm')
     add_argument(tica,'-m',dest='projected_metric',help='metric to use in the projected space',
-        choices= metrics.Vectorized.allowable_scipy_metrics )
+        choices= Vectorized.allowable_scipy_metrics )
     add_argument(required, '--po','--projection', dest='proj_object', help='tICA Object which was prepared by tICA_train.py')
     add_argument(choose_one, '--nv', dest='num_vecs', help='Choose the top <-n> eigenvectors based on their eigenvalues')
     add_argument(choose_one, '--ab',dest='abs_min', help='Choose all eigenvectors with eigenvalues grater than <--ab>.') 
