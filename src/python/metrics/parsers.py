@@ -1,9 +1,10 @@
 #!/usr/bin/env python
-
 import sys, os
 import pickle
-from msmbuilder import metrics
 import numpy as np
+from msmbuilder.metrics import (LPRMSD, RMSD, Dihedral,
+                                BooleanContact, AtomPairs,
+                                ContinuousContact)
 
 def add_argument(group, *args, **kwargs):
     if 'default' in kwargs:
@@ -45,7 +46,7 @@ def add_metric_parsers(parser):
         help='which dihedrals. Choose from phi, psi, chi. To choose multiple, seperate them with a slash')
     add_argument(dihedral, '-p', dest='dihedral_p', default=2, help='p used for metric=minkowski (otherwise ignored)')
     add_argument(dihedral, '-m', dest='dihedral_metric', default='euclidean',
-        help='which distance metric', choices=metrics.Dihedral.allowable_scipy_metrics)
+        help='which distance metric', choices=Dihedral.allowable_scipy_metrics)
     parser.metric_parsers.append(dihedral)
 #    dihedral_subparsers = dihedral.add_subparsers()
 #    dihedral_subparsers.metric = 'dihedral'
@@ -101,7 +102,7 @@ def add_metric_parsers(parser):
         help='path to file with 2D array of which atompairs to use.', default='AtomPairs.dat')
     add_argument(atompairs, '-p', dest='atompairs_p', default=2, help='p used for metric=minkowski (otherwise ignored)')
     add_argument(atompairs, '-m', dest='atompairs_metric', default='cityblock',
-        help='which distance metric', choices=metrics.AtomPairs.allowable_scipy_metrics)
+        help='which distance metric', choices=AtomPairs.allowable_scipy_metrics)
     parser.metric_parsers.append(atompairs)
     #atompairs_subparsers = atompairs.add_subparsers()
     #atompairs_subparsers.metric = 'atompairs'
@@ -124,15 +125,13 @@ def construct_metric(args):
             atom_indices = np.loadtxt(args.rmsd_atom_indices, np.int)
         else:
             atom_indices = None
-        metric = metrics.RMSD(atom_indices)#, omp_parallel=args.rmsd_omp_parallel)
+        metric = RMSD(atom_indices)#, omp_parallel=args.rmsd_omp_parallel)
 
     elif args.metric == 'dihedral':
-        metric = metrics.Dihedral(metric=args.dihedral_metric,
+        metric = Dihedral(metric=args.dihedral_metric,
             p=args.dihedral_p, angles=args.dihedral_angles)
              
     elif args.metric == 'lprmsd':
-        from msmbuilder.metric_LPRMSD import LPRMSD, LPTraj, ReadPermFile
-
         if args.lprmsd_atom_indices != 'all':
             atom_inds = np.loadtxt(args.lprmsd_atom_indices, dtype=np.int)
         else:
@@ -164,10 +163,10 @@ def construct_metric(args):
             contact_cutoff = None
              
         if contact_cutoff != None and contact_cutoff < 0:
-            metric = metrics.ContinuousContact(contacts=contact_which,
+            metric = ContinuousContact(contacts=contact_which,
                 scheme=args.contact_scheme)
         else:
-            metric = metrics.BooleanContact(contacts=contact_which,
+            metric = BooleanContact(contacts=contact_which,
                 cutoff=contact_cutoff, scheme=args.contact_scheme)
      
     elif args.metric == 'atompairs':
@@ -176,7 +175,7 @@ def construct_metric(args):
         else:
             pairs = None
 
-        metric = metrics.AtomPairs(metric=args.atompairs_metric, p=args.atompairs_p,
+        metric = AtomPairs(metric=args.atompairs_metric, p=args.atompairs_p,
             atom_pairs=pairs)
              
     elif args.metric == 'custom':

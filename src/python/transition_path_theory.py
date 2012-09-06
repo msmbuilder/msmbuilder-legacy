@@ -32,6 +32,8 @@ from msmbuilder import MSMLib
 import logging
 logger = logging.getLogger('tpt')
 
+# turn on debugging printout
+# logger.setLogLevel(logging.DEBUG)
 from msmbuilder import msm_analysis
 
 

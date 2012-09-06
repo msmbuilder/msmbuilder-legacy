@@ -2,12 +2,13 @@ import sys, os
 import argparse
 from msmbuilder.License import LicenseString
 from msmbuilder.Citation import CiteString
-from msmbuilder import metric_parsers
-import warnings
+from msmbuilder.metrics import parsers as metric_parsers
 from pprint import pprint
-
+import warnings
 import logging
 logger = logging.getLogger('arglib')
+
+
 
 def _iter_both_cases(string):
     """Iterate over the chars in a strings in both cases
@@ -136,7 +137,7 @@ class ArgumentParser(object):
 
         self.parser = argparse.ArgumentParser(*args, **kwargs)
 
-        self.parser.add_argument('-q','--quiet',dest='quiet',help='Pass this flag to run in quiet mode.',default=False,action='store_true')
+        self.parser.add_argument('-q','--quiet',dest='quiet',help='[ CURRENTLY NOT IMPLEMENTED ]. Pass this flag to run in quiet mode.',default=False,action='store_true')
 
         if self.get_metric:
             metric_parsers.add_metric_parsers( self )
@@ -209,8 +210,9 @@ class ArgumentParser(object):
             logging.getLogger().setLevel(logging.WARNING)
 
         if self.get_metric: # if we want to get the metric, then we have to construct it
-            metric = metric_parsers.construct_metric( namespace )
+            metric = metric_parsers.construct_metric(namespace)
             return namespace, metric
+
         return namespace
     
     def _typecast(self, namespace):
