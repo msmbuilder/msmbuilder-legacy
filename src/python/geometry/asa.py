@@ -18,17 +18,13 @@
 import numpy as np
 from msmbuilder import _asa
 
+# these van der waals radii are taken from GROMACS 4.5.3
+# and the file share/gromacs/top/vdwradii.dat   
+ATOMIC_RADII = {'C': 0.15,  'F': 0.12,  'H': 0.04,
+                'N': 0.110, 'O': 0.105, 'S': 0.16}
 
-ATOMIC_RADII = {'H': 0.120, 'N': 0.155, 'NA': 0.227,
-                'CU': 0.140, 'CL': 0.175, 'C': 0.170,
-                'O': 0.152, 'I': 0.198, 'P': 0.180,
-                'B': 0.185, 'BR': 0.185, 'S': 0.180,
-                'SE': 0.190, 'F': 0.147, 'FE': 0.180,
-                'K':  0.275, 'MN': 0.173, 'MG': 0.173,
-                'ZN': 0.139, 'HG': 0.18, 'XE': 0.18,
-                'AU': 0.18, 'LI': 0.18, '.': 0.18 }
 
-def annoate_traj_with_radii(traj):
+def annotate_traj_with_radii(traj):
     """Add the key 'Radius' to traj, with the van Der Waals radii of the atoms
 
     Acts in place
@@ -42,10 +38,11 @@ def annoate_traj_with_radii(traj):
     traj['Radius'] = np.zeros(len(traj['AtomNames']), dtype=np.float32)
     for i, name in enumerate(traj['AtomNames']):
         name = name.strip('0123456789 ').upper()
-        if name in ATOMIC_RADII:
-            traj['Radius'][i] = ATOMIC_RADII[name]
-        else:
-            traj['Radius'][i] = ATOMIC_RADII[name[0]]
+        first_letter = name[0]
+        try:
+            traj['Radius'][i] = ATOMIC_RADII[first_letter]
+        except KeyError:
+            raise KeyError('The atom name %s was not able to be parsers into a van der walls radius' % name)
 
 def calculate_asa(traj, probe_radius=0.14, n_sphere_points=960):
     """
@@ -68,8 +65,8 @@ def calculate_asa(traj, probe_radius=0.14, n_sphere_points=960):
         The accessible surface area of each atom in every frame
     """
     if not traj.has_key("Radius"):
-        annoate_traj_with_radii(traj)
-    annoate_traj_with_radii(traj)
+        annotate_traj_with_radii(traj)
+    annotate_traj_with_radii(traj)
     
     xyzlist = traj['XYZList']
     atom_radii = (traj['Radius'] + probe_radius).astype(np.float32)
