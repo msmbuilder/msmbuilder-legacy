@@ -17,7 +17,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-import sys
 import os
 import numpy as np
 import scipy.io
@@ -34,9 +33,9 @@ def run(TC, Uv, Fv, Populations):
 
     # Get committors and flux
     logger.info("Getting committors and flux...")
-    Bc = GetBCommittors(Uv, Fv, TC, Populations, maxiter=100000, X0=None, Dense=False)
+    Bc = GetBCommittors(Uv, Fv, TC, Populations,  Dense=False)
     logger.info("Calculated reverse committors.")
-    Fc = GetFCommittors(Uv, Fv, TC, maxiter=100000, X0=None, Dense=False)
+    Fc = GetFCommittors(Uv, Fv, TC,  Dense=False)
     logger.info("Calculated forward committors.")
     NFlux = GetNetFlux(Populations, Fc, Bc, TC)
     logger.info("Calculated net flux.")
