@@ -6,8 +6,7 @@ VERSION="2.6.dev"
 __author__ = "MSMBuilder Team"
 __version__ = VERSION
 
-import os, sys, shutil
-from copy import deepcopy
+import os, sys
 from glob import glob
 # setuptools needs to come before numpy.distutils to get install_requires
 import setuptools 
@@ -54,6 +53,13 @@ def configuration(parent_package='',top_path=None):
     # add geometry subpackage
     config.add_subpackage('geometry',
                           subpackage_path='src/python/geometry')
+
+    # add asa subpackage
+    asa = Extension('msmbuilder._asa',
+                    sources = ['asa.pyf', 'asa.c'],
+                    extra_link_args = ['-lgomp'],
+                    exta_compile_args = ['-fopenmp'])
+
     
     #xtc reader
     xtc = Extension('msmbuilder.libxdrfile',
@@ -86,7 +92,7 @@ def configuration(parent_package='',top_path=None):
                        include_dirs = [numpy.get_include(),
                                        os.path.join(numpy.get_include(), 'numpy')])
 
-    for e in [xtc, dcd, rmsd, lprmsd]:
+    for e in [asa, xtc, dcd, rmsd, lprmsd]:
         config.ext_modules.append(e)
         
     # add all of the distance metrics with the same compile_args, link_args, etc
