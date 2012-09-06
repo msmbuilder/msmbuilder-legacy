@@ -56,9 +56,9 @@ def configuration(parent_package='',top_path=None):
 
     # add asa subpackage
     asa = Extension('msmbuilder._asa',
-                    sources = ['asa.pyf', 'asa.c'],
+                    sources = ['src/ext/asa/asa.pyf', 'src/ext/asa/asa.c'],
                     extra_link_args = ['-lgomp'],
-                    exta_compile_args = ['-fopenmp'])
+                    extra_compile_args = ['-fopenmp'])
 
     
     #xtc reader

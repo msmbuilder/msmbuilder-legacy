@@ -73,21 +73,8 @@ def calculate_asa(traj, probe_radius=0.14, n_sphere_points=960):
     
     xyzlist = traj['XYZList']
     atom_radii = (traj['Radius'] + probe_radius).astype(np.float32)
-    results = np.zeros((xyzlist.shape[0], xyzlist.shape[1]), dtype=np.float32)
-    
-    
-    if not xyzlist.dtype == np.float32:
-        raise TypeError('xyzlist must be float32, you supplied %s' % xyzlist.dtype)
-    if not xyzlist.flags.c_contiguous:
-        raise TypeError('xyzlist must be c-contiguous')
-    if not atom_radii.dtype == np.float32:
-        raise TypeError('atom_radii must be float32, you supplied %s' % atom_radii.dtype)
-    if not n_sphere_points == int(n_sphere_points):
-        raise TypeError('atom_radii must be int')
-    
-    _asa.asa_traj(xyzlist, atom_radii, n_sphere_points, results)
 
-    return results
+    return _asa.asa_trajectory(xyzlist, atom_radii, n_sphere_points)
     
     
     
