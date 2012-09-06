@@ -62,17 +62,12 @@ def test_asa_3():
 
     traj = Trajectory.LoadTrajectoryFile( os.path.join(fixtures_dir(), 'trj0.xtc') , Conf=Conf)
     traj_asa = calculate_asa(traj, probe_radius=0.14, n_sphere_points = 960)
-
-    #err = np.abs( (traj_asa - traj_ref) / np.mean( np.array([traj_ref,traj_asa]), axis=0 ).reshape(traj_ref.shape) )
-
-    #err[ np.where( (traj_ref == 0)&(traj_asa == 0) )] = 0
-
-    import matplotlib.pyplot as pp
-    pp.plot(traj_asa[0], traj_ref[0])
-    pp.show()
-    #npt.assert_array_almost_equal( traj_asa, traj_ref ) 
-    #warnings.warn("ASA does not pass tests...")
-    #npt.assert_array_almost_equal( traj_ref, traj_ref ) # I don't want to break the tests. Currently, the test does NOT pass
+    
+    # the algorithm used by gromacs' g_sas is slightly different than the one
+    # used here, so the results are not exactly the same -- see the comments
+    # in src/python/geomtry/asa.py or the readme file src/ext/asa/README.txt
+    # for details
+    npt.assert_array_almost_equal(traj_asa, traj_ref, decimal=2)    
 
 
 if __name__ == '__main__':
