@@ -49,7 +49,7 @@ def add_basic_metric_parsers(metric_subparser):
     add_argument(dihedral, '-p', dest='dihedral_p', default=2, help='p used for metric=minkowski (otherwise ignored)')
     add_argument(dihedral, '-m', dest='dihedral_metric', default='euclidean',
         help='which distance metric', choices=Dihedral.allowable_scipy_metrics)
-    parser.metric_parsers.append(dihedral)
+    metric_parser_list.append(dihedral)
 #    dihedral_subparsers = dihedral.add_subparsers()
 #    dihedral_subparsers.metric = 'dihedral'
 
@@ -105,7 +105,7 @@ def add_basic_metric_parsers(metric_subparser):
     add_argument(atompairs, '-p', dest='atompairs_p', default=2, help='p used for metric=minkowski (otherwise ignored)')
     add_argument(atompairs, '-m', dest='atompairs_metric', default='cityblock',
         help='which distance metric', choices=AtomPairs.allowable_scipy_metrics)
-    parser.metric_parsers.append(atompairs)
+    metric_parser_list.append(atompairs)
     #atompairs_subparsers = atompairs.add_subparsers()
     #atompairs_subparsers.metric = 'atompairs'
     
