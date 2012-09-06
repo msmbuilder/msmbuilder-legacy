@@ -138,9 +138,8 @@ void generate_sphere_points(float* sphere_points, int n_points) {
 }
 
 
-void asa_trajectory(const float* xyzlist, const int n_frames, const int n_atoms,
-                   const float* atom_radii, const int n_sphere_points,
-                   float* array_of_areas) {
+void asa_trajectory(const int n_frames, const int n_atoms, const float* xyzlist,
+		    const float* atom_radii, const int n_sphere_points, float* array_of_areas){
     // Calculate the accessible surface area of each atom in each frame of
     // a trajectory
     // 
