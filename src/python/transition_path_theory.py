@@ -19,25 +19,56 @@
 """
 Functions for performing Transition Path Theory calculations.
 
-Examples:
-Mean First Passage Times
-Transition Path Theory Fluxes
-Pathways
-Committors
+Written and maintained by TJ Lane <tjlane@stanford.edu>
+Contributions from Kyle Beauchamp, Robert McGibbon, Vince Voelz
+
+To Do:
+-- Get stuff passing unit tests
+-- Finish renaming functions
+-- Add logging functionality
+
 """
 
 import numpy as np
 import scipy.sparse
+
 from msmbuilder import MSMLib
+from msmbuilder import msm_analysis
+from msmbuilder.utils import deprecated
+
 import logging
 logger = logging.getLogger('tpt')
 
 # turn on debugging printout
 # logger.setLogLevel(logging.DEBUG)
-from msmbuilder import msm_analysis
 
 
-def DijkstraTopPaths(A, B, NFlux, NumPaths=10, NodeWipe=False):
+
+###############################################################################
+# Typechecking/Utility Functions
+#
+
+def _ensure_iterable(arg):
+    if not hasattr(arg, '__iter__'):
+        arg = list([int(arg)])
+        print("Warning: passed object was not iterable,"
+              " converted it to: %s" % str(arg))
+    return arg
+
+def _check_sources_sinks(sources, sinks):
+    sources = _ensure_iterable(sources)
+    sinks = _ensure_iterable(sinks)
+    if np.any( sources == sinks ):
+        raise ValueError("Sets `sources` and `sinks` must be disjoint "
+                         "to find paths between them")
+    return sources, sinks
+
+
+###############################################################################
+# Path Finding Functions
+#
+
+def DijkstraTopPaths(sources, sinks, net_flux, num_paths=10, node_wipe=False):
     r"""
     Calls the Dijkstra algorithm to find the top 'NumPaths'. 
 
@@ -47,15 +78,15 @@ def DijkstraTopPaths(A, B, NFlux, NumPaths=10, NodeWipe=False):
 
     Parameters
     ----------
-    A : array_like, int 
-        The indices of the source states (i.e. for state A in rxn A -> B)
-    B : array_like, int
-        Indices of sink states (state B)
-    NFlux : sparse matrix
-        Matrix of the net flux from A to B, see function GetFlux
-    NumPaths : int 
+    sources : array_like, int 
+        The indices of the source states
+    sinks : array_like, int
+        Indices of sink states
+    net_flux : sparse matrix
+        Matrix of the net flux from `sources` to `sinks`, see function compute_net_flux
+    num_paths : int 
         The number of paths to find
-    NodeWipe : bool 
+    node_wipe : bool 
         If true, removes the bottleneck-generating node from the graph, instead
         of just the bottleneck (not recommended, a debugging functionality)
 
@@ -73,30 +104,19 @@ def DijkstraTopPaths(A, B, NFlux, NumPaths=10, NodeWipe=False):
     -- Add periodic flow check
     """
 
-
-    # first, do some checking on the input, esp. A and B
+    # first, do some checking on the input, esp. `sources` and `sinks`
     # we want to make sure all objects are iterable and the sets are disjoint
-    try:
-        l = len(A)
-    except:
-        A = list([int(A)])
-        logger.warning("passed object 'A' was not iterable, converted it to: %s", A)
-    try: 
-        l = len(B)
-    except: 
-        B = list([int(B)])
-        logger.warning("passed object 'B' was not iterable, converted it to: %s", B)
-    if np.any( A == B ):
-        raise ValueError("Sets A and B must be disjoint to find paths between them")
+    
+    sources, sinks = _check_sources_sinks(sources, sinks)
 
     # initialize objects
     Paths = []
     Fluxes = []
     Bottlenecks = []
-    NFlux = NFlux.tolil()
+    net_flux = net_flux.tolil()
 
     # run the initial Dijkstra pass
-    pi, b = Dijkstra(A, B, NFlux)
+    pi, b = Dijkstra(sources, sinks, net_flux)
 
     logger.info("Path Num | Path | Bottleneck | Flux")
 
@@ -105,7 +125,7 @@ def DijkstraTopPaths(A, B, NFlux, NumPaths=10, NodeWipe=False):
     while not done:
 
         # First find the highest flux pathway
-        (Path, (b1,b2), Flux) = Backtrack(B, b, pi, NFlux)
+        (Path, (b1,b2), Flux) = Backtrack(sinks, b, pi, net_flux)
 
         # Add each result to a Paths, Bottlenecks, Fluxes list
         if Flux == 0:
@@ -118,13 +138,14 @@ def DijkstraTopPaths(A, B, NFlux, NumPaths=10, NodeWipe=False):
 
         # Cut the bottleneck, start relaxing from B side of the cut
         if NodeWipe: 
-            NFlux[:, b2] = 0
-            logger.info("Wiped node: %s", b2)
-        else: NFlux[b1, b2] = 0
 
-        G = scipy.sparse.find(NFlux)
+            net_flux[:, b2] = 0
+            logger.info("Wiped node: %s", b2)
+        else: net_flux[b1, b2] = 0
+
+        G = scipy.sparse.find(net_flux)
         Q = [b2]
-        b, pi, NFlux = BackRelax(b2, b, pi, NFlux)
+        b, pi, NFlux = BackRelax(b2, b, pi, net_flux)
         
         # Then relax the graph and repeat
         # But only if we still need to
@@ -133,7 +154,7 @@ def DijkstraTopPaths(A, B, NFlux, NumPaths=10, NodeWipe=False):
                 w = Q.pop()
                 for v in G[1][np.where( G[0] == w )]:
                     if pi[v] == w:
-                        b, pi, NFlux = BackRelax(v, b, pi, NFlux)
+                        b, pi, NFlux = BackRelax(v, b, pi, net_flux)
                         Q.append(v)
                 Q = sorted(Q, key=lambda v: b[v])
 
@@ -370,9 +391,125 @@ def FindPathBottleneck(Path, NFlux):
     return (b1, b2), flux
 
 
-def CalcAvgFoldingTime(U, F, T, LagTime):
+def compute_fluxes(sources, sinks, tprob, populations=None, committors=None):
     """
-    Calculates the Average 'Folding Time' of an MSM defined by T and a LagTime.
+    Compute the transition path theory flux matrix.
+	
+    Parameters
+    ----------
+    sources : array_like, int
+        The set of unfolded/reactant states.
+
+    sinks : array_like, int
+        The set of folded/product states.
+		
+    tprob : mm_matrix	
+        The transition matrix.
+		
+		
+    Returns
+    ------
+    fluxes : mm_matrix
+        The flux matrix
+        
+        
+    Optional Parameters
+    -------------------
+    populations : nd_array, float
+        The equilibrium populations, if not provided is re-calculated
+        
+    committors : nd_array, float
+        The committors associated with `sources`, `sinks`, and `tprob`.
+        If not provided, is calculated from scratch. If provided, `sources`
+        and `sinks` are ignored.
+    """
+    
+    sources, sinks = _check_sources_sinks(sources, sinks)
+    
+    # check if we got the populations
+    if populations is None:
+        eigens = msm_analysis.get_eigenvectors(tprob, 5)
+        if np.count_nonzero(np.imag(eigens[1][:,0])) != 0:
+            raise ValueError('First eigenvector has imaginary parts')
+        populations = np.real(eigens[1][:,0])
+        
+    # check if we got the committors
+    if committors is None:
+        committors = calc_committors(sources, sinks, tprob, dense=False)
+    
+    # perform the flux computation
+    Indx, Indy = tprob.nonzero()
+
+    n = tprob.shape[0]
+    X = scipy.sparse.lil_matrix( (n,n) )
+    X.setdiag( populations * (1.0 - committors) )
+
+    Y = scipy.sparse.lil_matrix( (n,n) )
+    Y.setdiag(committors)
+    fluxes = np.dot( np.dot(X.tocsr(), tprob.tocsr()), Y.tocsr() )
+    fluxes = P.tolil()
+    fluxes.setdiag(np.zeros(n))
+    
+    return fluxes
+
+
+def compute_net_fluxes(sources, sinks, tprob, populations=None, committors=None):
+    """
+    Computes the transition path theory net flux matrix.
+
+    Parameters
+    ----------
+    sources : array_like, int
+        The set of unfolded/reactant states.
+
+    sinks : array_like, int
+        The set of folded/product states.
+		
+    tprob : mm_matrix	
+        The transition matrix.
+		
+		
+    Returns
+    ------
+    net_fluxes : mm_matrix
+        The net flux matrix
+        
+        
+    Optional Parameters
+    -------------------
+    populations : nd_array, float
+        The equilibrium populations, if not provided is re-calculated
+        
+    committors : nd_array, float
+        The committors associated with `sources`, `sinks`, and `tprob`.
+        If not provided, is calculated from scratch. If provided, `sources`
+        and `sinks` are ignored.
+    """
+
+    sources, sinks = _check_sources_sinks(sources, sinks)
+
+    n = tprob.shape[0]
+    
+    flux = compute_net_fluxes(sources, sinks, tprob, populations, committors)
+    ind = flux.nonzero()
+    
+    net_flux = scipy.sparse.lil_matrix( (n,n) )
+    for k in range( len(ind[0]) ):
+        i,j = ind[0][k], ind[1][k]
+        forward = flux[i,j]
+        reverse = flux[j,i]
+        net_flux[i,j] = max(0, forward - reverse)
+        
+    return net_flux
+
+
+###############################################################################
+# MFPT & Committor Finding Functions
+#
+
+def calc_ensemble_mfpt(sources, sinks, tprob, lag_time):
+    """
+    Calculates the average 'Folding Time' of an MSM defined by T and a LagTime.
     The Folding Time is the average of the MFPTs (to F) of all the states in U.
 
     Note here 'Folding Time' is defined as the avg MFPT of {U}, to {F}.
@@ -380,13 +517,13 @@ def CalcAvgFoldingTime(U, F, T, LagTime):
 
     Parameters
     ----------
-    U : array, int
-        indices of the unfolded states
-    F : array, int 
-        indices of the folded states
-    T : matrix
+    sources : array, int
+        indices of the source states
+    sinks : array, int 
+        indices of the sink states
+    tprob : matrix
         transition probability matrix
-    LagTime : float
+    lag_time : float
         the lag time used to create T (dictates units of the answer)
 
     Returns
@@ -396,16 +533,18 @@ def CalcAvgFoldingTime(U, F, T, LagTime):
     std : float
         the standard deviation of the MFPTs
     """
+    
+    sources, sinks = _check_sources_sinks(sources, sinks)
 
-    X=GetMFPT(F,T,LagTime)
-    Times=np.zeros(len(U))
-    for i in range(len(U)):
-        Times[i]=(X[U[i]])
+    X = mfpt(sinks, tprob, lag_time)
+    times = np.zeros(len(sources))
+    for i in range(len(sources)):
+        times[i] = X[ sources[i] ] 
 
-    return np.average(Times), np.std(Times) 
+    return np.average(times), np.std(times) 
 
 
-def CalcAvgTPTime(U, F, T, LagTime):
+def calc_avg_TP_time(sources, sinks, tprob, lag_time):
     """
     Calculates the Average Transition Path Time for MSM with: T, LagTime.
     The TPTime is the average of the MFPTs (to F) of all the states
@@ -418,13 +557,13 @@ def CalcAvgTPTime(U, F, T, LagTime):
 
     Parameters
     ----------
-    U : array, int
+    sources : array, int
         indices of the unfolded states
-    F : array, int 
+    sinks : array, int 
         indices of the folded states
-    T : matrix
+    tprob : matrix
         transition probability matrix
-    LagTime : float
+    lag_time : float
         the lag time used to create T (dictates units of the answer)
 
     Returns
@@ -434,26 +573,28 @@ def CalcAvgTPTime(U, F, T, LagTime):
     std : float
         the standard deviation of the MFPTs
     """
+    
+    sources, sinks = _check_sources_sinks(sources, sinks)
 
     T = T.tolil()
     n = T.shape[0]
     P = scipy.sparse.lil_matrix((n,n))
 
-    for u in U:
+    for u in sources:
         for i in range(n):
             if i not in U:
                 P[u,i]=T[u,i]
 
-    for u in U:
+    for u in sources:
         T[u,:] = np.zeros(n)
         T[:,u] = 0
 
-    for i in U:
+    for i in sources:
         N = T[i,:].sum()
         T[i,:] = T[i,:]/N
 
-    X = GetMFPT(F,T,LagTime)
-    TP = P*X.T
+    X = mfpt(sinks, prob, lag_time)
+    TP = P * X.T
     TPtimes = []
 
     for time in TP:
@@ -462,16 +603,16 @@ def CalcAvgTPTime(U, F, T, LagTime):
     return np.average(TPtimes), np.std(TPtimes)
 
 
-def GetMFPT(F, T, LagTime=1.):
+def mfpt(sinks, tprob, lag_time=1.):
     """
     Gets the Mean First Passage Time (MFPT) for all states to a *set*
     of sinks.
 
     Parameters
     ----------
-    F : array, int 
-        indices of the folded states
-    T : matrix
+    sinks : array, int 
+        indices of the sink states
+    tprob : matrix
         transition probability matrix
     LagTime : float
         the lag time used to create T (dictates units of the answer)
@@ -486,22 +627,32 @@ def GetMFPT(F, T, LagTime=1.):
     all_to_all_mfpt : function
         A more efficient way to calculate all the MFPTs in a network
     """
+    
+    sinks = _ensure_iterable(sinks)
 
-    n=T.shape[0]
-    T2=T.copy().tolil()
-    for State in F:
-        T2[State,:]=0.0     # CRS
-        T2[State,State]=2.0 # CRS
-        #T2[:,State]=0.0     # CRS
+    n = tprob.shape[0]
+    
+    if scipy.sparse.isspmatrix(T):
+        tprob = tprob.tolil()
+    
+    for state in sinks:
+        tprob[state,:] = 0.0    
+        tprob[state,state] = 2.0
 
-    T2=T2-scipy.sparse.eye(n,n)
-    T2=T2.tocsr()
+    if scipy.sparse.isspmatrix(T):
+        tprob = tprob - scipy.sparse.eye(n,n)
+        tprob = tprob.tocsr()
+    else:
+        tprob = tprob - np.eye(n)
 
-    RHS=-1*np.ones(n)
-    for State in F:
-        RHS[State]=0.
+    RHS = -1 * np.ones(n)
+    for state in sinks:
+        RHS[state] = 0.0
 
-    MFPT=LagTime*scipy.sparse.linalg.spsolve(T2,RHS)
+    if scipy.sparse.isspmatrix(tprob):
+        MFPT = lag_time * scipy.sparse.linalg.spsolve(tprob, RHS)
+    else:
+        MFPT = lag_time * np.linalg.solve(tprob, RHS)
 
     return MFPT
 
@@ -559,6 +710,184 @@ def all_to_all_mfpt(tprob, populations=None):
     return mfpt
 
 
+def calc_committors(sources, sinks, tprob):
+    """
+    Get the forward committors of the reaction U -> F.
+
+    If you are have small matrices, it can be faster to use dense 
+    linear algebra. 
+	
+    Parameters
+    ----------
+    sources : array_like, int
+        The set of unfolded/reactant states.
+
+    sinks : array_like, int
+        The set of folded/product states.
+		
+    tprob : mm_matrix	
+        The transition matrix.
+			
+    dense : bool
+        Employ dense linear algebra. Will speed up the calculation
+        for small matrices.
+		
+    Returns
+    -------
+    Q : array_like
+        The forward committors for the reaction U -> F.
+    """
+	
+    sources, sinks = _check_sources_sinks(sources, sinks)
+
+    if scipy.sparse.issparse(tprob):
+        dense = True
+    else:
+        dense = False
+
+    # construct the committor problem
+    n = tprob.shape[0]
+
+    if dense:
+       T = np.eye(n) - tprob
+    else:
+       T = scipy.sparse.eye(n, n, 0, format='lil') - tprob
+
+    for a in sources:
+        T[a,:] = 0.0 #np.zeros(n)
+        T[:,a] = 0.0
+        T[a,a] = 1.0
+        
+    for b in sinks:
+        T[b,:] = 0.0 # np.zeros(n)
+        T[:,b] = 0.0
+        T[b,b] = 1.0
+        
+    IdB = np.zeros(n)
+    IdB[sinks] = 1.0
+        
+    RHS = tprob * IdB
+    
+    RHS[sources] = 0.0
+    RHS[sinks]   = 1.0
+
+    # solve for the committors
+    if dense == False:
+        Q = scipy.sparse.linalg.spsolve(T, RHS)
+    else:
+        Q = np.linalg.solve(T, RHS)
+
+    return Q
+    
+
+######################################################################
+#  DEPRECATED FUNCTIONS
+#  CAN BE REMOVED IN VERSION 2.7
+######################################################################
+
+# TJL: Unnecessary helper function
+@deprecated(calc_committors, '2.7')
+def GetFCommittorsEqn(A, B, T0, dense=False):
+    """
+    Construct the matrix equations used for finding committors 
+    for the reaction U -> F.  T0 is the transition matrix, 
+    Equilibruim is the vector of equilibruim populations.
+	
+    Parameters
+    ----------
+    A : array_like, int
+        The set of unfolded/reactant states.
+
+    B : array_like, int
+        The set of folded/product states.
+		
+    T0 : mm_matrix	
+        The transition matrix.
+				
+    Returns
+    -------
+    A : mm_matrix
+        the sparse matrix for committors (Ax = b)
+ 
+    b : array_like
+        the vector on right hand side of (Ax = b)
+    """
+	
+    # TJL to KAB : please be consistent with variable names!
+	
+    n = T0.shape[0]
+
+    if dense:
+       T = np.linalg.eye(n) - T0
+
+    else:
+       T = scipy.sparse.eye(n,n,0,format='lil')-T0
+       T = T.tolil()
+
+    for a in A:
+        T[a,:] = np.zeros(n)
+        T[:,a] = 0.0
+        T[a,a] = 1.0
+    for b in B:
+        T[b,:] = np.zeros(n)
+        T[:,b] = 0.0
+        T[b,b] = 1.0
+    IdB = np.zeros(n)
+    for b in B:
+        IdB[b] = 1.0
+    logger.info("done with setting up matrices")
+    RHS = T0*(IdB) # changed from RHS=T0.matvec(IdB) --TJL, matvec deprecated
+    for a in A:
+        RHS[a] = 0.0
+    for b in B:
+        RHS[b] = 1.0
+
+    return (T,RHS)
+
+
+# TJL: these helper functions are cluttered/confusing
+@deprecated(calc_committors, '2.7')
+def GetBCommittorsEqn(U, F, T0, EquilibriumPopulations):
+    """
+    Construct the matrix equations used for finding backwards 
+    committors for the reaction U -> F.
+	
+    Parameters
+    ----------
+    U : array_like, int
+        The set of unfolded/reactant states.
+		
+    F : array_like, int
+        The set of folded/product states.
+		
+    T0 : mm_matrix	
+        The transition matrix.
+		
+    EquilibriumPopulations : array_like, float
+        Populations of the states.
+		
+    Returns
+    -------
+     A : mm_matrix 
+        the sparse matrix for committors (Ax = b)
+ 
+     b : nd_array
+         the vector on right hand side of (Ax = b)
+    """
+
+    n = len(EquilibriumPopulations)
+    DE = scipy.sparse.eye(n,n,0,format='lil')
+    DE.setdiag(EquilibriumPopulations)
+    DEInv = scipy.sparse.eye(n,n,0,format='lil')
+    DEInv.setdiag(1./EquilibriumPopulations)
+    TR = (DEInv.dot(T0.transpose())).dot(DE)
+
+    return GetFCommittorsEqn(F,U,TR)
+
+
+# TJL: We don't need a "get backwards committors", since they are just
+# 1 minus the forward committors
+@deprecated(calc_committors, '2.7')
 def GetBCommittors(U, F, T0, EquilibriumPopulations, X0=None, Dense=False):
     """
     Get the backward committors of the reaction U -> F.
@@ -602,207 +931,34 @@ def GetBCommittors(U, F, T0, EquilibriumPopulations, X0=None, Dense=False):
     return Q
 
 
-def GetFCommittors(U, F, T0, Dense=False):
-    """
-    Get the forward committors of the reaction U -> F.
+######################################################################
+#  ALIASES FOR DEPRECATED FUNCTION NAMES
+#  THESE FUNCTIONS WERE ADDED FOR VERSION 2.6 AND
+#  CAN BE REMOVED IN VERSION 2.7
+######################################################################
+@deprecated(mfpt, '2.7')
+def MFPT():
+    pass
 
-    If you are have small matrices, it can be faster to use dense 
-    linear algebra. 
-	
-    Parameters
-    ----------
-    U : array_like, int
-        The set of unfolded/reactant states.
+@deprecated(calc_committors, '2.7')
+def GetFCommittors():
+    pass
+    
+@deprecated(compute_fluxes, '2.7')
+def GetFlux():
+    print "WARNING: The call signature for the new function has changed."
+    pass
 
-    F : array_like, int
-        The set of folded/product states.
-		
-    T0 : mm_matrix	
-        The transition matrix.
-
-    EquilibriumPopulations : array_like, float
-        Populations of the states.
-			
-    Dense : bool
-        Employ dense linear algebra. Will speed up the calculation
-        for small matrices.
-		
-    Returns
-    -------
-    Q : array_like
-        The forward committors for the reaction U -> F.
-    """
-	
-    A,b = GetFCommittorsEqn(U,F,T0)
-
-    if Dense == False:
-        Q = scipy.sparse.linalg.spsolve(A,b)
-    else:
-        Q = np.linalg.solve(A.toarray(),b)
-
-    return Q
-
-
-def GetBCommittorsEqn(U, F, T0, EquilibriumPopulations):
-    """
-    Construct the matrix equations used for finding backwards 
-    committors for the reaction U -> F.
-	
-    Parameters
-    ----------
-    U : array_like, int
-        The set of unfolded/reactant states.
-		
-    F : array_like, int
-        The set of folded/product states.
-		
-    T0 : mm_matrix	
-        The transition matrix.
-		
-    EquilibriumPopulations : array_like, float
-        Populations of the states.
-		
-    Returns
-    -------
-     A : mm_matrix 
-        the sparse matrix for committors (Ax = b)
- 
-     b : nd_array
-         the vector on right hand side of (Ax = b)
-    """
-
-    n = len(EquilibriumPopulations)
-    DE = scipy.sparse.eye(n,n,0,format='lil')
-    DE.setdiag(EquilibriumPopulations)
-    DEInv = scipy.sparse.eye(n,n,0,format='lil')
-    DEInv.setdiag(1./EquilibriumPopulations)
-    TR = (DEInv.dot(T0.transpose())).dot(DE)
-
-    return GetFCommittorsEqn(F,U,TR)
-
-
-def GetFCommittorsEqn(A, B, T0):
-    """
-    Construct the matrix equations used for finding committors 
-    for the reaction U -> F.  T0 is the transition matrix, 
-    Equilibruim is the vector of equilibruim populations.
-	
-    Parameters
-    ----------
-    A : array_like, int
-        The set of unfolded/reactant states.
-
-    B : array_like, int
-        The set of folded/product states.
-		
-    T0 : mm_matrix	
-        The transition matrix.
-				
-    Returns
-    -------
-     A : mm_matrix
-        the sparse matrix for committors (Ax = b)
- 
-     b : array_like
-         the vector on right hand side of (Ax = b)
-    """
-	
-	# TJL to KAB : please be consistent with variable names!
-	
-    n = T0.shape[0]
-    T = scipy.sparse.eye(n,n,0,format='lil')-T0
-    T = T.tolil()
-    for a in A:
-        T[a,:] = np.zeros(n)
-        T[:,a] = 0.0
-        T[a,a] = 1.0
-    for b in B:
-        T[b,:] = np.zeros(n)
-        T[:,b] = 0.0
-        T[b,b] = 1.0
-    IdB = np.zeros(n)
-    for b in B:
-        IdB[b] = 1.0
-    logger.info("done with setting up matrices")
-    RHS = T0*(IdB) # changed from RHS=T0.matvec(IdB) --TJL, matvec deprecated
-    for a in A:
-        RHS[a] = 0.0
-    for b in B:
-        RHS[b] = 1.0
-
-    return (T,RHS)
-
-
-def GetFlux(E,F,R,T):
-    """
-    Get the flux matrix.
-	
-    Parameters
-    ----------
-    E : array_like, float
-        The equilibirum populations
-		
-    F : array_like, int
-        Forward committors
-		
-    R : array_like, int
-        backwards committors
-		
-    T : mm_matrix
-        transition matrix.
-		
-    Returns
-    ------
-    P : mm_read
-        The flux matrix
-    """
-    Indx,Indy = T.nonzero()
-
-    n = len(E)
-    X = scipy.sparse.lil_matrix((n,n))
-    X.setdiag(E*R)
-
-    Y = scipy.sparse.lil_matrix((n,n))
-    Y.setdiag(F)
-    P = np.dot(np.dot(X.tocsr(),T.tocsr()),Y.tocsr())
-    P = P.tolil()
-    P.setdiag(np.zeros(n))
-    return P
-
-
-def GetNetFlux(E,F,R,T):
-    """
-    Returns a (net) matrix Flux where Flux[i,j] is the flux from i to j.
-
-    Parameters
-    ----------
-    E : array_like, float
-        The equilibrium populations
-		
-    F : array_like, int
-        Forward committors
-		
-    R : array_like, int
-        backwards committors
-		
-    T : mm_matrix
-        transition matrix.
-		
-    Returns
-    ------
-    NFlux : mm_read
-        The flux matrix
-    """
-
-    n = len(E)
-    Flux = GetFlux(E,F,R,T)
-    ind = Flux.nonzero()
-    NFlux = scipy.sparse.lil_matrix((n,n))
-    for k in range(len(ind[0])):
-        i,j = ind[0][k],ind[1][k]
-        forward = Flux[i,j]
-        reverse = Flux[j,i]
-        NFlux[i,j] = max(0,forward - reverse)
-    return NFlux
-        
+@deprecated(compute_net_fluxes, '2.7')
+def GetNetFlux():
+    print "WARNING: The call signature for the new function has changed."
+    pass
+    
+@deprecated(calc_avg_TP_time, '2.7')
+def CalcAvgTPTime():
+    pass
+    
+@deprecated(calc_ensemble_mfpt, '2.7')
+def CalcAvgFoldingTime():
+    pass
     

@@ -38,6 +38,7 @@ import os
 import shutil
 import tempfile
 import time
+import pickle
 import unittest
 
 import scipy
@@ -51,6 +52,7 @@ from msmbuilder import Trajectory
 from msmbuilder import Conformation
 from msmbuilder import Serializer
 from msmbuilder import MSMLib
+from msmbuilder import transition_path_theory
 
 ### Local Imports ###
 #from msmbuilder.scripts import Assign
@@ -65,6 +67,7 @@ from msmbuilder.scripts import CreateAtomIndices
 from msmbuilder.scripts import GetRandomConfs
 from msmbuilder.scripts import PCCA
 from msmbuilder.scripts import SavePDBs
+from msmbuilder.scripts import DoTPT
 
 from ReferenceParameters import *
 try:
@@ -271,6 +274,34 @@ class TestWrappers(unittest.TestCase):
         r0=Serializer.LoadData(ReferenceDir+"/RMSD.h5")
         r1=Serializer.LoadData(WorkingDir+"/RMSD.h5")
         numpy.testing.assert_array_almost_equal(r0,r1, err_msg="Error: Project RMSDs disagree!")
+
+    def test_l_transition_path_theory(self):
+        # TO DO: Add script check
+
+        # run the reference calculations
+        T = scipy.io.mmread(os.path.join(ReferenceDir, "Data", "tProb.mtx"))
+        Q = transition_path_theory.calc_committors([0], [70], T)
+        net_flux = transition_path_theory.compute_net_fluxes([0], [70], T)
+        path_output = transition_path_theory.DijkstraTopPaths( [0], [70], net_flux )
+        all_to_all_mfpt = transition_path_theory.all_to_all_mfpt(T)
+
+        # run the script reference
+        #script_out = DoTPT.run()
+
+        # load in reference output
+        Q_ref = Serializer.LoadData(os.path.join(ReferenceDir, "transition_path_theory_reference", "committors.h5"))
+        net_flux_ref = scipy.io.mmread(os.path.join(ReferenceDir, "transition_path_theory_reference","net_flux.mtx"))
+        path_output_ref = pickle.load(os.path.join(ReferenceDir, "transition_path_theory_reference","dijsktra_top_paths_output.pkl"))
+        all_to_all_mfpt_ref = Serializer.LoadData(os.path.join(ReferenceDir, "transition_path_theory_reference", "all_to_all_mfpt.h5"))
+        #script_out_ref =
+
+        # compare the calculations and the reference
+
+        numpy.testing.assert_array_almost_equal( Q, Q_ref, err_msg="Committors do not agree with reference!")
+        numpy.testing.assert_array_almost_equal( net_flux, net_flux_ref, err_msg="Net flux calculation does not agree with reference!")
+        numpy.testing.assert_array_almost_equal( path_output, path_output_ref, err_msg="Path (dijkstra algorithm) does not agree with reference!")
+        numpy.testing.assert_array_almost_equal( all_to_all_mfpt, all_to_all_mfpt_ref, err_msg="DoTPT.py does not agree with reference!")
+        #numpy.testing.assert_array_almost_equal( script_out, script_out_ref, err_msg="DoTPT.py does not agree with reference!")
         
     def test_l_CalculateProjectSASA(self):
         outpath = os.path.join(WorkingDir, "SASA.h5")
