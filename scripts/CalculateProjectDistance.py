@@ -19,7 +19,6 @@
 
 import os, sys
 import numpy as np
-from msmbuilder.metrics import RMSD
 from msmbuilder import Project
 from msmbuilder import Trajectory
 from msmbuilder import Serializer
@@ -28,45 +27,54 @@ from msmbuilder import arglib
 import logging
 logger = logging.getLogger(__name__)
 
+def run(project, pdb, metric, traj_fn = None):    
 
-def run(project, pdb, atom_indices):    
-    distances = -1 * np.ones((project['NumTrajs'], max(project['TrajLengths'])))
-    rmsd = RMSD(atom_indices)
-    ppdb = rmsd.prepare_trajectory(pdb)
+    ppdb = metric.prepare_trajectory(pdb)
     
-    for i in xrange(project['NumTrajs']):
-        ptraj = rmsd.prepare_trajectory(project.LoadTraj(i))
-        d = rmsd.one_to_all(ppdb, ptraj, 0)
-        distances[i, 0:len(d)] = d
-    
+    if traj_fn == None:
+        distances = -1 * np.ones((project['NumTrajs'], max(project['TrajLengths'])))
+
+        for i in xrange(project['NumTrajs']):
+            logger.info("Working on Trajectory %d", i )
+            ptraj = metric.prepare_trajectory(project.LoadTraj(i))
+            d = metric.one_to_all(ppdb, ptraj, 0)
+            distances[i, 0:len(d)] = d
+    else:
+        traj = Trajectory.LoadTrajectoryFile( traj_fn )
+        ptraj = metric.prepare_trajectory( traj )
+
+        distances = metric.one_to_all(ppdb, ptraj, 0)
+
     return distances
     
     
 if __name__ == '__main__':
     parser = arglib.ArgumentParser(description="""
-Calculate the RMSD between an input PDB and all conformations in your project.
-Output as a HDF5 file (load using Serializer.LoadData())
-===============================================================================
-This script is deprecated and will be removed in v2.7 
-Please use CalculateProjectDistance.py
-===============================================================================
-""")
+Calculate the distance between an input PDB and all conformations in your project.
+Alternatively, you can limit the distance calculate to a single trajectory by
+passing a trajectory filename.
+Output as a HDF5 file (load using Serializer.LoadData())""", get_metric=True)
     parser.add_argument('pdb')
-    parser.add_argument('atom_indices', help='Indices of atoms to compare',
-        default='AtomIndices.dat')
     parser.add_argument('output', help='''Output file name. Output is an
         .h5 file with RMSD entries corresponding to the Assignments.h5 file.''',
         default='Data/RMSD.h5')
     parser.add_argument('project')
-    args = parser.parse_args()
+    parser.add_argument('traj_fn', help='''Pass a trajectory file, to return
+        just the distance for a particular trajectory. Pass 'all' to get all
+        distances in the project.''', default='all')
 
+    args, metric = parser.parse_args()
+    
     arglib.die_if_path_exists(args.output)
 
     project = Project.LoadFromHDF( args.project )    
     pdb = Trajectory.LoadTrajectoryFile( args.pdb )
-    atom_indices = np.loadtxt( args.atom_indices ).astype(int)
+    if args.traj_fn.lower() == 'all':
+        traj_fn = None
+    else:
+        traj_fn = args.traj_fn
 
-    distances = run(project, pdb, atom_indices)
+    distances = run(project, pdb, metric, traj_fn)
     
     Serializer.SaveData(args.output, distances)
     logger.info('Saved to %s', args.output)

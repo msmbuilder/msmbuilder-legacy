@@ -43,7 +43,12 @@ and PDB for the atoms specified in the atom indicies file. Note that trajectory
 can be any trajectory-like format, including generators and random conformation 
 files. Output: a flat file vector of RMSDs, in nm. Note that MSMBuilder's RMSD
 calculator is highly optimized, so this calculation should be rapid. Output: 
-RMSD.dat, a flat text file of the RMSDs.""")
+RMSD.dat, a flat text file of the RMSDs.
+===============================================================================
+This script is deprecated and will be removed in v2.7
+Please use CalculateProjectDistance.py
+===============================================================================
+""" )
     parser.add_argument('pdb')
     parser.add_argument('input', help='Path to a trajectory-like file')
     parser.add_argument('atom_indices', help='Indices of atoms to compare',
@@ -53,7 +58,7 @@ RMSD.dat, a flat text file of the RMSDs.""")
     args = parser.parse_args()
     
     arglib.die_if_path_exists(args.output)
-    
+
     pdb = Trajectory.LoadTrajectoryFile( args.pdb )
     atom_indices = np.loadtxt( args.atom_indices ).astype(int)
     traj = Trajectory.LoadTrajectoryFile( args.input )
