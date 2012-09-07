@@ -93,7 +93,8 @@ def configuration(parent_package='',top_path=None):
     lprmsd = Extension('msmbuilder._lprmsd',
                        sources = glob('src/ext/LPRMSD/*.c'),
                        extra_compile_args = ["-std=c99","-O2",
-                                             "-msse2","-msse3","-Wno-unused","-fopenmp","-m64"],
+                                             "-msse2","-msse3","-Wno-unused","-fopenmp","-m64"], 
+                                            # If you are 32-bit you should remove the -m64 flag
                        extra_link_args = ['-lblas', '-lpthread', '-lm', '-lgomp'],
                        include_dirs = [numpy.get_include(), os.path.join(numpy.get_include(), 'numpy')])
 
