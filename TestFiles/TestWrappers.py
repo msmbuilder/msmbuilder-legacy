@@ -213,12 +213,25 @@ class TestWrappers(unittest.TestCase):
         #Traj = Trajectory.LoadTrajectoryFile("Data/Gens.lh5")
         #AInd = np.loadtxt("AtomIndices.dat", int)
         #CalculateRMSD.run(C1, Traj, AInd, "RMSD.dat")
-        outpath = os.path.join(WorkingDir, "RMSD.dat")
-        os.system('CalculateRMSD.py -s %s -i %s -a %s -o %s' % (PDBFn, "Data/Gens.lh5", "AtomIndices.dat", outpath))
+        outpath = os.path.join(WorkingDir, "RMSD_Gens.h5")
+        os.system('CalculateProjectDistance.py -s %s -t %s -o %s rmsd -a %s' % (PDBFn, "Data/Gens.lh5", outpath, "AtomIndices.dat" ) )
         
-        cr   = np.loadtxt(outpath)
+        cr   = Serializer.LoadData(outpath)
         cr_r = np.loadtxt(os.path.join(ReferenceDir, "RMSD.dat"))
         numpy.testing.assert_array_almost_equal(cr, cr_r)
+
+    def test_ia_CalculateLPRMSD(self):
+        #C1   = Conformation.Conformation.LoadFromPDB(PDBFn)
+        #Traj = Trajectory.LoadTrajectoryFile("Data/Gens.lh5")
+        #AInd = np.loadtxt("AtomIndices.dat", int)
+        #CalculateRMSD.run(C1, Traj, AInd, "RMSD.dat")
+        outpath = os.path.join(WorkingDir, "LPRMSD.h5")
+        os.system('CalculateProjectDistance.py -s %s -t %s -o %s lprmsd -a %s' % (PDBFn, "Data/Gens.lh5", outpath, "AtomIndices.dat" ) )
+
+        cr   = Serializer.LoadData(outpath)
+        cr_r = np.loadtxt(os.path.join(ReferenceDir, "RMSD.dat"))
+        numpy.testing.assert_array_almost_equal(cr, cr_r)
+
 
     def test_j_PCCA(self):
 
@@ -252,7 +265,7 @@ class TestWrappers(unittest.TestCase):
         #AInd=np.loadtxt("AtomIndices.dat", int)
         #CalculateProjectRMSD.run(C1,P1,AInd,"RMSD.h5")
         outpath = os.path.join(WorkingDir, "RMSD.h5")
-        os.system('CalculateProjectRMSD.py -s %s -a %s -o %s -p %s' % (PDBFn, "AtomIndices.dat", outpath, ProjectFn))
+        os.system('CalculateProjectDistance.py -s %s -o %s -p %s rmsd -a %s' % (PDBFn, outpath, ProjectFn, "AtomIndices.dat") )
         
         
         r0=Serializer.LoadData(ReferenceDir+"/RMSD.h5")

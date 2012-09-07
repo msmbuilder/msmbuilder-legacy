@@ -50,7 +50,9 @@ def run(project, pdb, metric, traj_fn = None):
     
 if __name__ == '__main__':
     parser = arglib.ArgumentParser(description="""
-Calculate the RMSD between an input PDB and all conformations in your project.
+Calculate the distance between an input PDB and all conformations in your project.
+Alternatively, you can limit the distance calculate to a single trajectory by
+passing a trajectory filename.
 Output as a HDF5 file (load using Serializer.LoadData())""", get_metric=True)
     parser.add_argument('pdb')
     parser.add_argument('output', help='''Output file name. Output is an
