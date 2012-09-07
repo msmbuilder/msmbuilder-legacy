@@ -5,7 +5,7 @@ Tests for msmbuilder.metrics.fast_cdist and msmbuilder.metrics.fast_pdist
 import numpy as np
 
 from scipy.spatial.distance import pdist, cdist
-from msmbuilder.metrics import fast_pdist, fast_cdist
+from msmbuilder.metrics.core import fast_pdist, fast_cdist
 import numpy.testing as npt
 import time
 from common import skip, expected_failure

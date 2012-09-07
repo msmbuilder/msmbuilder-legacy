@@ -21,16 +21,28 @@ Functions for performing Transition Path Theory calculations.
 
 Written and maintained by TJ Lane <tjlane@stanford.edu>
 Contributions from Kyle Beauchamp, Robert McGibbon, Vince Voelz
-"""
 
-debug = False # set to increase verbosity for coding purposes
+To Do:
+-- Get stuff passing unit tests
+-- Finish renaming functions
+-- Add logging functionality
+
+"""
 
 import numpy as np
 import scipy.sparse
+
 from msmbuilder import MSMLib
 from msmbuilder import msm_analysis
-
 from msmbuilder.utils import deprecated
+
+import logging
+logger = logging.getLogger('tpt')
+
+# turn on debugging printout
+# logger.setLogLevel(logging.DEBUG)
+
+
 
 ###############################################################################
 # Typechecking/Utility Functions
@@ -94,6 +106,7 @@ def DijkstraTopPaths(sources, sinks, net_flux, num_paths=10, node_wipe=False):
 
     # first, do some checking on the input, esp. `sources` and `sinks`
     # we want to make sure all objects are iterable and the sets are disjoint
+    
     sources, sinks = _check_sources_sinks(sources, sinks)
 
     # initialize objects
@@ -105,7 +118,7 @@ def DijkstraTopPaths(sources, sinks, net_flux, num_paths=10, node_wipe=False):
     # run the initial Dijkstra pass
     pi, b = Dijkstra(sources, sinks, net_flux)
 
-    print "Path Num | Path | Bottleneck | Flux" 
+    logger.info("Path Num | Path | Bottleneck | Flux")
 
     i = 1
     done = False
@@ -116,17 +129,18 @@ def DijkstraTopPaths(sources, sinks, net_flux, num_paths=10, node_wipe=False):
 
         # Add each result to a Paths, Bottlenecks, Fluxes list
         if Flux == 0:
-            print "Only %d possible pathways found. Stopping backtrack." % i
+            logger.info("Only %d possible pathways found. Stopping backtrack.", i)
             break
         Paths.append(Path)
         Bottlenecks.append( (b1,b2) )
         Fluxes.append(Flux)
-        print i, Path, (b1, b2), Flux
+        logger.info("%s | %s | %s | %s ", i, Path, (b1, b2), Flux)
 
         # Cut the bottleneck, start relaxing from B side of the cut
         if NodeWipe: 
+
             net_flux[:, b2] = 0
-            print "Wiped node:", b2
+            logger.info("Wiped node: %s", b2)
         else: net_flux[b1, b2] = 0
 
         G = scipy.sparse.find(net_flux)
@@ -148,7 +162,7 @@ def DijkstraTopPaths(sources, sinks, net_flux, num_paths=10, node_wipe=False):
         if i == NumPaths+1: 
             done = True
         if Flux == 0: 
-            print "Only %d possible pathways found. Stopping backtrack." % i
+            logger.info("Only %d possible pathways found. Stopping backtrack.", i)
             done = True
 
     return Paths, Bottlenecks, Fluxes
@@ -207,7 +221,7 @@ def Dijkstra(A, B, NFlux):
 
         Q = sorted(Q, key=lambda v: b[v])
 
-    print "Searched", len(U)+len(B), "nodes"
+    logger.info("Searched %s nodes", len(U)+len(B))
 
     return pi, b
 
@@ -322,7 +336,9 @@ def Backtrack(B, b, pi, NFlux):
         path.reverse()
 
         bottleneck, Flux = FindPathBottleneck(path, NFlux)
-        if debug: print 'In Backtrack: Flux, bestflux:', Flux, bestflux
+
+        logger.debug('In Backtrack: Flux %s, bestflux %s', Flux, bestflux)
+        
         if Flux > bestflux: 
             bestpath = path
             bestflux = Flux
@@ -819,7 +835,7 @@ def GetFCommittorsEqn(A, B, T0, dense=False):
     IdB = np.zeros(n)
     for b in B:
         IdB[b] = 1.0
-    print "done with setting up matrices"
+    logger.info("done with setting up matrices")
     RHS = T0*(IdB) # changed from RHS=T0.matvec(IdB) --TJL, matvec deprecated
     for a in A:
         RHS[a] = 0.0

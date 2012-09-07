@@ -26,6 +26,8 @@ import cPickle
 from msmbuilder import FahProject
 from msmbuilder import Project
 from msmbuilder.utils import keynat
+import logging
+logger = logging.getLogger(__name__)
 
 try:
     from deap import dtm
@@ -37,23 +39,22 @@ from msmbuilder.arglib import ArgumentParser, die_if_path_exists
 
 def yield_trajectory_filelist_from_dir( InputDir, itype ):
 
-    print "\nWARNING: Sorting trajectory files by numerical values in their names."
-    print "Ensure that numbering is as intended."
+    logger.warning("WARNING: Sorting trajectory files by numerical values in their names.")
+    logger.warning("Ensure that numbering is as intended.")
 
     traj_dirs = glob.glob(InputDir+"/*")
     traj_dirs.sort(key=keynat)
 
     Flist = [] # will hold a list of all the files
 
-    print "\nFound", len(traj_dirs), "trajectories."
+    logger.info("Found %s trajectories", len(traj_dirs))
     for traj_dir in traj_dirs:
          toadd = glob.glob( traj_dir + '/*'+itype )
          toadd.sort(key=keynat)
          if toadd:
              Flist.append(toadd)
 
-    print "\nLoading data:"
-    print Flist
+    logger.info("Loading data: %s", Flist)
 
     return Flist
 
@@ -63,7 +64,7 @@ def run(projectfn, PDBfn, InputDir, source, mingen, stride, rmsd_cutoff,
 
     # check if we are doing an update or a fresh run
     if os.path.exists( projectfn ):
-        print "Found project info file encoding previous work, running in update mode..."
+        logger.info("Found project info file encoding previous work, running in update mode...")
         update = True
     else:
         update = False
@@ -73,7 +74,7 @@ def run(projectfn, PDBfn, InputDir, source, mingen, stride, rmsd_cutoff,
         die_if_path_exists("Trajectories")
         die_if_path_exists("ProjectInfo.h5")
 
-    print "Looking for", source, "style data in", InputDir
+    logger.info("Looking for %s stype data in %s", source, InputDir)
     
     # Source "gpugrid" is a synonym for 'file_dcd'
     if source == "gpugrid":
@@ -113,18 +114,18 @@ def run(projectfn, PDBfn, InputDir, source, mingen, stride, rmsd_cutoff,
         input_style = source.upper()
         try:
             project_number = re.match('\w+(\d+)\w+', InputDir).group()
-            print "Converting FAH Project %d" % project_number
+            logger.info("Converting FAH Project %d", project_number)
         except:
             project_number = 0 # this number is not critical
         
         # check parallelism mode, and set the number of processors accordingly 
         if parallel == 'multiprocessing':
             num_proc = int(os.sysconf('SC_NPROCESSORS_ONLN'))
-            print "Found and using %d processors in parallel" % num_proc
+            logger.info("Found and using %d processors in parallel", num_proc)
         elif parallel == 'None':
             num_proc = 1
         else:
-            print "Allowed parallel options for FAH: None or multiprocessing"
+            logger.error("Allowed parallel options for FAH: None or multiprocessing")
             raise Exception("Error parsing parallel option: %s" % parallel)
 
         fahproject = FahProject( PDBfn, project_number=project_number, projectinfo_file=projectfn )
@@ -139,8 +140,8 @@ def run(projectfn, PDBfn, InputDir, source, mingen, stride, rmsd_cutoff,
         raise Exception("Invalid argument for source: %s" % source)
 
     assert os.path.exists(projectfn)
-    print "\nFinished data conversion successfully."
-    print "Generated: %s, Trajectories/, Data/" % projectfn
+    logger.info("Finished data conversion successfully.")
+    logger.info("Generated: %s, Trajectories/, Data/", projectfn)
 
     return
 
@@ -166,7 +167,7 @@ gets discarded. Further, the FahProject object retains a little more discard
 functionality.
 """)
 
-    parser.add_argument('project', type=str, description='''The ProjectInfo (.h5) file
+    parser.add_argument('project', type=str, help='''The ProjectInfo (.h5) file
         that contains a mapping of the previous work done. If you specify a file that 
         exists on disk, conversion will pick up where it left off and simply add data
         to what has already been done. If you specify a file that doesn't exist, the
@@ -175,26 +176,26 @@ functionality.
         automatically retrieves the conversion parameters you were using before and uses
         them - all other options you specify will be IGNORED.''')
     parser.add_argument('pdb')
-    parser.add_argument('input_dir', description='''Path to the parent directory
+    parser.add_argument('input_dir', help='''Path to the parent directory
         containing subdirectories with MD (.xtc) data. See the description above
         for the appropriate formatting for directory architecture.''')
-    parser.add_argument('source', description='''Data source: "file", "file_dcd" or
+    parser.add_argument('source', help='''Data source: "file", "file_dcd" or
         "fah". This is the style of trajectory data that gets fed into MSMBuilder.
         If a file, then it requires each trajectory be housed in a separate directory
         like (PROJECT/TRAJ*/frame*.xtc). If 'fah', then standard FAH-style directory
         architecture is required.''', default='file', choices=['fah', 'file', 'file_dcd'])
-    parser.add_argument('mingen', description='''Minimum number of XTC frames 
+    parser.add_argument('mingen', help='''Minimum number of XTC frames 
         required to include data in Project.  Used to discard extremely short 
         trajectories.  Only allowed in conjunction with source = 'FAH'.''',
         default=0, type=int)
-    parser.add_argument('stride', description='''Integer number to subsample by.
+    parser.add_argument('stride', help='''Integer number to subsample by.
         Every "u-th" frame will be taken from the data and converted to msmbuilder
         format''', default=1, type=int)
-    parser.add_argument('rmsd_cutoff', description='''A safe-guard that discards any
+    parser.add_argument('rmsd_cutoff', help='''A safe-guard that discards any
         structure with and RMSD higher than the specified value (in nanometers,
         with respect to the input PDB file). Pass -1 to disable this feature''',
         default=-1, type=float)
-    parser.add_argument('parallel', description='''Run the conversion in parallel.
+    parser.add_argument('parallel', help='''Run the conversion in parallel.
         multiprocessing launches multiple python interpreters to use all of your cores.
         dtm uses mpi, and requires python's "deap" module to be installed. To execute the
         code over mpi using dtm, you need to start the command with mpirun -np <num_procs>.
@@ -207,7 +208,7 @@ functionality.
     if rmsd_cutoff<=0.:
         rmsd_cutoff=1000.
     else:
-        print "WARNING: Will discard any frame that is %f nm from the PDB conformation..." % rmsd_cutoff
+        logger.warning("Will discard any frame that is %f nm from the PDB conformation...", rmsd_cutoff)
     
     if args.parallel == 'dtm' and args.source != 'file':
         raise NotImplementedError('Sorry. At this point parallelism is only implemented for file-style')

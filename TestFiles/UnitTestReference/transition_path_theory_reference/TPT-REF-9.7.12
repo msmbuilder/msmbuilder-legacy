@@ -1,0 +1,64 @@
+
+This directory contains a series of references that TJL generated to
+develop unit tests for the TPT code. This version of the code was
+respectably stable, and thus has been taken as a gold standard for
+future code.
+
+Below is documentation for how this reference was generated. Each
+indicated output was stored as a pickled object.
+
+Reference generated from:
+   msmbuilder-apr20 (SVN r)
+
+Excepting MFPT reference, which was calculated with the git
+revision (checked in on 9.7.12)
+
+-- TJL 9.7.12
+
+
+# committors
+T = io.mmread("tProb.mtx")
+Q = TransitionPathTheory.GetFCommittors([0],[70],T)
+Q --> "committors.pkl"
+
+# net flux
+net_flux = TransitionPathTheory.GetNetFlux(pops, Q, 1-Q, T)
+net_flux --> "net_flux.mtx"
+
+# paths
+out = TransitionPathTheory.DijkstraTopPaths( [0], [70], net_flux )
+out --> "dijsktra_top_paths_output.pkl"
+
+# MFPT
+# GetMFPT is broken in this revision, used current git rev.
+
+Serializer.SaveData("all_to_all_mfpt.h5", m)
+
+# scripts
+from msmbuilder.scripts import DoTPT
+from msmbuilder import transition_path_theory
+
+    def test_l_transition_path_theory(self):
+
+        # run the reference calculations
+        tprob = io.mmread("tProb.mtx")        
+        Q = transition_path_theory.GetFCommittors([0],[70],T)
+        net_flux = TransitionPathTheory.GetNetFlux(pops, Q, 1-Q, T)
+        path_output = TransitionPathTheory.DijkstraTopPaths( [0], [70], net_flux )
+
+        # run the script reference
+        script_out = DoTPT.run()
+
+        # load in reference output
+        Q_ref = pickle.load("committors.pkl")
+        net_flux_ref = io.mmread("net_flux.mtx")
+        path_output_ref = pickle.load("dijsktra_top_paths_output.pkl")
+        script_out_ref = 
+ 
+        # compare the calculations and the reference
+
+        numpy.testing.assert_array_almost_equal( Q, Q_ref, err_msg="Committors do not agree with reference!")
+        numpy.testing.assert_array_almost_equal( net_flux, net_flux_ref, err_msg=Net flux calculation does not agree with reference!")
+        numpy.testing.assert_array_almost_equal( path_output, path_output_ref, err_msg="Path (dijkstra algorithm) does not agree with reference!")
+        numpy.testing.assert_array_almost_equal( script_out, script_out_ref, err_msg="DoTPT.py does not agree with reference!")
+
