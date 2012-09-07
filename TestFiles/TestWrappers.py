@@ -272,6 +272,14 @@ class TestWrappers(unittest.TestCase):
         r1=Serializer.LoadData(WorkingDir+"/RMSD.h5")
         numpy.testing.assert_array_almost_equal(r0,r1, err_msg="Error: Project RMSDs disagree!")
         
+    def test_l_CalculateProjectSASA(self):
+        outpath = os.path.join(WorkingDir, "SASA.h5")
+        os.system('CalculateProjectSASA.py -o %s -p %s' % (outpath, ProjectFn) )
+
+        r0=Serializer.LoadData(os.path.join( ReferenceDir, "SASA.h5" ))
+        r1=Serializer.LoadData(os.path.join( WorkingDir, "SASA.h5" ))
+        numpy.testing.assert_array_almost_equal(r0,r1, err_msg="Error: Project SASAs disagree!")
+
     def test_z_Cleanup(self):
         """Are we removing all unittest files? """+str(DeleteWhenFinished)
         if DeleteWhenFinished:
