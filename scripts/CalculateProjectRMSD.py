@@ -45,7 +45,12 @@ def run(project, pdb, atom_indices):
 if __name__ == '__main__':
     parser = arglib.ArgumentParser(description="""
 Calculate the RMSD between an input PDB and all conformations in your project.
-Output as a HDF5 file (load using Serializer.LoadData())""")
+Output as a HDF5 file (load using Serializer.LoadData())
+===============================================================================
+This script is deprecated and will be removed in v2.7 
+Please use CalculateProjectDistance.py
+===============================================================================
+""")
     parser.add_argument('pdb')
     parser.add_argument('atom_indices', help='Indices of atoms to compare',
         default='AtomIndices.dat')
@@ -54,7 +59,7 @@ Output as a HDF5 file (load using Serializer.LoadData())""")
         default='Data/RMSD.h5')
     parser.add_argument('project')
     args = parser.parse_args()
-    
+
     arglib.die_if_path_exists(args.output)
 
     project = Project.LoadFromHDF( args.project )    
