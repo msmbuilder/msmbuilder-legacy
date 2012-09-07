@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # This file is part of MSMBuilder.
 #
 # Copyright 2011 Stanford University
@@ -17,138 +17,63 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-import sys
-import numpy
+import sys, os
+import numpy as np
 import scipy.io
 
-from msmbuilder import old_ArgLib
-
+from msmbuilder import arglib
+import logging
 from msmbuilder import Serializer, MSMLib
+logger = logging.getLogger(__name__)
 
-def EstimateUnSym(Counts,Assignments):
-    """Implements the following protocol:
-    1.  Use Tarjan's algorithm to find maximal (strongly) ergodic subgraph.
-    2.  Estimate a general (non-reversible) transition matrix.
-    3.  Calculate populations from stationary eigenvector.
-    """
-    print "Doing no symmetrization. Warning: the resulting model may not satisfy detailed balance and could have complex eigenvalues."
-    CountsAfterTrimming,Mapping=MSMLib.ErgodicTrim(Counts)
-    ReversibleCounts=CountsAfterTrimming
-    MSMLib.ApplyMappingToAssignments(Assignments,Mapping)
-    K = MSMLib.EstimateRateMatrix(ReversibleCounts, Assignments)
-    EigAns=MSMLib.GetEigenvectors(TC,5)
-    Populations=EigAns[1][:,0]
-    return(CountsAfterTrimming,ReversibleCounts,K,Populations,Mapping)
-
-def EstimateSym(Counts,Assignments):
-    """Implements the following protocol:
-    1.  Symmetrize counts via C' = C+C.transpose()
-    2.  Use Tarjan's algorithm to find maximal (strongly) ergodic subgraph.
-    3.  Estimate a reversible transition matrix.
-    4.  Calculate populations from normalized row sums of count matrix.
-    """
-    Counts = 0.5*(Counts + Counts.transpose())
-    ReversibleCounts,Mapping=MSMLib.ErgodicTrim(Counts)
-    MSMLib.ApplyMappingToAssignments(Assignments,Mapping)
-    K = MSMLib.EstimateRateMatrix(ReversibleCounts, Assignments)
-    Populations=numpy.array(ReversibleCounts.sum(0)).flatten()
-    Populations/=Populations.sum()
-    CountsAfterTrimming=ReversibleCounts
-    return(CountsAfterTrimming,ReversibleCounts,K,Populations,Mapping)
-
-def EstimateMLE(Counts,Assignments):
-    """Implements the following protocol:
-    1.  Use Tarjan's algorithm to find maximal (strongly) ergodic subgraph.
-    2.  Estimate (via MLE) a reversible transition (TC) and count matrix (ReversibleCounts).
-    3.  Calculate populations from row sums of count matrix.
-    """
-    CountsAfterTrimming,Mapping=MSMLib.ErgodicTrim(Counts)
-    MSMLib.ApplyMappingToAssignments(Assignments,Mapping)
-    ReversibleCounts = MSMLib.IterativeDetailedBalance(CountsAfterTrimming)
-    K = MSMLib.EstimateRateMatrix(ReversibleCounts, Assignments)
-    Populations=numpy.array(ReversibleCounts.sum(0)).flatten()
-    Populations/=Populations.sum()
-    return(CountsAfterTrimming,ReversibleCounts,K,Populations,Mapping)
-
-def EstimateMLE_TNC(Counts, Assignments):
-    """Implements the following protocol:
-    1.  Use Tarjan's algorithm to find maximal (strongly) ergodic subgraph.
-    2.  Estimate (via MLE-TNC) a reversible transition (TC) and count matrix (ReversibleCounts).
-    3.  Calculate populations from row sums of count matrix.
-    """
-    CountsAfterTrimming,Mapping=MSMLib.ErgodicTrim(Counts)
-    MSMLib.ApplyMappingToAssignments(Assignments,Mapping)
-    ReversibleCounts = MSMLib.EstimateReversibleCountMatrix(CountsAfterTrimming)
-    K = MSMLib.EstimateRateMatrix(ReversibleCounts, Assignments)
-    Populations=numpy.array(ReversibleCounts.sum(0)).flatten()
-    Populations/=Populations.sum()
-    return(CountsAfterTrimming,ReversibleCounts,K,Populations,Mapping)
-
-def run(Assignments, Symmetrize='MLE', OutDir="./Data/"):
-
-    OldAss   = Assignments
-
-    FnTProb  =OutDir+"/K.mtx"
-    FnTCounts=OutDir+"/tCounts.mtx"
-    FnTUnSym =OutDir+"/tCounts.UnSym.mtx"
-    FnMap    =OutDir+"/Mapping.dat"
-    FnAss    =OutDir+"/Assignments.Fixed.h5"
-    FnPops   =OutDir+"/Populations.dat"
-    outputlist=[FnTProb,FnTCounts,FnTUnSym,FnMap,FnAss,FnPops]
-    for output in outputlist:
-        old_ArgLib.CheckPath(output)
-  
-    # Scan trajectory assignments and count transitions
-    NumStates=max(Assignments.flatten())+1
-    Counts=MSMLib.GetCountMatrixFromAssignments(Assignments, NumStates, LagTime=1, Slide=True) # lag time = 1
-
-    # Check that the symmetrization method is one that we've implemented!
-
-    if Symmetrize in ["None","none",None]:
-        CountsAfterTrimming,ReversibleCounts,K,Populations,Mapping=EstimateUnSym(Counts,Assignments)
-    elif Symmetrize=="Transpose":
-        CountsAfterTrimming,ReversibleCounts,K,Populations,Mapping=EstimateSym(Counts,Assignments)
-    elif Symmetrize=="MLE":
-        CountsAfterTrimming,ReversibleCounts,K,Populations,Mapping=EstimateMLE(Counts,Assignments)
-    elif Symmetrize=="MLE-TNC":
-        CountsAfterTrimming,ReversibleCounts,K,Populations,Mapping=EstimateMLE_TNC(Counts,Assignments)
-    else:
-        print "ERROR: Could not understand symmetrization method:", Symmetrize
-        sys.exit(1)
-       
-    # Print a statement showing how much data was discarded in trimming
-    num_prev  = len(numpy.where( OldAss.flatten() != -1 )[0] )
-    num_fixed = len(numpy.where( Assignments.flatten() != -1 )[0] )
-    percent = (1.0 - float(num_fixed) / float(num_prev)) * 100.0
-    print "WARNING: Ergodic trimming discarded: %f percent of your data" % percent 
- 
-    # Save all output
-    numpy.savetxt(FnPops, Populations)
-    numpy.savetxt(FnMap, Mapping, "%d")
-    scipy.io.mmwrite(str(FnTProb), K)
-    scipy.io.mmwrite(str(FnTCounts), ReversibleCounts)
-    scipy.io.mmwrite(str(FnTUnSym), CountsAfterTrimming)
-    Serializer.SaveData(FnAss, Assignments)
-
-    for output in outputlist:
-        print "Wrote: %s"%output
-
-    return
+pjoin = lambda a,b : os.path.join(a, b)
 
 if __name__ == "__main__":
-    print """\nEstimates the counts and transition matrices from an
-Assignments.h5 file. Reversible models can be calculated either from naive
-symmetrization or estimation of the most likely reversible matrices (MLE,
-recommended). Also calculates the equilibrium populations for the model
-produced. Outputs will be saved in the directory of your input Assignments.h5
-file.
-\nOutput: tCounts.mtx, K.mtx, Populations.dat,  Mapping.dat,
-Assignments.Fixed.h5, tCounts.UnSym.mtx\n\n"""
+    parser = arglib.ArgumentParser("""Build a rate matrix MSM.
 
-    arglist=["assignments", "symmetrize", "outdir"]
-    options=old_ArgLib.parse(arglist)
-    print sys.argv
+Note: this uses a lag_time of 1 to get the transition counts, and uses
+rate estimators that use the *dwell_times*.
+
+The *correct* likelihood function to use for estimating the rate matrix when
+the data is sampled at a discrete frequency is open for debate. This
+likelihood function doesn't take into account the error in the lifetime estimates
+from the discrete sampling. Other methods are currently under development.
     
-    Assignments=Serializer.LoadData(options.assignments)
+Output: tCounts.mtx, K.mtx, Populations.dat,  Mapping.dat,
+Assignments.Fixed.h5, tCounts.UnSym.mtx""")
 
-    run(Assignments, Symmetrize=options.symmetrize, OutDir=options.outdir)
+    parser.add_argument('assignments')
+    parser.add_argument('symmetrize', choices=['none', 'transpose', 'mle'])
+    parser.add_argument('outdir')
+    args = parser.parse_args()
+    assignments = Serializer.LoadData(args.assignments)
+    
+    
+    ratemtx_fn = pjoin(args.outdir, 'K.mtx')
+    tcounts_fn = pjoin(args.outdir, 'tCounts.mtx')
+    unsym_fn = pjoin(args.outdir, 'tCounts.UnSym.mtx')
+    mapping_fn = pjoin(args.outdir, 'Mapping.dat')
+    fixed_fn = pjoin(args.outdir, 'Assignments.Fixed.h5')
+    pops_fn = pjoin(args.outdir, 'Populations.dat')
+    if not os.path.exists(args.outdir):
+        os.mkdir(args.outdir)
+    outlist = [ratemtx_fn, tcounts_fn, unsym_fn, fixed_fn, pops_fn]
+    for e in outlist:
+        arglib.die_if_path_exists(e)
+    
+    # if lag time is not one, there's going to be a unit mispatch between
+    # what you get and what you're expecting. 
+    lag_time = 1
+    counts, rev_counts, t_matrix, populations, mapping = MSMLib.build_msm(assignments,
+        lag_time=lag_time, symmetrize=args.symmetrize)
+    K = MSMLib.estimate_rate_matrix(rev_counts, assignments)
+    
+    np.savetxt(pops_fn, populations)
+    np.savetxt(mapping_fn, mapping, "%d")
+    scipy.io.mmwrite(ratemtx_fn, K)
+    scipy.io.mmwrite(tcounts_fn, rev_counts)
+    scipy.io.mmwrite(unsym_fn, counts)
+    Serializer.SaveData(fixed_fn, assignments)
+    
+    for e in outlist:
+        logger.info('Saved %s' % e)
