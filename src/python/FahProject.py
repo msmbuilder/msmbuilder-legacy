@@ -33,6 +33,8 @@ from msmbuilder.metrics import RMSD
 from msmbuilder import Project
 from msmbuilder.utils import make_methods_pickable, keynat
 make_methods_pickable()
+import logging
+logger = logging.getLogger('FahProject')
 
 
 class FahProject(object):
@@ -70,15 +72,15 @@ class FahProject(object):
 
 		# check that the PDB exists
         if not os.path.exists(self.pdb):
-            print >> sys.stderr, "(FahProject) Warning: Cannot find %s" % self.pdb
+            logger.error("Cannot find %s", self.pdb)
         
         # load in the memory state
         if os.path.exists( projectinfo_file ):
             self.load_memory_state( projectinfo_file )
         else:
             self.memory = {}
-            print "\nNo file: %s found. Generating new memory state." % projectinfo_file
-            print "Processing all trajectories, will save progress to: %s\n" % projectinfo_file
+            logger.info("No file: %s found. Generating new memory state.", projectinfo_file)
+            logger.info("Processing all trajectories, will save progress to: %s", projectinfo_file)
             
         # set the nested classes defined below to be separate namespaces
         # this should separate concerns and prevent (dangerous) user mistakes
@@ -95,7 +97,7 @@ class FahProject(object):
         """
         
         # restart the server, wait 60s to let it come back up
-        print "Restarting server: %s" % self.work_server
+        logger.warning("Restarting server: %s", self.work_server)
         stop_cmd  = "/etc/init.d/FAHWorkServer-%s stop" % self.work_server
         start_cmd = "/etc/init.d/FAHWorkServer-%s start" % self.work_server	
         r = subprocess.call(stop_cmd, shell=True, stdin=PIPE, stdout=PIPE, stderr=PIPE)
@@ -136,7 +138,7 @@ class FahProject(object):
         """
         
         if email == None:
-            print "Cannot send error email - no email provided"
+            logger.error("Cannot send error email - no email provided")
             return
             
         msg = MIMEText(error_msg)
@@ -146,7 +148,7 @@ class FahProject(object):
         msg['To'] = self.email
         
         # Send the message via our own SMTP server, but don't include the envelope header.
-        print "Sending error email to: %s" % self.email
+        logger.error("Sending error email to: %s", self.email)
         s = smtplib.SMTP('smtp.gmail.com')
         s.sendmail(me, [you], msg.as_string())
         s.quit()
@@ -195,7 +197,7 @@ class FahProject(object):
         save_memory_state
         """
         
-        print "\nLoading memory state from: %s" % projectinfo_file
+        logger.info("Loading memory state from: %s", projectinfo_file)
         
         project_info = Project.LoadFromHDF( projectinfo_file )
         self.memory = cPickle.loads( project_info["Memory"] )
@@ -269,7 +271,7 @@ class _inject(object):
             The run to stop.
         """
         
-        print "Shutting down RUN%d" % run
+        logger.warning("Shutting down RUN%d", run)
         clone_dirs = glob(run_dir + "CLONE*")
         for clone_dir in clone_dirs:
             g = re.search('CLONE(\d+)', 'CLONE55')
@@ -299,11 +301,11 @@ class _inject(object):
         # add .STOP to all dem TRR files
         trrs = glob( clone_dir + '*.trr' )
         if len(trrs) == 0:
-            print "Error: Could not find any TRRs to stop in %s. Proceeding." % clone_dir
+            logger.error("Could not find any TRRs to stop in %s. Proceeding.", clone_dir)
         else:
             for trr in trrs:
                 os.rename(trr, trr+'.STOP')
-                print "Stopped: %s" % trr
+                loggger.info("Stopped: %s", trr)
         
         return
     
@@ -392,7 +394,7 @@ class _retrieve(object):
             try:
                 os.mkdir(output_dir)
             except OSError:
-                print >> sys.stderr, 'Error: The directory %s already exists' % output_dir
+                logger.error('Error: The directory %s already exists', output_dir)
                 sys.exit(1)
                 
         intermediate_filename_root = '_trj' # A placeholder name
@@ -431,7 +433,7 @@ class _retrieve(object):
             map(self.write_trajectory_mapper, jobs)
          
         # Rename trajectory files such that they have contiguous numbering
-        print "\nFinished Generating Trajectories. Renaming them now in contiguous order"
+        logger.info("Finished Generating Trajectories. Renaming them now in contiguous order")
         mapping = {} # document the directory changes, allowing us to update memory
         for i, filename in enumerate( sorted( os.listdir(output_dir), key=keynat) ):
             path = os.path.join(output_dir, filename)
@@ -442,11 +444,11 @@ class _retrieve(object):
         # update the memory hash to accound for our renumbering
         for key in self.memory.keys():
             if key not in ['convert_parameters', 'SerializerFilename']:
-                print "%s --> %s" % ( self.memory[key][0], mapping[ self.memory[key][0] ] )
+                logger.info("%s --> %s", self.memory[key][0], mapping[ self.memory[key][0] ])
                 self.memory[key][0] = mapping[ self.memory[key][0] ]
                 
         # save the parameters used for this run in the memory file, and write to disk
-        print "\nGenerating Project File: %s" % self.projectinfo_file
+        logger.info("Generating Project File: %s", self.projectinfo_file)
         if update:
             try: os.remove( self.projectinfo_file ) # if we are updating, just start w fresh slate
             except: pass
@@ -462,7 +464,7 @@ class _retrieve(object):
                                       ConfFilename     = self.pdb_topology,
                                       initial_memory   = cPickle.dumps( self.memory ) )
                                       
-        print "Data converted properly."
+        logger.info("Data converted properly.")
         
         return
     
@@ -473,7 +475,7 @@ class _retrieve(object):
         scanning a FAH project for new trajectories, and converting those.
 		"""
         
-        print self.memory['convert_parameters']
+        logger.info(self.memory['convert_parameters'])
         (input_dir, output_dir, stride, max_rmsd, min_gens, \
         center_conformations, num_proc, self.projectinfo_file, input_style ) = self.memory['convert_parameters']
         
@@ -503,8 +505,8 @@ class _retrieve(object):
             memory_check = args['memory_check']
             omp_parallel_rmsd = args['omp_parallel_rmsd']
         except KeyError as e:
-            print >> sys.stderr, """One or more required keys (%s) was not
-            suplied in the input argument to create_trajectory().""" % e
+            logger.critical("""One or more required keys (%s) was not
+            suplied in the input argument to create_trajectory().""", e)
             sys.exit(1)
         
         self.write_trajectory(clone_dir, output_dir, trajectory_number, stride, max_rmsd,
@@ -564,7 +566,7 @@ class _retrieve(object):
         i = 0
         for i, filename in enumerate(xtc_files):
             if self.integer_component(filename) != i:
-                print "WARNING: Found discontinuity in xtc numbering - check data in %s" % clone_dir
+                logger.error("Found discontinuity in xtc numbering - check data in %s", clone_dir)
                 xtc_files = xtc_files[0:i]
                 break
                 
@@ -576,7 +578,7 @@ class _retrieve(object):
                 previous_convert_exists = True
                 num_xtcs_converted = self.memory[clone_dir][1]
                 if len(xtc_files) == num_xtcs_converted: # if we have converted everything,
-                    print "Already converted all files in %s, skipping..." % clone_dir
+                    logger.info("Already converted all files in %s, skipping...", clone_dir)
                     return                               # just bail out
                 else:
                     xtc_files = xtc_files[num_xtcs_converted:]
@@ -587,11 +589,11 @@ class _retrieve(object):
             
         xtc_file_paths = [os.path.join(clone_dir, f) for f in xtc_files]
         
-        print "Processing %d xtc files in clone_dir = %s" % (len(xtc_files), clone_dir)
+        logger.info("Processing %d xtc files in clone_dir = %s", len(xtc_files), clone_dir)
         
         if len(xtc_files) <= min_gens:
-            print "Skipping trajectory in clone_dir = %s" % clone_dir
-            print "Too few xtc files (generations)."
+            logger.info("Skipping trajectory in clone_dir = %s", clone_dir)
+            logger.info("Too few xtc files (generations).")
             return
             
         try:
@@ -599,22 +601,22 @@ class _retrieve(object):
             trajectory = Trajectory.LoadFromXTC(xtc_file_paths, PDBFilename=self.pdb_topology,
                                                 discard_overlapping_frames=True)
         except IOError as e:
-            print >> sys.stderr, "IOError (%s) when processing trajectory in clone_dir = %s" % (e, clone_dir)
-            print >> sys.stderr, "Attempting rescue by disregarding final frame, which is often"
-            print >> sys.stderr, "the first/only frame to be corrupted"
+            logger.error("IOError (%s) when processing trajectory in clone_dir = %s", e, clone_dir)
+            logger.error("Attempting rescue by disregarding final frame, which is often")
+            logger.error("the first/only frame to be corrupted")
             
             if len(xtc_file_paths) == 1:
-                print "Didn't find any other frames in %s, continuing..." % clone_dir
+                logger.error("Didn't find any other frames in %s, continuing...", clone_dir)
                 return
                 
             try:
                 trajectory = Trajectory.LoadFromXTC(xtc_file_paths[0:-1], PDBFilename=self.pdb_topology)
             except IOError:
-                print >> sys.stderr, "Unfortunately, the error remained even after ignoring the final frame."
-                print >> sys.stderr, "Skipping the trajectory in clone_dir = %s" % clone_dir
+                logger.error("Unfortunately, the error remained even after ignoring the final frame.")
+                logger.error("Skipping the trajectory in clone_dir = %s", clone_dir)
                 return
             else:
-                print >> sys.stderr, "Sucessfully recovered from IOError by disregarding final frame."
+                logger.error("Sucessfully recovered from IOError by disregarding final frame.")
                 
         if max_rmsd is not None:
             atomindices = [ int(i)-1 for i in trajectory['AtomID'] ]
@@ -624,8 +626,8 @@ class _retrieve(object):
             rmsds = rmsdmetric.one_to_all(ppdb, ptraj, 0)
             
             if max(rmsds) > max_rmsd:
-                print >> sys.stderr, "Snapshot %d RMSD %f > the %f cutoff" % (argmax(rmsds), max(rmsds), max_rmsd)
-                print >> sys.stderr, "Dropping trajectory"
+                logger.warning("Snapshot %d RMSD %f > the %f cutoff" , argmax(rmsds), max(rmsds), max_rmsd)
+                logger.warning("Dropping trajectory")
                 return
             
         if center_conformations:
@@ -635,7 +637,7 @@ class _retrieve(object):
         if previous_convert_exists:
             output_filename = self.memory[clone_dir][0]
             output_file_path = output_filename
-            print "Extending: %s" % output_filename
+            logger.info("Extending: %s", output_filename)
             assert os.path.exists( output_filename )
             
             # load the traj and extend it [this should check for and discard overlapping snapshots]
@@ -651,7 +653,7 @@ class _retrieve(object):
             output_file_path = os.path.join(output_dir, output_filename)
             
             if os.path.exists(output_file_path):
-                print >> sys.stderr, "The file name %s already exists. Skipping it." % output_file_path
+                logger.info("The file name %s already exists. Skipping it.", output_file_path)
                 return
                 
             # stide and discard by snapshot
@@ -739,7 +741,7 @@ class _retrieve(object):
         pattern = re.compile('\D+(\d+)[.]xtc')
         xtc_files = [e for e in os.listdir(dir) if pattern.search(e)]
         xtc_files.sort(key=self.integer_component)
-        print xtc_files
+        logger.info(xtc_files)
         return xtc_files
     
     
@@ -762,7 +764,7 @@ class _retrieve(object):
             substr = pattern.match(filename).group(1)
             return int(substr)
         except:
-            print >> sys.stderr,  "A filename (%s) may not have been sorted correctly" % filename
+            logger.error("A filename (%s) may not have been sorted correctly", filename)
             return 0
     
     

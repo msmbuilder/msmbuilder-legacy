@@ -25,6 +25,8 @@ from msmbuilder import Serializer
 from msmbuilder import MSMLib
 from msmbuilder import lumping
 from msmbuilder import arglib
+import logging
+logger = logging.getLogger(__name__)
 
 float_or_none = lambda s: None if s.lower() == 'none' else float(s)
 
@@ -33,7 +35,7 @@ def run_pcca(num_macrostates, assignments, tProb, output_dir):
     MacroMapFn = os.path.join(output_dir, "MacroMapping.dat")
     arglib.die_if_path_exists([MacroAssignmentsFn, MacroMapFn])
 
-    print "Running PCCA..."
+    logger.info("Running PCCA...")
     MAP = lumping.PCCA(tProb, num_macrostates)
 
     # MAP the new assignments and save, make sure don't
@@ -43,7 +45,7 @@ def run_pcca(num_macrostates, assignments, tProb, output_dir):
     np.savetxt(MacroMapFn, MAP, "%d")
     Serializer.SaveData(MacroAssignmentsFn,assignments)
     
-    print "Wrote: {af}, {mf}".format(af=MacroAssignmentsFn, mf=MacroMapFn)
+    logger.info("Saved output to: %s, %s", MacroAssignmentsFn, MacroMapFn)
     
 def run_pcca_plus(num_macrostates, assignments, tProb, output_dir, flux_cutoff=0.0,objective_function="crispness",do_minimization=True):
     MacroAssignmentsFn = os.path.join(output_dir, "MacroAssignments.h5")
@@ -52,7 +54,7 @@ def run_pcca_plus(num_macrostates, assignments, tProb, output_dir, flux_cutoff=0
     AFn = os.path.join(output_dir, 'A.dat')
     arglib.die_if_path_exists([MacroAssignmentsFn, MacroMapFn, ChiFn, AFn])
     
-    print "Running PCCA+..."
+    logger.info("Running PCCA+...")
     A, chi, vr, MAP = lumping.pcca_plus(tProb, num_macrostates, flux_cutoff=flux_cutoff,
         do_minimization=do_minimization, objective_function=objective_function)
 
@@ -62,7 +64,7 @@ def run_pcca_plus(num_macrostates, assignments, tProb, output_dir, flux_cutoff=0
     np.savetxt(AFn, A)
     np.savetxt(MacroMapFn, MAP,"%d")
     Serializer.SaveData(MacroAssignmentsFn, assignments)
-    print '\nWrote %s' % ', '.join([ChiFn, AFn, MacroMapFn, MacroAssignmentsFn])
+    logger.info('Saved output to: %s, %s, %s, %s', ChiFn, AFn, MacroMapFn, MacroAssignmentsFn)
 
 
 if __name__ == "__main__":
@@ -77,14 +79,14 @@ Output: MacroAssignments.h5, a new assignments HDF file, for the Macro MSM.""")
     parser.add_argument('num_macrostates', type=int)
     parser.add_argument('tProb')
     parser.add_argument('output_dir')
-    parser.add_argument('algorithm', description='Which algorithm to use', choices=['PCCA', 'PCCA+'], default='PCCA')
+    parser.add_argument('algorithm', help='Which algorithm to use', choices=['PCCA', 'PCCA+'], default='PCCA')
     parser.add_argument_group('Extra PCCA+ Options')
-    parser.add_argument('flux_cutoff', description='''Discard eigenvectors below
+    parser.add_argument('flux_cutoff', help='''Discard eigenvectors below
         this flux''', default='None', type=float_or_none)
-    parser.add_argument('objective_function', description='''Minimize which PCCA+
+    parser.add_argument('objective_function', help='''Minimize which PCCA+
         objective function (crisp_metastability, metastability, or crispness)''',
                         default="crisp_metastability")
-    parser.add_argument('do_minimization', description='Use PCCA+ minimization', default=True)
+    parser.add_argument('do_minimization', help='Use PCCA+ minimization', default=True)
     
     args = parser.parse_args()
     

@@ -17,9 +17,8 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-import sys
 import os
-import numpy
+import numpy as np
 import scipy.io
 
 from msmbuilder.transition_path_theory import GetBCommittors
@@ -27,17 +26,19 @@ from msmbuilder.transition_path_theory import GetFCommittors
 from msmbuilder.transition_path_theory import GetNetFlux
 
 from msmbuilder import arglib
+import logging
+logger = logging.getLogger(__name__)
 
 def run(TC, Uv, Fv, Populations):
 
     # Get committors and flux
-    print "Getting committors and flux..."
-    Bc = GetBCommittors(Uv, Fv, TC, Populations, maxiter=100000, X0=None, Dense=False)
-    print "Calculated reverse committors."
-    Fc = GetFCommittors(Uv, Fv, TC, maxiter=100000, X0=None, Dense=False)
-    print "Calculated forward committors."
+    logger.info("Getting committors and flux...")
+    Bc = GetBCommittors(Uv, Fv, TC, Populations,  Dense=False)
+    logger.info("Calculated reverse committors.")
+    Fc = GetFCommittors(Uv, Fv, TC,  Dense=False)
+    logger.info("Calculated forward committors.")
     NFlux = GetNetFlux(Populations, Fc, Bc, TC)
-    print "Calculated net flux."
+    logger.info("Calculated net flux.")
     
     return Bc, Fc, NFlux
 
@@ -48,30 +49,27 @@ if __name__ == "__main__":
 (2) BCommittors.dat - the backward committors (numpy savetxt)
 (3) NFlux.mtx - the net flux matrix (scipy sparse fmt)""")
     parser.add_argument('tProb')
-    parser.add_argument('starting', description='''Vector of states in the
-        starting/reactants/unfolded ensemble.''', default='U_states.dat',
-        type=arglib.LoadTxtType(dtype=int))
-    parser.add_argument('ending', description='''Vector of states in the
-        ending/products/folded ensemble.''', default='F_states.dat',
-        type=arglib.LoadTxtType(dtype=int))
-    parser.add_argument('populations', description='''State equilibrium populations
-        file, in numpy .dat format.''', default='Data/Populations.dat',
-        type=arglib.LoadTxtType())
+    parser.add_argument('starting', help='''Vector of states in the
+        starting/reactants/unfolded ensemble.''', default='U_states.dat')
+    parser.add_argument('ending', help='''Vector of states in the
+        ending/products/folded ensemble.''', default='F_states.dat')
+    parser.add_argument('populations', help='''State equilibrium populations
+        file, in numpy .dat format.''', default='Data/Populations.dat')
     parser.add_argument('output_dir', default='.')
     args = parser.parse_args()
     
-    T = args.tProb
-    U = args.starting
-    F = args.ending
-    Pops = args.populations
+    T = scipy.io.mmread( args.tProb )
+    U = np.loadtxt( args.starting ).astype(int)
+    F = np.loadtxt( args.ending ).astype(int)
+    Pops = np.loadtxt( args.populations ).astype(int)
 
     # deal with case where have single start or end state
     if U.shape == ():
-        tmp = numpy.zeros(1, dtype=int)
+        tmp = np.zeros(1, dtype=int)
         tmp[0] = int(U)
         U = tmp.copy()
     if F.shape == ():
-        tmp = numpy.zeros(1, dtype=int)
+        tmp = np.zeros(1, dtype=int)
         tmp[0] = int(F)
         F = tmp.copy()
 
@@ -82,7 +80,7 @@ if __name__ == "__main__":
     
     Bc, Fc, NFlux = run(T, U, F, Pops)
     
-    numpy.savetxt(output_flist[0], Bc)
-    numpy.savetxt(output_flist[1], Fc)
+    np.savetxt(output_flist[0], Bc)
+    np.savetxt(output_flist[1], Fc)
     scipy.io.mmwrite(output_flist[2], NFlux)
-    print "Wrote: %s" % ', '.join(output_flist)
+    logger.info("Saved output to %s", ', '.join(output_flist))

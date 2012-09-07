@@ -39,7 +39,9 @@ import sys
 import scipy.optimize
 from collections import defaultdict
 from msmbuilder.utils import deprecated
-from msmbuilder import msm_analysis 
+from msmbuilder import msm_analysis
+import logging
+logger = logging.getLogger('MSMLib')
 
 def estimate_rate_matrix(count_matrix, assignments):
     """MLE Rate Matrix given transition counts and *dwell times*
@@ -401,7 +403,7 @@ def apply_mapping_to_vector(vector, mapping):
     """
     
     new_vector = vector[np.where(mapping != -1)[0]] 
-    print "Mapping %d elements --> %d" % (len(vector), len(new_vector))
+    logger.info("Mapping %d elements --> %d", len(vector), len(new_vector))
     
     return new_vector
 
@@ -560,7 +562,7 @@ def ergodic_trim(counts, assignments=None):
     ComponentPops = np.array([sum(PiSym[np.array(x)]) for x in ConnectedComponents])
     ComponentInd = np.argmax(ComponentPops)
     
-    print("Selected component %d with population %f" % (ComponentInd, ComponentPops[ComponentInd] / ComponentPops.sum()))
+    logger.info("Selected component %d with population %f", ComponentInd, ComponentPops[ComponentInd] / ComponentPops.sum())
     
     GoodComponent = np.unique(ConnectedComponents[ComponentInd])
     
@@ -702,7 +704,7 @@ def mle_reversible_count_matrix(count_matrix, prior=0.0, initial_guess=None):
         PriorMatrix.data *= 0.
         PriorMatrix.data += prior
         C = C + PriorMatrix
-        print("Added prior value of %f to count matrix" % prior)
+        logger.warning("Added prior value of %f to count matrix", prior)
         
     # initial guess for symmetric count matrix
     if initial_guess is None:
@@ -736,7 +738,7 @@ def mle_reversible_count_matrix(count_matrix, prior=0.0, initial_guess=None):
     maximizationrun = 1
     totalnumberoffunctionevaluations = 0
     negative_logL, negative_gradient = negativeLogLikelihoodFromCountEstimatesSparse(Xupdata, row, col, N, C)
-    print "Log-Likelihood of intial guess for reversible transition probability matrix:", -negative_logL
+    logger.info("Log-Likelihood of intial guess for reversible transition probability matrix: %s", -negative_logL)
     while maximizationrun <= 1000:
         # rescale the X_ij so that the magnitude of the gradient is 1
         gtg = (negative_gradient*negative_gradient).sum()
@@ -751,17 +753,17 @@ def mle_reversible_count_matrix(count_matrix, prior=0.0, initial_guess=None):
                                         
         totalnumberoffunctionevaluations += nfeval
         negative_logL, negative_gradient = negativeLogLikelihoodFromCountEstimatesSparse(Xupdata, row, col, N, C)
-        print "Log-Likelihood after", totalnumberoffunctionevaluations, "function evaluations:", -negative_logL
+        logger.info("Log-Likelihood after %s function evaluations; %s ", totalnumberoffunctionevaluations, -negative_logL)
         if rc in (0, 1, 2):
             break    # Converged
         elif rc in (3, 4):
             pass     # Not converged, keep going
         else:
-            raise RuntimeError, "Likelihood maximization caused internal error (code " + str(rc) + "): " + str(scipy.optimize.tnc.RCSTRINGS[rc])
+            raise RuntimeError("Likelihood maximization caused internal error (code %s): %s" % (rc, scipy.optimize.tnc.RCSTRINGS[rc]))
         maximizationrun += 1
     else:
-        print "Warning: maximum could not be obtained."
-    print  "Result of last maximization run (run " + str(maximizationrun) + "):", scipy.optimize.tnc.RCSTRINGS[rc]
+        logger.error("maximum could not be obtained.")
+    logger.info("Result of last maximization run (run %s): %s", str(maximizationrun) , scipy.optimize.tnc.RCSTRINGS[rc])
     
     Xup = scipy.sparse.coo_matrix((Xupdata, (row, col)), shape=(N, N))    
     
@@ -769,14 +771,14 @@ def mle_reversible_count_matrix(count_matrix, prior=0.0, initial_guess=None):
     X = Xup + Xup.T - scipy.sparse.spdiags(Xup.diagonal(), 0, Xup.shape[0], Xup.shape[1])
     
     finalLogLikelihood = log_likelihood(C, estimate_transition_matrix(X))
-    print "Log-Likelihood of final reversible transition probability matrix:", finalLogLikelihood
-    print "Likelihood ratio:", np.exp(finalLogLikelihood - initialLogLikelihood)
+    logger.info("Log-Likelihood of final reversible transition probability matrix: %s", finalLogLikelihood)
+    logger.info("Likelihood ratio: %s", np.exp(finalLogLikelihood - initialLogLikelihood))
     
     # some  basic consistency checks
     if not np.alltrue(np.isfinite(X.data)):
-        raise RuntimeError, "The obtained symmetrized count matrix is not finite."
+        raise RuntimeError("The obtained symmetrized count matrix is not finite.")
     if not np.alltrue(X.data > 0):
-        raise RuntimeError, "The obtained symmetrized count matrix is not strictly positive for all observed transitions, the smallest element is " + str(np.min(X.data))
+        raise RuntimeError("The obtained symmetrized count matrix is not strictly positive for all observed transitions, the smallest element is %s" % str(np.min(X.data)))
         
     #normalize X to have correct total number of counts
     X /= X.sum()
