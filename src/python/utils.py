@@ -147,7 +147,7 @@ def deprecated(replacement=None, removal_version=None):
     """
     def outer(oldfun):
         def inner(*args, **kwargs):
-            msg = "%s is deprecated use %s instead" % (oldfun.__name__, replacement.__name__)
+            msg = "%s is deprecated use %s instead. " % (oldfun.__name__, replacement.__name__)
 
             if removal_version is not None:
                 msg += '%s will be removed in version %s' % (oldfun.__name__, removal_version)
