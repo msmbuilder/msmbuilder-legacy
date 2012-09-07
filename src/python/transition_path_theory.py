@@ -30,6 +30,31 @@ import scipy.sparse
 from msmbuilder import MSMLib
 from msmbuilder import msm_analysis
 
+from msmbuilder.utils import deprecated
+
+###############################################################################
+# Typechecking/Utility Functions
+#
+
+def _ensure_iterable(arg):
+    if not hasattr(arg, '__iter__'):
+        arg = list([int(arg)])
+        print("Warning: passed object was not iterable,"
+              " converted it to: %s" % str(arg))
+    return arg
+
+def _check_sources_sinks(sources, sinks):
+    sources = _ensure_iterable(sources)
+    sinks = _ensure_iterable(sinks)
+    if np.any( sources == sinks ):
+        raise ValueError("Sets `sources` and `sinks` must be disjoint "
+                         "to find paths between them")
+    return sources, sinks
+
+
+###############################################################################
+# Path Finding Functions
+#
 
 def DijkstraTopPaths(sources, sinks, net_flux, num_paths=10, node_wipe=False):
     r"""
@@ -69,18 +94,7 @@ def DijkstraTopPaths(sources, sinks, net_flux, num_paths=10, node_wipe=False):
 
     # first, do some checking on the input, esp. `sources` and `sinks`
     # we want to make sure all objects are iterable and the sets are disjoint
-    try:
-        l = len(sources)
-    except:
-        sources = list([int(sources)])
-        print "Warning: passed object 'sources' was not iterable, converted it to:", sources
-    try: 
-        l = len(sinks)
-    except: 
-        sinks = list([int(sinks)])
-        print "Warning: passed object 'sinks' was not iterable, converted it to:", sinks
-    if np.any( sources == sinks ):
-        raise ValueError("Sets `sources` and `sinks` must be disjoint to find paths between them")
+    sources, sinks = _check_sources_sinks(sources, sinks)
 
     # initialize objects
     Paths = []
@@ -361,263 +375,6 @@ def FindPathBottleneck(Path, NFlux):
     return (b1, b2), flux
 
 
-def calc_ensemble_mfpt(sources, sinks, tprob, lag_time):
-    """
-    Calculates the average 'Folding Time' of an MSM defined by T and a LagTime.
-    The Folding Time is the average of the MFPTs (to F) of all the states in U.
-
-    Note here 'Folding Time' is defined as the avg MFPT of {U}, to {F}.
-    Consider this carefully. This is probably NOT the experimental folding time!
-
-    Parameters
-    ----------
-    sources : array, int
-        indices of the source states
-    sinks : array, int 
-        indices of the sink states
-    tprob : matrix
-        transition probability matrix
-    lag_time : float
-        the lag time used to create T (dictates units of the answer)
-
-    Returns
-    -------
-    avg : float
-        the average of the MFPTs
-    std : float
-        the standard deviation of the MFPTs
-    """
-
-    X = mfpt(sinks, tprob, lag_time)
-    times = np.zeros(len(sources))
-    for i in range(len(sources)):
-        times[i] = X[ sources[i] ] 
-
-    return np.average(times), np.std(times) 
-
-
-def calc_avg_TP_time(sources, sinks, tprob, lag_time):
-    """
-    Calculates the Average Transition Path Time for MSM with: T, LagTime.
-    The TPTime is the average of the MFPTs (to F) of all the states
-    immediately adjacent to U, with the U states effectively deleted.
-
-    Note here 'TP Time' is defined as the avg MFPT of all adjacent states to {U},
-    to {F}, ignoring {U}.
-
-    Consider this carefully.
-
-    Parameters
-    ----------
-    sources : array, int
-        indices of the unfolded states
-    sinks : array, int 
-        indices of the folded states
-    tprob : matrix
-        transition probability matrix
-    lag_time : float
-        the lag time used to create T (dictates units of the answer)
-
-    Returns
-    -------
-    avg : float
-        the average of the MFPTs
-    std : float
-        the standard deviation of the MFPTs
-    """
-
-    T = T.tolil()
-    n = T.shape[0]
-    P = scipy.sparse.lil_matrix((n,n))
-
-    for u in sources:
-        for i in range(n):
-            if i not in U:
-                P[u,i]=T[u,i]
-
-    for u in sources:
-        T[u,:] = np.zeros(n)
-        T[:,u] = 0
-
-    for i in sources:
-        N = T[i,:].sum()
-        T[i,:] = T[i,:]/N
-
-    X = mfpt(sinks, prob, lag_time)
-    TP = P * X.T
-    TPtimes = []
-
-    for time in TP:
-        if time != 0: TPtimes.append(time)
-
-    return np.average(TPtimes), np.std(TPtimes)
-
-
-def mfpt(sinks, tprob, lag_time=1.):
-    """
-    Gets the Mean First Passage Time (MFPT) for all states to a *set*
-    of sinks.
-
-    Parameters
-    ----------
-    sinks : array, int 
-        indices of the sink states
-    tprob : matrix
-        transition probability matrix
-    LagTime : float
-        the lag time used to create T (dictates units of the answer)
-
-    Returns
-    -------
-    MFPT : array, float
-        MFPT in time units of LagTime, for each state (in order of state index)
-
-    See Also
-    --------
-    all_to_all_mfpt : function
-        A more efficient way to calculate all the MFPTs in a network
-    """
-
-    n = T.shape[0]
-    T2 = T.copy().tolil()
-    for state in sinks:
-        T2[state,:] = 0.0    
-        T2[state,state] = 2.0
-
-    T2 = T2 - scipy.sparse.eye(n,n)
-    T2 = T2.tocsr()
-
-    RHS = -1 * np.ones(n)
-    for state in sinks:
-        RHS[state] = 0.0
-
-    MFPT = lag_time * scipy.sparse.linalg.spsolve(T2, RHS)
-
-    return MFPT
-
-
-def all_to_all_mfpt(tprob, populations=None):
-    """
-    Calculate the all-states by all-state matrix of mean first passage
-    times.
-
-    This uses the fundamental matrix formalism, and should be much faster
-    than GetMFPT for calculating many MFPTs.
-
-    Parameters
-    ----------
-    tprob : matrix
-        transition probability matrix
-    populations : array_like, float
-        optional argument, the populations of each state. If  not supplied, 
-        it will be computed from scratch
-
-    Returns
-    -------
-    MFPT : array, float
-        MFPT in time units of LagTime, square array for MFPT from i -> j
-
-    See Also
-    --------
-    GetMFPT : function
-        for calculating a subset of the MFPTs, with functionality for including
-        a set of sinks
-    """
-
-    if populations is None:
-        eigens = msm_analysis.get_eigenvectors(tprob, 5)
-        if np.count_nonzero(np.imag(eigens[1][:,0])) != 0:
-            raise ValueError('First eigenvector has imaginary parts')
-        populations = np.real(eigens[1][:,0])
-
-    # ensure that tprob is a transition matrix
-    msm_analysis.check_transition(tprob)
-    num_states = len(populations)
-    if tprob.shape[0] != num_states:
-        raise ValueError("Shape of tprob and populations vector don't match")
-
-    eye = np.matrix(np.ones(num_states)).transpose()
-    limiting_matrix = eye * populations
-    z = scipy.linalg.inv(scipy.sparse.eye(num_states, num_states) - (tprob - limiting_matrix))
-
-    # mfpt[i,j] = z[j,j] - z[i,j] / pi[j]
-    mfpt = -z
-    for j in range(num_states):
-        mfpt[:, j] += z[j,j]
-        mfpt[:, j] /= populations[j]
-
-    return mfpt
-
-
-def calc_committors(sources, sinks, tprob, dense=False):
-    """
-    Get the forward committors of the reaction U -> F.
-
-    If you are have small matrices, it can be faster to use dense 
-    linear algebra. 
-	
-    Parameters
-    ----------
-    sources : array_like, int
-        The set of unfolded/reactant states.
-
-    sinks : array_like, int
-        The set of folded/product states.
-		
-    tprob : mm_matrix	
-        The transition matrix.
-			
-    dense : bool
-        Employ dense linear algebra. Will speed up the calculation
-        for small matrices.
-		
-    Returns
-    -------
-    Q : array_like
-        The forward committors for the reaction U -> F.
-    """
-	
-    #A,b = GetFCommittorsEqn(U,F,T0) # -- TJL
-
-    # construct the committor problem
-    n = tprob.shape[0]
-
-    if dense:
-       T = np.linalg.eye(n) - tprob
-
-    else:
-       T = scipy.sparse.eye(n, n, 0, format='lil') - tprob
-       T = T.tolil()
-
-    for a in sources:
-        T[a,:] = np.zeros(n)
-        T[:,a] = 0.0
-        T[a,a] = 1.0
-        
-    for b in sinks:
-        T[b,:] = np.zeros(n)
-        T[:,b] = 0.0
-        T[b,b] = 1.0
-        
-    IdB = np.zeros(n)
-    for b in sinks:
-        IdB[b] = 1.0
-        
-    RHS = tprob * IdB
-    
-    for a in sources:
-        RHS[a] = 0.0
-    for b in sinks:
-        RHS[b] = 1.0
-
-    if dense == False:
-        Q = scipy.sparse.linalg.spsolve(T, RHS)
-    else:
-        Q = np.linalg.solve(A.toarray(), b)
-
-    return Q
-
-
 def compute_fluxes(sources, sinks, tprob, populations=None, committors=None):
     """
     Compute the transition path theory flux matrix.
@@ -650,6 +407,8 @@ def compute_fluxes(sources, sinks, tprob, populations=None, committors=None):
         If not provided, is calculated from scratch. If provided, `sources`
         and `sinks` are ignored.
     """
+    
+    sources, sinks = _check_sources_sinks(sources, sinks)
     
     # check if we got the populations
     if populations is None:
@@ -711,6 +470,8 @@ def compute_net_fluxes(sources, sinks, tprob, populations=None, committors=None)
         and `sinks` are ignored.
     """
 
+    sources, sinks = _check_sources_sinks(sources, sinks)
+
     n = tprob.shape[0]
     
     flux = compute_net_fluxes(sources, sinks, tprob, populations, committors)
@@ -725,6 +486,283 @@ def compute_net_fluxes(sources, sinks, tprob, populations=None, committors=None)
         
     return net_flux
 
+
+###############################################################################
+# MFPT & Committor Finding Functions
+#
+
+def calc_ensemble_mfpt(sources, sinks, tprob, lag_time):
+    """
+    Calculates the average 'Folding Time' of an MSM defined by T and a LagTime.
+    The Folding Time is the average of the MFPTs (to F) of all the states in U.
+
+    Note here 'Folding Time' is defined as the avg MFPT of {U}, to {F}.
+    Consider this carefully. This is probably NOT the experimental folding time!
+
+    Parameters
+    ----------
+    sources : array, int
+        indices of the source states
+    sinks : array, int 
+        indices of the sink states
+    tprob : matrix
+        transition probability matrix
+    lag_time : float
+        the lag time used to create T (dictates units of the answer)
+
+    Returns
+    -------
+    avg : float
+        the average of the MFPTs
+    std : float
+        the standard deviation of the MFPTs
+    """
+    
+    sources, sinks = _check_sources_sinks(sources, sinks)
+
+    X = mfpt(sinks, tprob, lag_time)
+    times = np.zeros(len(sources))
+    for i in range(len(sources)):
+        times[i] = X[ sources[i] ] 
+
+    return np.average(times), np.std(times) 
+
+
+def calc_avg_TP_time(sources, sinks, tprob, lag_time):
+    """
+    Calculates the Average Transition Path Time for MSM with: T, LagTime.
+    The TPTime is the average of the MFPTs (to F) of all the states
+    immediately adjacent to U, with the U states effectively deleted.
+
+    Note here 'TP Time' is defined as the avg MFPT of all adjacent states to {U},
+    to {F}, ignoring {U}.
+
+    Consider this carefully.
+
+    Parameters
+    ----------
+    sources : array, int
+        indices of the unfolded states
+    sinks : array, int 
+        indices of the folded states
+    tprob : matrix
+        transition probability matrix
+    lag_time : float
+        the lag time used to create T (dictates units of the answer)
+
+    Returns
+    -------
+    avg : float
+        the average of the MFPTs
+    std : float
+        the standard deviation of the MFPTs
+    """
+    
+    sources, sinks = _check_sources_sinks(sources, sinks)
+
+    T = T.tolil()
+    n = T.shape[0]
+    P = scipy.sparse.lil_matrix((n,n))
+
+    for u in sources:
+        for i in range(n):
+            if i not in U:
+                P[u,i]=T[u,i]
+
+    for u in sources:
+        T[u,:] = np.zeros(n)
+        T[:,u] = 0
+
+    for i in sources:
+        N = T[i,:].sum()
+        T[i,:] = T[i,:]/N
+
+    X = mfpt(sinks, prob, lag_time)
+    TP = P * X.T
+    TPtimes = []
+
+    for time in TP:
+        if time != 0: TPtimes.append(time)
+
+    return np.average(TPtimes), np.std(TPtimes)
+
+
+def mfpt(sinks, tprob, lag_time=1.):
+    """
+    Gets the Mean First Passage Time (MFPT) for all states to a *set*
+    of sinks.
+
+    Parameters
+    ----------
+    sinks : array, int 
+        indices of the sink states
+    tprob : matrix
+        transition probability matrix
+    LagTime : float
+        the lag time used to create T (dictates units of the answer)
+
+    Returns
+    -------
+    MFPT : array, float
+        MFPT in time units of LagTime, for each state (in order of state index)
+
+    See Also
+    --------
+    all_to_all_mfpt : function
+        A more efficient way to calculate all the MFPTs in a network
+    """
+    
+    sinks = _ensure_iterable(sinks)
+
+    n = tprob.shape[0]
+    
+    if scipy.sparse.isspmatrix(T):
+        tprob = tprob.tolil()
+    
+    for state in sinks:
+        tprob[state,:] = 0.0    
+        tprob[state,state] = 2.0
+
+    if scipy.sparse.isspmatrix(T):
+        tprob = tprob - scipy.sparse.eye(n,n)
+        tprob = tprob.tocsr()
+    else:
+        tprob = tprob - np.eye(n)
+
+    RHS = -1 * np.ones(n)
+    for state in sinks:
+        RHS[state] = 0.0
+
+    if scipy.sparse.isspmatrix(tprob):
+        MFPT = lag_time * scipy.sparse.linalg.spsolve(tprob, RHS)
+    else:
+        MFPT = lag_time * np.linalg.solve(tprob, RHS)
+
+    return MFPT
+
+
+def all_to_all_mfpt(tprob, populations=None):
+    """
+    Calculate the all-states by all-state matrix of mean first passage
+    times.
+
+    This uses the fundamental matrix formalism, and should be much faster
+    than GetMFPT for calculating many MFPTs.
+
+    Parameters
+    ----------
+    tprob : matrix
+        transition probability matrix
+    populations : array_like, float
+        optional argument, the populations of each state. If  not supplied, 
+        it will be computed from scratch
+
+    Returns
+    -------
+    MFPT : array, float
+        MFPT in time units of LagTime, square array for MFPT from i -> j
+
+    See Also
+    --------
+    GetMFPT : function
+        for calculating a subset of the MFPTs, with functionality for including
+        a set of sinks
+    """
+
+    if populations is None:
+        eigens = msm_analysis.get_eigenvectors(tprob, 5)
+        if np.count_nonzero(np.imag(eigens[1][:,0])) != 0:
+            raise ValueError('First eigenvector has imaginary parts')
+        populations = np.real(eigens[1][:,0])
+
+    # ensure that tprob is a transition matrix
+    msm_analysis.check_transition(tprob)
+    num_states = len(populations)
+    if tprob.shape[0] != num_states:
+        raise ValueError("Shape of tprob and populations vector don't match")
+
+    eye = np.matrix(np.ones(num_states)).transpose()
+    limiting_matrix = eye * populations
+    z = scipy.linalg.inv(scipy.sparse.eye(num_states, num_states) - (tprob - limiting_matrix))
+
+    # mfpt[i,j] = z[j,j] - z[i,j] / pi[j]
+    mfpt = -z
+    for j in range(num_states):
+        mfpt[:, j] += z[j,j]
+        mfpt[:, j] /= populations[j]
+
+    return mfpt
+
+
+def calc_committors(sources, sinks, tprob):
+    """
+    Get the forward committors of the reaction U -> F.
+
+    If you are have small matrices, it can be faster to use dense 
+    linear algebra. 
+	
+    Parameters
+    ----------
+    sources : array_like, int
+        The set of unfolded/reactant states.
+
+    sinks : array_like, int
+        The set of folded/product states.
+		
+    tprob : mm_matrix	
+        The transition matrix.
+			
+    dense : bool
+        Employ dense linear algebra. Will speed up the calculation
+        for small matrices.
+		
+    Returns
+    -------
+    Q : array_like
+        The forward committors for the reaction U -> F.
+    """
+	
+    sources, sinks = _check_sources_sinks(sources, sinks)
+
+    if scipy.sparse.issparse(tprob):
+        dense = True
+    else:
+        dense = False
+
+    # construct the committor problem
+    n = tprob.shape[0]
+
+    if dense:
+       T = np.eye(n) - tprob
+    else:
+       T = scipy.sparse.eye(n, n, 0, format='lil') - tprob
+
+    for a in sources:
+        T[a,:] = 0.0 #np.zeros(n)
+        T[:,a] = 0.0
+        T[a,a] = 1.0
+        
+    for b in sinks:
+        T[b,:] = 0.0 # np.zeros(n)
+        T[:,b] = 0.0
+        T[b,b] = 1.0
+        
+    IdB = np.zeros(n)
+    IdB[sinks] = 1.0
+        
+    RHS = tprob * IdB
+    
+    RHS[sources] = 0.0
+    RHS[sinks]   = 1.0
+
+    # solve for the committors
+    if dense == False:
+        Q = scipy.sparse.linalg.spsolve(T, RHS)
+    else:
+        Q = np.linalg.solve(T, RHS)
+
+    return Q
+    
 
 ######################################################################
 #  DEPRECATED FUNCTIONS
