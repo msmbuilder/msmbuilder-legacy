@@ -4,13 +4,13 @@ Check the source before you use it.
 
 scripts
 --------
-BuildRateMSM.py
-CalculateLPRMSD.py
-SaveAlignedPDBs.py
+BuildRateMSM.py    : works
+CalculateLPRMSD.py : works
+SaveAlignedPDBs.py : works
 
 lib
 ---
-Correlation.py
-OldCorrelation.py
-RateMatrix.py
-TTET.py
+Correlation.py      : works
+OldCorrelation.py   : suspect
+RateMatrix.py       : suspect
+TTET.py             : suspect
