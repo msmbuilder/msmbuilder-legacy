@@ -83,7 +83,7 @@ def DijkstraTopPaths(sources, sinks, net_flux, num_paths=10, node_wipe=False):
     sinks : array_like, int
         Indices of sink states
     net_flux : sparse matrix
-        Matrix of the net flux from `sources` to `sinks`, see function compute_net_flux
+        Matrix of the net flux from `sources` to `sinks`, see function `net_flux`
     num_paths : int 
         The number of paths to find
     node_wipe : bool 
@@ -96,13 +96,20 @@ def DijkstraTopPaths(sources, sinks, net_flux, num_paths=10, node_wipe=False):
         The nodes transversed in each path
     Bottlenecks : list of tuples
         The nodes between which exists the path bottleneck
-    Fluxes : a list of floats
+    Fluxes : list of floats
         The flux through each path
 
     To Do
     -----
     -- Add periodic flow check
     """
+
+    # transition/temp
+    NodeWipe = node_wipe
+    NumPaths = num_paths
+    A = sources
+    B = sinks
+
 
     # first, do some checking on the input, esp. `sources` and `sinks`
     # we want to make sure all objects are iterable and the sets are disjoint
@@ -391,7 +398,7 @@ def FindPathBottleneck(Path, NFlux):
     return (b1, b2), flux
 
 
-def compute_fluxes(sources, sinks, tprob, populations=None, committors=None):
+def calculate_fluxes(sources, sinks, tprob, populations=None, committors=None):
     """
     Compute the transition path theory flux matrix.
 	
@@ -399,25 +406,20 @@ def compute_fluxes(sources, sinks, tprob, populations=None, committors=None):
     ----------
     sources : array_like, int
         The set of unfolded/reactant states.
-
     sinks : array_like, int
         The set of folded/product states.
-		
     tprob : mm_matrix	
         The transition matrix.
-		
 		
     Returns
     ------
     fluxes : mm_matrix
         The flux matrix
-        
-        
+          
     Optional Parameters
     -------------------
     populations : nd_array, float
-        The equilibrium populations, if not provided is re-calculated
-        
+        The equilibrium populations, if not provided is re-calculated  
     committors : nd_array, float
         The committors associated with `sources`, `sinks`, and `tprob`.
         If not provided, is calculated from scratch. If provided, `sources`
@@ -426,34 +428,49 @@ def compute_fluxes(sources, sinks, tprob, populations=None, committors=None):
     
     sources, sinks = _check_sources_sinks(sources, sinks)
     
+    if scipy.sparse.issparse(tprob):
+        dense = False
+    else:
+        dense = True
+    
     # check if we got the populations
     if populations is None:
         eigens = msm_analysis.get_eigenvectors(tprob, 5)
         if np.count_nonzero(np.imag(eigens[1][:,0])) != 0:
-            raise ValueError('First eigenvector has imaginary parts')
+            raise ValueError('First eigenvector has imaginary components')
         populations = np.real(eigens[1][:,0])
         
     # check if we got the committors
     if committors is None:
-        committors = calc_committors(sources, sinks, tprob, dense=False)
+        committors = calculate_committors(sources, sinks, tprob)
     
     # perform the flux computation
     Indx, Indy = tprob.nonzero()
 
     n = tprob.shape[0]
-    X = scipy.sparse.lil_matrix( (n,n) )
+    
+    if dense:
+        X = np.zeros((n, n))
+        Y = np.zeros((n, n))
+    else:
+        X = scipy.sparse.lil_matrix( (n,n) )
+        Y = scipy.sparse.lil_matrix( (n,n) )
+        
     X.setdiag( populations * (1.0 - committors) )
-
-    Y = scipy.sparse.lil_matrix( (n,n) )
     Y.setdiag(committors)
-    fluxes = np.dot( np.dot(X.tocsr(), tprob.tocsr()), Y.tocsr() )
-    fluxes = P.tolil()
-    fluxes.setdiag(np.zeros(n))
+    
+    if dense:
+        fluxes = np.dot( np.dot(X, tprob), Y )
+        fluxes[( np.arange(n), np.arange(n) )] = np.zeros(n)
+    else:
+        fluxes = np.dot( np.dot(X.tocsr(), tprob.tocsr()), Y.tocsr() )
+        fluxes = fluxes.tolil()
+        fluxes.setdiag(np.zeros(n))
     
     return fluxes
 
 
-def compute_net_fluxes(sources, sinks, tprob, populations=None, committors=None):
+def calculate_net_fluxes(sources, sinks, tprob, populations=None, committors=None):
     """
     Computes the transition path theory net flux matrix.
 
@@ -461,25 +478,20 @@ def compute_net_fluxes(sources, sinks, tprob, populations=None, committors=None)
     ----------
     sources : array_like, int
         The set of unfolded/reactant states.
-
     sinks : array_like, int
-        The set of folded/product states.
-		
+        The set of folded/product states.		
     tprob : mm_matrix	
         The transition matrix.
-		
 		
     Returns
     ------
     net_fluxes : mm_matrix
         The net flux matrix
         
-        
     Optional Parameters
     -------------------
     populations : nd_array, float
-        The equilibrium populations, if not provided is re-calculated
-        
+        The equilibrium populations, if not provided is re-calculated        
     committors : nd_array, float
         The committors associated with `sources`, `sinks`, and `tprob`.
         If not provided, is calculated from scratch. If provided, `sources`
@@ -488,12 +500,21 @@ def compute_net_fluxes(sources, sinks, tprob, populations=None, committors=None)
 
     sources, sinks = _check_sources_sinks(sources, sinks)
 
+    if scipy.sparse.issparse(tprob):
+        dense = False
+    else:
+        dense = True
+
     n = tprob.shape[0]
     
-    flux = compute_net_fluxes(sources, sinks, tprob, populations, committors)
+    flux = calculate_fluxes(sources, sinks, tprob, populations, committors)
     ind = flux.nonzero()
     
-    net_flux = scipy.sparse.lil_matrix( (n,n) )
+    if dense:
+        net_flux = np.zeros((n, n))
+    else:
+        net_flux = scipy.sparse.lil_matrix( (n,n) )
+    
     for k in range( len(ind[0]) ):
         i,j = ind[0][k], ind[1][k]
         forward = flux[i,j]
@@ -507,7 +528,7 @@ def compute_net_fluxes(sources, sinks, tprob, populations=None, committors=None)
 # MFPT & Committor Finding Functions
 #
 
-def calc_ensemble_mfpt(sources, sinks, tprob, lag_time):
+def calculate_ensemble_mfpt(sources, sinks, tprob, lag_time):
     """
     Calculates the average 'Folding Time' of an MSM defined by T and a LagTime.
     The Folding Time is the average of the MFPTs (to F) of all the states in U.
@@ -536,7 +557,7 @@ def calc_ensemble_mfpt(sources, sinks, tprob, lag_time):
     
     sources, sinks = _check_sources_sinks(sources, sinks)
 
-    X = mfpt(sinks, tprob, lag_time)
+    X = calculate_mfpt(sinks, tprob, lag_time)
     times = np.zeros(len(sources))
     for i in range(len(sources)):
         times[i] = X[ sources[i] ] 
@@ -544,7 +565,7 @@ def calc_ensemble_mfpt(sources, sinks, tprob, lag_time):
     return np.average(times), np.std(times) 
 
 
-def calc_avg_TP_time(sources, sinks, tprob, lag_time):
+def calculate_avg_TP_time(sources, sinks, tprob, lag_time):
     """
     Calculates the Average Transition Path Time for MSM with: T, LagTime.
     The TPTime is the average of the MFPTs (to F) of all the states
@@ -603,7 +624,7 @@ def calc_avg_TP_time(sources, sinks, tprob, lag_time):
     return np.average(TPtimes), np.std(TPtimes)
 
 
-def mfpt(sinks, tprob, lag_time=1.):
+def calculate_mfpt(sinks, tprob, lag_time=1.):
     """
     Gets the Mean First Passage Time (MFPT) for all states to a *set*
     of sinks.
@@ -657,7 +678,7 @@ def mfpt(sinks, tprob, lag_time=1.):
     return MFPT
 
 
-def all_to_all_mfpt(tprob, populations=None):
+def calculate_all_to_all_mfpt(tprob, populations=None):
     """
     Calculate the all-states by all-state matrix of mean first passage
     times.
@@ -710,24 +731,18 @@ def all_to_all_mfpt(tprob, populations=None):
     return mfpt
 
 
-def calc_committors(sources, sinks, tprob):
+def calculate_committors(sources, sinks, tprob):
     """
-    Get the forward committors of the reaction U -> F.
-
-    If you are have small matrices, it can be faster to use dense 
-    linear algebra. 
+    Get the forward committors of the reaction sources -> sinks.
 	
     Parameters
     ----------
     sources : array_like, int
         The set of unfolded/reactant states.
-
     sinks : array_like, int
-        The set of folded/product states.
-		
+        The set of folded/product states.		
     tprob : mm_matrix	
-        The transition matrix.
-			
+        The transition matrix.			
     dense : bool
         Employ dense linear algebra. Will speed up the calculation
         for small matrices.
@@ -781,154 +796,356 @@ def calc_committors(sources, sinks, tprob):
     
 
 ######################################################################
-#  DEPRECATED FUNCTIONS
-#  CAN BE REMOVED IN VERSION 2.7
-######################################################################
+# Functions for computing hub scores, conditional committors, and
+# related quantities
+#
 
-# TJL: Unnecessary helper function
-@deprecated(calc_committors, '2.7')
-def GetFCommittorsEqn(A, B, T0, dense=False):
+
+def _hub_score_warning():
+    print "WARNING!!! This hub score code is currently unverified"
+    print "it may not be correct..."
+    return
+
+
+def lump_transition_matrix(tprob, states_to_lump):
     """
-    Construct the matrix equations used for finding committors 
-    for the reaction U -> F.  T0 is the transition matrix, 
-    Equilibruim is the vector of equilibruim populations.
-	
+    Lump a set of states in a transition matrix into a macrostate,
+    combining the transition probabilities for that state.
+    
     Parameters
     ----------
-    A : array_like, int
-        The set of unfolded/reactant states.
-
-    B : array_like, int
-        The set of folded/product states.
-		
-    T0 : mm_matrix	
-        The transition matrix.
-				
+    tprob : matrix
+        The original transition probability matrix to lump  
+    states_to_lump: nd_array, int
+        Indicies of the states to lump into a macrostate
+    
     Returns
     -------
-    A : mm_matrix
-        the sparse matrix for committors (Ax = b)
- 
-    b : array_like
-        the vector on right hand side of (Ax = b)
+    lumped : matrix
+        The lumped transition probability matrix.
     """
-	
-    # TJL to KAB : please be consistent with variable names!
-	
-    n = T0.shape[0]
+    
+    _hub_score_warning()
+    
+    # find out which indices we're keeping 
+    new_N = tprob.shape[0] - len(states_to_lump) + 1
+    to_keep_inds = range(tprob.shape[0])
+    for i in states_to_lump:    # TJL: optimization point
+        to_keep_inds.remove(i)
+    m = len(to_keep_inds)
+    
+    # the new row is just the average transition probability
+    new_row = np.sum( tprob[states_to_lump, :], axis=0 )[to_keep_inds] / \
+                float(len(states_to_lump))
+    assert len(new_row) == new_N - 1 
+    
+    # fill in the "lumped" matrix with the new data
+    lumped = np.delete(tprob, states_to_lump, axis=0)
+    lumped = np.delete(lumped, states_to_lump, axis=1)
+    lumped = np.vstack([lumped, new_row])
 
-    if dense:
-       T = np.linalg.eye(n) - T0
+    A = np.zeros((lumped.shape[0], 1))
+    A[:,0] = 1.0 - np.sum(lumped, axis=1).flatten()
+    lumped = np.hstack( [ lumped, A ] )
+    
+    assert lumped.shape[0] == lumped.shape[1]
+    assert np.all( lumped.sum(1) == np.ones(lumped.shape[0]) )
 
+    return lumped
+
+
+def calculate_fraction_visits(tprob, waypoints, sources, sinks, 
+                              Q=None, return_cond_Q=False):
+    """
+    Calculate the fraction of times a walker on `tprob` going from `sources` 
+    to `sinks` will travel through the set of states `waypoints` en route.
+    
+    Computes the conditional committors q^{ABC^+} and uses them to find the
+    fraction of paths mentioned above. The conditional committors can be 
+    
+    Note that in the notation of Dickson et. al.
+        sources   = A
+        sinks     = B
+        waypoints = C
+        
+    Parameters
+    ----------
+    tprob : matrix
+        The transition probability matrix        
+    waypoints : nd_array, int or int
+        The indices of the intermediate state(s)        
+    sources : nd_array, int or int
+        The indices of the source state(s)    
+    sinks : nd_array, int or int
+        The indices of the sink state(s)    
+    return_cond_Q : bool
+        Whether or not to return the conditional committors
+    
+    Returns
+    -------
+    fraction_paths : float
+        The fraction of times a walker going from `sources` -> `sinks` stops
+        by `waypoints` on its way.
+    cond_Q : nd_array, float (optional)
+        Optionally returned (`return_cond_Q`)
+    
+    Additional Parameters
+    ---------------------
+    Q : nd_array, float
+        If you have the committors for the lumped transition matrix
+        already calculated, pass them here to speed the computation.
+        This argument is used heavily in the related function `hub_score`
+        and is primarily intended for use there.
+        
+    See Also
+    --------
+    calculate_hub_score : function
+        Compute the 'hub score', the weighted fraction of visits for an
+        entire network.      
+    calculate_all_hub_scores : function
+        A more efficient way to compute the hub score for every state in a
+        network.
+        
+    Notes
+    -----
+    Employs dense linear algebra,
+      memory use scales as N^2
+      cycle use scales as N^3      
+      
+    References
+    ----------
+    ..[1] Dickson & Brooks (2012), J. Chem. Theory Comput., 
+          Article ASAP DOI: 10.1021/ct300537s
+    """
+     
+    _hub_score_warning()
+     
+    # do some typechecking - we need to be sure that the lumped sources are in
+    # the second to last row, and the lumped sinks are in the last row
+    
+    # check `tprob`
+    if type(tprob) != np.ndarray:
+        try:
+            tprob = tprob.todense()
+        except AttributeError as e:
+            raise TypeError('Argument `tprob` must be convertable to a dense'
+                            'numpy array. \n%s' % e)
+    
+    sources, sinks = _check_sources_sinks(sources, sinks)
+
+    # rearrange the transition matrix so that row -2 are the lumped sources,
+    # row -1 is the lumped sinks
+    tprob = lump_transition_matrix(tprob, sources)
+    tprob = lump_transition_matrix(tprob, sinks)
+       
+    # typecheck `waypoints` 
+    if (type(waypoints) == np.ndarray or type(waypoints) == list):
+        pass
+    elif type(waypoints) == int:
+        waypoints = np.array([waypoints])
     else:
-       T = scipy.sparse.eye(n,n,0,format='lil')-T0
-       T = T.tolil()
+        raise TypeError('Must pass waypoints as int or list/array of ints')
+    
+    if np.any(sources == waypoints) or np.any(sinks == waypoints):
+        raise ValueError('sources, sinks, waypoints must all be disjoint!')
+    
+    assert type(sources) == list
+    assert type(sinks) == list
+    assert type(waypoints) == list
+    
+    # if not provided, calculate the committors/lumped transition matrix
+    if not Q:
+        Q = calculate_committors(sources, sinks, tprob, dense=True)
+        assert np.all( Q < 1.0 )
+        assert np.all( Q > 0.0 )
+        
+    # construct absorbing Markov chain (T), remove all waypoints & lumped sink
+    N = tprob.shape[0]
+    T = np.delete(tprob, waypoints + [N-1], axis=0)
+    
+    # extract P, R
+    n,m = T.shape
+    P = T[:n,:n]
+    R = T[:n,:m]
+    assert P.shape == (n,n)
+    assert R.shape == (n,m)
+    assert n == N - (len(waypoints) + 1)
+    
+    # calculate the conditional committors ( B = N*R )
+    B = np.dot( np.linalg.inv( np.eye(n) - P ), R )
+    assert B.shape == (n,m)
+    
+    # Now, B[i,-1] is the prob state i ends in a sink
+    # while B[i,j] is the prob state i ends in waypoints[j]
+    # we sum over all of the waypoints in the next line
+    B_sum = np.zeros(N)
+    B_sum[waypoints] = 1.0
+    
+    not_waypoint_not_sink = range(N)
+    for i in waypoints + sinks:
+        not_waypoint_not_sink.remove(i)
 
-    for a in A:
-        T[a,:] = np.zeros(n)
-        T[:,a] = 0.0
-        T[a,a] = 1.0
-    for b in B:
-        T[b,:] = np.zeros(n)
-        T[:,b] = 0.0
-        T[b,b] = 1.0
-    IdB = np.zeros(n)
-    for b in B:
-        IdB[b] = 1.0
-    logger.info("done with setting up matrices")
-    RHS = T0*(IdB) # changed from RHS=T0.matvec(IdB) --TJL, matvec deprecated
-    for a in A:
-        RHS[a] = 0.0
-    for b in B:
-        RHS[b] = 1.0
-
-    return (T,RHS)
-
-
-# TJL: these helper functions are cluttered/confusing
-@deprecated(calc_committors, '2.7')
-def GetBCommittorsEqn(U, F, T0, EquilibriumPopulations):
-    """
-    Construct the matrix equations used for finding backwards 
-    committors for the reaction U -> F.
-	
-    Parameters
-    ----------
-    U : array_like, int
-        The set of unfolded/reactant states.
-		
-    F : array_like, int
-        The set of folded/product states.
-		
-    T0 : mm_matrix	
-        The transition matrix.
-		
-    EquilibriumPopulations : array_like, float
-        Populations of the states.
-		
-    Returns
-    -------
-     A : mm_matrix 
-        the sparse matrix for committors (Ax = b)
- 
-     b : nd_array
-         the vector on right hand side of (Ax = b)
-    """
-
-    n = len(EquilibriumPopulations)
-    DE = scipy.sparse.eye(n,n,0,format='lil')
-    DE.setdiag(EquilibriumPopulations)
-    DEInv = scipy.sparse.eye(n,n,0,format='lil')
-    DEInv.setdiag(1./EquilibriumPopulations)
-    TR = (DEInv.dot(T0.transpose())).dot(DE)
-
-    return GetFCommittorsEqn(F,U,TR)
-
-
-# TJL: We don't need a "get backwards committors", since they are just
-# 1 minus the forward committors
-@deprecated(calc_committors, '2.7')
-def GetBCommittors(U, F, T0, EquilibriumPopulations, X0=None, Dense=False):
-    """
-    Get the backward committors of the reaction U -> F.
-	
-    EquilibriumPopulations are required for the backward committors 
-    but not the foward commitors because we assume detailed balance 
-    when calculating the backward committors.  If you are have small 
-    matrices, it can be faster to use dense linear algebra.  
-	
-    Parameters
-    ----------
-    U : array_like, int
-        The set of unfolded/reactant states.
-		
-    F : array_like, int
-        The set of folded/product states.
-		
-    T0 : mm_matrix	
-        The transition matrix.
-		
-    EquilibriumPopulations : array_like, float
-        Populations of the states.
-						
-    Dense : bool
-        Employ dense linear algebra. Will speed up the calculation
-        for small matrices.
-		
-    Returns
-    -------
-    Q : array_like
-        The backward committors for the reaction U -> F.	
-    """
-	
-    A, b = GetBCommittorsEqn(U,F,T0,EquilibriumPopulations)
-
-    if Dense==False:
-        Q = scipy.sparse.linalg.spsolve(A,b)
+    B_sum[not_waypoint_not_sink] = B[:,:-1].sum(axis=1) # sum over "j"
+    
+    # we need to "add back in" the values for the waypoints
+    # note the committor conditional on C for a state in C
+    # is just the original committor - thus we cp from `q`
+    cond_Q = Q * B_sum
+    assert cond_Q.shape == (N,N)
+    assert np.all( cond_Q < 1.0 )
+    assert np.all( cond_Q > 0.0 )
+    
+    # finally, calculate the fraction of paths h_C(A,B)
+    fraction_paths = np.sum( cond_Q[:-2,:-2] * tprob[:-2,:-2]) / \
+                        ( tprob[-2,-1] + np.sum( Q[:-2,:-2] * tprob[:-2,:-2] ) )
+    
+    if return_cond_Q:
+        return fraction_paths, cond_Q
     else:
-        Q = np.linalg.solve(A.toarray(),b)
+        return fraction_paths
 
-    return Q
+
+def calculate_hub_score(tprob, waypoints):
+    """
+    Calculate the hub score for the set of states `waypoints` - which can
+    either be a list/array of microstates (i.e. a macrostate) or a single
+    microstate.
+    
+    The "hub score" is a measure of how well traveled a certain state or
+    set of states is in a network. Specifically, it is the fraction of
+    times that a walker visits a state en route from some state A to another
+    state B, averaged over all combinations of A and B.
+    
+    
+    Parameters
+    ----------
+    tprob : matrix
+        The transition probability matrix        
+    waypoints : nd_array, int or int
+        The indices of the intermediate state(s)
+                
+    Returns
+    -------
+    Hc : float
+        The hub score for the state composed of `waypoints`
+
+    See Also
+    --------
+    calculate_fraction_visits : function
+        Calculate the fraction of times a state is visited on pathways going
+        from a set of "sources" to a set of "sinks".        
+    calculate_all_hub_scores : function
+        A more efficient way to compute the hub score for every state in a
+        network.
+        
+    Notes
+    -----
+    Employs dense linear algebra,
+      memory use scales as N^2
+      cycle use scales as N^5
+
+    References
+    ----------
+    ..[1] Dickson & Brooks (2012), J. Chem. Theory Comput., 
+        Article ASAP DOI: 10.1021/ct300537s
+    """
+    
+    _hub_score_warning()
+    
+    # typecheck
+    if (type(waypoints) or type(waypoints)) == list:
+        pass
+    elif type(waypoints) == int:
+        waypoints = np.array([waypoints])
+    else:
+        raise ValueError('Must pass waypoints as int or list/array of ints')
+    
+    # find out which states to include in A, B (i.e. everything but C)
+    N = tprob.shape[0]
+    states_to_include = range(N) # TJL: optimization point
+    for w in waypoints:
+        states_to_include.remove(w)
+    
+    # calculate the hub score
+    Hc = 0.0
+    for s1 in states_to_include:
+        for s2 in states_to_include:
+            if (s1 != s2) and (s1 not in waypoints) and (s2 not in waypoints):
+                Hc += calculate_fraction_visits(tprob, waypoints, s1, s2, 
+                                                Q=None, return_cond_Q=False)
+    
+    Hc /= ( (N-1) * (N-2) )
+                
+    return Hc
+    
+    
+def calculate_all_hub_scores(tprob):
+    """
+    Calculate the hub scores for all states in a network defined by `tprob`.
+    
+    The "hub score" is a measure of how well traveled a certain state or
+    set of states is in a network. Specifically, it is the fraction of
+    times that a walker visits a state en route from some state A to another
+    state B, averaged over all combinations of A and B.
+        
+    Parameters
+    ----------
+    tprob : matrix
+        The transition probability matrix        
+        
+    Returns
+    -------
+    Hc_array : nd_array, float
+        The hub score for each state in `tprob`
+
+    See Also
+    --------
+    calculate_fraction_visits : function
+        Calculate the fraction of times a state is visited on pathways going
+        from a set of "sources" to a set of "sinks".        
+    calculate_hub_score : function
+        A function that computes just one hub score, can compute the hub score
+        for a set of states.
+                
+    Notes
+    -----
+    Employs dense linear algebra,
+      memory use scales as N^2
+      cycle use scales as N^6
+
+    References
+    ----------
+    ..[1] Dickson & Brooks (2012), J. Chem. Theory Comput., 
+        Article ASAP DOI: 10.1021/ct300537s
+    """
+    
+    _hub_score_warning()
+    
+    N = tprob.shape[0]
+    states = range(N)
+    
+    # calculate the hub score
+    Hc_array = np.zeros(N)
+    
+    # loop over each state and compute it's hub score
+    for i,waypoint in enumerate(states):
+        
+        Hc = 0.0
+        Q = all_to_all_mfpt(tprob) # we can save time by re-using the committors
+        
+        # now loop over all combinations of sources/sinks and average
+        for s1 in states:
+            if waypoint != s1:
+                for s2 in states:
+                    if s1 != s2:
+                        if waypoint != s2:
+                            Hc += calculate_fraction_visits(tprob, waypoints, 
+                                                            s1, s2, Q)
+        
+        # store the hub score in an array
+        Hc_array[i] = Hc / ( (N-1) * (N-2) )
+    
+    return Hc_array
 
 
 ######################################################################
@@ -936,29 +1153,46 @@ def GetBCommittors(U, F, T0, EquilibriumPopulations, X0=None, Dense=False):
 #  THESE FUNCTIONS WERE ADDED FOR VERSION 2.6 AND
 #  CAN BE REMOVED IN VERSION 2.7
 ######################################################################
-@deprecated(mfpt, '2.7')
+
+# TJL: these helper functions are cluttered/confusing
+@deprecated(calculate_committors, '2.7')
+def GetBCommittorsEqn(U, F, T0, EquilibriumPopulations):
+    pass
+    
+# TJL: Unnecessary helper function
+@deprecated(calculate_committors, '2.7')
+def GetFCommittorsEqn(A, B, T0, dense=False):
+    pass
+
+# TJL: We don't need a "get backwards committors", since they are just
+# 1 minus the forward committors
+@deprecated(calculate_committors, '2.7')
+def GetBCommittors(U, F, T0, EquilibriumPopulations, X0=None, Dense=False):
+    pass
+
+@deprecated(calculate_mfpt, '2.7')
 def MFPT():
     pass
 
-@deprecated(calc_committors, '2.7')
+@deprecated(calculate_committors, '2.7')
 def GetFCommittors():
     pass
     
-@deprecated(compute_fluxes, '2.7')
+@deprecated(calculate_fluxes, '2.7')
 def GetFlux():
     print "WARNING: The call signature for the new function has changed."
     pass
 
-@deprecated(compute_net_fluxes, '2.7')
+@deprecated(calculate_net_fluxes, '2.7')
 def GetNetFlux():
     print "WARNING: The call signature for the new function has changed."
     pass
     
-@deprecated(calc_avg_TP_time, '2.7')
+@deprecated(calculate_avg_TP_time, '2.7')
 def CalcAvgTPTime():
     pass
     
-@deprecated(calc_ensemble_mfpt, '2.7')
+@deprecated(calculate_ensemble_mfpt, '2.7')
 def CalcAvgFoldingTime():
     pass
     
