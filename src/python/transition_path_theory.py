@@ -24,9 +24,6 @@ Contributions from Kyle Beauchamp, Robert McGibbon, Vince Voelz
 
 To Do:
 -- Get stuff passing unit tests
--- Finish renaming functions
--- Add logging functionality
-
 """
 
 import numpy as np
@@ -51,7 +48,7 @@ logger = logging.getLogger('tpt')
 def _ensure_iterable(arg):
     if not hasattr(arg, '__iter__'):
         arg = list([int(arg)])
-        print("Warning: passed object was not iterable,"
+        logger.warning("Passed object was not iterable,"
               " converted it to: %s" % str(arg))
     return arg
 
@@ -68,7 +65,7 @@ def _check_sources_sinks(sources, sinks):
 # Path Finding Functions
 #
 
-def DijkstraTopPaths(sources, sinks, net_flux, num_paths=10, node_wipe=False):
+def find_top_paths(sources, sinks, tprob, num_paths=10, node_wipe=False, net_flux=None):
     r"""
     Calls the Dijkstra algorithm to find the top 'NumPaths'. 
 
@@ -82,13 +79,8 @@ def DijkstraTopPaths(sources, sinks, net_flux, num_paths=10, node_wipe=False):
         The indices of the source states
     sinks : array_like, int
         Indices of sink states
-    net_flux : sparse matrix
-        Matrix of the net flux from `sources` to `sinks`, see function `net_flux`
     num_paths : int 
         The number of paths to find
-    node_wipe : bool 
-        If true, removes the bottleneck-generating node from the graph, instead
-        of just the bottleneck (not recommended, a debugging functionality)
 
     Returns
     -------
@@ -98,28 +90,34 @@ def DijkstraTopPaths(sources, sinks, net_flux, num_paths=10, node_wipe=False):
         The nodes between which exists the path bottleneck
     Fluxes : list of floats
         The flux through each path
+        
+    Optional Parameters
+    -------------------
+    node_wipe : bool 
+        If true, removes the bottleneck-generating node from the graph, instead
+        of just the bottleneck (not recommended, a debugging functionality)
+    net_flux : sparse matrix
+        Matrix of the net flux from `sources` to `sinks`, see function `net_flux`.
+        If not provided, is calculated from scratch. If provided, `tprob` is
+        ignored.
 
     To Do
     -----
     -- Add periodic flow check
     """
 
-    # transition/temp
-    NodeWipe = node_wipe
-    NumPaths = num_paths
-    A = sources
-    B = sinks
-
-
     # first, do some checking on the input, esp. `sources` and `sinks`
     # we want to make sure all objects are iterable and the sets are disjoint
-    
     sources, sinks = _check_sources_sinks(sources, sinks)
+    
+    # check to see if we get net_flux for free, otherwise calculate it
+    if not net_flux:
+        net_flux = calculate_net_fluxes(sources, sinks, tprob)
 
     # initialize objects
-    Paths = []
-    Fluxes = []
-    Bottlenecks = []
+    paths = []
+    fluxes = []
+    bottlenecks = []
     net_flux = net_flux.tolil()
 
     # run the initial Dijkstra pass
@@ -132,58 +130,58 @@ def DijkstraTopPaths(sources, sinks, net_flux, num_paths=10, node_wipe=False):
     while not done:
 
         # First find the highest flux pathway
-        (Path, (b1,b2), Flux) = Backtrack(sinks, b, pi, net_flux)
+        (path, (b1,b2), flux) = _backtrack(sinks, b, pi, net_flux)
 
         # Add each result to a Paths, Bottlenecks, Fluxes list
-        if Flux == 0:
+        if flux == 0:
             logger.info("Only %d possible pathways found. Stopping backtrack.", i)
             break
-        Paths.append(Path)
-        Bottlenecks.append( (b1,b2) )
-        Fluxes.append(Flux)
-        logger.info("%s | %s | %s | %s ", i, Path, (b1, b2), Flux)
+        paths.append(path)
+        bottlenecks.append( (b1,b2) )
+        fluxes.append(flux)
+        logger.info("%s | %s | %s | %s ", i, path, (b1, b2), flux)
 
         # Cut the bottleneck, start relaxing from B side of the cut
-        if NodeWipe: 
-
+        if node_wipe: 
             net_flux[:, b2] = 0
             logger.info("Wiped node: %s", b2)
-        else: net_flux[b1, b2] = 0
+        else:
+            net_flux[b1, b2] = 0
 
         G = scipy.sparse.find(net_flux)
         Q = [b2]
-        b, pi, NFlux = BackRelax(b2, b, pi, net_flux)
+        b, pi, net_flux = _back_relax(b2, b, pi, net_flux)
         
         # Then relax the graph and repeat
         # But only if we still need to
-        if i != NumPaths-1:
+        if i != num_paths - 1:
             while len(Q) > 0:
                 w = Q.pop()
                 for v in G[1][np.where( G[0] == w )]:
                     if pi[v] == w:
-                        b, pi, NFlux = BackRelax(v, b, pi, net_flux)
+                        b, pi, net_flux = _back_relax(v, b, pi, net_flux)
                         Q.append(v)
                 Q = sorted(Q, key=lambda v: b[v])
 
-        i+=1
-        if i == NumPaths+1: 
+        i += 1
+        if i == num_paths + 1: 
             done = True
-        if Flux == 0: 
+        if flux == 0: 
             logger.info("Only %d possible pathways found. Stopping backtrack.", i)
             done = True
 
-    return Paths, Bottlenecks, Fluxes
+    return paths, bottlenecks, fluxes
 
 
-def Dijkstra(A, B, NFlux):
+def Dijkstra(sources, sinks, net_flux):
     r""" A modified Dijkstra algorithm that dynamically computes the cost
     of all paths from A to B, weighted by NFlux.
 
     Parameters
     ----------
-    A : array_like, int 
+    sources : array_like, int 
         The indices of the source states (i.e. for state A in rxn A -> B)
-    B : array_like, int
+    sinks : array_like, int
         Indices of sink states (state B)
     NFlux : sparse matrix
         Matrix of the net flux from A to B, see function GetFlux
@@ -202,38 +200,46 @@ def Dijkstra(A, B, NFlux):
          paths through an MSM network. This is a utility function called by
          `DijkstraTopPaths`, but may be useful in some specific cases
     """
+    
+    sources, sinks = _check_sources_sinks(sources, sinks)
 
-    # Initialize
-    NFlux = NFlux.tolil()
-    G = scipy.sparse.find(NFlux)
-    N = NFlux.shape[0]
+    # initialize data structures
+    if scipy.sparse.issparse(net_flux):
+        net_flux = net_flux.tolil()
+    else:
+        net_flux = scipy.spares.lil_matrix(net_flux)
+        
+    G = scipy.sparse.find(net_flux)
+    N = net_flux.shape[0]
     b = np.zeros(N)
-    b[A] = 1000
+    b[sources] = 1000
     pi = np.zeros(N, dtype=int)
-    pi[A] = -1
+    pi[sources] = -1
     U = []
+    
     Q = sorted(range(N), key=lambda v: b[v])
-    for v in B: Q.remove(v)
+    for v in sinks:
+        Q.remove(v)
 
-    # Run
+    # run the Dijkstra algorithm
     while len(Q) > 0:
         w = Q.pop()
         U.append(w)
         
-        # Relax
+        # relax
         for v in G[1][np.where( G[0] == w )]:
-            if b[v] < min(b[w], NFlux[w,v]):
-                b[v] = min(b[w], NFlux[w,v])
+            if b[v] < min(b[w], net_flux[w,v]):
+                b[v] = min(b[w], net_flux[w,v])
                 pi[v] = w
 
         Q = sorted(Q, key=lambda v: b[v])
 
-    logger.info("Searched %s nodes", len(U)+len(B))
+    logger.info("Searched %s nodes", len(U)+len(sinks))
 
     return pi, b
 
 
-def BackRelax(s, b, pi, NFlux):
+def _back_relax(s, b, pi, NFlux):
     r"""
     Updates a Djikstra calculation once a bottleneck is cut, quickly
     recalculating only cost of nodes that change due to the cut.
@@ -289,12 +295,12 @@ def BackRelax(s, b, pi, NFlux):
     else: 
         for sprime in G[1][np.where( G[0] == s )]:
             NFlux[s,sprime] = 0
-            b, pi, NFlux = BackRelax(sprime, b, pi, NFlux)
+            b, pi, NFlux = _back_relax(sprime, b, pi, NFlux)
             
     return b, pi, NFlux
 
 
-def Backtrack(B, b, pi, NFlux):
+def _backtrack(B, b, pi, NFlux):
     """
     Works backwards to pull out a path from pi, where pi is a list such that
     pi[i] = source node of node i. Begins at the largest staring incoming flux
@@ -337,12 +343,10 @@ def Backtrack(B, b, pi, NFlux):
             if pi[path[-1]] == -1:
                 break
             else:
-                #print pi
                 path.append( pi[path[-1]] )
-                #print path # sys.exit()
         path.reverse()
 
-        bottleneck, Flux = FindPathBottleneck(path, NFlux)
+        bottleneck, Flux = find_path_bottleneck(path, NFlux)
 
         logger.debug('In Backtrack: Flux %s, bestflux %s', Flux, bestflux)
         
@@ -358,17 +362,18 @@ def Backtrack(B, b, pi, NFlux):
     return (bestpath, bottleneck, bestflux)
 
 
-def FindPathBottleneck(Path, NFlux):
+def find_path_bottleneck(path, net_flux):
     """
-    Simply finds the bottleneck along a dynamically generated path. 
+    Simply finds the bottleneck along a path. 
+    
     This is the point at which the cost function first goes up along the path,
     backtracking from B to A.
 
     Parameters
     ----------
-    Path : list
+    path : list
         a list of nodes along the path of interest
-    NFlux : sparse matrix
+    net_flux : matrix
         the net flux matrix
 
     Returns
@@ -380,20 +385,22 @@ def FindPathBottleneck(Path, NFlux):
 
     See Also
     --------
-    DijkstraTopPaths : child function
-        `DijkstraTopPaths` is probably the function you want to call to find
+    find_top_paths : child function
+        `find_top_paths` is probably the function you want to call to find
          paths through an MSM network. This is a utility function called by
-         `DijkstraTopPaths`, but may be useful in some specific cases
+         `find_top_paths`, but may be useful in some specific cases
     """
 
-    NFlux = NFlux.tolil()
-    flux = 100.
+    if scipy.sparse.issparse(net_flux):
+        net_flux = net_flux.tolil()
+        
+    flux = 100000. # initialize as large value
 
-    for i in range(len(Path)-1):
-        if NFlux[ Path[i], Path[i+1] ] < flux:
-            flux = NFlux[ Path[i], Path[i+1] ]
-            b1 = Path[i]
-            b2 = Path[i+1]
+    for i in range(len(path) - 1):
+        if net_flux[ path[i], path[i+1] ] < flux:
+            flux = net_flux[ path[i], path[i+1] ]
+            b1 = path[i]
+            b2 = path[i+1]
 
     return (b1, b2), flux
 
@@ -802,8 +809,8 @@ def calculate_committors(sources, sinks, tprob):
 
 
 def _hub_score_warning():
-    print "WARNING!!! This hub score code is currently unverified"
-    print "it may not be correct..."
+    logger.warning("WARNING!!! This hub score code is currently unverified"
+    "it may not be correct...")
     return
 
 
@@ -1154,12 +1161,10 @@ def calculate_all_hub_scores(tprob):
 #  CAN BE REMOVED IN VERSION 2.7
 ######################################################################
 
-# TJL: these helper functions are cluttered/confusing
 @deprecated(calculate_committors, '2.7')
 def GetBCommittorsEqn(U, F, T0, EquilibriumPopulations):
     pass
     
-# TJL: Unnecessary helper function
 @deprecated(calculate_committors, '2.7')
 def GetFCommittorsEqn(A, B, T0, dense=False):
     pass

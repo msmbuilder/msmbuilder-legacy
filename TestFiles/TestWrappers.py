@@ -275,31 +275,10 @@ class TestWrappers(unittest.TestCase):
         r1=Serializer.LoadData(WorkingDir+"/RMSD.h5")
         numpy.testing.assert_array_almost_equal(r0,r1, err_msg="Error: Project RMSDs disagree!")
 
-    def test_l_transition_path_theory(self):
-        # TO DO: Add script check
-
-        # run the reference calculations
-        T = scipy.io.mmread(os.path.join(ReferenceDir, "Data", "tProb.mtx"))
-        Q = transition_path_theory.calculate_committors([0], [70], T)
-        net_flux = transition_path_theory.calculate_net_fluxes([0], [70], T)
-        path_output = transition_path_theory.DijkstraTopPaths( [0], [70], net_flux )
-        all_to_all_mfpt = transition_path_theory.calculate_all_to_all_mfpt(T)
-
-        # run the script reference
+#    def test_l_transition_path_theory(self):        
+        #T = scipy.io.mmread(os.path.join(ReferenceDir, "Data", "tProb.mtx"))
         #script_out = DoTPT.run()
-
-        # load in reference output
-        Q_ref = Serializer.LoadData(os.path.join(ReferenceDir, "transition_path_theory_reference", "committors.h5"))
-        net_flux_ref = Serializer.LoadData(os.path.join(ReferenceDir, "transition_path_theory_reference","net_flux.h5"))
-        path_output_ref = pickle.load( open(os.path.join(ReferenceDir, "transition_path_theory_reference","dijsktra_top_paths_output.pkl"), 'r'))
-        all_to_all_mfpt_ref = Serializer.LoadData(os.path.join(ReferenceDir, "transition_path_theory_reference", "all_to_all_mfpt.h5"))
         #script_out_ref =
-
-        # compare the calculations and the reference
-        numpy.testing.assert_array_almost_equal( Q, Q_ref, err_msg="Committors do not agree with reference!")
-        numpy.testing.assert_array_almost_equal( net_flux.toarray(), net_flux_ref, err_msg="Net flux calculation does not agree with reference!")
-        #numpy.testing.assert_array_almost_equal( path_output, path_output_ref, err_msg="Path (dijkstra algorithm) does not agree with reference!")
-        numpy.testing.assert_array_almost_equal( all_to_all_mfpt, all_to_all_mfpt_ref, err_msg="DoTPT.py does not agree with reference!")
         #numpy.testing.assert_array_almost_equal( script_out, script_out_ref, err_msg="DoTPT.py does not agree with reference!")
         
     def test_z_Cleanup(self):
