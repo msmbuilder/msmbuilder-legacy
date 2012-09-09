@@ -118,7 +118,9 @@ def find_top_paths(sources, sinks, tprob, num_paths=10, node_wipe=False, net_flu
     paths = []
     fluxes = []
     bottlenecks = []
-    net_flux = net_flux.tolil()
+    
+    if scipy.sparse.issparse(net_flux):
+        net_flux = net_flux.tolil()
 
     # run the initial Dijkstra pass
     pi, b = Dijkstra(sources, sinks, net_flux)
@@ -207,7 +209,7 @@ def Dijkstra(sources, sinks, net_flux):
     if scipy.sparse.issparse(net_flux):
         net_flux = net_flux.tolil()
     else:
-        net_flux = scipy.spares.lil_matrix(net_flux)
+        net_flux = scipy.sparse.lil_matrix(net_flux)
         
     G = scipy.sparse.find(net_flux)
     N = net_flux.shape[0]
@@ -459,12 +461,13 @@ def calculate_fluxes(sources, sinks, tprob, populations=None, committors=None):
     if dense:
         X = np.zeros((n, n))
         Y = np.zeros((n, n))
+        X[(np.arange(n), np.arange(n))] = populations * (1.0 - committors)
+        Y[(np.arange(n), np.arange(n))] = committors
     else:
         X = scipy.sparse.lil_matrix( (n,n) )
         Y = scipy.sparse.lil_matrix( (n,n) )
-        
-    X.setdiag( populations * (1.0 - committors) )
-    Y.setdiag(committors)
+        X.setdiag( populations * (1.0 - committors) )
+        Y.setdiag(committors)
     
     if dense:
         fluxes = np.dot( np.dot(X, tprob), Y )
@@ -604,14 +607,17 @@ def calculate_avg_TP_time(sources, sinks, tprob, lag_time):
     
     sources, sinks = _check_sources_sinks(sources, sinks)
 
-    T = T.tolil()
-    n = T.shape[0]
-    P = scipy.sparse.lil_matrix((n,n))
-
+    n = tprob.shape[0]
+    if scipy.sparse.issparse(tprob):
+        T = tprob.tolil()
+        P = scipy.sparse.lil_matrix((n, n))
+    else:
+        p = np.zeros((n, n))
+    
     for u in sources:
         for i in range(n):
-            if i not in U:
-                P[u,i]=T[u,i]
+            if i not in sources:
+                P[u,i] = T[u,i]
 
     for u in sources:
         T[u,:] = np.zeros(n)
@@ -621,7 +627,7 @@ def calculate_avg_TP_time(sources, sinks, tprob, lag_time):
         N = T[i,:].sum()
         T[i,:] = T[i,:]/N
 
-    X = mfpt(sinks, prob, lag_time)
+    X = calculate_mfpt(sinks, tprob, lag_time)
     TP = P * X.T
     TPtimes = []
 
@@ -660,14 +666,14 @@ def calculate_mfpt(sinks, tprob, lag_time=1.):
 
     n = tprob.shape[0]
     
-    if scipy.sparse.isspmatrix(T):
+    if scipy.sparse.isspmatrix(tprob):
         tprob = tprob.tolil()
     
     for state in sinks:
         tprob[state,:] = 0.0    
         tprob[state,state] = 2.0
 
-    if scipy.sparse.isspmatrix(T):
+    if scipy.sparse.isspmatrix(tprob):
         tprob = tprob - scipy.sparse.eye(n,n)
         tprob = tprob.tocsr()
     else:
@@ -712,6 +718,10 @@ def calculate_all_to_all_mfpt(tprob, populations=None):
         for calculating a subset of the MFPTs, with functionality for including
         a set of sinks
     """
+    
+    if scipy.sparse.issparse(tprob):
+        tprob = tprob.toarray()
+        logger.warning('all_to_all_mfpt does not support sparse linear algebra')
 
     if populations is None:
         eigens = msm_analysis.get_eigenvectors(tprob, 5)
@@ -727,7 +737,8 @@ def calculate_all_to_all_mfpt(tprob, populations=None):
 
     eye = np.matrix(np.ones(num_states)).transpose()
     limiting_matrix = eye * populations
-    z = scipy.linalg.inv(scipy.sparse.eye(num_states, num_states) - (tprob - limiting_matrix))
+    #z = scipy.linalg.inv(scipy.sparse.eye(num_states, num_states) - (tprob - limiting_matrix))
+    z = scipy.linalg.inv(np.eye(num_states) - (tprob - limiting_matrix))
 
     # mfpt[i,j] = z[j,j] - z[i,j] / pi[j]
     mfpt = -z
@@ -763,9 +774,10 @@ def calculate_committors(sources, sinks, tprob):
     sources, sinks = _check_sources_sinks(sources, sinks)
 
     if scipy.sparse.issparse(tprob):
-        dense = True
-    else:
         dense = False
+        tprob = tprob.tolil()
+    else:
+        dense = True
 
     # construct the committor problem
     n = tprob.shape[0]
@@ -774,6 +786,7 @@ def calculate_committors(sources, sinks, tprob):
        T = np.eye(n) - tprob
     else:
        T = scipy.sparse.eye(n, n, 0, format='lil') - tprob
+       T = T.tolil()
 
     for a in sources:
         T[a,:] = 0.0 #np.zeros(n)
@@ -787,15 +800,18 @@ def calculate_committors(sources, sinks, tprob):
         
     IdB = np.zeros(n)
     IdB[sinks] = 1.0
-        
-    RHS = tprob * IdB
+    
+    if dense:
+        RHS = np.dot(tprob, IdB)
+    else:
+        RHS = tprob * IdB
     
     RHS[sources] = 0.0
     RHS[sinks]   = 1.0
 
     # solve for the committors
     if dense == False:
-        Q = scipy.sparse.linalg.spsolve(T, RHS)
+        Q = scipy.sparse.linalg.spsolve(T.tocsr(), RHS)
     else:
         Q = np.linalg.solve(T, RHS)
 
