@@ -1,0 +1,18 @@
+GPURMSD: GPU Accelerated RMSD Distance Metric for MSMBuilder
+============================================================
+
+Installation
+-----------
+This package can be installed with `python setup.py install`.
+
+Once installed, GPURMSD will show up as a new metric for
+stripts that require distance metrics, like `Cluster.py`.
+
+Dependencies
+------------
+
+- swig
+- nvdia cuda develoment framework, including the nvcc compiler
+  which must be accessible in your path
+- a CUDA enabled GPU
+
