@@ -16,6 +16,18 @@ def add_argument(group, *args, **kwargs):
 
 ################################################################################
 
+def locate_metric_plugins(name):
+    from pkg_resources import iter_entry_points
+    parser_functions = []
+    
+    if not name in ['add_metric_parser', 'constuct_metric', 'metric_class']:
+        raise ValueError()
+
+    for ep in iter_entry_points(group='msmbuilder.metrics', name=name):
+        parser_functions.append(ep.load())
+
+    return parser_functions
+
 def add_metric_parsers(parser):
 
     metrics_parsers = parser.add_subparsers(description='Available metrics to use.',dest='metric')
@@ -28,9 +40,6 @@ def add_metric_parsers(parser):
     add_argument(rmsd, '-a', dest='rmsd_atom_indices', help='Atom indices to use in RMSD calculation. Pass "all" to use all atoms.', 
         default='AtomIndices.dat')
     parser.metric_parsers.append(rmsd)
-
-    #rmsd_subparsers = rmsd.add_subparsers()
-    #rmsd_subparsers.metric = 'rmsd'
 
     dihedral = metrics_parsers.add_parser('dihedral',
         description='''DIHEDRAL: For each frame in the simulation data, we extract the
@@ -71,8 +80,7 @@ def add_metric_parsers(parser):
     add_argument(contact, '-s', dest='contact_scheme', default='closest-heavy', help='contact scheme.',
         choices=['CA', 'closest', 'closest-heavy'])
     parser.metric_parsers.append(contact)
-    #contact_subparsers = contact.add_subparsers()
-    #contact_subparsers.metric = 'contact'
+
     
     atompairs = metrics_parsers.add_parser('atompairs',description='''ATOMPAIRS: For each frame, we
         represent the conformation as a vector of particular atom-atom distances. Then the distance
@@ -84,8 +92,7 @@ def add_metric_parsers(parser):
     add_argument(atompairs, '-m', dest='atompairs_metric', default='cityblock',
         help='which distance metric', choices=AtomPairs.allowable_scipy_metrics)
     parser.metric_parsers.append(atompairs)
-    #atompairs_subparsers = atompairs.add_subparsers()
-    #atompairs_subparsers.metric = 'atompairs'
+
     
     picklemetric = metrics_parsers.add_parser('custom', description="""CUSTOM: Use a custom
         distance metric. This requires defining your metric and saving it to a file using
@@ -94,8 +101,10 @@ def add_metric_parsers(parser):
     add_argument(picklemetric, '-i', dest='picklemetric_input', required=True,
         help="Path to pickle file for the metric")
     parser.metric_parsers.append(picklemetric)
-#    picklemetric_subparsers = picklemetric.add_subparsers()
-#    picklemetric_subparsers.metric = 'custom'
+    
+    for add_parser in locate_metric_plugins('add_metric_parser'):
+        plugin_metric_parser = add_parser(metrics_parsers, add_argument)
+        parser.metric_parsers.append(plugin_metric_parser)
     
     ################################################################################
     
@@ -148,6 +157,13 @@ def construct_metric(args):
             print metric
             print '#'*80
     else:
-        raise Exception("Bad metric")
+        matched = False
+        for klass in locate_metric_plugins('metric_class'):
+            if klass.name == args.metric:
+                metric = klass.from_args(args)
+                matched = True
+
+        if not matched:
+            raise Exception("Bad metric")
      
     return metric
