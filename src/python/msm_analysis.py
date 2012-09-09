@@ -648,7 +648,10 @@ def check_transition(t_matrix, epsilon=0.00001):
     
     if not DisableErrorChecking and not is_transition_matrix(t_matrix, epsilon):
         logger.critical(t_matrix)
-        raise RuntimeError("T is not a row normalized stocastic matrix.  This is often caused by either numerical inaccuracies or by having states with zero counts.")
+        logger.critical("Transition matrix is not a row normalized"
+                        " stocastic matrix. This is often caused by "
+                        "either numerical inaccuracies or by having "
+                        "states with zero counts.")
 
 
 def check_dimensions(*args):
