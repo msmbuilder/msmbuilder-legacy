@@ -68,6 +68,7 @@ from msmbuilder.scripts import GetRandomConfs
 from msmbuilder.scripts import PCCA
 from msmbuilder.scripts import SavePDBs
 from msmbuilder.scripts import DoTPT
+from msmbuilder.scripts import FindPaths
 
 from ReferenceParameters import *
 try:
@@ -275,12 +276,6 @@ class TestWrappers(unittest.TestCase):
         r1=Serializer.LoadData(WorkingDir+"/RMSD.h5")
         numpy.testing.assert_array_almost_equal(r0,r1, err_msg="Error: Project RMSDs disagree!")
 
-#    def test_l_transition_path_theory(self):        
-        #T = scipy.io.mmread(os.path.join(ReferenceDir, "Data", "tProb.mtx"))
-        #script_out = DoTPT.run()
-        #script_out_ref =
-        #numpy.testing.assert_array_almost_equal( script_out, script_out_ref, err_msg="DoTPT.py does not agree with reference!")
-        
     def test_l_CalculateProjectSASA(self):
         outpath = os.path.join(WorkingDir, "SASA.h5")
         os.system('CalculateProjectSASA.py -o %s -p %s' % (outpath, ProjectFn) )
@@ -288,6 +283,27 @@ class TestWrappers(unittest.TestCase):
         r0=Serializer.LoadData(os.path.join( ReferenceDir, "SASA.h5" ))
         r1=Serializer.LoadData(os.path.join( WorkingDir, "SASA.h5" ))
         numpy.testing.assert_array_almost_equal(r0,r1, err_msg="Error: Project SASAs disagree!")
+
+    def test_m_DoTPT(self): 
+        T = scipy.io.mmread(os.path.join(ReferenceDir, "Data", "tProb.mtx"))
+        sources = [0]
+        sinks = [70]
+        script_out = DoTPT.run(T, sources, sinks)
+        committors_ref = Serializer.LoadData(os.path.join(ReferenceDir, "transition_path_theory_reference", "committors.h5"))
+        net_flux_ref = Serializer.LoadData(os.path.join(ReferenceDir, "transition_path_theory_reference", "net_flux.h5"))
+        numpy.testing.assert_array_almost_equal(script_out[0], committors_ref)
+        numpy.testing.assert_array_almost_equal(script_out[1].toarray(), net_flux_ref)
+
+    def test_n_FindPaths(self):
+        tprob = scipy.io.mmread(os.path.join(ReferenceDir, "Data", "tProb.mtx"))
+        sources = [0]
+        sinks = [70]
+        paths, bottlenecks, fluxes = FindPaths.run(tprob, sources, sinks, 10)
+        # paths are hard to test due to type issues, adding later --TJL
+        bottlenecks_ref = Serializer.LoadData(os.path.join(ReferenceDir, "transition_path_theory_reference", "dijkstra_bottlenecks.h5"))
+        fluxes_ref = Serializer.LoadData(os.path.join(ReferenceDir, "transition_path_theory_reference", "dijkstra_fluxes.h5"))
+        numpy.testing.assert_array_almost_equal(bottlenecks, bottlenecks_ref)
+        numpy.testing.assert_array_almost_equal(fluxes, fluxes_ref)
 
     def test_z_Cleanup(self):
         """Are we removing all unittest files? """+str(DeleteWhenFinished)
