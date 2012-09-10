@@ -96,8 +96,8 @@ class custom_build_ext(build_ext):
         build_ext.build_extension(self, *args, **kwargs)
 
 setup(name='msmbuilder.metrics.gpurmsd',
-      author='Yutong Zhao'
-      description='MSMBuilder Plugin for GPU Accelerated RMSD calculation'
+      author='Yutong Zhao',
+      description='MSMBuilder Plugin for GPU Accelerated RMSD calculation',
       version='0.2',
       packages = ['gpurmsd'],
       ext_modules=[kernel, swig_wrapper],
