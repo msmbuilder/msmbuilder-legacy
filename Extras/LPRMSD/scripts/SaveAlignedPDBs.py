@@ -18,11 +18,9 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 import os, sys
-
 from msmbuilder import arglib
 from msmbuilder import Trajectory, Serializer, Project
-from msmbuilder.metrics import LPRMSD
-from msmbuilder.metrics.lprmsd import ReadPermFile
+from lprmsd.lprmsd import LPRMSD, ReadPermFile
 from collections import defaultdict
 from msmbuilder.clustering import concatenate_trajectories
 import copy
