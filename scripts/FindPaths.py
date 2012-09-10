@@ -24,15 +24,15 @@ import numpy as np
 import os
 import scipy.io
 
-from msmbuilder import transition_path_theory
+from msmbuilder import transition_path_theory as tpt
 from msmbuilder import Serializer
 from msmbuilder import arglib
 import logging
 logger = logging.getLogger(__name__)
 
-def run(NFlux, A, B, n):
+def run(tprob, A, B, n):
 
-    (Paths, Bottlenecks, Fluxes) = transition_path_theory.DijkstraTopPaths(A, B, NFlux, NumPaths=n, NodeWipe=False)
+    (Paths, Bottlenecks, Fluxes) = tpt.find_top_paths(A, B, tprob, num_paths=n)
 
     # We have to pad the paths with -1s to make a square array
     maxi = 0 # the maximum path length
@@ -42,8 +42,8 @@ def run(NFlux, A, B, n):
     for i, path in enumerate(Paths):
         PaddedPaths[i,:len(path)] = np.array(path)
     
-    
     return PaddedPaths, np.array(Bottlenecks), np.array(Fluxes)
+
 
 if __name__ == "__main__":
     parser = arglib.ArgumentParser(description=
@@ -57,8 +57,8 @@ Paths.h5 can be read by RenderPaths.py which generates a .dot file capturing the
     
     parser.add_argument('number', help='''Number of pathways you want
         to retreive''', type=int)
-    parser.add_argument('flux_matrix', help='Net flux matrix from DoTPT.py',
-        default='NFlux.mtx')
+    parser.add_argument('tprob', help='Transition probability matrix',
+        default='tProb.mtx')
     parser.add_argument('starting', help='''Vector of states in the
         starting/reactants/unfolded ensemble.''', default='U_states.dat')
     parser.add_argument('ending', help='''Vector of states in the
@@ -68,8 +68,10 @@ Paths.h5 can be read by RenderPaths.py which generates a .dot file capturing the
     
     F = np.loadtxt( args.ending ).astype(int)
     U = np.loadtxt( args.starting ).astype(int)
-    flux_matrix = scipy.io.mmread( args.flux_matrix )
+    tprob = scipy.io.mmread( args.tprob )
+    
     # deal with case where have single start or end state
+    # TJL note: this should be taken care of in library now... keeping it just in case
     if F.shape == ():
         tmp = np.zeros(1, dtype=int)
         tmp[0] = int(F)
@@ -80,9 +82,9 @@ Paths.h5 can be read by RenderPaths.py which generates a .dot file capturing the
         U = tmp.copy()
     
     arglib.die_if_path_exists(args.output)
-    paths, bottlenecks, fluxes = run(flux_matrix, U, F, args.number)
+    paths, bottlenecks, fluxes = run(tprob, U, F, args.number)
     
     Serializer({'Paths': paths,
-                           'Bottlenecks': bottlenecks,
-                           'fluxes': fluxes}).SaveToHDF(args.output)
+                'Bottlenecks': bottlenecks,
+                'fluxes': fluxes}).SaveToHDF(args.output)
     logger.info('Saved output to %s', args.output)
