@@ -19,4 +19,5 @@ setup(name='msmbuilder.metrics.lprmsd',
         [msmbuilder.metrics]
          metric_class=lprmsd.lprmsd:LPRMSD
          add_metric_parser=lprmsd.lprmsd:add_metric_parser
+         construct_metric=lprmsd.lprmsd:construct_metric
          """)

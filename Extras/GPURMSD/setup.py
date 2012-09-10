@@ -96,12 +96,18 @@ class custom_build_ext(build_ext):
         build_ext.build_extension(self, *args, **kwargs)
 
 setup(name='msmbuilder.metrics.gpurmsd',
+      author='Yutong Zhao'
+      description='MSMBuilder Plugin for GPU Accelerated RMSD calculation'
       version='0.2',
       packages = ['gpurmsd'],
       ext_modules=[kernel, swig_wrapper],
       cmdclass={'build_ext': custom_build_ext},
+      
+      # this is the critical section that registers the plugin with msmbuilder
+      # by telling it where to find the classes and functions required.
       entry_points="""
         [msmbuilder.metrics]
          metric_class=gpurmsd.gpurmsd:GPURMSD
          add_metric_parser=gpurmsd.gpurmsd:add_metric_parser
+         construct_metric=gpurmsd.gpurmsd:construct_gpurmsd
          """)

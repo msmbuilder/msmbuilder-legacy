@@ -2,6 +2,7 @@
 import sys, os
 import pickle
 import numpy as np
+from pkg_resources import iter_entry_points
 from msmbuilder.metrics import (RMSD, Dihedral, BooleanContact,
                                 AtomPairs, ContinuousContact)
 
@@ -17,10 +18,8 @@ def add_argument(group, *args, **kwargs):
 ################################################################################
 
 def locate_metric_plugins(name):
-    from pkg_resources import iter_entry_points
     parser_functions = []
-    
-    if not name in ['add_metric_parser', 'constuct_metric', 'metric_class']:
+    if not name in ['add_metric_parser', 'construct_metric', 'metric_class']:
         raise ValueError()
 
     for ep in iter_entry_points(group='msmbuilder.metrics', name=name):
@@ -157,12 +156,11 @@ def construct_metric(args):
             print metric
             print '#'*80
     else:
-        matched = False
-        for klass in locate_metric_plugins('metric_class'):
-            if klass.name == args.metric:
-                metric = klass.from_args(args)
-                matched = True
-
+        for constructor in locate_metric_plugins('construct_metric'):
+            metric = constructor(args)
+            if metric is not None:
+                break
+            
         if not matched:
             raise Exception("Bad metric")
      

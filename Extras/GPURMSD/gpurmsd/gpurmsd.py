@@ -16,13 +16,6 @@ Zhao, Yutong; Sheong, Fu-Kit, Sun, Jian; Huang, Xuhui, "A Fast, GPU-powered, Clu
 """
 
 class GPURMSD(AbstractDistanceMetric):
-    name = 'GPURMSD'
-
-    @classmethod
-    def from_args(cls, args):
-        atomindices = np.loadtxt(args.gpurmsd_atom_indices, dtype=np.int)
-        return cls(atomindices)
-
     def __init__(self, atomindices=None):
         self.atomindices = atomindices
         self._gpurmsd = None
@@ -72,4 +65,10 @@ def add_metric_parser(parsergroup, add_argument):
     add_argument(gpurmsd, '-a', dest='gpurmsd_atom_indices', default='AtomIndices.dat')
     return gpurmsd
 
-        
+
+def construct_gpurmsd(args):
+    if args.metric != 'GPURMSD':
+        return None
+
+    atomindices = np.loadtxt(args.gpurmsd_atom_indices, dtype=np.int)
+    return GPURMSD(atomindices)

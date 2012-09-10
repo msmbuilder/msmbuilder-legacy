@@ -160,28 +160,7 @@ def AlignToDensity(elem,xyz1,xyz2,binary=False):
     xyz2R = (np.array(EulerMatrix(t1[0],t1[1],t1[2])*np.mat(xyz2.T)).T).copy()
     return xyz2R
 
-class LPRMSD(AbstractDistanceMetric):
-    name = 'lprmsd'
-    
-    @classmethod
-    def from_args(cls, args):
-        if args.lprmsd_atom_indices != 'all':
-            atom_inds = np.loadtxt(args.lprmsd_atom_indices, dtype=np.int)
-        else:
-            atom_inds = None
-
-        if args.lprmsd_permute_atoms is not None:
-            permute_inds = ReadPermFile(args.lprmsd_permute_atoms)
-        else:
-            permute_inds = None
-
-        if args.lprmsd_alt_indices is not None:
-            alt_inds = np.loadtxt(args.lprmsd_alt_indices, np.int)
-        else:
-            alt_inds = None
-
-        return cls(atom_inds, permute_inds, alt_inds)    
-    
+class LPRMSD(AbstractDistanceMetric):    
     def __init__(self, atomindices=None, permuteindices=None, altindices=None, moments=False, gridmesh=0):
         self.atomindices = atomindices
         self.altindices = altindices
@@ -309,3 +288,24 @@ def add_metric_parser(parsergroup, add_argument):
     more than one set of indistinguishable atoms.  Use "-- (integer)" to include a subset in the RMSD (to avoid undesirable boundary effects.)''')
 
     return lprmsd
+
+def construct_metric(args):
+    if args.metric != 'lprmsd':
+        return None
+    
+    if args.lprmsd_atom_indices != 'all':
+        atom_inds = np.loadtxt(args.lprmsd_atom_indices, dtype=np.int)
+    else:
+        atom_inds = None
+
+    if args.lprmsd_permute_atoms is not None:
+        permute_inds = ReadPermFile(args.lprmsd_permute_atoms)
+    else:
+        permute_inds = None
+
+    if args.lprmsd_alt_indices is not None:
+        alt_inds = np.loadtxt(args.lprmsd_alt_indices, np.int)
+    else:
+        alt_inds = None
+
+    return LPRMSD(atom_inds, permute_inds, alt_inds)
