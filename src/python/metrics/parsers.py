@@ -1,10 +1,13 @@
+
 #!/usr/bin/env python
 import sys, os
 import pickle
 import numpy as np
+import itertools
 from pkg_resources import iter_entry_points
 from msmbuilder.metrics import (RMSD, Dihedral, BooleanContact,
-                                AtomPairs, ContinuousContact)
+                                AtomPairs, ContinuousContact,
+                                AbstractDistanceMetric)
 
 def add_argument(group, *args, **kwargs):
     if 'default' in kwargs:
@@ -18,14 +21,12 @@ def add_argument(group, *args, **kwargs):
 ################################################################################
 
 def locate_metric_plugins(name):
-    parser_functions = []
     if not name in ['add_metric_parser', 'construct_metric', 'metric_class']:
         raise ValueError()
 
-    for ep in iter_entry_points(group='msmbuilder.metrics', name=name):
-        parser_functions.append(ep.load())
+    eps = iter_entry_points(group='msmbuilder.metrics', name=name)
+    return itertools.imap(lambda ep: ep.load(), eps)
 
-    return parser_functions
 
 def add_metric_parsers(parser):
 
@@ -156,12 +157,17 @@ def construct_metric(args):
             print metric
             print '#'*80
     else:
-        for constructor in locate_metric_plugins('construct_metric'):
-            metric = constructor(args)
-            if metric is not None:
-                break
-            
-        if not matched:
-            raise Exception("Bad metric")
+        # apply the constructor on args and take the first non-none element
+        # note that using these itertools constructs, we'll only actual
+        # execute the constructor until the match is achieved
+        metrics = itertools.imap(lambda c: c(args), locate_metric_plugins('construct_metric'))
+        try:
+            metric = itertools.dropwhile(lambda c: not c, metrics).next()
+        except StopIteration:
+            # This means that none of the plugins acceptedthe metric
+            raise RuntimeError("Bad metric. Could not be constructed by any built-in or plugin metric. Perhaps you have a poorly written plugin?")
      
+    if not isinstance(metric, AbstractDistanceMetric):
+        return ValueError("%s is not a AbstractDistanceMetric" % metric)
+
     return metric

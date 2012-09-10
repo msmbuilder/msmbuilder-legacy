@@ -29,8 +29,9 @@ metadata = {
     'description': "Python Code for Building Markov State Models",
     'long_description': """MSMBuilder (https://simtk.org/home/msmbuilder)
 is a library that provides tools for analyzing molecular dynamics
-simulations, particularly through the construction                                                    
-of Markov state models for conformational dynamics."""}
+simulations, particularly through the construction
+of Markov state models for conformational dynamics.""",
+    'zip_safe': False}
 
 def configuration(parent_package='',top_path=None):
     "Configure the build"
