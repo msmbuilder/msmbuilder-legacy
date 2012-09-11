@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # This file is part of MSMBuilder.
 #
 # Copyright 2011 Stanford University
