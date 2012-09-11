@@ -8,6 +8,7 @@ from scipy import io
 
 from msmbuilder import transition_path_theory as tpt
 from msmbuilder import Serializer
+from common import reference_dir
 
 
 class TestTPT():
@@ -15,7 +16,7 @@ class TestTPT():
 
 
     def setUp(self):
-        self.tpt_ref_dir = os.path.join("reference", "transition_path_theory_reference")
+        self.tpt_ref_dir = os.path.join(reference_dir(), "transition_path_theory_reference")
         self.tprob = io.mmread( os.path.join(self.tpt_ref_dir, "tProb.mtx") ) #.toarray()
         self.sources   = [0]   # chosen arbitarily by TJL
         self.sinks     = [70]  # chosen arbitarily by TJL
