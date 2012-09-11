@@ -15,9 +15,10 @@ class ContinuousContact(Vectorized, AbstractDistanceMetric):
     
     allowable_scipy_metrics = ['braycurtis', 'canberra', 'chebyshev', 'cityblock',
                                'correlation', 'cosine', 'euclidean', 'minkowski',
-                               'sqeuclidean']
+                               'sqeuclidean', 'seuclidean', 'mahalanobis']
     
-    def __init__(self, metric='euclidean', p=2, contacts='all', scheme='closest-heavy'):
+    def __init__(self, metric='euclidean', p=2, contacts='all', scheme='closest-heavy',
+                       V=None, VI=None):
         """Create a distance calculator based on the distances between pairs of atoms
         in a sturcture -- like the contact map except without casting to boolean.
         
@@ -47,7 +48,7 @@ class ContinuousContact(Vectorized, AbstractDistanceMetric):
             belongs to reside i and one to residue j.
         """
         
-        super(ContinuousContact, self).__init__(metric, p)
+        super(ContinuousContact, self).__init__(metric, p, V, VI)
         self.contacts = contacts
         
         scheme = scheme.lower()
