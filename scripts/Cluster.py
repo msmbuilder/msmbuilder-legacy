@@ -1,18 +1,13 @@
 #!/usr/bin/env python
 
 import sys, os
-import pickle
-from pprint import pprint
+import warnings
 from msmbuilder import arglib
-from msmbuilder import metrics
 from msmbuilder import clustering
 from msmbuilder import Project
 from msmbuilder import Serializer
-from msmbuilder.utils import format_block
-from msmbuilder.License import LicenseString
-from msmbuilder.Citation import CiteString 
-from msmbuilder.arglib import ensure_path_exists, die_if_path_exists
-import numpy as np
+from msmbuilder import Trajectory
+from msmbuilder.arglib import die_if_path_exists
 import logging
 logger = logging.getLogger(__name__)
 
@@ -116,14 +111,21 @@ for metric_parser in parser.metric_parsers: # arglib stores the metric subparser
 
 def load_trajectories(projectfn, stride):
     project = Project.LoadFromHDF(projectfn)
-    #return [traj[::stride] for traj in project.EnumTrajs()]
-    #The following code has improved memory usage.
-    longtraj = []
+    if project['TrajFileType'] == '.h5':
+        load = lambda fn: Trajectory.LoadFromHDF(fn, Stride=stride)
+    elif project['TrajFileType'] == '.lh5':
+        load = lambda fn: Trajectory.LoadFromLHDF(fn, Stride=stride)
+    else:
+        warnings.warn("Inefficient loading: Use .h5 or .lh5 trajectories for more efficiency?")
+        load = lambda fn: Trajectory.LoadTrajectoryFile(fn)[::stride]
+
+    list_of_trajs = []
     for i in xrange(project['NumTrajs']):
-        t = project.LoadTraj(i)
-        t.subsample(stride)
-        longtraj.append(t)
-    return longtraj
+        traj = load(project.GetTrajFilename(i))
+        list_of_trajs.append(traj)
+
+    return list_of_trajs
+
     
 def cluster(metric, trajs, args):
     if args.alg == 'kcenters':
