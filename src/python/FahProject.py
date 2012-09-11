@@ -1,4 +1,4 @@
-git """
+"""
 This is a class that contains all of the necessary tools to interact
 with folding@home projects.
 
