@@ -29,8 +29,9 @@ metadata = {
     'description': "Python Code for Building Markov State Models",
     'long_description': """MSMBuilder (https://simtk.org/home/msmbuilder)
 is a library that provides tools for analyzing molecular dynamics
-simulations, particularly through the construction                                                    
-of Markov state models for conformational dynamics."""}
+simulations, particularly through the construction
+of Markov state models for conformational dynamics.""",
+    'zip_safe': False}
 
 def configuration(parent_package='',top_path=None):
     "Configure the build"
@@ -89,16 +90,7 @@ def configuration(parent_package='',top_path=None):
                      extra_link_args = ['-lgomp'],
                      include_dirs = [numpy.get_include(), os.path.join(numpy.get_include(), 'numpy')])
 
-    # lp rmsd
-    lprmsd = Extension('msmbuilder._lprmsd',
-                       sources = glob('src/ext/LPRMSD/*.c'),
-                       extra_compile_args = ["-std=c99","-O2",
-                                             "-msse2","-msse3","-Wno-unused","-fopenmp","-m64"], 
-                                            # If you are 32-bit you should remove the -m64 flag
-                       extra_link_args = ['-lblas', '-lpthread', '-lm', '-lgomp'],
-                       include_dirs = [numpy.get_include(), os.path.join(numpy.get_include(), 'numpy')])
-
-    for e in [asa, xtc, dcd, rmsd, lprmsd]:
+    for e in [asa, xtc, dcd, rmsd]:
         config.ext_modules.append(e)
         
     # add all of the distance metrics with the same compile_args, link_args, etc

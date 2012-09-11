@@ -18,10 +18,9 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 import os, sys
-
 from msmbuilder import arglib
-from msmbuilder import Trajectory
-from msmbuilder.metric_LPRMSD import LPRMSD, LPTraj, ReadPermFile
+from msmbuilder import Trajectory, Serializer, Project
+from lprmsd.lprmsd import LPRMSD, ReadPermFile
 from collections import defaultdict
 from msmbuilder.clustering import concatenate_trajectories
 import copy
@@ -135,7 +134,7 @@ def run(project, assignments, conformations_per_state, states, output_dir, gens_
     #print "This script used at least % .3f GB of memory" % MaxMem
                 
 if __name__ == '__main__':
-    parser = arglib.ArgumentParser(description="""
+    parser = arglib.ArgumentParser("""
 Pulls the specified number of random structures (or optionally all
 structures) from each state in an assignments file, aligned to the
 generators. Specify which states to pull from with space-seperated
@@ -148,21 +147,21 @@ to use GetRandomConfs.py""")
     parser.add_argument('project')
     parser.add_argument('assignments', default='Data/Assignments.Fixed.h5')
     parser.add_argument('conformations_per_state', default=5, type=int,
-        description='Number of conformations to sample from each state: to specify ALL of the conformations, pass the integer -1.')
+        help='Number of conformations to sample from each state: to specify ALL of the conformations, pass the integer -1.')
     parser.add_argument('states', nargs='+', type=int,
-        description='''Which states to sample from. Pass a list of integers, separated
+        help='''Which states to sample from. Pass a list of integers, separated
         by whitespace. To specify ALL of the states (Although the script GetRandomConfs.py
         is more efficient for this purpose), pass the integer -1.''')
 
-    parser.add_argument('lprmsd_atom_indices', description='Regular atom indices', default='AtomIndices.dat')
-    parser.add_argument('lprmsd_permute_atoms', default='None', description='''Atom labels to be permuted.
+    parser.add_argument('lprmsd_atom_indices', help='Regular atom indices', default='AtomIndices.dat')
+    parser.add_argument('lprmsd_permute_atoms', default='None', help='''Atom labels to be permuted.
     Sets of indistinguishable atoms that can be permuted to minimize the RMSD. On disk this should be stored as
     a list of newline separated indices with a "--" separating the sets of indices if there are
     more than one set of indistinguishable atoms''')
-    parser.add_argument('lprmsd_alt_indices', default='None', description='Alternate atom indices')
-    parser.add_argument('total_memory_gb', default=4, type=int, description='Available memory in GB; this determines whether to load all trajectories into memory or to read them one-by-one from disk.')
+    parser.add_argument('lprmsd_alt_indices', default='None', help='Alternate atom indices')
+    parser.add_argument('total_memory_gb', default=4, type=int, help='Available memory in GB; this determines whether to load all trajectories into memory or to read them one-by-one from disk.')
 
-    parser.add_argument('generators', description='''Trajectory file containing
+    parser.add_argument('generators', help='''Trajectory file containing
     the structures of each of the cluster centers.  Produced using Cluster.py.''', default='Data/Gens.lh5')
 
 
@@ -178,6 +177,8 @@ to use GetRandomConfs.py""")
         args.conformations_per_state = 'all'
 
     atom_indices = np.loadtxt(args.lprmsd_atom_indices, np.int)
+    assignments = Serializer.LoadData(args.assignments)
+    project = Project.LoadFromHDF(args.project)
     
     if args.lprmsd_permute_atoms == 'None':
         permute_indices = None
@@ -189,6 +190,6 @@ to use GetRandomConfs.py""")
     else:
         alt_indices = np.loadtxt(args.lprmsd_alt_indices, np.int)
 
-    run(args.project, args.assignments['Data'], args.conformations_per_state,
+    run(project, assignments, args.conformations_per_state,
          args.states, args.output_dir, args.generators, atom_indices, permute_indices, alt_indices, args.total_memory_gb)
 

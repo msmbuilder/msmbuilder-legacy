@@ -725,7 +725,7 @@ class Hierarchical(object):
                 raise Exception('Something is wrong')
         
         if not isinstance(metric, metrics.AbstractDistanceMetric):
-            raise TypeError('must be abstract distance metrice')
+            raise TypeError('%s is not an abstract distance metric' % metric)
         if not method in self.allowable_methods:
             raise ValueError("%s not in %s" % (method, str(self.allowable_methods)))
         if 'XYZList' in trajectories:
@@ -868,7 +868,7 @@ class BaseFlatClusterer(object):
     
     def __init__(self, metric, trajectories):
         if not isinstance(metric, metrics.AbstractDistanceMetric):
-            raise TypeError('must be abstract distance metrice')
+            raise TypeError('%s is not an AbstractDistanceMetric' % metric)
         # if we got a single trajectory instead a list of trajectories, make it a
         # list
         if 'XYZList' in trajectories:

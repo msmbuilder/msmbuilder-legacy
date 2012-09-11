@@ -1,0 +1,6 @@
+trj0.lh5 is 501 frames of alanine dipeptide (all atoms) in msmbuilder lh5 format
+
+ww.xtc and ww-aligned.xtc are the first 500 frames of one of the Shaw WW trajectories, played backwards,
+with only C-alpha coordinates. The PDB is the final frame.
+
+
