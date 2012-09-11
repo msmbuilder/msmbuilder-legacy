@@ -1,97 +1,68 @@
-#!/usr/bin/python
-# This file is part of MSMBuilder.
-#
-# Copyright 2011 Stanford University
-#
-# MSMBuilder is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-#
-
-import os
-import sys
-import multiprocessing
-import numpy
-
+import numpy as np
 from msmbuilder import arglib
 from msmbuilder import Serializer
-
+from msmbuilder.MSMLib import invert_assignments
 import logging
 logger = logging.getLogger(__name__)
 
-def run(args):
-    assignFn, rmsdFn, MinState, MaxState = args
-    Assignments = Serializer.LoadData(assignFn)
-    Assignments = Assignments.flatten()
-    RMSDs = Serializer.LoadData(rmsdFn)
-    RMSDs = RMSDs.flatten()
 
-    NumStates = Assignments.max() + 1
-    radii = numpy.zeros(NumStates)
-
-    for i in range(MinState, MaxState):
-        logger.info("Calculating radius of state: %s", i)
-        snapshots = numpy.where(Assignments == i)[0]
-        if len(snapshots) > 0:
-            radii[i] = RMSDs[snapshots].mean()
-        else:
-            radii[i] = -1
-            logger.warning("No assignments found for cluster %s", i)
-
+def main(assignments, distances):
+    """
+    Calculate the mean radii of each state
+    
+    Parameters
+    ----------
+    assignments : np.ndarray, shape=[n_trajs, n_frames], dtype=int
+        The array of assignments, indicating which cluster each frame is
+        assigned to.
+    distances : np.ndarray, shape=[n_trajs, n_frames], dtype=float/double
+        The array of distances, indicating the distance (measured by some metric
+        used in the Assign step) from each frame to its assigned generator
+    
+    Returns
+    -------
+    radii : np.ndarray, shape=[n_states], dtype=float/double
+        The mean radii of each state
+    """
+    
+    inverse_mapping = invert_assignments(assignments)
+    states = inverse_mapping.keys()
+    
+    # don't count the minus one state, since it indicates the absense of
+    # an assignments
+    if -1 in states:
+        states = states.remove(-1)
+    n_states = len(states)
+    
+    radii = np.nan * np.ones(n_states)    
+    for s in states:
+        trj, frame = inverse_mapping[s]
+        radii[s] = distances[trj, frame].mean()
+    
     return radii
 
+
 if __name__ == "__main__":
-    
     parser = arglib.ArgumentParser(description="""
 Calculates the cluster radius for all clusters in the model. Here, we define
-radius is simply the average RMSD of all conformations in a cluster to its
+radius is simply the average distance of all conformations in a cluster to its
 generator. Does this by taking averaging the distance of each assigned state to
 its generator.
 
-Note that this script is not yet equipped to handle different distance metrics
-(other than RMSD)
-
 Output: A flat txt file, 'ClusterRadii.dat', the average RMSD distance to the
-generator in nm.""")
+generator, measured by what ever distance metric was used in assigning.""")
+
     parser.add_argument('assignments', type=str, default='Data/Assignments.Fixed.h5')
-    parser.add_argument('assignments_rmsd', help='''Path to assignment
-        RMSD file.''', default='Data/Assignments.h5.RMSD')
-    parser.add_argument('procs', help="""Number of physical processors/cores
-        to use""", default=1, type=int)
+    parser.add_argument('distances', help='''Path to assignment
+        distances file.''', default='Data/Assignments.h5.distances')
     parser.add_argument('output', default='ClusterRadii.dat')
     args = parser.parse_args()
     arglib.die_if_path_exists(args.output)
     
+    assignments = Serializer.LoadData(args.assignments)
+    distances = Serializer.LoadData(args.distances)
     
-    MinStates = []
-    MaxStates = []
-    NumStates = Serializer.LoadData(args.assignments).max() + 1
-    StateRange = NumStates / args.procs
-    for k in range(args.procs):
-        logger.info("Partition: %s Range: %s - %s", k, k * StateRange, (k + 1) * StateRange - 1)
-        MinStates.append(k*StateRange)
-        MaxStates.append((k + 1) * StateRange - 1)
-    MaxStates[-1] = NumStates #Ensure that we go to the end
-
-    pool = multiprocessing.Pool(processes=args.procs)
-    input = zip(args.procs*[args.assignments], args.procs*[args.assignments_rmsd], MinStates, MaxStates)
-    result = pool.map_async(run, input)
-    result.wait()
-    radii = result.get()
+    radii = main(assignments, distances)
     
-    radii = numpy.array(radii).sum(axis=0)
-    if not len(radii) == NumStates:
-        raise ValueError('mismatch')
-
-    numpy.savetxt(args.output, radii)
+    np.savetxt(args.output, radii)
     logger.info("Wrote: %s", args.output)

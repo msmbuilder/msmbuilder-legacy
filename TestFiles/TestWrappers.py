@@ -205,10 +205,12 @@ class TestWrappers(unittest.TestCase):
 
     def test_h_CalculateClusterRadii(self):
 
-        args = ("Data/Assignments.h5", "Data/Assignments.h5.distances", MinState,MaxState)
+        #args = ("Data/Assignments.h5", "Data/Assignments.h5.distances", MinState,MaxState)
         #Note this one RETURNS a value, not saves it to disk.
-        cr=CalculateClusterRadii.run(args) #recall that this one bundles stuff
-        time.sleep(10) # we have to wait a little to get results
+        cr = CalculateClusterRadii.main(Serializer.LoadData("Data/Assignments.h5"),
+                                        Serializer.LoadData("Data/Assignments.h5.distances"))
+        #recall that this one bundles stuff
+        #time.sleep(10) # we have to wait a little to get results
         cr_r = np.loadtxt(ReferenceDir +"/ClusterRadii.dat")
         numpy.testing.assert_array_almost_equal(cr, cr_r)
 
