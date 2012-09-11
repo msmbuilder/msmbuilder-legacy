@@ -54,9 +54,11 @@ class GPURMSD(AbstractDistanceMetric):
 
         if self.atomindices != None:
             xyzlist = xyzlist[:, self.atomindices, :]
+            n_atoms = len(self.atomindices)
 
         xyzlist = np.array(xyzlist.swapaxes(1,2).swapaxes(0,2), copy=True, order='C')        
         self._gpurmsd = _GPURMSD(xyzlist)
+
         self._gpurmsd.set_subset_flag_array(np.ones(n_atoms, dtype=np.int32))
         self._gpurmsd.center_and_precompute_G()
         self._n_confs = n_confs
