@@ -59,8 +59,7 @@ class FahProject(object):
         email to forward alerts to
     """
 
-    def __init__(self, pdb, project_number=0001, 
-                 projectinfo_file="ProjectInfo.h5", 
+    def __init__(self, pdb, project_number=0001, projectinfo_file="ProjectInfo.h5", 
                  work_server=None, email=None):
         
         # metadata associated with a FAH project
@@ -95,6 +94,8 @@ class FahProject(object):
         Checks that the server comes back up without throwing an error -
         if it doesn't come up OK, sends mail to the project manager.
         """
+        
+        raise NotImplementedError('Restarting WS not done yet! Sorry :(')
         
         # restart the server, wait 60s to let it come back up
         logger.warning("Restarting server: %s", self.work_server)
@@ -136,6 +137,7 @@ class FahProject(object):
         error_msg : str
             The string to include in the email.
         """
+        raise NotImplementedError('Sending email not done yet! Sorry :(')
         
         if email == None:
             logger.error("Cannot send error email - no email provided")
