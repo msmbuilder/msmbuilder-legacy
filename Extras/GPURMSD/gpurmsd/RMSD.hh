@@ -21,12 +21,9 @@ class RMSD {
         RMSD(int numAtoms, int numDimens, int numConfs, float* h_X);
         ~RMSD();
 
-        // must always be set
-        void set_rmsd_array(int numConfs, float *h_rmsds);
-
         // if set to non-NULL, automatically assumes we want to use only a subset of the atoms
         // when doing the RMSD calculations
-        void set_subset_flag_array(int numConfs, int *h_subset_flag);
+        void set_subset_flag_array(int numAtoms, int *h_subset_flag);
  
         //centers conformers and precompute_G();
         void center_and_precompute_G(); 
@@ -35,6 +32,8 @@ class RMSD {
         void all_against_one_lprmsd(int test_conf);
             
         void print_params();
+
+        void retrieve_rmsds_from_device(int numConfs, float* h_rmsds);
 
     private:
         
@@ -50,7 +49,7 @@ class RMSD {
         const int numConfs_;
         const int numBlocks_;
         const int size_;
-
+       
         // sanity flags
         bool have_precomputed_G_;
         bool have_centered_;
@@ -66,7 +65,6 @@ class RMSD {
 
         float *d_G_; // pointer to precomputed inner products
 
-        float *h_rmsds_; // host rmsd storage
         //float *h_rot_mat_;
         int *h_subset_flag_; // host atom flags
 

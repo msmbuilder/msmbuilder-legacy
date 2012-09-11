@@ -45,19 +45,19 @@ class GPURMSD(AbstractDistanceMetric):
           all the frames to the GPU in one go.
         """
         logger.info('GPU preparing')
-        n_confs = len(trajectory)
 
         if self._gpurmsd != None:
             raise ValueError("messed up call pattern")
 
         xyzlist = trajectory['XYZList']
+        n_confs, n_atoms = xyzlist.shape[0:2]
 
         if self.atomindices != None:
             xyzlist = xyzlist[:, self.atomindices, :]
 
         xyzlist = np.array(xyzlist.swapaxes(1,2).swapaxes(0,2), copy=True, order='C')        
         self._gpurmsd = _GPURMSD(xyzlist)
-        self._gpurmsd.set_subset_flag_array(np.ones(n_confs, dtype=np.int32))
+        self._gpurmsd.set_subset_flag_array(np.ones(n_atoms, dtype=np.int32))
         self._gpurmsd.center_and_precompute_G()
         self._n_confs = n_confs
 
@@ -80,11 +80,9 @@ class GPURMSD(AbstractDistanceMetric):
         #logger.info('GPU computing')
 
         results = np.empty(self._n_confs, dtype=np.float32)
-        self._gpurmsd.set_rmsd_array(results)
+        self._gpurmsd.all_against_one_rmsd(int(index1))
+        self._gpurmsd.retrieve_rmsds_from_device(results)
 
-        target = int(index1)
-        
-        self._gpurmsd.all_against_one_rmsd(target)
         if isinstance(ptraj2, Xrange):
             # get its slice representation
             return results[ptraj2.to_slice()]
