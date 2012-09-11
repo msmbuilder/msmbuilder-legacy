@@ -19,8 +19,8 @@
 
 import numpy as np
 from msmbuilder import Trajectory, Project
-from msmbuilder.metrics import RMSD, LPRMSD
-from msmbuilder.metrics.lprmsd import ReadPermFile
+from msmbuilder.metrics import RMSD
+from lprmsd.lprmsd import LPRMSD, ReadPermFile
 from msmbuilder import arglib
 
 def run(project, pdb, traj_fn, atom_indices, alt_indices, permute_indices):

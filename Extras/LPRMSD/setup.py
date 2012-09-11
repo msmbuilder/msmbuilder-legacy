@@ -15,6 +15,7 @@ setup(name='msmbuilder.metrics.lprmsd',
       version='1.2',
       packages = ['lprmsd'],
       ext_modules = [_lprmsd],
+      scripts=glob('scripts/*.py'),
       entry_points="""
         [msmbuilder.metrics]
          metric_class=lprmsd.lprmsd:LPRMSD
