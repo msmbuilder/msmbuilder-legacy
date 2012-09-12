@@ -18,8 +18,12 @@ within that framework.
 
 To Do
 -----
-Make it so that you can just pass in the reaction coordinate values, for e.g. pfolds
-
+> Optimize: 
+  -- `evaluate_partition_functions` (OpenMP)
+  -- `reaction_mfpt`
+  -- choose best search method in `optimize`
+> Write unit test
+> Finish documentation
 """
 
 
@@ -65,7 +69,6 @@ class CutCoordinate(object):
     of reaction coordinates.
     """
 
-
     def __init__(self, counts, generators, reactant, product):
         """
         Parameters
@@ -91,7 +94,6 @@ class CutCoordinate(object):
         self.product    = product
         self.N = counts.shape[0]
         self.reaction_coordinate_values = None
-        
 
     
     def _check_coordinate_values(self):
@@ -376,7 +378,6 @@ class CutCoordinate(object):
 
         self._check_coordinate_values()
 
-        print "Plotting reaction coordinate"
         perm = np.argsort(self.reaction_coordinate_values)
 
         # performing a sliding average
