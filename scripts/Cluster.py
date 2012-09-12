@@ -111,17 +111,11 @@ for metric_parser in parser.metric_parsers: # arglib stores the metric subparser
 
 def load_trajectories(projectfn, stride):
     project = Project.LoadFromHDF(projectfn)
-    if project['TrajFileType'] == '.h5':
-        load = lambda fn: Trajectory.LoadFromHDF(fn, Stride=stride)
-    elif project['TrajFileType'] == '.lh5':
-        load = lambda fn: Trajectory.LoadFromLHDF(fn, Stride=stride)
-    else:
-        warnings.warn("Inefficient loading: Use .h5 or .lh5 trajectories for more efficiency?")
-        load = lambda fn: Trajectory.LoadTrajectoryFile(fn)[::stride]
 
     list_of_trajs = []
     for i in xrange(project['NumTrajs']):
-        traj = load(project.GetTrajFilename(i))
+        # note, LoadTraj is not using the fast stride-loading for HDF5 formatted trajs
+        traj = project.LoadTraj(i, stride=stride)
         list_of_trajs.append(traj)
 
     return list_of_trajs
