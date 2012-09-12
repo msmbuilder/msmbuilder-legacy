@@ -8,7 +8,19 @@ import matplotlib.pyplot as plt
 
 from msmbuilder import MSMLib
 from msmbuilder import Serializer
+from msmbuilder import transition_path_theory as tpt
+from msmbuilder.msm_analysis import get_eigenvectors
 from msmbuilder.geometry.contact import atom_distances
+
+"""
+Code for computing cut-based free energy profiles, and optimal reaction coordinates
+within that framework.
+
+To Do
+-----
+Make it so that you can just pass in the reaction coordinate values, for e.g. pfolds
+
+"""
 
 
 def contact_reaction_coordinate(trajectory, weights):
@@ -36,7 +48,7 @@ def contact_reaction_coordinate(trajectory, weights):
     # make an array of all pairwise C-alpha indices
     C_alphas = np.where( trajectory['AtomNames'] == 'CA' )[0] # indices of the Ca atoms
     n_residues = len(C_alphas)
-    atom_contacts = np.zeros(( n_residues, 2 ))
+    atom_contacts = np.zeros(( n_residues**2, 2 ))
     atom_contacts[:,0] = np.repeat( C_alphas, n_residues )
     atom_contacts[:,1] = np.tile( C_alphas, n_residues )
     
@@ -48,12 +60,19 @@ def contact_reaction_coordinate(trajectory, weights):
 
 
 class CutCoordinate(object):
+    """
+    Object containing methods for computing the cut-based free energy profiles
+    of reaction coordinates.
+    """
 
 
-    def __init__(self, rxn_coordinate_function, counts, generators, reactant, product):
+    def __init__(self, counts, generators, reactant, product):
         """
         Parameters
         ----------
+        counts : matrixs
+            A matrix of the transition counts observed in the MSM
+        
         generators : msmbuilder trajectory
             The generators (or a trajectory containing an exemplar structure)
             for each state.
@@ -63,90 +82,151 @@ class CutCoordinate(object):
 
         product : int
             Index of the state to use to represent the product (folded) well
-
-        coordinate_fxn : function
-            This is a function that represents the reaction coordinate. It
-            takes the arguments of an msm trajectory and an array of weights
-            (floats). It should return an array of floats, specifically the
-            reaction coordinate scalar evaluated for each conformation in the
-            trajectory. Graphically:
-
-              coordinate_fxn(msm_traj, weights) --> array( [float, float, ...] )
-
-            An example function of this form is provided, for contact-map based
-            reaction coordinates.
         """
         
         # store the basic values
-        self.counts = counts
+        self.counts     = counts
         self.generators = generators
-        self.reactants = reactant
-        self.products = product
+        self.reactant   = reactant
+        self.product    = product
+        self.N = counts.shape[0]
+        self.reaction_coordinate_values = None
         
-        # perform basic calculations for stuff we'll need
-        self.N = assignments.max() + 1
+
     
-        self.rxn_coordinate_function = rxn_coordinate_function
-        self.rc_weights = np.ones(self.N) # TJL: this may vary... how can we be smart about it?
-        self.rxn_coordinate_values = self.rxn_coordinate_function(self.generators, self.rc_weights)
-
-
-    def optimize(self, initial_weights=None):
+    def _check_coordinate_values(self):
         """
-        Compute an optimized reaction coordinate, where optimized means the
-        coordinate the maximizes the barrier between two metastable basins.
+        Function that checks if we have self.reaction_coordinate_values on hand,
+        and complains if we don't.
+        """
+        if self.reaction_coordinate_values == None:
+            raise Exception("Error: No `reaction_coordinate_values` found. "
+                            "Either pass in these manually or calculate them "
+                            "with a class method. See the methods:"
+                            "\n-- set_coordinate_values"
+                            "\n-- set_coordinate_as_committors"
+                            "\n-- set_coordinate_as_eigvector2")
+        return
 
+
+    def set_coordinate_values(self, coordinate_values):
+        """
+        Set the reaction coordinate manually, by providing coordinate values
+        that come from some external calculation.
+        
         Parameters
         ----------
-        initial_weights : nd_array, float
-            An array representing an initial guess at the optimal weights. 
-            Passing `None` simply guesses uniform weights, if no prior information
-            is available.
+        coordinate_values : nd_array, float
+            The values of the reaction coordinate, evaluated for each state.
+        """
+        self.reaction_coordinate_values = coordinate_values
+        self.evaluate_partition_functions()
+        return
 
+
+    def set_coordinate_as_committors(self, lag_time=1, symmetrize='transpose'):
+        """
+        Set the reaction coordinate to be the committors (pfolds).
+        
+        Employs the reactant, product states provided as the sources, sinks
+        respectively for the committor calculation.
+        
+        Parameters
+        ----------
+        lag_time : int
+            The MSM lag time to use (in units of frames) in the estimation 
+            of the MSM transition probability matrix from the `counts` matrix.
+            
+        symmetrize : str {'mle', 'transpose', 'none'}
+            Which symmetrization method to employ in the estimation of the
+            MSM transition probability matrix from the `counts` matrix.
+        """
+        
+        t_matrix = self._build_msm_from_counts(lag_time, symmetrize)
+        self.reaction_coordinate_values = tpt.calculate_committors([self.reactant], 
+                                                                   [self.product], t_matrix)
+        return
+        
+    
+    def set_coordinate_as_eigvector2(self, lag_time=1, symmetrize='transpose'):
+        """
+        Set the reaction coordinate to be the second eigenvector of the MSM generated
+        by counts, the provided lag_time, and the provided symmetrization method.
+        
+        Parameters
+        ----------
+        lag_time : int
+            The MSM lag time to use (in units of frames) in the estimation 
+            of the MSM transition probability matrix from the `counts` matrix.
+            
+        symmetrize : str {'mle', 'transpose', 'none'}
+            Which symmetrization method to employ in the estimation of the
+            MSM transition probability matrix from the `counts` matrix.
+        """
+        
+        t_matrix = self._build_msm_from_counts(lag_time, symmetrize)
+        v, w = get_eigenvectors(t_matrix, 5)
+        self.reaction_coordinate_values = w[:,1].flatten()
+        
+        return
+        
+    
+    def _build_msm_from_counts(self, lag_time, symmetrize):
+        """ Estimates the transition probability matrix from the counts matrix """
+        
+        if symmetrize == 'mle':
+            rev_counts = MSMLib.mle_reversible_count_matrix(self.counts, prior=0.0)
+
+        elif symmetrize == 'transpose':
+            rev_counts = 0.5*(self.counts + self.counts.transpose())
+
+        elif symmetrize == 'none':
+            rev_counts = self.counts
+
+        else:
+            raise symmetrization_error
+        
+        t_matrix = MSMLib.estimate_transition_matrix(rev_counts)
+        
+        return t_matrix
+
+
+    def reaction_mfpt(self, lag_time=1.0):
+        """
+        Calculate the MFPT between the `reactant` and `product` states, as given by
+        the reaction coordinate.
+        
+        Parameters
+        ----------
+        lag_time : float
+            The units of time for the MSM lag time.
+        
         Returns
         -------
-        optimal_weights : nd_array, float
-            An array of the optimal weights, which maximize the barrier in the
-            cut-based free energy profile.
+        mfpt : float
+            The mean first passage time between the `reactant` and `product`
         """
 
-        def objective(weights, generators):
-            """ returns the negative of the MFPT """
-            RC = coordinate_fxn(generators, weights)
-            zc, zh = calc_cFEP(assignments, lag_time, rxn_coordinate, rescale)
-            mfpt = mfpt(reactant, product, rxn_coordinate, zc, zh)
-            return -1.0 * mfpt
+        self._check_coordinate_values()
 
-        optimal_weights = scipy.optimize.fmin( objective, args=generators, tol=0.0001, 
-                                               ftol=0.0001, maxiter=None )
+        const = lag_time / np.pi
 
-        self.rc_weights = optimal_weights
+        A = self.reaction_coordinate_values[self.reactant]
+        B = self.reaction_coordinate_values[self.product]
 
-        return optimal_weights
-
-
-    def reaction_mfpt(dt=1.0):
-        """
-        mfpt
-        """
-
-        const = dt / np.pi
-
-        A = rxn_coordinate[self.reactant]
-        B = rxn_coordinate[self.product]
-
-        perm = np.argsort(self.rxn_coordinate)
-        start = np.where(self.rxn_coordinate[perm] == A)
-        end = np.where(self.rxn_coordinate[perm] == B)
+        perm = np.argsort(self.reaction_coordinate_values)
+        start = np.where(self.reaction_coordinate_values[perm] == A)[0]
+        end = np.where(self.reaction_coordinate_values[perm] == B)[0]
 
         intermediate_states = [perm][start:end]
         tau = np.sum( [ ( (zh[x]/(zc[x]**2)) * (np.sum( zh[:x] ) / x) ) \
                         for x in intermediate_states ] )
 
-        return const * tau
+        mfpt = const * tau
+        return mfpt
 
 
-    def partition_functions(rxn_coordinate, rescale=True):
+    def evaluate_partition_functions(self):
         """
         Computes the partition function of the cut-based free energy profile based
         on transition network and reaction coordinate. 
@@ -159,17 +239,8 @@ class CutCoordinate(object):
         Generously contributed by Sergei Krivov
         Optimizations and modifications due to TJL
    
-        Parameters
-        ----------
-        assignments : nd_array, int
-            The MSM assignments array, indicating membership of each snapshot
-        lag_time : int
-            The MSM lag time, in units of frames
-        rxn_coordinate : nd_array, float
-            An array of the value of the reaction coordiante for each MSM state
-   
-        Returns
-        -------
+        Stores
+        ------
         zc : nd_array, float
             The cut-based free energy profile along the reaction coordinate. The
             negative log of this function gives the free energy profile along the
@@ -183,15 +254,18 @@ class CutCoordinate(object):
             Optimize a flexible reaction coordinate to maximize the free energy
             barrier along that coordinate.
         """
+        
+        #self._evaluate_reaction_coordinate()
+        self._check_coordinate_values()
     
-        state_order_along_RC = np.argsort(self.rxn_coordinate_values)
+        state_order_along_RC = np.argsort(self.reaction_coordinate_values)
 
         # generate a permutation matrix that will re-order the counts to be
         # indexed in order of the rxn coordinate array
         perm = scipy.sparse.lil_matrix(self.counts.shape)
-        for i in range(N):
+        for i in range(self.N):
             perm[i,state_order_along_RC[i]] = 1.0 # send i -> correct place
-        perm_counts = perm * counts * perm.T
+        perm_counts = perm * self.counts * perm.T
 
         # set up the three variables for weave -- i'm not a weave expert, but
         # it seems like they need to be in the function scope before I can pass
@@ -200,7 +274,8 @@ class CutCoordinate(object):
         indices = perm_counts.indices
         indptr = perm_counts.indptr
 
-        zc = np.zeros(N)
+        zc = np.zeros(self.N)
+        N = self.N
     
         scipy.weave.inline(r"""
         int i, j, k;
@@ -231,13 +306,15 @@ class CutCoordinate(object):
     
         # dont need to apply inv_ordering since we're doing this on
         # counts not perm_counts
-        zh = np.array(counts.sum(axis=0)).flatten()
+        zh = np.array(self.counts.sum(axis=0)).flatten()
         
-        return zc, zh
-    
+        self.zc = zc
+        self.zh = zh
+        
+        return
     
 
-    def rescale_to_natural_coordinate(zc, zh, rxn_coordinate):
+    def rescale_to_natural_coordinate(self):
         """
         Rescale a cut-based free energy profile along a reaction coordinate
         such that the diffusion constant is unity for the entire coordinate.
@@ -251,55 +328,62 @@ class CutCoordinate(object):
         rxn_coordinate : ndarray, float
             The reaction coordinate used.
         
-        Returns
+        Updates
         -------
-        natural_coordinate : ndarray, float
+        zc, zh <- natural_coordinate : ndarray, float
             The reaction coordinate values along the rescaled coordinate
-        scaled_z : ndarray, float
+        reaction_coordinate_values <- scaled_z : ndarray, float
             The partition function value for each point of `natural_coordinate`
-    
-        See Also
-        --------
-        calc_cFEP
         """
     
-        state_order_along_RC = np.argsort(rxn_coordinate)
-        zc = zc[state_order_along_RC]
-        zh = zh[state_order_along_RC]
+        self._check_coordinate_values()
+    
+        state_order_along_RC = np.argsort(self.reaction_coordinate_values)
+        zc = self.zc[state_order_along_RC]
+        zh = self.zh[state_order_along_RC]
     
         scaled_z = np.cumsum(zc)
         positive_inds = np.where(scaled_z > 0.0)
         scaled_z = scaled_z[positive_inds]
         natural_coordinate = np.cumsum( zh[positive_inds] / (scaled_z * np.sqrt(np.pi)) )
-    
-        return natural_coordinate, scaled_z
+
+        self.zc = natural_coordinate
+        self.zh = natural_coordinate
+        self.reaction_coordinate_values = scaled_z
+        
+        return
         
         
-        
-    def plot(num_bins=20, filename=None):
+    def plot(self, num_bins=15, filename=None):
         """
         Plot the current cut-based free energy profile.
         
-        Can either display this on screen, or 
+        Can either display this on screen (filename=None), or save to a file
+        if the kwarg `filename` is provided.
+        
+        The plot does a smoothing average over the reaction coordinate.
+        Increasing `bins` makes the average finer, and the resulting coordinate
+        rougher. Fewer `bins` means a coarser, smoother coordinate.
         
         Parameters
-        
+        ----------
+        num_bins : int
+            The number of bins to employ in a sliding average.
+        filename : str
+            The name of the file to save the rendered image to. If None is
+            passed, attempts to display the image on screen.
         """
-        
-        if self.zc == None:
-            self.
-        else:
-            pass
-        
+
+        self._check_coordinate_values()
 
         print "Plotting reaction coordinate"
-        perm = np.argsort(self.rxn_coordinate_values)
+        perm = np.argsort(self.reaction_coordinate_values)
 
         # performing a sliding average
-        h = self.rxn_coordinate_values.max() / float(num_bins)
+        h = self.reaction_coordinate_values.max() / float(num_bins)
         bins = [ i*h for i in range(num_bins) ]
 
-        inds = np.digitize( self.rxn_coordinate_values, bins )
+        inds = np.digitize( self.reaction_coordinate_values, bins )
         pops = [ np.sum( self.zc[np.where( inds == i )] ) for i in range(num_bins) ]
 
         fig = plt.figure()
@@ -314,3 +398,147 @@ class CutCoordinate(object):
             print "Saved reaction coordinate plot to: %s" % filename
 
         return
+        
+        
+        
+class VariableCoordinate(CutCoordinate):
+    """
+    Class that contains methods for calculating cut-based free energy profiles
+    based on a reaction coordinate mapping that takes variable parameters.
+    
+    Specifically, a reaction coodinate is formally a map from phase space to
+    the reals. Consider such a map that is dependent on some auxillary parameters
+    `alphas`. Then we might hope to optimize that reaction coordinate by wisely
+    choosing those weights.
+    """
+    
+    
+    def __init__(self, rxn_coordinate_function, initial_alphas, counts, 
+                 generators, reactant, product):
+        """
+        Parameters
+        ----------
+        rxn_coordinate_function : function
+            This is a function that represents the reaction coordinate. It
+            takes the arguments of an msm trajectory and an array of weights
+            (floats). It should return an array of floats, specifically the
+            reaction coordinate scalar evaluated for each conformation in the
+            trajectory. Graphically:
+
+            rxn_coordinate_function(msm_traj, weights) --> array( [float, float, ...] )
+
+            An example function of this form is provided, for contact-map based
+            reaction coordinates.
+            
+        initial_alphas : nd_array, float
+            An array representing an initial guess at the optimal alphas. 
+            
+        counts : matrixs
+            A matrix of the transition counts observed in the MSM
+
+        generators : msmbuilder trajectory
+            The generators (or a trajectory containing an exemplar structure)
+            for each state.
+
+        reactant : int
+            Index of the state to use to represent the reactant (unfolded) well
+
+        product : int
+            Index of the state to use to represent the product (folded) well
+        """
+    
+        CutCoordinate.__init__(self, counts, generators, reactant, product)
+        self.rxn_coordinate_function = rxn_coordinate_function
+        self.rc_alphas = initial_alphas
+        self._evaluate_reaction_coordinate()
+        
+        
+    def _evaluate_reaction_coordinate(self):
+        """
+        Evaluates `rxn_coordinate_function` and stores the values obtained in a
+        local variable.
+        """
+        self.reaction_coordinate_values = self.rxn_coordinate_function(self.generators, self.rc_alphas)
+        return
+
+
+    def optimize(self):
+        """
+        Compute an optimized reaction coordinate, where optimized means the
+        coordinate the maximizes the barrier between two metastable basins.
+
+        Stores
+        ------
+        optimal_weights : nd_array, float
+            An array of the optimal weights, which maximize the barrier in the
+            cut-based free energy profile.
+        """
+
+        self.i = 1
+
+        def objective(weights, generators):
+            """ returns the negative of the MFPT """
+            self._evaluate_reaction_coordinate()
+            self.evaluate_partition_functions()
+            mfpt = self.reaction_mfpt(lag_time=1.0)
+            print "Iteration: %d" % self.i
+            self.i += 1
+            return -1.0 * mfpt
+
+        optimal_alphas = scipy.optimize.fmin_cg( objective, self.rc_alphas,
+                                                    args=(self.generators,), maxiter=2 )
+
+        self.rc_alphas = optimal_alphas
+        self._evaluate_reaction_coordinate()
+
+        return
+        
+        
+def test():
+    
+    from msmbuilder import Trajectory
+    from scipy import io
+    
+    print "Testing cfep code...."
+    
+    test_dir = '/Users/TJ/Programs/msmbuilder.sandbox/tjlane/cfep/'
+    
+    generators = Trajectory.LoadTrajectoryFile(test_dir + 'Gens.lh5')
+    counts = io.mmread(test_dir + 'tCounts.mtx')
+    reactant = 0    # generator w/max RMSD
+    product = 10598 # generator w/min RMSD
+    pfolds = np.loadtxt(test_dir + 'FCommittors.dat')
+    
+    # test the usual coordinate
+    pfold_cfep = CutCoordinate(counts, generators, reactant, product)
+    pfold_cfep.set_coordinate_values(pfolds)
+    pfold_cfep.plot()
+    
+    pfold_cfep.set_coordinate_as_eigvector2()
+    print pfold_cfep.reaction_coordinate_values
+    pfold_cfep.plot()
+    
+    pfold_cfep.set_coordinate_as_committors()
+    print pfold_cfep.reaction_coordinate_values
+    pfold_cfep.plot()
+    
+    # test the Variable Coordinate
+    initial_weights = np.ones( (1225,26104) )
+    
+    contact_cfep = VariableCoordinate(contact_reaction_coordinate, initial_weights, 
+                                    counts, generators, reactant, product)
+                                 
+    contact_cfep.evaluate_partition_functions()
+    print contact_cfep.zh
+    print contact_cfep.zc
+    
+    contact_cfep.optimize()
+    print "Finished optimization"
+    
+    contact_cfep.plot()
+    
+    
+    return
+        
+if __name__ == '__main__':
+    test()
