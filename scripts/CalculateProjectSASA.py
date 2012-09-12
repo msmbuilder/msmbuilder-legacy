@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # This file is part of MSMBuilder.
 #
 # Copyright 2011 Stanford University
@@ -37,7 +37,7 @@ def run(project, atom_indices=None, traj_fn = 'all'):
             traj_fn = project.GetTrajFilename( traj_ind )
             chunk_ind = 0
             for traj_chunk in Trajectory.EnumChunksFromLHDF( traj_fn, AtomIndices=atom_indices ):
-                print chunk_ind
+                #print chunk_ind
                 traj_asa.extend( asa.calculate_asa( traj_chunk, n_sphere_points = 24 ) )
                 chunk_ind += 1
             SASA[ traj_ind, : project['TrajLengths'][traj_ind] ] = traj_asa

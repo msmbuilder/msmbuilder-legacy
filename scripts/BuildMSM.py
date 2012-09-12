@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # This file is part of MSMBuilder.
 #
 # Copyright 2011 Stanford University
@@ -91,6 +91,7 @@ Assignments.Fixed.h5, tCounts.UnSym.mtx""")
     parser.add_argument('output_dir')
     args = parser.parse_args()
     
+    assignments = Serializer.LoadData( args.assignments )
     
-    run(args.lagtime, args.assignments['Data'], args.symmetrize, args.prior,
+    run(args.lagtime, assignments, args.symmetrize, args.prior,
         args.output_dir)
