@@ -280,9 +280,11 @@ class CutCoordinate(object):
         N = self.N
     
         scipy.weave.inline(r"""
+        Py_BEGIN_ALLOW_THREADS
         int i, j, k;
         double nij, incr;
     
+        #pragma omp parallel for private(nij, incr, j, k) shared(N, indptr, indices, data, zc)
         for (i = 0; i < N; i++) {
             for (k = indptr[i]; k < indptr[i+1]; k++) {
                 j = indices[k];
@@ -295,11 +297,17 @@ class CutCoordinate(object):
                 // nij is the entry
             
                 incr = j < i ? nij : -nij;
-                zc[j] += incr;
-                zc[i] -= incr;
+                
+                #pragma omp critical(zc_update)
+                {
+                    zc[j] += incr;
+                    zc[i] -= incr;
+                }
             }
         }
-        """, ['N', 'data', 'indices', 'indptr', 'zc'])
+        Py_END_ALLOW_THREADS
+        """, ['N', 'data', 'indices', 'indptr', 'zc'], extra_link_args = ['-lgomp'],
+        extra_compile_args = ["-O3", "-fopenmp"]) #, compiler='gcc')
     
         zc /= 2.0 # we overcounted in the above - fix that
                             
@@ -515,13 +523,13 @@ def test():
     pfold_cfep.set_coordinate_values(pfolds)
     pfold_cfep.plot()
     
-    pfold_cfep.set_coordinate_as_eigvector2()
-    print pfold_cfep.reaction_coordinate_values
-    pfold_cfep.plot()
+    #pfold_cfep.set_coordinate_as_eigvector2()
+    #print pfold_cfep.reaction_coordinate_values
+    #pfold_cfep.plot()
     
-    pfold_cfep.set_coordinate_as_committors()
-    print pfold_cfep.reaction_coordinate_values
-    pfold_cfep.plot()
+    #pfold_cfep.set_coordinate_as_committors()
+    #print pfold_cfep.reaction_coordinate_values
+    #pfold_cfep.plot()
     
     # test the Variable Coordinate
     initial_weights = np.ones( (1225,26104) )
