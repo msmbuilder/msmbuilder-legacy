@@ -114,7 +114,8 @@ def load_trajectories(projectfn, stride):
 
     list_of_trajs = []
     for i in xrange(project['NumTrajs']):
-        # note, LoadTraj is not using the fast stride-loading for HDF5 formatted trajs
+        # note, LoadTraj is only using the fast strided loading for
+        # HDF5 formatted trajs
         traj = project.LoadTraj(i, stride=stride)
         list_of_trajs.append(traj)
 
