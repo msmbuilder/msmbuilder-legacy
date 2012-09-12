@@ -761,9 +761,6 @@ def calculate_committors(sources, sinks, tprob):
         The set of folded/product states.		
     tprob : mm_matrix	
         The transition matrix.			
-    dense : bool
-        Employ dense linear algebra. Will speed up the calculation
-        for small matrices.
 		
     Returns
     -------
