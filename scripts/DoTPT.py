@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # This file is part of MSMBuilder.
 #
 # Copyright 2011 Stanford University
@@ -21,49 +21,47 @@ import os
 import numpy as np
 import scipy.io
 
-from msmbuilder.transition_path_theory import GetBCommittors
-from msmbuilder.transition_path_theory import GetFCommittors
-from msmbuilder.transition_path_theory import GetNetFlux
+from msmbuilder.transition_path_theory import calculate_committors, calculate_net_fluxes
 
 from msmbuilder import arglib
 import logging
 logger = logging.getLogger(__name__)
 
-def run(TC, Uv, Fv, Populations):
+
+def run(TC, Uv, Fv):
 
     # Get committors and flux
     logger.info("Getting committors and flux...")
-    Bc = GetBCommittors(Uv, Fv, TC, Populations,  Dense=False)
-    logger.info("Calculated reverse committors.")
-    Fc = GetFCommittors(Uv, Fv, TC,  Dense=False)
+
+    Fc = calculate_committors(Uv, Fv, TC)
     logger.info("Calculated forward committors.")
-    NFlux = GetNetFlux(Populations, Fc, Bc, TC)
+    
+    NFlux = calculate_net_fluxes(Uv, Fv, TC)
     logger.info("Calculated net flux.")
     
-    return Bc, Fc, NFlux
+    return Fc, NFlux
+
 
 if __name__ == "__main__":
     parser = arglib.ArgumentParser(description=
 """Calculates a number of kinetic transition properties of a given MSM. Returns:
-(1) FCommittors.dat - the forward committors of the MSM (numpy savetxt)
-(2) BCommittors.dat - the backward committors (numpy savetxt)
-(3) NFlux.mtx - the net flux matrix (scipy sparse fmt)""")
+(1) committors.dat - the forward committors of the MSM (numpy savetxt)
+(3) net_flux.mtx - the net flux matrix (scipy sparse fmt)""")
+
     parser.add_argument('tProb')
     parser.add_argument('starting', help='''Vector of states in the
         starting/reactants/unfolded ensemble.''', default='U_states.dat')
     parser.add_argument('ending', help='''Vector of states in the
         ending/products/folded ensemble.''', default='F_states.dat')
-    parser.add_argument('populations', help='''State equilibrium populations
-        file, in numpy .dat format.''', default='Data/Populations.dat')
     parser.add_argument('output_dir', default='.')
     args = parser.parse_args()
     
     T = scipy.io.mmread( args.tProb )
     U = np.loadtxt( args.starting ).astype(int)
     F = np.loadtxt( args.ending ).astype(int)
-    Pops = np.loadtxt( args.populations ).astype(int)
 
     # deal with case where have single start or end state
+    # TJL note: This should be done in the library now... but leaving it
     if U.shape == ():
         tmp = np.zeros(1, dtype=int)
         tmp[0] = int(U)
@@ -74,13 +72,12 @@ if __name__ == "__main__":
         F = tmp.copy()
 
     # Check output isn't taken
-    output_list = ["BCommittors.dat", "FCommittors.dat", "NFlux.mtx"]
+    output_list = ["committors.dat", "net_flux.mtx"]
     output_flist = [os.path.join(args.output_dir, f) for f in output_list]
     arglib.die_if_path_exists(output_flist)
     
-    Bc, Fc, NFlux = run(T, U, F, Pops)
+    Fc, NFlux = run(T, U, F)
     
-    np.savetxt(output_flist[0], Bc)
-    np.savetxt(output_flist[1], Fc)
-    scipy.io.mmwrite(output_flist[2], NFlux)
+    np.savetxt(output_flist[0], Fc)
+    scipy.io.mmwrite(output_flist[1], NFlux)
     logger.info("Saved output to %s", ', '.join(output_flist))
