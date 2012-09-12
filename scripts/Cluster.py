@@ -2,18 +2,13 @@
 
 
 import sys, os
-import pickle
-from pprint import pprint
+import warnings
 from msmbuilder import arglib
-from msmbuilder import metrics
 from msmbuilder import clustering
 from msmbuilder import Project
 from msmbuilder import Serializer
-from msmbuilder.utils import format_block
-from msmbuilder.License import LicenseString
-from msmbuilder.Citation import CiteString 
-from msmbuilder.arglib import ensure_path_exists, die_if_path_exists
-import numpy as np
+from msmbuilder import Trajectory
+from msmbuilder.arglib import die_if_path_exists
 import logging
 logger = logging.getLogger(__name__)
 
@@ -117,14 +112,16 @@ for metric_parser in parser.metric_parser_list: # arglib stores the metric subpa
 
 def load_trajectories(projectfn, stride):
     project = Project.LoadFromHDF(projectfn)
-    #return [traj[::stride] for traj in project.EnumTrajs()]
-    #The following code has improved memory usage.
-    longtraj = []
+
+    list_of_trajs = []
     for i in xrange(project['NumTrajs']):
-        t = project.LoadTraj(i)
-        t.subsample(stride)
-        longtraj.append(t)
-    return longtraj
+        # note, LoadTraj is only using the fast strided loading for
+        # HDF5 formatted trajs
+        traj = project.LoadTraj(i, stride=stride)
+        list_of_trajs.append(traj)
+
+    return list_of_trajs
+
     
 def cluster(metric, trajs, args):
     if args.alg == 'kcenters':
