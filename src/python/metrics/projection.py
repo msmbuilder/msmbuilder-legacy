@@ -5,8 +5,7 @@ import warnings
 from msmbuilder import Serializer
 try: from msmbuilder import metric_LPRMSD as lprmsd # This is down here because metric_LPRMSD imports this file, and so it is a bad recursion issue. This should be fixed by combining LP's metric into this file...
 except: lprmsd = None
-from msmbuilder.metrics import AbstractDistanceMetric, Vectorized
-from msmbuilder import metrics
+from msmbuilder.metrics.baseclasses import AbstractDistanceMetric, Vectorized
 
 class RedDimPNorm(Vectorized,AbstractDistanceMetric):
     """
@@ -15,7 +14,7 @@ class RedDimPNorm(Vectorized,AbstractDistanceMetric):
 
     class ProjectionObject:
         def __init__( self, proj_fn):
-            data_dict = Serializer.LoadFromHDF( pca_fn )
+            data_dict = Serializer.LoadFromHDF( proj_fn )
             self.vecs = np.array( data_dict['vecs'] )
             self.vals = np.array( data_dict['vals'].real.astype(float) ) # These should be real already but have 1E-16j attached to them
             dec_ind = np.argsort( self.vals )[::-1]
@@ -61,9 +60,9 @@ class RedDimPNorm(Vectorized,AbstractDistanceMetric):
         5) p [ 2 ] - Exponent for the p-norm
         """
         if proj_object_fn[-3:] == 'npy': # This is here because you can pickle an mdp.Node object and use it with this metric
-            self.pca = np.load(pcaObjFN)
+            self.pca = np.load( proj_object_fn )
         else:
-            self.pca = self.ProjectionObject( pcaObjFN )
+            self.pca = self.ProjectionObject( proj_object_fn )
             if num_vecs:
                 self.num_vecs = int( num_vecs )
             else:
