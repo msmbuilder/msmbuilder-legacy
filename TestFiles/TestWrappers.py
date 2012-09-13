@@ -226,19 +226,7 @@ class TestWrappers(unittest.TestCase):
         cr_r = np.loadtxt(os.path.join(ReferenceDir, "RMSD.dat"))
         numpy.testing.assert_array_almost_equal(cr, cr_r)
 
-    def test_ia_CalculateLPRMSD(self):
-        #C1   = Conformation.Conformation.LoadFromPDB(PDBFn)
-        #Traj = Trajectory.LoadTrajectoryFile("Data/Gens.lh5")
-        #AInd = np.loadtxt("AtomIndices.dat", int)
-        #CalculateRMSD.run(C1, Traj, AInd, "RMSD.dat")
-        outpath = os.path.join(WorkingDir, "LPRMSD.h5")
-        os.system('CalculateProjectDistance.py -s %s -t %s -o %s lprmsd -a %s' % (PDBFn, "Data/Gens.lh5", outpath, "AtomIndices.dat" ) )
-
-        cr   = Serializer.LoadData(outpath)
-        cr_r = np.loadtxt(os.path.join(ReferenceDir, "RMSD.dat"))
-        numpy.testing.assert_array_almost_equal(cr, cr_r)
-
-
+        
     def test_j_PCCA(self):
 
         TC = scipy.io.mmread(os.path.join(WorkingDir,"Data", "tProb.mtx"))
