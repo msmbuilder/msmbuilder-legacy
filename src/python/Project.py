@@ -145,7 +145,7 @@ class Project(Serializer):
         
     def LoadTraj(self, i, stride=1):
         """Return a trajectory object of the ith trajectory."""
-        return Trajectory.LoadTrajectoryFile(self.GetTrajFilename(i),Conf=self.Conf)[::stride]
+        return Trajectory.LoadTrajectoryFile(self.GetTrajFilename(i), Conf=self.Conf, Stride=stride)
     
     def EnumTrajs(self):
         """Convenience method: return an iterator over the trajectories (a generator)
