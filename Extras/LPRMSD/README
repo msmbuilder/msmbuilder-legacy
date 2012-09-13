@@ -1,0 +1,25 @@
+LPRMSD : Linear Programming RMSD Distance Metric for MSMBuilder
+===============================================================
+
+Overview
+--------
+
+Modified version of RMSD distance metric that does the following
+
+1) Returns the RMSD, rotation matrices, and aligned conformations
+2) Permutes selected atomic indices.
+3) Perform the alignment again.
+
+Installation
+------------
+Run `python setup.py install`. LPRMSD links to BLAS, so you need to have blas
+on your system. If you have BLAS installed in a nonstandard location, you can
+provide the path to it in setup.cfg
+
+On ubuntu, you can install blas via `sudo apt-get install libblas-dev`.
+
+Usage
+-----
+
+After installing, you will see `lprmsd` as a choice in MSMBuilder scripts which
+require a distance metric, such as `Cluster.py`
