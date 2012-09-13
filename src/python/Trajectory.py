@@ -449,7 +449,7 @@ class Trajectory(ConformationBaseClass):
         return(A)
     
     @classmethod
-    def EnumChunksFromHDF(cls,TrajFilename,Stride=None,AtomIndices=None,ChunkSize=100000):
+    def EnumChunksFromHDF(cls,TrajFilename,Stride=None,AtomIndices=None,ChunkSize=50000):
         """
         Function to read trajectory files which have been saved as HDF.
 
@@ -526,7 +526,7 @@ class Trajectory(ConformationBaseClass):
         return
 
     @classmethod
-    def EnumChunksFromLHDF(cls, TrajFilename, Precision=default_precision, Stride=None, AtomIndices=None, ChunkSize=100000):
+    def EnumChunksFromLHDF(cls, TrajFilename, Precision=default_precision, Stride=None, AtomIndices=None, ChunkSize=50000):
         """
         Method to read trajectory files which have been saved as LHDF.
         Note that this method simply calls the EnumChunksFromHDF method.
@@ -556,7 +556,7 @@ class Trajectory(ConformationBaseClass):
         return
 
     @classmethod
-    def LoadFromHDF(cls, TrajFilename, JustInspect=False, Stride=None, AtomIndices=None ):
+    def LoadFromHDF(cls, TrajFilename, JustInspect=False, Stride=None, AtomIndices=None, ChunkSize=50000 ):
         """
         Method to load a trajectory which was saved as HDF
         
@@ -574,7 +574,9 @@ class Trajectory(ConformationBaseClass):
         - A : Trajectory instance read from disk
         """
         if not JustInspect:
-            A = list( cls.EnumChunksFromHDF( TrajFilename, Stride=Stride, AtomIndices=AtomIndices, ChunkSize=MAXINT32 ) )[0]
+            chunk_list = list( cls.EnumChunksFromHDF( TrajFilename, Stride=Stride, AtomIndices=AtomIndices, ChunkSize=ChunkSize ) )
+            A = chunk_list[0]
+            A['XYZList'] = np.concatenate([ t['XYZList'] for t in chunk_list ])
             return A
 
         else:
@@ -584,7 +586,7 @@ class Trajectory(ConformationBaseClass):
             return(Shape)
 
     @classmethod        
-    def LoadFromLHDF(cls, TrajFilename, JustInspect=False, Precision=default_precision, Stride=None, AtomIndices=None ):
+    def LoadFromLHDF(cls, TrajFilename, JustInspect=False, Precision=default_precision, Stride=None, AtomIndices=None, ChunkSize=50000 ):
         """
         Method to load a trajectory which was saved as LHDF
         
