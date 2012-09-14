@@ -1,4 +1,5 @@
 
+import time
 
 import numpy as np
 import scipy
@@ -18,13 +19,11 @@ within that framework.
 
 To Do
 -----
-> Optimize: 
-  -- `evaluate_partition_functions` (OpenMP)
-  -- `reaction_mfpt`
-  -- choose best search method in `optimize`
+> Choose best search method in `optimize`
 > Write unit test
-> Finish documentation
 """
+
+TIME = False
 
 
 def contact_reaction_coordinate(trajectory, weights):
@@ -49,6 +48,8 @@ def contact_reaction_coordinate(trajectory, weights):
         The reaction coordinate value for each snapshot of `trajectory`
     """
     
+    if TIME: starttime = time.clock()
+    
     # make an array of all pairwise C-alpha indices
     C_alphas = np.where( trajectory['AtomNames'] == 'CA' )[0] # indices of the Ca atoms
     n_residues = len(C_alphas)
@@ -59,6 +60,10 @@ def contact_reaction_coordinate(trajectory, weights):
     # calculate the distance between all of those pairs
     distance_array = atom_distances(trajectory['XYZList'], atom_contacts)
     rc_value = np.sum( distance_array * weights.T, axis=1 )
+    
+    if TIME:
+        endtime = time.clock()
+        print "Time spent in RC eval", endtime - starttime
     
     return rc_value
 
@@ -209,22 +214,67 @@ class CutCoordinate(object):
             The mean first passage time between the `reactant` and `product`
         """
 
+        if TIME: starttime = time.clock()
+
         self._check_coordinate_values()
 
         const = lag_time / np.pi
 
         A = self.reaction_coordinate_values[self.reactant]
         B = self.reaction_coordinate_values[self.product]
-
+        
+        # perform the following integral over the rxn coord numerically
+        # \int_A^B dx ( zh[x] / zc^2[x] ) * \int_A^x dy zh[y]
+        
         perm = np.argsort(self.reaction_coordinate_values)
         start = np.where(self.reaction_coordinate_values[perm] == A)[0]
         end = np.where(self.reaction_coordinate_values[perm] == B)[0]
+        intermediate_states = np.arange(self.N)[perm][start:end]
+        
+        # use weave & OMP to do the integral
+        tau_parallel = 0.0
+        N = len(intermediate_states)
+        zc = self.zc
+        zh = self.zh
+        rc = self.reaction_coordinate_values
+        
+        scipy.weave.inline(r"""
+        // Loop over all `intermediate_states` to perform the integral
+        // Employ a trapezoid approximation to evaluate the integral
+        Py_BEGIN_ALLOW_THREADS
+        int i, x, y;
+        double secondint, incr, h;
 
-        intermediate_states = [perm][start:end]
-        tau = np.sum( [ ( (zh[x]/(zc[x]**2)) * (np.sum( zh[:x] ) / x) ) \
-                        for x in intermediate_states ] )
+        #pragma omp parallel for private(x, y, secondint, incr, h) shared(zh, zc, rc)
+        // loop to perform the outer integral
+        for (i = 0; i < N; i++) {
+        
+            x = intermediate_states[i];
+            
+            // loop to perform the inner/second integral (over dy)
+            secondint = 0;
+            for (y = 0; y < x-1; y++) {
+                h = rc[y+1] - rc[y];
+                secondint += h * (1.0/2.0) * (zh[y] + zh[y+1]);
+            }
+            
+            // calculate the integral (over dx)
+            h = rc[x+1] - rc[x];
+            incr = (1.0/2.0) * h * ( ( zh[x+1] / (zc[x+1] * zc[x+1]) ) - ( zh[x] / (zc[x] * zc[x]) ) ) * secondint;
+            
+            #pragma omp critical(tau_update)
+            tau_parallel += incr;
+        }
+        Py_END_ALLOW_THREADS
+        """, ['tau_parallel', 'N', 'intermediate_states', 'zc', 'zh', 'rc'], 
+        extra_link_args = ['-lgomp'], extra_compile_args = ["-O3", "-fopenmp"])        
 
-        mfpt = const * tau
+        mfpt = const * tau_parallel
+        
+        if TIME:
+            endtime = time.clock()
+            print "Time spent in MFPT:", endtime - starttime
+        
         return mfpt
 
 
@@ -257,7 +307,7 @@ class CutCoordinate(object):
             barrier along that coordinate.
         """
         
-        #self._evaluate_reaction_coordinate()
+        if TIME: starttime = time.clock()
         self._check_coordinate_values()
     
         state_order_along_RC = np.argsort(self.reaction_coordinate_values)
@@ -307,8 +357,8 @@ class CutCoordinate(object):
         }
         Py_END_ALLOW_THREADS
         """, ['N', 'data', 'indices', 'indptr', 'zc'], extra_link_args = ['-lgomp'],
-        extra_compile_args = ["-O3", "-fopenmp"]) #, compiler='gcc')
-    
+        extra_compile_args = ["-O3", "-fopenmp"])
+        
         zc /= 2.0 # we overcounted in the above - fix that
                             
         inv_ordering = np.argsort(state_order_along_RC)
@@ -320,6 +370,10 @@ class CutCoordinate(object):
         
         self.zc = zc
         self.zh = zh
+        
+        if TIME:
+            endtime = time.clock()
+            print "Time spent in zc:", endtime - starttime
         
         return
     
@@ -487,11 +541,17 @@ class VariableCoordinate(CutCoordinate):
 
         def objective(weights, generators):
             """ returns the negative of the MFPT """
+            
+            starttime = time.clock()
+            
             self._evaluate_reaction_coordinate()
             self.evaluate_partition_functions()
             mfpt = self.reaction_mfpt(lag_time=1.0)
-            print "Iteration: %d" % self.i
+            
+            endtime = time.clock()
+            if TIME: "Iteration %d, time: %f" % (self.i, endtime-starttime)
             self.i += 1
+            
             return -1.0 * mfpt
 
         optimal_alphas = scipy.optimize.fmin_cg( objective, self.rc_alphas,
@@ -519,9 +579,9 @@ def test():
     pfolds = np.loadtxt(test_dir + 'FCommittors.dat')
     
     # test the usual coordinate
-    pfold_cfep = CutCoordinate(counts, generators, reactant, product)
-    pfold_cfep.set_coordinate_values(pfolds)
-    pfold_cfep.plot()
+    #pfold_cfep = CutCoordinate(counts, generators, reactant, product)
+    #pfold_cfep.set_coordinate_values(pfolds)
+    #pfold_cfep.plot()
     
     #pfold_cfep.set_coordinate_as_eigvector2()
     #print pfold_cfep.reaction_coordinate_values
