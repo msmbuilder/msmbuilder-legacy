@@ -24,6 +24,7 @@ simulations, particularly through the construction
 of Markov state models for conformational dynamics."""}
 
 import os, sys
+from glob import glob
 
 if os.environ.get('READTHEDOCS', None) == 'True':
     # On READTHEDOCS, the service that hosts our documentation, the build
@@ -33,15 +34,31 @@ if os.environ.get('READTHEDOCS', None) == 'True':
     # is not enough to RUN anything, but should be enough to introspect the
     # docstrings, which is what's needed for the documentation
     from distutils.core import setup
-    metadata['packages'] = ['msmbuilder', 'msmbuilder.scripts',
-                            'msmbuilder.geometry', 'msmbuilder.metrics']
+    import tempfile, shutil
+    
+    metadata['name'] = 'msmbuilder'
+    metadata['packages'] = ['msmbuilder', 'msmbuilder.scripts', 'msmbuilder.geometry', 'msmbuilder.metrics']
+    metadata['scripts'] = [e for e in glob('scripts/*.py') if not e.endswith('__.py')]
+
+    # dirty, dirty trick to install "mock" packages
+    mockdir = tempfile.mkdtemp()
+    open(os.path.join(mockdir, '__init__.py'), 'w').close()
+    extensions = ['msmbuilder._distance_wrap', 'msmbuilder._rmsdcalc',
+                   'msmbuilder._asa', 'msmbuilder._rg_wrap',
+                   'msmbuilder._distance_wrap', 'msmbuilder._contact_wrap',
+                   'msmbuilder._dihedral_wrap']
     metadata['package_dir'] = {'msmbuilder': 'src/python', 'msmbuilder.scripts': 'scripts'}
+    metadata['packages'].extend(extensions)
+    for ex in extensions:
+        metadata['package_dir'][ex] = mockdir
+    # end dirty trick :)
+
     setup(**metadata)
+    shutil.rmtree(mockdir) #clean up dirty trick
     sys.exit(1)
 
 
 # now procede to standard setup
-from glob import glob
 # setuptools needs to come before numpy.distutils to get install_requires
 import setuptools 
 import numpy
