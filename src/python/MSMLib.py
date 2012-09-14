@@ -35,7 +35,6 @@ import scipy.sparse
 import scipy.linalg
 import scipy
 import numpy as np
-import sys
 import scipy.optimize
 from collections import defaultdict
 from msmbuilder.utils import deprecated
