@@ -17,10 +17,13 @@ from msmbuilder.geometry.contact import atom_distances
 Code for computing cut-based free energy profiles, and optimal reaction coordinates
 within that framework.
 
+This code employs scipy's weave, so C/OMP compatability is required. Most machines
+should have this functionality by default.
+
+
 To Do
 -----
 > Choose best search method in `optimize`
-> Write unit test
 """
 
 TIME = False
@@ -555,7 +558,8 @@ class VariableCoordinate(CutCoordinate):
             return -1.0 * mfpt
 
         optimal_alphas = scipy.optimize.fmin_cg( objective, self.rc_alphas,
-                                                    args=(self.generators,), maxiter=2 )
+                                                 args=(self.generators,), 
+                                                 maxiter=1000 )
 
         self.rc_alphas = optimal_alphas
         self._evaluate_reaction_coordinate()
