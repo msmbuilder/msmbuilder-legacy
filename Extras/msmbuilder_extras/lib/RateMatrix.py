@@ -18,11 +18,15 @@
 
 """Tools for working with instantaneous rate matrices (e.g. master equations).
 """
+import numpy as np
+import scipy.linalg
+import scipy.sparse
+from msmbuilder.msm_analysis import get_eigenvectors
 
 def GetRateMatrix(T,EigAns=None,FixNegativity=True):
     NumStates=T.shape[0]
     if EigAns==None:
-        EigAns=MSMLib.GetEigenvectors(T,NumStates)
+        EigAns = get_eigenvectors(T,NumStates)
     Pi=EigAns[1][:,0]
     print("Done Getting Eigenvectors")
     """

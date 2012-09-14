@@ -6,9 +6,8 @@ Modified version of RMSD distance metric that does the following:
 3) Perform the alignment again.
 
 """
-
-from baseclasses import AbstractDistanceMetric
-from rmsd import RMSD
+from msmbuilder.metrics import AbstractDistanceMetric
+from msmbuilder.metrics import RMSD
 from msmbuilder import _lprmsd
 from msmbuilder.Trajectory import Trajectory
 
@@ -161,8 +160,7 @@ def AlignToDensity(elem,xyz1,xyz2,binary=False):
     xyz2R = (np.array(EulerMatrix(t1[0],t1[1],t1[2])*np.mat(xyz2.T)).T).copy()
     return xyz2R
 
-class LPRMSD(AbstractDistanceMetric):
-    
+class LPRMSD(AbstractDistanceMetric):    
     def __init__(self, atomindices=None, permuteindices=None, altindices=None, moments=False, gridmesh=0):
         self.atomindices = atomindices
         self.altindices = altindices
@@ -271,3 +269,43 @@ class LPRMSD(AbstractDistanceMetric):
 
         return self._compute_one_to_all(prepared_traj1, prepared_traj2, index1, b_xyzout=False)
 
+
+
+def add_metric_parser(parsergroup, add_argument):
+    lprmsd = parsergroup.add_parser('lprmsd',
+        description='''LPRMSD: RMSD with the ability to to handle permutation-invariant atoms.
+        Solves the assignment problem using a linear programming solution (LP). Can handle aligning
+        on some atoms and computing the RMSD on other atoms.:''')
+    add_argument(lprmsd, '-a', dest='lprmsd_atom_indices', help='Regular atom indices. Pass "all" to use all atoms.', default='AtomIndices.dat')
+    add_argument(lprmsd, '-l', dest='lprmsd_alt_indices', default=None,
+        help='''Optional alternate atom indices for RMSD. If you want to align the trajectories
+        using one set of atom indices but then compute the distance using a different
+        set of indices, use this option. If supplied, the regular atom_indices will
+        be used for the alignment and these indices for the distance calculation''')
+    add_argument(lprmsd, '-P', dest='lprmsd_permute_atoms', default=None, help='''Atom labels to be permuted.
+    Sets of indistinguishable atoms that can be permuted to minimize the RMSD. On disk this should be stored as
+    a list of newline separated indices with a "--" separating the sets of indices if there are
+    more than one set of indistinguishable atoms.  Use "-- (integer)" to include a subset in the RMSD (to avoid undesirable boundary effects.)''')
+
+    return lprmsd
+
+def construct_metric(args):
+    if args.metric != 'lprmsd':
+        return None
+    
+    if args.lprmsd_atom_indices != 'all':
+        atom_inds = np.loadtxt(args.lprmsd_atom_indices, dtype=np.int)
+    else:
+        atom_inds = None
+
+    if args.lprmsd_permute_atoms is not None:
+        permute_inds = ReadPermFile(args.lprmsd_permute_atoms)
+    else:
+        permute_inds = None
+
+    if args.lprmsd_alt_indices is not None:
+        alt_inds = np.loadtxt(args.lprmsd_alt_indices, np.int)
+    else:
+        alt_inds = None
+
+    return LPRMSD(atom_inds, permute_inds, alt_inds)
