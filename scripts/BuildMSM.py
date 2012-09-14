@@ -38,18 +38,18 @@ def run(LagTime, assignments, Symmetrize='MLE', Prior=0.0, OutDir="./Data/"):
     outputlist = [FnTProb, FnTCounts, FnTUnSym, FnMap, FnAss, FnPops]
     arglib.die_if_path_exists(outputlist)
 
-    n_states = max(assignments.flatten()) + 1
+    n_states = np.max(assignments.flatten()) + 1
+    n_assigns_before_trim = len( np.where( assignments.flatten() != -1 )[0] )
     
     counts_after_trim, rev_counts, t_matrix, populations, mapping = MSMLib.build_msm(assignments,
         lag_time=LagTime, n_states=n_states, symmetrize=Symmetrize,
         sliding_window=True, trimming=True)
 
-
     MSMLib.apply_mapping_to_assignments(assignments, mapping)
-    n_after_trim = len(np.where( assignments.flatten() != -1 )[0] )
+    n_assigns_after_trim = len( np.where( assignments.flatten() != -1 )[0] )
     
     # Print a statement showing how much data was discarded in trimming
-    percent = (1.0 - float(n_after_trim) / float(n_states)) * 100.0
+    percent = (1.0 - float(n_assigns_after_trim) / float(n_assigns_before_trim)) * 100.0
     logger.warning("Ergodic trimming discarded: %f percent of your data", percent)
  
     # Save all output
@@ -91,6 +91,7 @@ Assignments.Fixed.h5, tCounts.UnSym.mtx""")
     parser.add_argument('output_dir')
     args = parser.parse_args()
     
+    assignments = Serializer.LoadData( args.assignments )
     
-    run(args.lagtime, args.assignments['Data'], args.symmetrize, args.prior,
+    run(args.lagtime, assignments, args.symmetrize, args.prior,
         args.output_dir)

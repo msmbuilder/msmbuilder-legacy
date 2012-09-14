@@ -1,7 +1,10 @@
 import numpy as np
-import scipy, scipy.linalg,scipy.optimize,scipy.stats
+import scipy
+import scipy.linalg
+import scipy.optimize
+import scipy.stats
 import matplotlib
-from msmbuilder import MSMLib
+
 
 def GetFormat():
     """Construct a generator to enumerate colors for plotting.
@@ -10,9 +13,9 @@ def GetFormat():
     -------
     ColorList[i] : string
         Color string
-    
-    """    
-    ColorList=[
+
+    """
+    ColorList = [
         "#99CC00",
         "#003300",
         "#00CC99",
@@ -24,14 +27,15 @@ def GetFormat():
         "#000000",
         "#CCCCCC"
         ]
-    i=0
+    i = 0
     while True:
-        i = (i+1)%len(ColorList)
+        i = (i + 1) % len(ColorList)
         yield ColorList[i]
 
 color_generator = GetFormat()
 
-def FixEntry(mapping,parameters,populations,K0,i,j,Val):
+
+def FixEntry(mapping, parameters, populations, K0, i, j, Val):
     """Constrain an entry in a rate matrix.
     
     Parameters
@@ -54,13 +58,14 @@ def FixEntry(mapping,parameters,populations,K0,i,j,Val):
     
     """
     
-    Ind = mapping.index([i,j])
+    Ind = mapping.index([i, j])
     mapping.pop(Ind)
     parameters.pop(Ind)
-    K0[i,j] = Val
-    K0[j,i] = Val * populations[i] / populations[j]
+    K0[i, j] = Val
+    K0[j, i] = Val * populations[i] / populations[j]
 
-def LogLikelihood(C,T):
+
+def LogLikelihood(C, T):
     """Calculate the likelihood of a transition matrix given counts C.
 
     Parameters
@@ -77,8 +82,9 @@ def LogLikelihood(C,T):
     
     """
     
-    f=np.sum(C*np.log(T))
+    f = np.sum(C * np.log(T))
     return f
+
 
 def ConvertTIntoK(T0):
     """Convert a transition matrix into a rate matrix.
@@ -111,7 +117,8 @@ def ConvertTIntoK(T0):
     K = K - np.diag(D2)
     return(K)
 
-def ConstructRateFromParams(parameters,mapping,populations,K0):
+
+def ConstructRateFromParams(parameters, mapping, populations, K0):
     """Construct a rate matrix from a flat array of parameters.
 
     Parameters
@@ -144,13 +151,14 @@ def ConstructRateFromParams(parameters,mapping,populations,K0):
     
     K = K0.copy()
     if len(mapping) > 0:
-        K[mapping.T[0],mapping.T[1]] = abs(parameters)
+        K[mapping.T[0], mapping.T[1]] = abs(parameters)
         X2 = abs(parameters) * populations[mapping.T[0]] / populations[mapping.T[1]]
-        K[mapping.T[1],mapping.T[0]] = X2
+        K[mapping.T[1], mapping.T[0]] = X2
 
-    K-=np.diag(K.sum(1))
+    K -= np.diag(K.sum(1))
 
     return K
+
 
 def get_parameter_mapping(K):
     """Get a mapping from 1D to 2D indices.
@@ -170,19 +178,19 @@ def get_parameter_mapping(K):
     
     """
     
-    mapping=[]
-    parameters=[]
-    NumStates=K.shape[0]
+    mapping = []
+    parameters = []
+    NumStates = K.shape[0]
     for i in range(NumStates):
         for j in range(NumStates):
-            if i > j and K[i,j] != 0:
-                mapping.append([i,j])
-                parameters.append(K[i,j])
+            if i > j and K[i, j] != 0:
+                mapping.append([i, j])
+                parameters.append(K[i, j])
 
     return mapping, parameters
                 
 
-def MaximizeRateLikelihood(parameters,mapping,populations,C,K0):
+def MaximizeRateLikelihood(parameters, mapping, populations, C, K0):
     """Maximize the likelihood of a rate matrix given assignment data.
 
     Parameters
@@ -204,19 +212,20 @@ def MaximizeRateLikelihood(parameters,mapping,populations,C,K0):
     """
 
     def obj(parameters):
-        K = ConstructRateFromParams(parameters,mapping,populations,K0)
+        K = ConstructRateFromParams(parameters, mapping, populations, K0)
         T = scipy.linalg.matfuncs.expm(K)
-        f = LogLikelihood(C,T)
-        return -1*f
+        f = LogLikelihood(C, T)
+        return -1 * f
 
     def callback(parameters):
         pass
 
-    ans = scipy.optimize.fmin(obj,parameters,full_output=True,xtol=1E-10,ftol=1E-10,maxfun=100000,maxiter=100000,callback=callback)[0]
+    ans = scipy.optimize.fmin(obj, parameters, full_output=True, xtol=1E-10, ftol=1E-10, maxfun=100000, maxiter=100000, callback=callback)[0]
     ans = abs(ans)
     return ans
 
-def PlotRates(KList,LagTimeList,counts_list,Tau=1):
+
+def PlotRates(KList, LagTimeList, counts_list, Tau=1):
     """Plot the intermediate SCRE output to evaluate convergence.
 
     Parameters
@@ -237,8 +246,8 @@ def PlotRates(KList,LagTimeList,counts_list,Tau=1):
     counts_list = np.array(counts_list)
     for i in range(NumStates):
         for j in range(NumStates):
-            if i > j and KList[0,i,j]> 0:
-                matplotlib.pyplot.errorbar(Tau*LagTimeList,TauList[:,i,j],fmt=color_generator.next(),yerr=TauList[:,i,j]/np.sqrt(counts_list[:,i]),label="%d-%d"%(i,j))
+            if i > j and KList[0, i, j] > 0:
+                matplotlib.pyplot.errorbar(Tau * LagTimeList, TauList[:, i, j], fmt=color_generator.next(), yerr=TauList[:, i, j] / np.sqrt(counts_list[:, i]), label="%d-%d" % (i, j))
                 #matplotlib.pyplot.plot(Tau*LagTimeList,TauList[:,i,j],color_generator.next(),label="%d-%d"%(i,j))
 
     matplotlib.pyplot.yscale('log')

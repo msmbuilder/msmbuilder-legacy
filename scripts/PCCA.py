@@ -87,8 +87,12 @@ Output: MacroAssignments.h5, a new assignments HDF file, for the Macro MSM.""")
         objective function (crisp_metastability, metastability, or crispness)''',
                         default="crisp_metastability")
     parser.add_argument('do_minimization', help='Use PCCA+ minimization', default=True)
-    
     args = parser.parse_args()
+
+    # load args
+    assignments = Serializer.LoadData(args.assignments)
+    tProb = scipy.io.mmread(args.tProb)
+    
     
     if args.do_minimization in ["False", "0"]:#workaround for arglib funniness?
         args.do_minimization = False
@@ -96,9 +100,10 @@ Output: MacroAssignments.h5, a new assignments HDF file, for the Macro MSM.""")
         args.do_minimization = True
     
     if args.algorithm == 'PCCA':
-        run_pcca(args.num_macrostates, args.assignments['Data'], args.tProb, args.output_dir)
+        run_pcca(args.num_macrostates, assignments, args.tProb, args.output_dir)
     elif args.algorithm == 'PCCA+':
-        run_pcca_plus(args.num_macrostates, args.assignments['Data'], args.tProb, args.output_dir,
-                      args.flux_cutoff, objective_function=args.objective_function,do_minimization=args.do_minimization)
+        run_pcca_plus(args.num_macrostates, assignments, tProb, args.output_dir,
+                      args.flux_cutoff, objective_function=args.objective_function,
+                      do_minimization=args.do_minimization)
     else:
         raise Exception()

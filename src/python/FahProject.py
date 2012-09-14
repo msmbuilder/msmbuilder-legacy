@@ -95,7 +95,7 @@ class FahProject(object):
         if it doesn't come up OK, sends mail to the project manager.
         """
         
-        raise NotImplementedError('Restarting WS not done yet! Sorry :(')
+        raise NotImplementedError()
         
         # restart the server, wait 60s to let it come back up
         logger.warning("Restarting server: %s", self.work_server)
@@ -138,6 +138,8 @@ class FahProject(object):
             The string to include in the email.
         """
         raise NotImplementedError('Sending email not done yet! Sorry :(')
+        
+        raise NotImplementedError()
         
         if email == None:
             logger.error("Cannot send error email - no email provided")

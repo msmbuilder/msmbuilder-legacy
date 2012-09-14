@@ -1,10 +1,13 @@
+
 #!/usr/bin/env python
 import sys, os
 import pickle
 import numpy as np
-from msmbuilder.metrics import (LPRMSD, RMSD, Dihedral,
-                                BooleanContact, AtomPairs,
-                                ContinuousContact)
+import itertools
+from pkg_resources import iter_entry_points
+from msmbuilder.metrics import (RMSD, Dihedral, BooleanContact,
+                                AtomPairs, ContinuousContact,
+                                AbstractDistanceMetric)
 
 def add_argument(group, *args, **kwargs):
     if 'default' in kwargs:
@@ -16,6 +19,14 @@ def add_argument(group, *args, **kwargs):
     group.add_argument(*args, **kwargs)
 
 ################################################################################
+
+def locate_metric_plugins(name):
+    if not name in ['add_metric_parser', 'construct_metric', 'metric_class']:
+        raise ValueError()
+
+    eps = iter_entry_points(group='msmbuilder.metrics', name=name)
+    return itertools.imap(lambda ep: ep.load(), eps)
+
 
 def add_metric_parsers(parser):
 
@@ -29,9 +40,6 @@ def add_metric_parsers(parser):
     add_argument(rmsd, '-a', dest='rmsd_atom_indices', help='Atom indices to use in RMSD calculation. Pass "all" to use all atoms.', 
         default='AtomIndices.dat')
     parser.metric_parsers.append(rmsd)
-
-    #rmsd_subparsers = rmsd.add_subparsers()
-    #rmsd_subparsers.metric = 'rmsd'
 
     dihedral = metrics_parsers.add_parser('dihedral',
         description='''DIHEDRAL: For each frame in the simulation data, we extract the
@@ -48,26 +56,7 @@ def add_metric_parsers(parser):
     add_argument(dihedral, '-m', dest='dihedral_metric', default='euclidean',
         help='which distance metric', choices=Dihedral.allowable_scipy_metrics)
     parser.metric_parsers.append(dihedral)
-#    dihedral_subparsers = dihedral.add_subparsers()
-#    dihedral_subparsers.metric = 'dihedral'
 
-    lprmsd = metrics_parsers.add_parser('lprmsd',
-        description='''LPRMSD: RMSD with the ability to to handle permutation-invariant atoms.
-        Solves the assignment problem using a linear programming solution (LP). Can handle aligning
-        on some atoms and computing the RMSD on other atoms.:''')
-    add_argument(lprmsd, '-a', dest='lprmsd_atom_indices', help='Regular atom indices. Pass "all" to use all atoms.', default='AtomIndices.dat')
-    add_argument(lprmsd, '-l', dest='lprmsd_alt_indices', default=None,
-        help='''Optional alternate atom indices for RMSD. If you want to align the trajectories
-        using one set of atom indices but then compute the distance using a different
-        set of indices, use this option. If supplied, the regular atom_indices will
-        be used for the alignment and these indices for the distance calculation''')
-    add_argument(lprmsd, '-P', dest='lprmsd_permute_atoms', default=None, help='''Atom labels to be permuted.
-    Sets of indistinguishable atoms that can be permuted to minimize the RMSD. On disk this should be stored as
-    a list of newline separated indices with a "--" separating the sets of indices if there are
-    more than one set of indistinguishable atoms.  Use "-- (integer)" to include a subset in the RMSD (to avoid undesirable boundary effects.)''')
-    parser.metric_parsers.append(lprmsd)
-#    lprmsd_subparsers = lprmsd.add_subparsers()
-#    lprmsd_subparsers.metric = 'lprmsd'
 
     contact = metrics_parsers.add_parser('contact',
         description='''CONTACT: For each frame in the simulation data, we extract the
@@ -91,8 +80,7 @@ def add_metric_parsers(parser):
     add_argument(contact, '-s', dest='contact_scheme', default='closest-heavy', help='contact scheme.',
         choices=['CA', 'closest', 'closest-heavy'])
     parser.metric_parsers.append(contact)
-    #contact_subparsers = contact.add_subparsers()
-    #contact_subparsers.metric = 'contact'
+
     
     atompairs = metrics_parsers.add_parser('atompairs',description='''ATOMPAIRS: For each frame, we
         represent the conformation as a vector of particular atom-atom distances. Then the distance
@@ -104,8 +92,7 @@ def add_metric_parsers(parser):
     add_argument(atompairs, '-m', dest='atompairs_metric', default='cityblock',
         help='which distance metric', choices=AtomPairs.allowable_scipy_metrics)
     parser.metric_parsers.append(atompairs)
-    #atompairs_subparsers = atompairs.add_subparsers()
-    #atompairs_subparsers.metric = 'atompairs'
+
     
     picklemetric = metrics_parsers.add_parser('custom', description="""CUSTOM: Use a custom
         distance metric. This requires defining your metric and saving it to a file using
@@ -114,8 +101,10 @@ def add_metric_parsers(parser):
     add_argument(picklemetric, '-i', dest='picklemetric_input', required=True,
         help="Path to pickle file for the metric")
     parser.metric_parsers.append(picklemetric)
-#    picklemetric_subparsers = picklemetric.add_subparsers()
-#    picklemetric_subparsers.metric = 'custom'
+    
+    for add_parser in locate_metric_plugins('add_metric_parser'):
+        plugin_metric_parser = add_parser(metrics_parsers, add_argument)
+        parser.metric_parsers.append(plugin_metric_parser)
     
     ################################################################################
     
@@ -130,25 +119,7 @@ def construct_metric(args):
     elif args.metric == 'dihedral':
         metric = Dihedral(metric=args.dihedral_metric,
             p=args.dihedral_p, angles=args.dihedral_angles)
-             
-    elif args.metric == 'lprmsd':
-        if args.lprmsd_atom_indices != 'all':
-            atom_inds = np.loadtxt(args.lprmsd_atom_indices, dtype=np.int)
-        else:
-            atom_inds = None
-
-        if args.lprmsd_permute_atoms is not None:
-            permute_inds = ReadPermFile(args.lprmsd_permute_atoms)
-        else:
-            permute_inds = None
-
-        if args.lprmsd_alt_indices is not None:
-            alt_inds = np.loadtxt(args.lprmsd_alt_indices, np.int)
-        else:
-            alt_inds = None
     
-        metric = LPRMSD(atom_inds, permute_inds, alt_inds)
-         
     elif args.metric == 'contact':
         if args.contact_which != 'all':
             contact_which = np.loadtxt(args.contact_which,np.int)
@@ -186,6 +157,17 @@ def construct_metric(args):
             print metric
             print '#'*80
     else:
-        raise Exception("Bad metric")
+        # apply the constructor on args and take the first non-none element
+        # note that using these itertools constructs, we'll only actual
+        # execute the constructor until the match is achieved
+        metrics = itertools.imap(lambda c: c(args), locate_metric_plugins('construct_metric'))
+        try:
+            metric = itertools.dropwhile(lambda c: not c, metrics).next()
+        except StopIteration:
+            # This means that none of the plugins acceptedthe metric
+            raise RuntimeError("Bad metric. Could not be constructed by any built-in or plugin metric. Perhaps you have a poorly written plugin?")
      
+    if not isinstance(metric, AbstractDistanceMetric):
+        return ValueError("%s is not a AbstractDistanceMetric" % metric)
+
     return metric

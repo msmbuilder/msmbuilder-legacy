@@ -11,7 +11,6 @@ are pretty good. Only __getitem__, __setitem__ and __len__ are necessary.
 """
 
 from baseclasses import AbstractDistanceMetric
-from lprmsd import LPRMSD
 from rmsd import RMSD
 from dihedral import Dihedral
 from contact import BooleanContact, AtomPairs, ContinuousContact
