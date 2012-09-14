@@ -16,6 +16,8 @@ class TestTPT():
 
 
     def setUp(self):
+        
+        # load in the reference data
         self.tpt_ref_dir = os.path.join(reference_dir(), "transition_path_theory_reference")
         self.tprob = io.mmread( os.path.join(self.tpt_ref_dir, "tProb.mtx") ) #.toarray()
         self.sources   = [0]   # chosen arbitarily by TJL
@@ -23,6 +25,17 @@ class TestTPT():
         self.waypoints = [60]  # chosen arbitarily by TJL
         self.lag_time  = 1.0   # chosen arbitarily by TJL
 
+        # set up the reference data for hub scores
+        self.hub_ref_dir = os.path.join(self.tpt_ref_dir, "hub_ref")
+        K = np.loadtxt( os.path.join(self.hub_ref_dir, 'ratemat_1.dat') )
+        self.hub_T = scipy.linalg.expm( K * 0.001 ) # delta-t chosen arbitarily by TJL
+        
+        for i in range(self.hub_T.shape[0]):
+            self.hub_T[i,:] /= np.sum(self.hub_T[i,:])
+        
+        self.hc = np.loadtxt( os.path.join(self.hub_ref_dir, 'fraction_visited.dat') )
+        self.Hc = np.loadtxt( os.path.join(self.hub_ref_dir, 'hub_scores.dat') )[:,2]
+        
 
     def test_committors(self):
         Q = tpt.calculate_committors(self.sources, self.sinks, self.tprob)
@@ -73,13 +86,26 @@ class TestTPT():
         tp_time_ref = Serializer.LoadData(os.path.join(self.tpt_ref_dir, "tp_time.h5"))
         npt.assert_array_almost_equal(tp_time, tp_time_ref)
         
+    
+    def test_fraction_visits(self):
+        
+        source = [1]              # chosen by TJL
+        waypoint = [0]            # chosen by TJL
+        sinks_from_alex = [2,3,4] # chosen by TJL
+        
+        # do a subset of the calculations -- we don't want the test to take forever
+        for i in range(self.hub_T.shape[0]):
+            sink = sinks_from_alex[i]
+            hc = tpt.calculate_fraction_visits(self.hub_T, waypoint, source, sink)
+            assert hc == self.hc[i,3]
         
     def test_hub_scores(self):
-        print "Hub score test not completed yet - waiting on reference data"
         
-        #frac_visits = tpt.calculate_fraction_visits(self.tprob, self.waypoints, 
-        #                                        self.sources, self.sinks)
+        all_hub_scores = tpt.calculate_all_hub_scores(self.hub_T)
+        npt.assert_array_almost_equal( all_hub_scores, self.Hc )
         
-        #hub_score = tpt.calculate_hub_score(self.tprob, self.waypoints)
+        for waypoint in range(self.hub_T.shape[0]):
+            hub_score = tpt.calculate_hub_score(self.hub_T, waypoint)
+            assert hub_score == all_hub_scores[waypoint]
         
-        #all_hub_scores = tpt.calculate_all_hub_scores(self.tprob)
+        
