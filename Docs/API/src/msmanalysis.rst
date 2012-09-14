@@ -1,17 +1,17 @@
-MSM Analysis: :class:`msmbuilder.msm_analysis`
-******
+.. currentmodule:: msmbuilder.msm_analysis
+
+MSM Analysis: :mod:`msmbuilder.msm_analysis`
+============================================
 
 Functions for querying markov state models
 
 Notes
-=====
+-----
 Some functionality was moved to this module from MSMLib in version 2.6
-
-.. currentmodule:: msmbuilder.msm_analysis
 
 
 Model Queries
-=============
+-------------
 .. autosummary::
   :toctree: generated/
   
@@ -24,7 +24,7 @@ Model Queries
 
   
 Utils
-=====
+-----
 .. autosummary::
   :toctree: generated/
   

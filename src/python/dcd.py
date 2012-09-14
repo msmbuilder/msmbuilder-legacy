@@ -24,11 +24,11 @@ A simple interface to VMD's DCD molfile plugin.
 
 # July 2011: Initial version (Toni)
 
+import os, sys
 import numpy as np
 from ctypes import Structure, POINTER, c_float, c_double, CDLL, c_char_p, c_int
 from ctypes import c_void_p, byref
 from ctypes.util import find_library
-import sys
 import imp
 
 # define handle to dcd library as global variable (but it should only be used within this module)
@@ -199,7 +199,18 @@ class DCDReader:
 #        print coords
         return coords
 
-loadDCDLibrary()
+try:
+    loadDCDLibrary()
+except OSError:
+    # HACK for building the documentation on READTHEDOCS
+    # this is a workaround because DLL open is hard to mock
+    # but basically, if we're on the readthedocs.org build server
+    # we need to be able to import packages to introspect their docstrings,
+    # but we don't actually have any of the C libraries installed
+    if os.environ.get('READTHEDOCS', None) == 'True':
+        pass
+    else:
+        raise
 
 if __name__ == "__main__":
     if _dcdlib:

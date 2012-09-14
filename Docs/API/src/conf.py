@@ -43,12 +43,12 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.todo', 'sphinx.ext.coverage',
 #    'index': 'indexcontent.html',
 #}
 
-intersphinx_mapping = {
-    'http://docs.python.org/': None,
-    'http://docs.scipy.org/doc/numpy': None,
-    'http://docs.scipy.org/doc/scipy/reference/': None,
-    'http://matplotlib.sourceforge.net/' : None,
-}
+#intersphinx_mapping = {
+#    'http://docs.python.org/': None,
+#    'http://docs.scipy.org/doc/numpy': None,
+#    'http://docs.scipy.org/doc/scipy/reference/': None,
+#    'http://matplotlib.sourceforge.net/' : None,
+#}
 
 # autosummary
 #autoclass_content = 'both' # just put an extra 
@@ -289,6 +289,8 @@ class Mock(object):
             return Mock()
 
 MOCK_MODULES = ['argparse', 'numpy', 'scipy', 'tables', 'deap', 'fastcluster',
-    'networkx']
+                'networkx', 'scipy.sparse', 'numpy.ctypeslib', 'scipy.cluster',
+                'scipy.cluster.hierarchy', 'scipy.spatial', 'scipy.spatial.distance',
+                'scipy.linalg', 'scipy.optimize', 'scipy.sparse.linalg', 'scipy.io']
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = Mock()
