@@ -658,7 +658,7 @@ def calculate_mfpt(sinks, tprob, lag_time=1.):
 
     See Also
     --------
-    all_to_all_mfpt : function
+    calculate_all_to_all_mfpt : function
         A more efficient way to calculate all the MFPTs in a network
     """
     
@@ -721,7 +721,7 @@ def calculate_all_to_all_mfpt(tprob, populations=None):
     
     if scipy.sparse.issparse(tprob):
         tprob = tprob.toarray()
-        logger.warning('all_to_all_mfpt does not support sparse linear algebra')
+        logger.warning('calculate_all_to_all_mfpt does not support sparse linear algebra')
 
     if populations is None:
         eigens = msm_analysis.get_eigenvectors(tprob, 5)
@@ -814,6 +814,9 @@ def calculate_committors(sources, sinks, tprob):
         Q = scipy.sparse.linalg.spsolve(T.tocsr(), RHS)
     else:
         Q = np.linalg.solve(T, RHS)
+        
+    assert np.all( Q <= 1.0 )
+    assert np.all( Q >= 0.0 )
 
     return Q
     
@@ -822,12 +825,6 @@ def calculate_committors(sources, sinks, tprob):
 # Functions for computing hub scores, conditional committors, and
 # related quantities
 #
-
-
-def _hub_score_warning():
-    logger.warning("WARNING!!! This hub score code is currently unverified"
-    "it may not be correct...")
-    return
 
 
 def lump_transition_matrix(tprob, states_to_lump):
@@ -847,8 +844,6 @@ def lump_transition_matrix(tprob, states_to_lump):
     lumped : matrix
         The lumped transition probability matrix.
     """
-    
-    _hub_score_warning()
     
     # find out which indices we're keeping 
     new_N = tprob.shape[0] - len(states_to_lump) + 1
@@ -941,8 +936,6 @@ def calculate_fraction_visits(tprob, waypoints, sources, sinks,
           Article ASAP DOI: 10.1021/ct300537s
     """
      
-    _hub_score_warning()
-     
     # do some typechecking - we need to be sure that the lumped sources are in
     # the second to last row, and the lumped sinks are in the last row
     
@@ -972,15 +965,13 @@ def calculate_fraction_visits(tprob, waypoints, sources, sinks,
     if np.any(sources == waypoints) or np.any(sinks == waypoints):
         raise ValueError('sources, sinks, waypoints must all be disjoint!')
     
-    assert type(sources) == list
-    assert type(sinks) == list
-    assert type(waypoints) == list
+    assert hasattr(sources, '__iter__')
+    assert hasattr(sinks, '__iter__')
+    assert hasattr(waypoints, '__iter__')
     
     # if not provided, calculate the committors/lumped transition matrix
-    if not Q:
-        Q = calculate_committors(sources, sinks, tprob, dense=True)
-        assert np.all( Q < 1.0 )
-        assert np.all( Q > 0.0 )
+    if Q == None:
+        Q = calculate_committors(sources, sinks, tprob)
         
     # construct absorbing Markov chain (T), remove all waypoints & lumped sink
     N = tprob.shape[0]
@@ -992,7 +983,7 @@ def calculate_fraction_visits(tprob, waypoints, sources, sinks,
     R = T[:n,:m]
     assert P.shape == (n,n)
     assert R.shape == (n,m)
-    assert n == N - (len(waypoints) + 1)
+    #assert n == N - (len(waypoints) + 1)
     
     # calculate the conditional committors ( B = N*R )
     B = np.dot( np.linalg.inv( np.eye(n) - P ), R )
@@ -1009,14 +1000,16 @@ def calculate_fraction_visits(tprob, waypoints, sources, sinks,
         not_waypoint_not_sink.remove(i)
 
     B_sum[not_waypoint_not_sink] = B[:,:-1].sum(axis=1) # sum over "j"
+    assert B_sum.shape == (N,)
     
-    # we need to "add back in" the values for the waypoints
-    # note the committor conditional on C for a state in C
-    # is just the original committor - thus we cp from `q`
+    # we need to "add back in" the values for the waypoints - note the committor 
+    # conditional on C for a state in C is just the original committor
     cond_Q = Q * B_sum
-    assert cond_Q.shape == (N,N)
-    assert np.all( cond_Q < 1.0 )
-    assert np.all( cond_Q > 0.0 )
+    print "cond_Q", type(cond_Q), cond_Q.shape, (N, N)
+    #assert cond_Q.shape == (N, N)
+    print cond_Q
+    assert np.all( cond_Q <= 1.0 )
+    assert np.all( cond_Q >= 0.0 )
     
     # finally, calculate the fraction of paths h_C(A,B)
     fraction_paths = np.sum( cond_Q[:-2,:-2] * tprob[:-2,:-2]) / \
@@ -1072,8 +1065,6 @@ def calculate_hub_score(tprob, waypoints):
     ..[1] Dickson & Brooks (2012), J. Chem. Theory Comput., 
         Article ASAP DOI: 10.1021/ct300537s
     """
-    
-    _hub_score_warning()
     
     # typecheck
     if (type(waypoints) or type(waypoints)) == list:
@@ -1142,8 +1133,6 @@ def calculate_all_hub_scores(tprob):
         Article ASAP DOI: 10.1021/ct300537s
     """
     
-    _hub_score_warning()
-    
     N = tprob.shape[0]
     states = range(N)
     
@@ -1154,7 +1143,7 @@ def calculate_all_hub_scores(tprob):
     for i,waypoint in enumerate(states):
         
         Hc = 0.0
-        Q = all_to_all_mfpt(tprob) # we can save time by re-using the committors
+        Q = calculate_all_to_all_mfpt(tprob) # we can save time by re-using the committors
         
         # now loop over all combinations of sources/sinks and average
         for s1 in states:
@@ -1162,8 +1151,7 @@ def calculate_all_hub_scores(tprob):
                 for s2 in states:
                     if s1 != s2:
                         if waypoint != s2:
-                            Hc += calculate_fraction_visits(tprob, waypoints, 
-                                                            s1, s2, Q)
+                            Hc += calculate_fraction_visits(tprob, waypoint, s1, s2, Q)
         
         # store the hub score in an array
         Hc_array[i] = Hc / ( (N-1) * (N-2) )
