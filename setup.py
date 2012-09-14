@@ -6,15 +6,6 @@ VERSION="2.6.dev"
 __author__ = "MSMBuilder Team"
 __version__ = VERSION
 
-import os, sys
-from glob import glob
-# setuptools needs to come before numpy.distutils to get install_requires
-import setuptools 
-import numpy
-from distutils import sysconfig
-from numpy.distutils.core import setup, Extension
-from numpy.distutils.misc_util import Configuration
-
 # metadata for setup()
 metadata = {
     'version': VERSION,
@@ -30,8 +21,33 @@ metadata = {
     'long_description': """MSMBuilder (https://simtk.org/home/msmbuilder)
 is a library that provides tools for analyzing molecular dynamics
 simulations, particularly through the construction
-of Markov state models for conformational dynamics.""",
-    'zip_safe': False}
+of Markov state models for conformational dynamics."""}
+
+import os, sys
+
+if os.environ.get('READTHEDOCS', None) == 'True':
+    # On READTHEDOCS, the service that hosts our documentation, the build
+    # environment does not have numpy and cannot build C extension modules,
+    # so if we detect this environment variable, we're going to bail out
+    # and run a minimal setup. This only installs the python packages, which
+    # is not enough to RUN anything, but should be enough to introspect the
+    # docstrings, which is what's needed for the documentation
+    from distutils.core import setup
+    metadata['packages'] = ['msmbuilder', 'msmbuilder.scripts',
+                            'msmbuilder.geometry', 'msmbuilder.metrics']
+    metadata['package_dir'] = {'msmbuilder': 'src/python', 'msmbuilder.scripts': 'scripts'}
+    setup(**metadata)
+    sys.exit(1)
+
+
+# now procede to standard setup
+from glob import glob
+# setuptools needs to come before numpy.distutils to get install_requires
+import setuptools 
+import numpy
+from distutils import sysconfig
+from numpy.distutils.core import setup, Extension
+from numpy.distutils.misc_util import Configuration
 
 def configuration(parent_package='',top_path=None):
     "Configure the build"
@@ -106,7 +122,6 @@ def configuration(parent_package='',top_path=None):
         config.ext_modules.append(ext)
     
     return config
-
 
 if __name__ == '__main__':
     metadata['configuration'] = configuration
