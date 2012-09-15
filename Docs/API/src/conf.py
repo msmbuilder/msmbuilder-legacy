@@ -291,6 +291,7 @@ class Mock(object):
 MOCK_MODULES = ['argparse', 'numpy', 'scipy', 'tables', 'deap', 'fastcluster',
                 'networkx', 'scipy.sparse', 'numpy.ctypeslib', 'scipy.cluster',
                 'scipy.cluster.hierarchy', 'scipy.spatial', 'scipy.spatial.distance',
-                'scipy.linalg', 'scipy.optimize', 'scipy.sparse.linalg', 'scipy.io']
+                'scipy.linalg', 'scipy.optimize', 'scipy.sparse.linalg', 'scipy.io',
+                'scipy.weave', 'numpy.ma', 'matplotlib', 'matplotlib.pyplot']
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = Mock()
