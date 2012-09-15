@@ -162,13 +162,6 @@ class TestWrappers(unittest.TestCase):
         r_p = np.loadtxt(ReferenceDir +"/Data/Populations.dat")
         numpy.testing.assert_array_almost_equal(p, r_p, err_msg="Populations.dat incorrect")
 
-        # Test counts matrix (unsymmetrized)
-        uC   = scipy.io.mmread("Data/tCounts.UnSym.mtx").tocsr()
-        r_uC = scipy.io.mmread(ReferenceDir +"/Data/tCounts.UnSym.mtx").tocsr()
-        D=(uC-r_uC).data
-        Z=0.*D#we compare the data entries of the sparse matrix
-        numpy.testing.assert_array_almost_equal(D,Z, err_msg="Mapping.dat incorrect")
-
         # Test counts matrix
         C   = scipy.io.mmread("Data/tCounts.mtx")
         r_C = scipy.io.mmread(ReferenceDir +"/Data/tCounts.mtx")
@@ -179,7 +172,7 @@ class TestWrappers(unittest.TestCase):
         #normalizing makes this test no longer depend on an arbitrary scaling factor (the total number of counts)
         #the relative number of counts in the current and reference models DOES matter, however.
         
-        numpy.testing.assert_array_almost_equal(D,Z, err_msg="tCounts.mtx incorrect")
+        numpy.testing.assert_array_almost_equal(D, Z, err_msg="tCounts.mtx incorrect")
 
         # Test transition matrix
         T   = scipy.io.mmread("Data/tProb.mtx")
