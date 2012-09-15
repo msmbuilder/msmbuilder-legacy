@@ -128,7 +128,10 @@ def get_eigenvectors(t_matrix, n_eigs, epsilon=.001, dense_cutoff=50, right=Fals
     # normalize the first eigenvector (populations)
     e_vectors[:, 0] /= sum(e_vectors[:, 0])
     
-    return e_lambda[0:n_eigs], e_vectors[:, 0:n_eigs]
+    e_lambda = np.real( e_lambda[0:n_eigs] )
+    e_vectors = np.real( e_vectors[:,0:n_eigs] )
+    
+    return e_lambda, e_vectors
 
 
 def get_implied_timescales(assignments_fn, n_states, lag_times, n_implied_times=100, sliding_window=True, trimming=True, symmetrize=None, n_procs=1):
