@@ -14,7 +14,7 @@ Contents:
    intro
    metrics
    clustering
-   msmlib
+   MSMLib
    msmanalysis
    trajectory
    arglib
@@ -22,7 +22,8 @@ Contents:
    utils
    project
    fahproject
-   
+   cfep   
+
    developer
    
 Indices and tables

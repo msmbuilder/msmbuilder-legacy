@@ -39,8 +39,9 @@ def normalize_left_eigenvectors(V):
 
 
 def trim_eigenvectors_by_flux(lam, vl, flux_cutoff):
-    """Trim eigenvectors that have low equilibrium flux.
-    
+    """
+    Trim eigenvectors that have low equilibrium flux.
+
     Parameters
     ----------
     lam : nadarray
@@ -108,7 +109,6 @@ def get_maps(A):
         Mapping from flat indices (k) to square (i,j) indices.
     square map : ndarray
         Mapping from square indices (i,j) to flat indices (k).
-        
     """
 
     N = A.shape[0]
@@ -227,7 +227,6 @@ def pcca_plus(T, N, flux_cutoff=None, do_minimization=True, objective_function="
     See Also
     --------
     PCCA
-    
     """
     lam, vl = msm_analysis.get_eigenvectors(T, N)
     normalize_left_eigenvectors(vl)
@@ -550,17 +549,17 @@ def PCCA(T, num_macro, tolerance=1E-5, flux_cutoff=None):
         Specifies the numerical cutoff to use when splitting states based on sign.
     flux_cutoff : float, optional
         If enabled, discard eigenvectors with flux below this value.
-        
+
     Returns
     -------
     microstate_mapping : ndarray
         mapping from the Microstate indices to the Macrostate indices
-    
+
     Notes
     -----
     To construct a Macrostate MSM, you then need to map your Assignment data to
     the new states (e.g. MSMLib.apply_mapping_to_assignments).
-    
+
     References
     ----------
     .. [1]  Deuflhard P, et al.  "Identification of almost invariant
