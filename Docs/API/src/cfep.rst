@@ -11,6 +11,9 @@ and modifications by TJ Lane.
 This code employs `scipy.weave`, so g++ and OpenMP are
 required. Most machines should have this functionality by default.
 
+Optimization
+------------
+
 .. autoclass:: CutCoordinate
 
   .. autosummary::
