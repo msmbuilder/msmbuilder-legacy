@@ -43,12 +43,12 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.todo', 'sphinx.ext.coverage',
 #    'index': 'indexcontent.html',
 #}
 
-#intersphinx_mapping = {
-#    'http://docs.python.org/': None,
-#    'http://docs.scipy.org/doc/numpy': None,
-#    'http://docs.scipy.org/doc/scipy/reference/': None,
-#    'http://matplotlib.sourceforge.net/' : None,
-#}
+intersphinx_mapping = {
+    'http://docs.python.org/': None,
+    'http://docs.scipy.org/doc/numpy': None,
+    'http://docs.scipy.org/doc/scipy/reference/': None,
+    'http://matplotlib.sourceforge.net/' : None,
+}
 
 # autosummary
 #autoclass_content = 'both' # just put an extra 
