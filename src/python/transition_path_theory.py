@@ -48,8 +48,10 @@ logger = logging.getLogger('tpt')
 def _ensure_iterable(arg):
     if not hasattr(arg, '__iter__'):
         arg = list([int(arg)])
-        logger.warning("Passed object was not iterable,"
-              " converted it to: %s" % str(arg))
+        logger.debug("Passed object was not iterable,"
+                     " converted it to: %s" % str(arg))
+    assert hasattr(sources, '__iter__')
+    assert hasattr(sinks, '__iter__')
     return arg
 
 def _check_sources_sinks(sources, sinks):
@@ -872,7 +874,7 @@ def lump_transition_matrix(tprob, states_to_lump):
     return lumped
 
 
-def calculate_fraction_visits(tprob, waypoints, sources, sinks, 
+def calculate_fraction_visits(tprob, waypoint, sources, sinks, 
                               Q=None, return_cond_Q=False):
     """
     Calculate the fraction of times a walker on `tprob` going from `sources` 
@@ -890,8 +892,8 @@ def calculate_fraction_visits(tprob, waypoints, sources, sinks,
     ----------
     tprob : matrix
         The transition probability matrix        
-    waypoints : nd_array, int or int
-        The indices of the intermediate state(s)        
+    waypoint : int
+        The index of the intermediate state
     sources : nd_array, int or int
         The indices of the source state(s)    
     sinks : nd_array, int or int
@@ -951,41 +953,45 @@ def calculate_fraction_visits(tprob, waypoints, sources, sinks,
 
     # rearrange the transition matrix so that row -2 are the lumped sources,
     # row -1 is the lumped sinks
-    tprob = lump_transition_matrix(tprob, sources)
-    tprob = lump_transition_matrix(tprob, sinks)
+    #tprob = lump_transition_matrix(tprob, sources)
+    #tprob = lump_transition_matrix(tprob, sinks)
        
     # typecheck `waypoints` 
-    if (type(waypoints) == np.ndarray or type(waypoints) == list):
+    if type(waypoint) == int:
         pass
-    elif type(waypoints) == int:
-        waypoints = np.array([waypoints])
+    elif hasattr(waypoint, 'len')
+        len(waypoint) == 1:
+            waypoint = waypoint[0]
     else:
-        raise TypeError('Must pass waypoints as int or list/array of ints')
+        raise TypeError('Argument `waypoint` must be an int')
     
-    if np.any(sources == waypoints) or np.any(sinks == waypoints):
+    if np.any(sources == waypoint) or np.any(sinks == waypoint):
         raise ValueError('sources, sinks, waypoints must all be disjoint!')
-    
-    assert hasattr(sources, '__iter__')
-    assert hasattr(sinks, '__iter__')
-    assert hasattr(waypoints, '__iter__')
-    
+        
     # if not provided, calculate the committors/lumped transition matrix
     if Q == None:
         Q = calculate_committors(sources, sinks, tprob)
         
     # construct absorbing Markov chain (T), remove all waypoints & lumped sink
     N = tprob.shape[0]
-    T = np.delete(tprob, waypoints + [N-1], axis=0)
+    #T = np.delete(tprob, waypoints + [N-1], axis=0)
+    
+    # permute the transition matrix into cannonical form - send waypoint the the
+    # last row, and sinks to the end after that
+    perm = np.arange(N)
+    perm = np.delete(perm, sinks + [waypoint])
+    perm = np.append(perm, sinks + [waypoint])
+    print "perm", perm
+    T = MSMLib.permute_tmat(tprob, perm)
     
     # extract P, R
-    n,m = T.shape
+    #n,m = T.shape
+    n = N - len(sinks) - 1
     P = T[:n,:n]
-    R = T[:n,:m]
-    assert P.shape == (n,n)
-    assert R.shape == (n,m)
-    #assert n == N - (len(waypoints) + 1)
+    R = T[:n,n:]
     
     # calculate the conditional committors ( B = N*R )
+    print P.sum(1)
     B = np.dot( np.linalg.inv( np.eye(n) - P ), R )
     assert B.shape == (n,m)
     
