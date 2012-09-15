@@ -825,53 +825,7 @@ def calculate_committors(sources, sinks, tprob):
 #
 
 
-def lump_transition_matrix(tprob, states_to_lump):
-    """
-    Lump a set of states in a transition matrix into a macrostate,
-    combining the transition probabilities for that state.
-    
-    Parameters
-    ----------
-    tprob : matrix
-        The original transition probability matrix to lump  
-    states_to_lump: nd_array, int
-        Indicies of the states to lump into a macrostate
-    
-    Returns
-    -------
-    lumped : matrix
-        The lumped transition probability matrix.
-    """
-    
-    # find out which indices we're keeping 
-    new_N = tprob.shape[0] - len(states_to_lump) + 1
-    to_keep_inds = range(tprob.shape[0])
-    for i in states_to_lump:    # TJL: optimization point
-        to_keep_inds.remove(i)
-    m = len(to_keep_inds)
-    
-    # the new row is just the average transition probability
-    new_row = np.sum( tprob[states_to_lump, :], axis=0 )[to_keep_inds] / \
-                float(len(states_to_lump))
-    assert len(new_row) == new_N - 1 
-    
-    # fill in the "lumped" matrix with the new data
-    lumped = np.delete(tprob, states_to_lump, axis=0)
-    lumped = np.delete(lumped, states_to_lump, axis=1)
-    lumped = np.vstack([lumped, new_row])
-
-    A = np.zeros((lumped.shape[0], 1))
-    A[:,0] = 1.0 - np.sum(lumped, axis=1).flatten()
-    lumped = np.hstack( [ lumped, A ] )
-    
-    assert lumped.shape[0] == lumped.shape[1]
-    assert np.all( lumped.sum(1) == np.ones(lumped.shape[0]) )
-
-    return lumped
-
-
-def calculate_fraction_visits(tprob, waypoint, sources, sinks, 
-                              Q=None, return_cond_Q=False):
+def calculate_fraction_visits(tprob, waypoint, sources, sinks, return_cond_Q=False):
     """
     Calculate the fraction of times a walker on `tprob` going from `sources` 
     to `sinks` will travel through the set of states `waypoints` en route.
@@ -879,10 +833,10 @@ def calculate_fraction_visits(tprob, waypoint, sources, sinks,
     Computes the conditional committors q^{ABC^+} and uses them to find the
     fraction of paths mentioned above. The conditional committors can be 
     
-    Note that in the notation of Dickson et. al.
+    Note that in the notation of Dickson et. al. this computes h_c(A,B), with
         sources   = A
         sinks     = B
-        waypoints = C
+        waypoint  = C
         
     Parameters
     ----------
@@ -904,14 +858,6 @@ def calculate_fraction_visits(tprob, waypoint, sources, sinks,
         by `waypoints` on its way.
     cond_Q : nd_array, float (optional)
         Optionally returned (`return_cond_Q`)
-    
-    Additional Parameters
-    ---------------------
-    Q : nd_array, float
-        If you have the committors for the lumped transition matrix
-        already calculated, pass them here to speed the computation.
-        This argument is used heavily in the related function `hub_score`
-        and is primarily intended for use there.
         
     See Also
     --------
@@ -919,8 +865,7 @@ def calculate_fraction_visits(tprob, waypoint, sources, sinks,
         Compute the 'hub score', the weighted fraction of visits for an
         entire network.      
     calculate_all_hub_scores : function
-        A more efficient way to compute the hub score for every state in a
-        network.
+        Wrapper to compute all the hub scores in a network.
         
     Notes
     -----
@@ -946,11 +891,6 @@ def calculate_fraction_visits(tprob, waypoint, sources, sinks,
                             'numpy array. \n%s' % e)
     
     sources, sinks = _check_sources_sinks(sources, sinks)
-
-    # rearrange the transition matrix so that row -2 are the lumped sources,
-    # row -1 is the lumped sinks
-    #tprob = lump_transition_matrix(tprob, sources)
-    #tprob = lump_transition_matrix(tprob, sinks)
        
     # typecheck `waypoints` 
     if type(waypoint) == int:
@@ -963,61 +903,46 @@ def calculate_fraction_visits(tprob, waypoint, sources, sinks,
     
     if np.any(sources == waypoint) or np.any(sinks == waypoint):
         raise ValueError('sources, sinks, waypoints must all be disjoint!')
-        
-    # if not provided, calculate the committors/lumped transition matrix
-    if Q == None:
-        Q = calculate_committors(sources, sinks, tprob)
-        
-    # construct absorbing Markov chain (T), remove all waypoints & lumped sink
+
     N = tprob.shape[0]
-    #T = np.delete(tprob, waypoints + [N-1], axis=0)
     
     # permute the transition matrix into cannonical form - send waypoint the the
     # last row, and sinks to the end after that
     perm = np.arange(N)
     perm = np.delete(perm, sinks + [waypoint])
     perm = np.append(perm, sinks + [waypoint])
-    print "perm", perm
-    T = MSMLib.permute_tmat(tprob, perm)
+    T = MSMLib.permute_mat(tprob, perm)
+    
+    Q = calculate_committors(sources, sinks, T)
     
     # extract P, R
-    #n,m = T.shape
     n = N - len(sinks) - 1
     P = T[:n,:n]
     R = T[:n,n:]
     
-    # calculate the conditional committors ( B = N*R )
-    print P.sum(1)
+    # calculate the conditional committors ( B = N*R ), B[i,j] is the prob state i
+    # ends in j, where j runs over the sinks + waypoint (waypoint is position -1)
     B = np.dot( np.linalg.inv( np.eye(n) - P ), R )
-    assert B.shape == (n,m)
     
-    # Now, B[i,-1] is the prob state i ends in a sink
-    # while B[i,j] is the prob state i ends in waypoints[j]
-    # we sum over all of the waypoints in the next line
-    B_sum = np.zeros(N)
-    B_sum[waypoints] = 1.0
-    
-    not_waypoint_not_sink = range(N)
-    for i in waypoints + sinks:
-        not_waypoint_not_sink.remove(i)
-
-    B_sum[not_waypoint_not_sink] = B[:,:-1].sum(axis=1) # sum over "j"
-    assert B_sum.shape == (N,)
-    
-    # we need to "add back in" the values for the waypoints - note the committor 
-    # conditional on C for a state in C is just the original committor
-    cond_Q = Q * B_sum
-    print "cond_Q", type(cond_Q), cond_Q.shape, (N, N)
-    #assert cond_Q.shape == (N, N)
-    print cond_Q
+    # add probs for the sinks, waypoint
+    b = np.append( B[:,-1].flatten(), [0.0]*(N-n-1) + [1.0] ) 
+    cond_Q = Q * b
+    assert cond_Q.shape == (N,)
     assert np.all( cond_Q <= 1.0 )
     assert np.all( cond_Q >= 0.0 )
     
     # finally, calculate the fraction of paths h_C(A,B)
-    fraction_paths = np.sum( cond_Q[:-2,:-2] * tprob[:-2,:-2]) / \
-                        ( tprob[-2,-1] + np.sum( Q[:-2,:-2] * tprob[:-2,:-2] ) )
+    numer = 0.0
+    denmr = 0.0
+    for source in sources:
+        numer += np.sum( T[source,:] * cond_Q )
+        denmr += np.sum( T[source,:] * Q )
+        denmr += np.sum( T[source,sinks] )
+        
+    fraction_paths = numer / denmr
     
     if return_cond_Q:
+        cond_Q = cond_Q[ np.argsort(perms) ] # put back in orig. order
         return fraction_paths, cond_Q
     else:
         return fraction_paths
@@ -1087,7 +1012,7 @@ def calculate_hub_score(tprob, waypoints):
     for s1 in states_to_include:
         for s2 in states_to_include:
             if (s1 != s2) and (s1 not in waypoints) and (s2 not in waypoints):
-                Hc += calculate_fraction_visits(tprob, waypoints, s1, s2, 
+                Hc += calculate_fraction_visits(tprob, waypoints, [s1], [s2], 
                                                 Q=None, return_cond_Q=False)
     
     Hc /= ( (N-1) * (N-2) )
@@ -1145,7 +1070,6 @@ def calculate_all_hub_scores(tprob):
     for i,waypoint in enumerate(states):
         
         Hc = 0.0
-        Q = calculate_all_to_all_mfpt(tprob) # we can save time by re-using the committors
         
         # now loop over all combinations of sources/sinks and average
         for s1 in states:
@@ -1153,7 +1077,7 @@ def calculate_all_hub_scores(tprob):
                 for s2 in states:
                     if s1 != s2:
                         if waypoint != s2:
-                            Hc += calculate_fraction_visits(tprob, waypoint, s1, s2, Q)
+                            Hc += calculate_fraction_visits(tprob, waypoint, [s1], [s2])
         
         # store the hub score in an array
         Hc_array[i] = Hc / ( (N-1) * (N-2) )
