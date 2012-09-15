@@ -28,7 +28,7 @@ class TestTPT():
         # set up the reference data for hub scores
         self.hub_ref_dir = os.path.join(self.tpt_ref_dir, "hub_ref")
         K = np.loadtxt( os.path.join(self.hub_ref_dir, 'ratemat_1.dat') )
-        self.hub_T = scipy.linalg.expm( K * 0.001 ) # delta-t chosen arbitarily by TJL
+        self.hub_T = scipy.linalg.expm( K ) # delta-t should not affect hub scores
         
         for i in range(self.hub_T.shape[0]):
             self.hub_T[i,:] /= np.sum(self.hub_T[i,:])
@@ -90,14 +90,14 @@ class TestTPT():
     def test_fraction_visits(self):
         
         source = [1]              # chosen by TJL
-        waypoint = [0]            # chosen by TJL
+        waypoint = 0              # chosen by TJL
         sinks_from_alex = [2,3,4] # chosen by TJL
         
         # do a subset of the calculations -- we don't want the test to take forever
         for i in range(self.hub_T.shape[0]):
             sink = sinks_from_alex[i]
             hc = tpt.calculate_fraction_visits(self.hub_T, waypoint, source, sink)
-            assert hc == self.hc[i,3]
+            assert np.abs(hc - self.hc[i,3]) < 0.0001
         
     @expected_failure
     def test_hub_scores(self):
@@ -107,6 +107,6 @@ class TestTPT():
         
         for waypoint in range(self.hub_T.shape[0]):
             hub_score = tpt.calculate_hub_score(self.hub_T, waypoint)
-            assert hub_score == all_hub_scores[waypoint]
+            assert np.abs(hub_score - all_hub_scores[waypoint]) < 0.0001
         
         
