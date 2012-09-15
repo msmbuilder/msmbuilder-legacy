@@ -14,7 +14,7 @@ Contents:
    intro
    metrics
    clustering
-   MSMLib
+   msmlib
    msmanalysis
    trajectory
    arglib
