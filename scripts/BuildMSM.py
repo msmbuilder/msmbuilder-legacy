@@ -28,22 +28,23 @@ logger = logging.getLogger(__name__)
 
 def run(LagTime, assignments, Symmetrize='MLE', Prior=0.0, OutDir="./Data/"):
 
-
+    # set the filenames for output
     FnTProb = os.path.join(OutDir, "tProb.mtx")
     FnTCounts = os.path.join(OutDir, "tCounts.mtx")
-    FnTUnSym = os.path.join(OutDir, "tCounts.UnSym.mtx")
     FnMap = os.path.join(OutDir, "Mapping.dat")
     FnAss = os.path.join(OutDir, "Assignments.Fixed.h5")
     FnPops = os.path.join(OutDir, "Populations.dat")
-    outputlist = [FnTProb, FnTCounts, FnTUnSym, FnMap, FnAss, FnPops]
+    
+    # make sure none are taken
+    outputlist = [FnTProb, FnTCounts, FnMap, FnAss, FnPops]
     arglib.die_if_path_exists(outputlist)
 
     n_states = np.max(assignments.flatten()) + 1
     n_assigns_before_trim = len( np.where( assignments.flatten() != -1 )[0] )
     
-    counts_after_trim, rev_counts, t_matrix, populations, mapping = MSMLib.build_msm(assignments,
-        lag_time=LagTime, n_states=n_states, symmetrize=Symmetrize,
-        sliding_window=True, trimming=True)
+    rev_counts, t_matrix, populations, mapping = MSMLib.build_msm(assignments,
+        lag_time=LagTime, symmetrize=Symmetrize,
+        sliding_window=True, trim=True)
 
     MSMLib.apply_mapping_to_assignments(assignments, mapping)
     n_assigns_after_trim = len( np.where( assignments.flatten() != -1 )[0] )
@@ -57,7 +58,6 @@ def run(LagTime, assignments, Symmetrize='MLE', Prior=0.0, OutDir="./Data/"):
     np.savetxt(FnMap, mapping,"%d")
     scipy.io.mmwrite(str(FnTProb), t_matrix)
     scipy.io.mmwrite(str(FnTCounts), rev_counts)
-    scipy.io.mmwrite(str(FnTUnSym), counts_after_trim)
     Serializer.SaveData(FnAss, assignments)
 
     for output in outputlist:

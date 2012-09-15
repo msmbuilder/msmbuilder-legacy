@@ -50,8 +50,7 @@ def _ensure_iterable(arg):
         arg = list([int(arg)])
         logger.debug("Passed object was not iterable,"
                      " converted it to: %s" % str(arg))
-    assert hasattr(sources, '__iter__')
-    assert hasattr(sinks, '__iter__')
+    assert hasattr(arg, '__iter__')
     return arg
 
 def _check_sources_sinks(sources, sinks):
@@ -956,8 +955,8 @@ def calculate_fraction_visits(tprob, waypoint, sources, sinks,
     # typecheck `waypoints` 
     if type(waypoint) == int:
         pass
-    elif hasattr(waypoint, 'len')
-        len(waypoint) == 1:
+    elif hasattr(waypoint, 'len'):
+        if len(waypoint) == 1:
             waypoint = waypoint[0]
     else:
         raise TypeError('Argument `waypoint` must be an int')

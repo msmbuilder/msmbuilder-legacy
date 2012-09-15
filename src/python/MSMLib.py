@@ -136,79 +136,121 @@ def estimate_transition_matrix(count_matrix):
     return tProb
 
 
-def build_msm(assignments, lag_time, n_states=None, symmetrize='MLE', sliding_window=True, trimming=True, get_populations=False):
+def build_msm(assignments, lag_time, symmetrize='MLE', sliding_window=True, trim=True):
     """
-    Build a basic transition probability MSM
+    Given trajectories in a discrete state space (`assignments`), estimate the
+    transition probability matrix governing dynamics on that space.
     
-    First, get the counts matrix. Next, use Tarjan's algorithm
-    to get the maximal strongly ergodic subgraph. From this, estimate a reversible
-    counts matrix.
+    Specifically, this function does a number of things (in order):
+        (1) Count the transitions in `assignments` at a specific lag time
+        (2) Optionally employ Tarjan's algorithm to discard unconnected
+            components of the network.
+        (3) Optionally modify the estimate of the transitions to account for
+            the fact that the system dynamics are reversible.
+        (4) Estimate the most likely transition probability matrix given the
+            data.
+        (5) Compute the equilibirum populations of each state dicated by the
+            transition matrix.
     
     Parameters
     ----------
-    assignments : np.ndarray
-        2D msmbuilder assignmennts array
+    assignments : np.ndarray, int
+        2D msmbuilder assignments array
     lag_time :
-        the lag time to build the msm with, in frames
-    n_states :int, optional
-        number of states in `assignments`. If unsupplied, we'll scan assignments
-        for this.
+        the lag time to build the msm with, in units of frames
     symmetrize : {'MLE', 'Transpose', None}, optional
-        symmetrization scheme so that we have reversible counts
+        symmetrization scheme to apply to estimate reversiblity
     sliding_window : bool, optional
-        used in constructing the counts matrix
-    trimming : bool, optional
-        should we trim?
-    get_populations : bool, optional
-        When using symmetrize=None, getting the populations requires some extra
-        work (calculating an eigenvector). If you don't need the populations,
-        there's no reason to compute them. For MLE and Transpose, the populations
-        come free so we'll return them anyway.
+        Whether or not to employ sliding window esimation in the counting 
+        of transitions. If True, all frames of reference are used when 
+        counting, if false, only the first frame of reference is used.
+    trim : bool, optional
+        If true, trims out unconnected components of the MSM network
     
     Returns
     -------
-    counts : scipy.sparse.csr_matrix
-    rev_counts : scipy.sparse.csr_matric
+    counts : scipy.sparse.csr_matric
+        The counts matrix for the MSM, with reversibility applied.
     t_matrix : scipy.sparse_csr_matrix
-    populations : np.ndarray
+        The most likely transition matrix, given counts
+    populations : np.ndarray, float
+        The equilibirum populations of each state
     mapping : np.ndarray
+        A vector mapping the old state indices in `assignments` to
+        the new state indices in the objects returned. This is
+        necessary since the `trim`ing procedue can remove states.
     """
+    
+    counts = get_count_matrix_from_assignments(assignments, lag_time=lag_time, 
+                                               sliding_window=sliding_window)
+    if trim:
+        counts, mapping = ergodic_trim(counts)
+    else:
+        mapping = np.arange( counts.shape[0] )
+    
+    # Apply a symmetrization scheme
+    t_matrix, counts = build_msm_from_counts(counts, lag_time, 
+                                             symmetrize, return_rev_counts=True)
+    
+    # compute the equilibrium populations
+    if symmetrize in ['mle', 'transpose']:
+        populations = np.array(rev_counts.sum(0)).flatten()
+    else:
+        vectors = msm_analysis.get_eigenvectors(t_matrix, 5)[1]
+        populations = vectors[:, 0]
+    populations /= populations.sum()
+    
+    return counts, t_matrix, populations, mapping
+
+
+def build_msm_from_counts(counts, lag_time, symmetrize, return_rev_counts=False):
+    """
+    Estimates the transition probability matrix from the counts matrix.
+    
+    Parameters
+    ----------
+    counts : matrix
+        the MSM counts matrix
+    lag_time :
+        the lag time to build the msm with, in frames
+    symmetrize : {'MLE', 'Transpose', None}
+        symmetrization scheme so that we have reversible counts
+    return_rev_counts : bool
+        whether or not to return the reversible counts or not
+        
+        
+    Returns
+    -------
+    t_matrix : matrix
+        the transition probability matrix
+    rev_counts : matrix
+        the estimate of the reversible counts 
+        (only returned if `return_rev_counts` is True)
+    """
+    
     symmetrize = str(symmetrize).lower()
     symmetrization_error = ValueError("Invalid symmetrization scheme requested: %s. Exiting." % symmetrize)
     if symmetrize not in ['mle', 'transpose', 'none']:
         raise symmetrization_error
     
-    counts = get_count_matrix_from_assignments(assignments, n_states=n_states, lag_time=lag_time, sliding_window=sliding_window)
-    if trimming:
-        counts, mapping = ergodic_trim(counts) 
-    
-    # Apply a symmetrization scheme
     if symmetrize == 'mle':
         rev_counts = mle_reversible_count_matrix(counts, prior=0.0)
-    
+
     elif symmetrize == 'transpose':
         rev_counts = 0.5*(counts + counts.transpose())
-        
+
     elif symmetrize == 'none':
         rev_counts = counts
-        
+
     else:
         raise symmetrization_error
     
     t_matrix = estimate_transition_matrix(rev_counts)
     
-    if symmetrize in ['mle', 'transpose']:
-        populations = np.array(rev_counts.sum(0)).flatten()
-    elif get_populations and symmetrize == 'none':
-        vectors = msm_analysis.get_eigenvectors(t_matrix, 5)[1]
-        populations = vectors[:, 0]
+    if return_rev_counts:
+        return t_matrix, rev_counts
     else:
-        populations = None
-    
-    if populations is not None:
-        populations /= populations.sum()
-    
-    return counts, rev_counts, t_matrix, populations, mapping
+        return t_matrix
 
 
 def get_count_matrix_from_assignments(assignments, n_states=None, lag_time=1, sliding_window=True):
@@ -785,6 +827,47 @@ def mle_reversible_count_matrix(count_matrix, prior=0.0, initial_guess=None):
     
     return X
 
+
+def permute_mat(A, permutation):
+    """
+    Permutes the indices of a transition probability matrix.
+    
+    This functions simply switches the lables of `A` rows and
+    columns from [0, 1, 2, ...] to `permutation`.
+    
+    Parameters
+    ----------
+    tprob : matrix
+    
+    permutation: ndarray, int
+        The permutation array, a list of unique indices that 
+    
+    Returns
+    -------
+    permuted_A : matrix
+        The permuted matrix
+    """
+    
+    if scipy.sparse.issparse(A):
+        sparse = True
+    else:
+        sparse = False
+    
+    if sparse:
+        
+        Pi = scipy.sparse.lil_matrix(A.shape)
+        for i in range(A.shape[0]):
+            Pi[i,permutation[i]] = 1.0 # send i -> correct place
+        permuted_A = Pi * A * Pi.T
+        
+    else:
+        
+        Pi = np.zeros(A.shape)
+        for i in range(A.shape[0]):
+            Pi[i,permutation[i]] = 1.0 # send i -> correct place
+        permuted_A = np.dot( Pi, np.dot( A, Pi.T ) )
+    
+    return permuted_A
 
 
 ######################################################################

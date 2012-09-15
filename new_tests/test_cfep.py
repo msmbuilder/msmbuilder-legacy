@@ -10,6 +10,8 @@ Test all code: need generators for WW domain
 
 """
 
+import os
+
 import numpy as np
 import scipy
 from scipy import io
@@ -17,6 +19,7 @@ from scipy import io
 from msmbuilder import Trajectory
 from msmbuilder import cfep
 
+from common import reference_dir
 
 
 def ref_calc_cFEP(counts, lag_time, rxn_coordinate, rescale=True):
@@ -87,7 +90,7 @@ class TestCfep():
     
     def setUp(self):
         
-        test_dir = "./reference/cfep_reference/"
+        test_dir = os.path.join( reference_dir(), 'cfep_reference/' )
     
         self.generators = Trajectory.LoadTrajectoryFile(test_dir + 'Gens.lh5')
         N = len(self.generators)
