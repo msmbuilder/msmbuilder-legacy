@@ -22,7 +22,8 @@ Contents:
    utils
    project
    fahproject
-   
+   cfep   
+
    developer
    
 Indices and tables
