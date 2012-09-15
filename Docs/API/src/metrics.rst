@@ -1,4 +1,4 @@
-Distance Metrics: :class:`msmbuilder.metrics`
+Distance Metrics: :mod:`msmbuilder.metrics`
 =============================================
 
 .. currentmodule:: msmbuilder.metrics
@@ -19,11 +19,9 @@ Currently, the following distance metrics are implemented:
 
 :class:`msmbuilder.metrics.AtomPairs` While ContinuousCotact monitors the distance between `residues`, AtomPairs monitors the distance between specific atoms. Each frame is represented by the pairwise distance between a set of atoms, and the distance between frames is computed based on the the distance between these vectors of pairwise distances.
 
-:class:`msmbuilder.metrics.Hybrid` This class can be used to compose metrics additively. For example, you can have a metric that is 0.5 * rmsd + 0.5 * dihedral. Note that the different metrics are probably in different units, so you'll have to be careful what weights you want to give them when you add them.
+:class:`msmbuilder.metrics.hybrid.Hybrid` This class can be used to compose metrics additively. For example, you can have a metric that is 0.5 * rmsd + 0.5 * dihedral. Note that the different metrics are probably in different units, so you'll have to be careful what weights you want to give them when you add them.
 
-:class:`msmbuilder.metrics.HybridPNorm` This metric is used to compose other metrics by adding them in quadrature (p=2) or some other power mean. It is more general than :class:`msmbuilder.metrics.Hybrid`, which is a special case for p=1.
-
-:class:`msmbuilder.metrics.Rg` This just compares frames based on the difference in their Rg (one number).
+:class:`msmbuilder.metrics.hybrid.HybridPNorm` This metric is used to compose other metrics by adding them in quadrature (p=2) or some other power mean. It is more general than :class:`msmbuilder.metrics.Hybrid`, which is a special case for p=1.
 
 Performance Notes
 -----------------
@@ -116,30 +114,19 @@ Vectorized Metrics
     AtomPairs.all_pairwise
     AtomPairs.all_to_all
 
-.. autoclass:: msmbuilder.metrics.Rg
-  :show-inheritance:
-
-  .. autosummary::
-    :toctree: generated/ 
-
-    Rg.__init__
-    Rg.prepare_trajectory
-    Rg.one_to_all
-    Rg.one_to_many
-    Rg.many_to_many
-    Rg.all_pairwise
-    Rg.all_to_all
   
 
 Combination Metrics
 ~~~~~~~~~~~~~~~~~~~
+.. currentmodule:: msmbuilder.metrics.hybrid
 
-.. autoclass:: msmbuilder.metrics.Hybrid
+.. autoclass:: Hybrid
 
-.. autoclass:: msmbuilder.metrics.HybridPNorm
+.. autoclass:: HybridPNorm
 
 Abstract Classes
 ----------------
+.. currentmodule:: msmbuilder.metrics.baseclasses
 
 .. autoclass:: AbstractDistanceMetric
 
@@ -167,7 +154,7 @@ Abstract Classes
 
 Utility Methods
 ---------------
-
+.. currentmodule:: msmbuilder.metrics.core
 .. autosummary::
   :toctree: generated/
 
