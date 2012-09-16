@@ -40,10 +40,10 @@ __all__ = [
 "MSMLib",
 "lumping", 
 "PDB", 
+'msmio'
 "plot_graph", 
-"Project", 
-"Serializer", 
-"Trajectory", 
+"project", 
+"trajectory", 
 "transition_path_theory"
 "xtc",
 "utils"
@@ -54,9 +54,5 @@ __LOGGING_FORMAT = '%(asctime)s: %(levelname)s: %(message)s'
 logging.basicConfig(format=__LOGGING_FORMAT, level=logging.INFO, datefmt="%Y-%m-%d %H:%M:%S")
 
 import PDB
-from Serializer import Serializer
-from Conformation import ConformationBaseClass
-from Conformation import Conformation
-from Trajectory import Trajectory
-from Project import Project
-from FahProject import FahProject
+from trajectory import Trajectory
+from project import Project

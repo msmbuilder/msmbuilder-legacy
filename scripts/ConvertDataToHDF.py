@@ -24,8 +24,7 @@ import glob
 import cPickle
 
 from msmbuilder import FahProject
-from msmbuilder import Project
-from msmbuilder.utils import keynat
+from msmbuilder import project
 import logging
 logger = logging.getLogger(__name__)
 
@@ -37,42 +36,15 @@ except:
 from msmbuilder.arglib import ArgumentParser, die_if_path_exists
 
 
-def yield_trajectory_filelist_from_dir( InputDir, itype ):
-
-    logger.warning("WARNING: Sorting trajectory files by numerical values in their names.")
-    logger.warning("Ensure that numbering is as intended.")
-
-    traj_dirs = glob.glob(InputDir+"/*")
-    traj_dirs.sort(key=keynat)
-
-    Flist = [] # will hold a list of all the files
-
-    logger.info("Found %s trajectories", len(traj_dirs))
-    for traj_dir in traj_dirs:
-         toadd = glob.glob( traj_dir + '/*'+itype )
-         toadd.sort(key=keynat)
-         if toadd:
-             Flist.append(toadd)
-
-    logger.info("Loading data: %s", Flist)
-
-    return Flist
-
-
 def run(projectfn, PDBfn, InputDir, source, mingen, stride, rmsd_cutoff, 
         parallel='None'):
 
     # check if we are doing an update or a fresh run
-    if os.path.exists( projectfn ):
+    if os.path.exists(projectfn):
         logger.info("Found project info file encoding previous work, running in update mode...")
         update = True
     else:
         update = False
-
-    # Check output paths
-    if not update:
-        die_if_path_exists("Trajectories")
-        die_if_path_exists("ProjectInfo.h5")
 
     logger.info("Looking for %s stype data in %s", source, InputDir)
     
@@ -86,24 +58,14 @@ def run(projectfn, PDBfn, InputDir, source, mingen, stride, rmsd_cutoff,
 
         if update:
             raise NotImplementedError("Ack! Update mode is not yet ready for 'file' mode")
+
+        if 'dcd' in source:
+            itype='.dcd'
+        else:
+            itype='.xtc'
         
-
-        if 'dcd' in source: itype='.dcd'
-        else: itype='.xtc'
-
-        Flist = yield_trajectory_filelist_from_dir( InputDir, itype )
-        Project.convert_trajectories_to_lh5(PDBfn, Flist,
-                                            input_file_type=itype, stride=stride, 
-                                            parallel=parallel)
-
-        # memory is a map: memory[ trajectory-dir ] = (lh5-file-path, num-files-in-traj-dir)
-        memory = {}
-        for i, trj_dir in enumerate( os.listdir( InputDir ) ): # TJL: should check this!!
-            num_raw_trajs = len( glob.glob( trj_dir + "/*" + itype ) )
-            memory[ trj_dir ] = ( "trj%d.lh5" % i, num_raw_trajs )
-
-        Project.CreateProjectFromDir(Filename=projectfn, ConfFilename=PDBfn, 
-                                     TrajFileType=".lh5", initial_memory=cPickle.dumps( memory ))
+        pb = project.ProjectBuilder(InputDir, itype, PDBfn, stride=stride)
+        projectfn = pb.project.save(projectfn)
 
     # If FAH option, seach through a RUNs/CLONEs/frameS.xtc data structure
     elif source == 'fah':
@@ -139,7 +101,7 @@ def run(projectfn, PDBfn, InputDir, source, mingen, stride, rmsd_cutoff,
     else:
         raise Exception("Invalid argument for source: %s" % source)
 
-    assert os.path.exists(projectfn)
+    assert os.path.exists(projectfn), '%s does not exist' % projectfn
     logger.info("Finished data conversion successfully.")
     logger.info("Generated: %s, Trajectories/, Data/", projectfn)
 

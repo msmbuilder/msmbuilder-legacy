@@ -5,7 +5,7 @@ import warnings
 from msmbuilder import arglib
 from msmbuilder import clustering
 from msmbuilder import Project
-from msmbuilder import Serializer
+from msmbuilder import msmio
 from msmbuilder import Trajectory
 from msmbuilder.arglib import die_if_path_exists
 import logging
@@ -110,13 +110,13 @@ for metric_parser in parser.metric_parsers: # arglib stores the metric subparser
     add_argument(hier, '-o', dest='hierarchical_save_zmatrix', help='Save Z-matrix to disk', default='Data/Zmatrix.h5')
 
 def load_trajectories(projectfn, stride):
-    project = Project.LoadFromHDF(projectfn)
+    project = Project.load_from(projectfn)
 
     list_of_trajs = []
-    for i in xrange(project['NumTrajs']):
+    for i in xrange(project.n_trajs):
         # note, LoadTraj is only using the fast strided loading for
         # HDF5 formatted trajs
-        traj = project.LoadTraj(i, stride=stride)
+        traj = project.load_traj(i, stride=stride)
         list_of_trajs.append(traj)
 
     return list_of_trajs
@@ -191,8 +191,8 @@ could stride a little at the begining, but its not recommended.""")
             
             logger.info('Since stride=1, Saving %s', args.assignments)
             logger.info('Since stride=1, Saving %s', args.distances)
-            Serializer.SaveData(args.assignments, assignments)
-            Serializer.SaveData(args.distances, distances)
+            msmio.saveh(args.assignments, assignments)
+            msmio.saveh(args.distances, distances)
 
 if __name__ == '__main__':
     args, metric = parser.parse_args()

@@ -25,8 +25,8 @@ import tables
 import numpy as np
 
 from msmbuilder import PDB
-from msmbuilder import Serializer
-from msmbuilder import ConformationBaseClass, Conformation
+from msmbuilder import msmio
+from msmbuilder.Conformation import ConformationBaseClass, Conformation
 from msmbuilder import xtc
 from msmbuilder import dcd
 import warnings
@@ -181,16 +181,15 @@ class Trajectory(ConformationBaseClass):
         Filename : str
             location to save to
         Precision : float, optional
-            I'm not really sure what this does (RTM 6/27).
+            Precision to save xyzlist
         """
-        Serializer.CheckIfFileExists(Filename)
-        key="XYZList"
-        X=self.pop(key)
-        Serializer.SaveToHDF(self,Filename)
-        Rounded=_ConvertToLossyIntegers(X,Precision)
-        self[key]=Rounded
-        Serializer.SaveEntryAsEArray(self[key],key,Filename=Filename)
-        self[key]=X
+        self.pop('IndexList')
+        
+        xyzlist = self.pop('XYZList')
+        rounded = _ConvertToLossyIntegers(xyzlist, Precision)
+        self['XYZList'] = rounded
+        msmio.saveh(Filename, **self)
+        self['XYZList'] = xyzlist
         
     def SaveToXTC(self,Filename,Precision=default_precision):
         """Dump the coordinates to XTC
@@ -203,7 +202,8 @@ class Trajectory(ConformationBaseClass):
             I'm not really sure what this does (RTM 6/27).
         """
  
-        Serializer.CheckIfFileExists(Filename)
+        if os.path.exists(Filename):
+            raise IOError("%s already exists" % Filename)
         XTCFile=xtc.XTCWriter(Filename)
         for i in range(len(self["XYZList"])):
             XTCFile.write(self["XYZList"][i],1,i,np.eye(3,3,dtype='float32'),Precision)
@@ -480,7 +480,7 @@ class Trajectory(ConformationBaseClass):
                                             # to line up
                 ChunkSize -= 1
 
-        A=Serializer()
+        A={}
         F=tables.File(TrajFilename,'r')
         # load all the data other than XYZList
 
@@ -493,7 +493,7 @@ class Trajectory(ConformationBaseClass):
 
             # IndexList is a VLArray, so we need to read the whole list with node.read() (same as node[:]) and then loop through each
                 # row (residue) and remove the atom indices that are not wanted
-            A['IndexList'] = [ [ i for i in row if (i in AtomIndices) ] for row in F.root.IndexList[:] ]
+            #A['IndexList'] = [ [ i for i in row if (i in AtomIndices) ] for row in F.root.IndexList[:] ]
             
         else:
             A['AtomID'] = np.array( F.root.AtomID[:], dtype=np.int32 )
@@ -502,9 +502,9 @@ class Trajectory(ConformationBaseClass):
             A['ResidueID'] = np.array( F.root.ResidueID[:], dtype=np.int32 )
             A['ResidueNames'] = np.array( F.root.ResidueNames[:] )
             
-            A['IndexList'] = F.root.IndexList[:]
+            #A['IndexList'] = F.root.IndexList[:]
 
-        A['SerializerFilename'] = os.path.abspath(TrajFilename)
+        #A['SerializerFilename'] = os.path.abspath(TrajFilename)
 
         # Loaded everything except XYZList
 

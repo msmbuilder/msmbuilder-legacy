@@ -12,8 +12,7 @@ import scipy.cluster.hierarchy
 
 
 from msmbuilder import metrics
-from msmbuilder.Trajectory import Trajectory
-from msmbuilder.Serializer import Serializer
+from msmbuilder import Trajectory
 from msmbuilder.utils import uneven_zip, deprecated
 
 from multiprocessing import Pool
