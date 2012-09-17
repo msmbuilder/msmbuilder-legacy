@@ -203,7 +203,7 @@ def build_msm(assignments, lag_time, symmetrize='MLE', sliding_window=True, trim
     return counts, t_matrix, populations, mapping
 
 
-def build_msm_from_counts(counts, lag_time, symmetrize, return_rev_counts=False):
+def build_msm_from_counts(counts, lag_time, symmetrize, return_rev_counts=False, trim=True):
     """
     Estimates the transition probability matrix from the counts matrix.
     
@@ -233,8 +233,7 @@ def build_msm_from_counts(counts, lag_time, symmetrize, return_rev_counts=False)
     if symmetrize not in ['mle', 'transpose', 'none']:
         raise symmetrization_error
 
-    counts = get_count_matrix_from_assignments(assignments, n_states=n_states, lag_time=lag_time, sliding_window=sliding_window)
-    if trimming:
+    if trim:
         counts, mapping = ergodic_trim(counts)
 
     # Apply a symmetrization scheme
