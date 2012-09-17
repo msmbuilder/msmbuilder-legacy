@@ -736,7 +736,7 @@ def calculate_all_to_all_mfpt(tprob, populations=None):
     if tprob.shape[0] != num_states:
         raise ValueError("Shape of tprob and populations vector don't match")
 
-    eye = np.matrix(np.ones(num_states)).transpose()
+    eye = np.transpose( np.matrix(np.ones(num_states)) )
     limiting_matrix = eye * populations
     #z = scipy.linalg.inv(scipy.sparse.eye(num_states, num_states) - (tprob - limiting_matrix))
     z = scipy.linalg.inv(np.eye(num_states) - (tprob - limiting_matrix))
@@ -942,7 +942,7 @@ def calculate_fraction_visits(tprob, waypoint, sources, sinks, return_cond_Q=Fal
     fraction_paths = numer / denmr
     
     if return_cond_Q:
-        cond_Q = cond_Q[ np.argsort(perms) ] # put back in orig. order
+        cond_Q = cond_Q[ np.argsort(perm) ] # put back in orig. order
         return fraction_paths, cond_Q
     else:
         return fraction_paths
@@ -1012,8 +1012,7 @@ def calculate_hub_score(tprob, waypoints):
     for s1 in states_to_include:
         for s2 in states_to_include:
             if (s1 != s2) and (s1 not in waypoints) and (s2 not in waypoints):
-                Hc += calculate_fraction_visits(tprob, waypoints, [s1], [s2], 
-                                                Q=None, return_cond_Q=False)
+                Hc += calculate_fraction_visits(tprob, waypoints, [s1], [s2], return_cond_Q=False)
 
     Hc /= ((N - 1) * (N - 2))
 
