@@ -70,6 +70,7 @@ from msmbuilder.scripts import SavePDBs
 from msmbuilder.scripts import DoTPT
 from msmbuilder.scripts import FindPaths
 
+ORIGINAL_DIRECTORY = os.getcwd()
 from ReferenceParameters import *
 try:
     os.mkdir(WorkingDir)
@@ -292,6 +293,7 @@ class TestWrappers(unittest.TestCase):
         """Are we removing all unittest files? """+str(DeleteWhenFinished)
         if DeleteWhenFinished:
             shutil.rmtree(WorkingDir)
+        os.chdir(ORIGINAL_DIRECTORY)
 
 if __name__ == "__main__":
     unittest.main()
