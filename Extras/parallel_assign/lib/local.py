@@ -97,7 +97,7 @@ def setup_containers(outputdir, project, all_vtrajs):
         s = Serializer({'Data': np.array(minus_ones, dtype=dtype),
                         'completed_vtrajs': np.zeros((n_vtrajs), dtype=np.bool),
                         'hashes': hashes})
-        s.SaveToHDF(filename)
+        s.save_to_hdf(filename)
     
     def check_container(filename):
         ondisk = Serializer.load_from_hdf(filename)
