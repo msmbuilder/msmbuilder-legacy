@@ -15,7 +15,7 @@ metadata = {
     'url': 'https://simtk.org/home/msmbuilder',
     'download_url': 'https://simtk.org/home/msmbuilder',
     'install_requires': ['scipy', 'numpy', 'matplotlib',
-                         'deap', 'fastcluster=1.1.6'],
+                         'deap', 'fastcluster==1.1.6'],
     'platforms': ["Linux", "Mac OS X"],
     'description': "Python Code for Building Markov State Models",
     'long_description': """MSMBuilder (https://simtk.org/home/msmbuilder)
