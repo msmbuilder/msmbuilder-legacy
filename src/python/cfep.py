@@ -152,9 +152,10 @@ class CutCoordinate(object):
             MSM transition probability matrix from the `counts` matrix.
         """
 
-        t_matrix = MSMLib.build_msm_from_counts(counts, lag_time, symmetrize)
+        t_matrix = MSMLib.build_msm_from_counts(self.counts, lag_time, symmetrize)
         self.reaction_coordinate_values = tpt.calculate_committors([self.reactant],
-                                                                   [self.product], t_matrix)
+                                                                   [self.product], 
+                                                                   t_matrix)
         return
 
 
@@ -174,7 +175,7 @@ class CutCoordinate(object):
             MSM transition probability matrix from the `counts` matrix.
         """
 
-        t_matrix = MSMLib.build_msm_from_counts(lag_time, symmetrize)
+        t_matrix = MSMLib.build_msm_from_counts(self.counts, lag_time, symmetrize)
         v, w = get_eigenvectors(t_matrix, 5)
         self.reaction_coordinate_values = w[:,1].flatten()
 
