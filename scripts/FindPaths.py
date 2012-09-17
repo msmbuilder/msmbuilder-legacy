@@ -24,7 +24,7 @@ import numpy as np
 import os
 import scipy.io
 
-from msmbuilder import transition_path_theory as tpt
+from msmbuilder import tpt
 from msmbuilder import Serializer
 from msmbuilder import arglib
 import logging
@@ -86,5 +86,5 @@ Paths.h5 can be read by RenderPaths.py which generates a .dot file capturing the
     
     Serializer({'Paths': paths,
                 'Bottlenecks': bottlenecks,
-                'fluxes': fluxes}).SaveToHDF(args.output)
+                'fluxes': fluxes}).save_to_hdf(args.output)
     logger.info('Saved output to %s', args.output)

@@ -16,10 +16,13 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-"""The Serializer is a base class for storing dictionary-like objects to disk as HDF5 files.
+"""
+The Serializer is a base class for storing dictionary-like objects
+to disk as HDF5 files.
 
 Notes:
-The Conformation, Trajectory, and Project all inherit Serializer for HDF5 IO.
+The Conformation, Trajectory, and Project all inherit Serializer
+for HDF5 IO.
 """
 
 import tables
@@ -29,10 +32,10 @@ import numpy as np
 import warnings
 
 try:
-    Filter=tables.Filters(complevel=9,complib='blosc',shuffle=True)
+    FILTER = tables.Filters(complevel=9, complib='blosc', shuffle=True)
 except:
-    warnings.warn("missing BLOSC, no compression will used.")
-    Filter = tables.Filters()
+    warnings.warn("missing BLOSC, no compression will used.", ImportWarning)
+    FILTER = tables.Filters()
 
 class Serializer(dict):
     """
@@ -41,7 +44,7 @@ class Serializer(dict):
     
     """
     
-    def __init__(self,DictLikeObject=dict()):
+    def __init__(self, dict_like_object=None):
         """Build Serializer from dictionary
         
         All Serializer subclass constructors take a dictionary-like object
@@ -50,13 +53,17 @@ class Serializer(dict):
         
         Parameters
         ----------
-        DictLikeObject : dict
+        DictLikeObject : dict, optional
             Data to populate the Serializer with
         
         """
-        self.update(DictLikeObject)
+        super(Serializer, self).__init__()
+        if dict_like_object is None:
+            dict_like_object = {}
         
-    def SaveToHDF(self,Filename,loc="/", do_file_check=True):
+        self.update(dict_like_object)
+    
+    def save_to_hdf(self, filename, loc="/", do_file_check=True):
         """Save the contents of the serializer to disk
         
         A generic function for saving ForceFields / Topologies / Conformations
@@ -65,43 +72,49 @@ class Serializer(dict):
         
         Parameters
         ----------
-        Filename : str
+        filename : str
             Filename to save data to
-        Loc : str, optional
+        loc : str, optional
             Resource root in HDF file
         do_file_check : bool, optional
             Check that the location is free before saving
         
         Raises
         ------
-        Exception
+        IOError
             If `do_file_check` is True and something is already stored in `Filename`
             
         """
         
         # check h5 file doesn't already exist
         if do_file_check:
-            self.CheckIfFileExists(Filename)
+            self.check_if_file_exists(filename)
         
-        F=tables.File(Filename,'a')
+        handle = tables.File(filename, 'a')
         
-        for key,data in self.iteritems():
-            #print(key,data)
-            try:#This checks if the list is homogenous and can be stored in an array data type (ie a square tensor).  If not, we need VLArray
-                TEMP=np.array(data)
-                if TEMP.dtype==np.dtype("object"):
-                    raise ValueError#This check is necessary for Numpy 1.6.0 and greater, which allow inhomogeneous lists to be converted to dtype arrays.                
+        for key, data in self.iteritems():
+            # This checks if the list is homogenous and can be stored
+            # in an array data type (ie a square tensor).
+            # If not, we need VLArray
+            try:
+                tmp = np.array(data)
+                # This check is necessary for Numpy 1.6.0 and greater,
+                # which allow inhomogeneous lists to be converted to dtype
+                # arrays.                
+                if tmp.dtype == np.dtype("object"):
+                    raise ValueError
             except ValueError:
-                F.createVLArray(loc,key,tables.Int16Atom())
-                for x in data:
-                    F.getNode(loc,key).append(x)
+                handle.createVLArray(loc, key, tables.Int16Atom())
+                for element in data:
+                    handle.getNode(loc, key).append(element)
                 continue
-            self.SaveEntryAsEArray(np.array(data),key,F0=F,loc=loc)
-        F.flush()
-        F.close()
+            self.save_e_array(np.array(data), key, handle=handle, loc=loc)
+        
+        handle.flush()
+        handle.close()
     
     @classmethod
-    def LoadFromHDF(cls,Filename,loc="/"):
+    def load_from_hdf(cls, filename, loc="/"):
         """Generic function to load HDF files to dict-like object
         
         This is a generic function for loading HDF files into dictionary-like
@@ -123,65 +136,90 @@ class Serializer(dict):
         
         """
         
-        A=Serializer()
-        F=tables.File(Filename,'r')
-        for d in F.listNodes(loc):
-            if type(d)==tables.VLArray:
-                A.update([[d.name,d.read()]])
+        serializer = Serializer()
+        handle = tables.File(filename, 'r')
+        
+        for node in handle.listNodes(loc):
+            if type(node) == tables.VLArray:
+                serializer.update([[node.name, node.read()]])
                 continue
-            if d[:].size==1:
-                A[d.name]=d[:].item()
+            if node[:].size == 1:
+                serializer[node.name] = node[:].item()
                 continue
-            if d.shape[0]==1:
-                A[d.name]=np.array(d.read())
+            if node.shape[0] == 1:
+                serializer[node.name] = np.array(node.read())
                 continue
-            A[d.name]=d[:]
-        F.close()
-        A['SerializerFilename'] = os.path.abspath(Filename)
-        return(cls(A))
+            serializer[node.name] = node[:]
+        
+        handle.close()
+        serializer['SerializerFilename'] = os.path.abspath(filename)
+        
+        return(cls(serializer))
     
     @staticmethod
-    def SaveEntryAsEArray(Data, Key, Filename=None, F0=None, loc="/"):
+    def save_e_array(data, key, filename=None, handle=None, loc="/"):
         """Save dict entry as compressed EArray
         
         E means extensible, which can be useful for extending trajectories.
         
         Parameters
         ----------
-        Data : 
-        Key : 
-        Filename : 
-        F0 : 
-        loc : 
-        
+        data : np.ndarray
+            An array you want to save to disk as hdf5
+        key : str
+            Key for the array in the HDF5 file
+        filename : str
+            Filename to sve the data to
+        handle : tables.File
+            An already opened tables file handle to save the data
+            to. One of filename or f0 must be provided
+        loc : str
+            Resource root in the hdf5 file
         """
-        if F0==None and Filename==None:
-            raise Exception("Must Specify either F or Filename")
-        if F0==None:
-            F=tables.File(Filename,'a')
+        
+        if handle is None and filename is None:
+            raise ValueError("Must Specify either f0 or filename")
+        if handle is None:
+            handle = tables.File(filename, 'a')
+            close_on_return = True
         else:
-            F=F0
-        if np.rank(Data)==0:
-            Data=np.array([Data])
-        sh=np.array(np.shape(Data))
-        sh[0]=0
-        F.createEArray("/",Key,tables.Atom.from_dtype(Data.dtype),sh,filters=Filter)
-        node=F.getNode("/",Key)
-        node.append(Data)
-        if F0==None:
-            F.close()
+            close_on_return = False
+            
+        if np.rank(data) == 0:
+            data = np.array([data])
+            
+        # the dimension with shape 0 is the one that can be extended
+        # along by tables
+        shape = np.array(np.shape(data))
+        true_shape_0 = shape[0]
+        shape[0] = 0
+        
+        handle.createEArray(loc, key, tables.Atom.from_dtype(data.dtype),
+                            shape, filters=FILTER, expectedrows=true_shape_0)
+                       
+        node = handle.getNode(loc, key)
+        node.append(data)
+
+        if close_on_return: 
+            handle.close()
     
     @staticmethod
-    def SaveEntryAsCArray(Data, Key, Filename=None, F0=None, loc="/"):
+    def save_c_array(data, key, filename=None, handle=None, loc="/"):
         """Save this dictionary entry as a compressed CArray
         
         Parameters
         ----------
-        Data : 
-        Key : 
-        Filename : 
-        F0 : 
-        loc : 
+        data : np.ndarray
+            An array you want to save to disk as hdf5
+        key : str
+            Key for the array in the HDF5 file
+        filename : str
+            Filename to sve the data to
+        f0 : tables.File
+            An already opened tables file handle to save the data
+            to. One of filename or f0 must be provided
+        loc : str
+            Resource root in the hdf5 file
         
         Notes
         -----
@@ -189,49 +227,58 @@ class Serializer(dict):
         Also, for VHP (576 atoms), Chunkshape[0]=8 seems to give perhaps another
         20%.  The total enhancement appears to be an total of 8800 conformations
         per second versus 6300 for EArray without chunkshape optimization.
-        
         """
-        if F0==None and Filename==None:
-            raise Exception("Must Specify either F or Filename")
-        if F0==None:
-            F=tables.File(Filename,'a')
+        
+        if handle is None and filename is None:
+            raise ValueError("Must Specify either f0 or filename")
+        if handle is None:
+            handle = tables.File(filename, 'a')
+            close_on_return = True
         else:
-            F=F0
-        if np.rank(Data)==0:
-            Data=np.array([Data])
-        F.createCArray("/",Key,tables.Atom.from_dtype(Data.dtype),np.shape(Data),filters=Filter)
-        node=F.getNode("/",Key)
-        node[:]=Data
-        if F0==None:
-            F.close()
+            close_on_return = False
+        
+        if np.rank(data)==0:
+            data = np.array([data])
+        
+        handle.createCArray(loc, key, tables.Atom.from_dtype(data.dtype),
+                      np.shape(data), filters=FILTER)
+        node = handle.getNode(loc, key)
+        node[:] = data
+        
+        if close_on_return:
+            handle.close()
     
     @staticmethod
-    def SaveCSRMatrix(Filename, T):
+    def save_csr_matrix(filename, matrix):
         """Save a CSR sparse matrix to disk
         
         Parameters
         ----------
-        Filename : str
+        filename : str
             Location to save to
-        T : csr_matrix
+        matrix : csr_matrix
             matrix to save
         
         Raises
         ------
         TypeError
             If `T` is not a CSR sparse matrix
-        Exception
+        IOError
             If a file exists at `Filename`
         """
         
-        if not scipy.sparse.isspmatrix_csr(T):
-            raise TypeError("A CSR sparse matrix is required for saving to .csr.")
-        X=Serializer({"data":T.data,"indices":T.indices,"indptr":T.indptr,"Shape":T.shape})
-        X.SaveToHDF(Filename)
-        del X
+        if not scipy.sparse.isspmatrix_csr(matrix):
+            raise TypeError("A CSR sparse matrix is required")
+
+        Serializer({"data" : matrix.data,
+                    "indices" : matrix.indices,
+                    "indptr" : matrix.indptr,
+                    "Shape" : matrix.shape}
+                    ).save_to_hdf(filename)
+
     
     @staticmethod
-    def LoadCSRMatrix(Filename):
+    def load_csr_matrix(filename):
         """Load a CSR sparse matrix from disk
         
         Parameters
@@ -244,12 +291,13 @@ class Serializer(dict):
         T : csr_sparse_matrix
             The matrix loaded from disk
         """
-        X=Serializer.LoadFromHDF(Filename)
-        return scipy.sparse.csr_matrix((X["data"], X["indices"], X["indptr"]),
-                                        shape=X["Shape"])
+        tmp = Serializer.load_from_hdf(filename)
+        
+        return scipy.sparse.csr_matrix((tmp["data"], tmp["indices"],
+            tmp["indptr"]), tmp["Shape"])
     
     @staticmethod
-    def SaveData(Filename,Data):
+    def save_data(filename, data):
         """Quickly dump an array to disk in h5 format
         
         Writes the array in the 'Data' field
@@ -262,11 +310,10 @@ class Serializer(dict):
             numpy array to write to disk
         """
         
-        X=Serializer({"Data":Data})
-        X.SaveToHDF(Filename)
+        Serializer({"Data": data}).save_to_hdf(filename)
     
     @staticmethod
-    def LoadData(Filename):
+    def load_data(filename):
         """Quickly read an array from disk in h5 format
         
         Read from the 'Data' field of the h5 file
@@ -280,15 +327,14 @@ class Serializer(dict):
         ------
         KeyError
             If `Filename` is a valid h5 file but doesn't have a 'Data' field
-        Exception
+        IOError
             If `Filename` doesn't exist
         """
         
-        D=Serializer.LoadFromHDF(Filename)
-        return D["Data"]
+        return Serializer.load_from_hdf(filename)["Data"]
     
     @staticmethod
-    def CheckIfFileExists(Filename):
+    def check_if_file_exists(filename):
         """Ensure that a file exists
         
         Parameters
@@ -302,8 +348,69 @@ class Serializer(dict):
             If file already exists
         """
         
-        if os.path.exists(Filename):
-            raise Exception("Error: HDF5 File %s Already Exists!"%Filename)
+        if os.path.exists(filename):
+            raise IOError("File %s already exists!" % filename)
+    
 
-
-
+    @staticmethod
+    def SaveData(*args, **kwargs):
+        msg = ('This function name is depricated, use save_data '
+               'instead. This alias will be removed in version 2.7')
+        warnings.warn(msg, DeprecationWarning, stacklevel=2)
+        return Serializer.save_data(*args, **kwargs)
+                
+    @staticmethod
+    def LoadData(*args, **kwargs):
+        msg = ('This function name is depricated, use load_data '
+               'instead. This alias will be removed in version 2.7')
+        warnings.warn(msg, DeprecationWarning, stacklevel=2)
+        return Serializer.load_data(*args, **kwargs)
+    
+    def SaveToHDF(self, *args, **kwargs):
+        msg = ('This function name is depricated, use save_to_hdf '
+               'instead. This alias will be removed in version 2.7')
+        warnings.warn(msg, DeprecationWarning, stacklevel=2)
+        return self.save_to_hdf(*args, **kwargs)
+    
+    @staticmethod
+    def LoadFromHDF(*args, **kwargs):
+        msg = ('This function name is depricated, use load_from_hdf '
+               'instead. This alias will be removed in version 2.7')
+        warnings.warn(msg, DeprecationWarning, stacklevel=2)
+        return Serializer.load_from_hdf(*args, **kwargs)
+     
+    @staticmethod  
+    def SaveEntryAsEArray(*args, **kwargs):
+        msg = ('This function name is depricated, use save_e_array '
+               'instead. This alias will be removed in version 2.7')
+        warnings.warn(msg, DeprecationWarning, stacklevel=2)
+        return Serializer.save_e_array(*args, **kwargs)
+    
+    @staticmethod
+    def SaveEntryAsCArray(*args, **kwargs):
+        msg = ('This function name is depricated, use save_c_array '
+               'instead. This alias will be removed in version 2.7')
+        warnings.warn(msg, DeprecationWarning, stacklevel=2)
+        return Serializer.save_c_array(*args, **kwargs)
+    
+    @staticmethod
+    def SaveCSRMatrix(*args, **kwargs):
+        msg = ('This function name is depricated, use save_csr_matrix '
+               'instead. This alias will be removed in version 2.7')
+        warnings.warn(msg, DeprecationWarning, stacklevel=2)
+        return Serializer.save_csr_matrix(*args, **kwargs)
+    
+    @staticmethod
+    def LoadCSRMatrix(*args, **kwargs):
+        msg = ('This function name is depricated, use load_csr_matrix '
+               'instead. This alias will be removed in version 2.7')
+        warnings.warn(msg, DeprecationWarning, stacklevel=2)
+        return Serializer.load_csr_matrix(*args, **kwargs)
+    
+    @staticmethod
+    def CheckIfFileExists(*args, **kwargs):
+        msg = ('This function name is depricated, use check_if_file_exists '
+               'instead. This alias will be removed in version 2.7')
+        warnings.warn(msg, DeprecationWarning, stacklevel=2)
+        return Serializer.check_if_file_exists(*args, **kwargs)
+    

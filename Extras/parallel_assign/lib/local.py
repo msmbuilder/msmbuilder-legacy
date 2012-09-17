@@ -100,7 +100,7 @@ def setup_containers(outputdir, project, all_vtrajs):
         s.SaveToHDF(filename)
     
     def check_container(filename):
-        ondisk = Serializer.LoadFromHDF(filename)
+        ondisk = Serializer.load_from_hdf(filename)
         if n_vtrajs != len(ondisk['hashes']):
             raise ValueError('You asked for {} vtrajs, but your checkpoint \
 file has {}'.format(n_vtrajs, len(ondisk['hashes'])))

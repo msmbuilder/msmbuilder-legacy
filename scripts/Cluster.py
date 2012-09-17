@@ -110,7 +110,7 @@ for metric_parser in parser.metric_parsers: # arglib stores the metric subparser
     add_argument(hier, '-o', dest='hierarchical_save_zmatrix', help='Save Z-matrix to disk', default='Data/Zmatrix.h5')
 
 def load_trajectories(projectfn, stride):
-    project = Project.LoadFromHDF(projectfn)
+    project = Project.load_from_hdf(projectfn)
 
     list_of_trajs = []
     for i in xrange(project['NumTrajs']):
@@ -184,15 +184,15 @@ could stride a little at the begining, but its not recommended.""")
     if not isinstance(clusterer, clustering.Hierarchical):
         generators = clusterer.get_generators_as_traj()
         logger.info('Saving %s', args.generators)
-        generators.SaveToLHDF(args.generators)
+        generators.save_to_lhdf(args.generators)
         if args.stride == 1:
             assignments = clusterer.get_assignments()
             distances = clusterer.get_distances()
             
             logger.info('Since stride=1, Saving %s', args.assignments)
             logger.info('Since stride=1, Saving %s', args.distances)
-            Serializer.SaveData(args.assignments, assignments)
-            Serializer.SaveData(args.distances, distances)
+            Serializer.save_data(args.assignments, assignments)
+            Serializer.save_data(args.distances, distances)
 
 if __name__ == '__main__':
     args, metric = parser.parse_args()

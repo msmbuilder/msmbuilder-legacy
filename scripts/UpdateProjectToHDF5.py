@@ -92,7 +92,7 @@ def run(atomindicesFn, pdbFn, trajlistFn, datatype):
         i += 1
 
     # create assignments hdf5 file
-    Serializer.SaveData("Data/Assignments.h5",assigns)
+    Serializer.save_data("Data/Assignments.h5",assigns)
 
     # load atom indices if present
     if atomindicesFn != None:
@@ -116,7 +116,7 @@ def run(atomindicesFn, pdbFn, trajlistFn, datatype):
                         "TrajFileType": ".lh5",
                         "ConfFilename": pdbFn}
         P1 = Project(DictContainer)
-        P1.SaveToHDF("ProjectInfo.h5")
+        P1.save_to_hdf("ProjectInfo.h5")
     else:
         logger.warning("Found trajectory data. Moving old trajectories directory to one called old_trajectories and converting to %s files in new Trajectories directory.", datatype)
         os.system("mv trajectories old_trajectories")

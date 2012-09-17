@@ -25,8 +25,8 @@ from msmbuilder import arglib
 
 def run(project, pdb, traj_fn, atom_indices, alt_indices, permute_indices):
 
-    #project = Project.LoadFromHDF(options.projectfn)
-    traj = Trajectory.LoadTrajectoryFile(traj_fn, Conf=project.Conf)
+    #project = Project.load_from_hdf(options.projectfn)
+    traj = Trajectory.load_trajectory_file(traj_fn, Conf=project.Conf)
 
     # you could replace this with your own metric if you like
     metric = LPRMSD(atom_indices, permute_indices, alt_indices)
@@ -81,8 +81,8 @@ RMSD.dat, a flat text file of the RMSDs.""")
         permute_indices = ReadPermFile(args.lprmsd_permute_atoms)
 
     arglib.die_if_path_exists(args.output)
-    project = Project.LoadFromHDF(args.project)
-    pdb = Trajectory.LoadTrajectoryFile(args.pdb)
+    project = Project.load_from_hdf(args.project)
+    pdb = Trajectory.load_trajectory_file(args.pdb)
     atom_indices = np.loadtxt(args.atom_indices, dtype=int)
     lprmsd_alt_indices = np.loadtxt(args.lprmsd_alt_indices, dtype=int)
     

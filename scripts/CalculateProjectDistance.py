@@ -40,7 +40,7 @@ def run(project, pdb, metric, traj_fn = None):
             d = metric.one_to_all(ppdb, ptraj, 0)
             distances[i, 0:len(d)] = d
     else:
-        traj = Trajectory.LoadTrajectoryFile( traj_fn )
+        traj = Trajectory.load_trajectory_file( traj_fn )
         ptraj = metric.prepare_trajectory( traj )
 
         distances = metric.one_to_all(ppdb, ptraj, 0)
@@ -67,8 +67,8 @@ Output as a HDF5 file (load using Serializer.LoadData())""", get_metric=True)
     
     arglib.die_if_path_exists(args.output)
 
-    project = Project.LoadFromHDF( args.project )    
-    pdb = Trajectory.LoadTrajectoryFile( args.pdb )
+    project = Project.load_from_hdf( args.project )    
+    pdb = Trajectory.load_trajectory_file( args.pdb )
     if args.traj_fn.lower() == 'all':
         traj_fn = None
     else:
@@ -76,5 +76,5 @@ Output as a HDF5 file (load using Serializer.LoadData())""", get_metric=True)
 
     distances = run(project, pdb, metric, traj_fn)
     
-    Serializer.SaveData(args.output, distances)
+    Serializer.save_data(args.output, distances)
     logger.info('Saved to %s', args.output)

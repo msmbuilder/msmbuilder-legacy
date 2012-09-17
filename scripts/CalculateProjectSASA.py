@@ -36,7 +36,7 @@ def run(project, atom_indices=None, traj_fn = 'all'):
             logger.info("Working on Trajectory %d", traj_ind )
             traj_fn = project.GetTrajFilename( traj_ind )
             chunk_ind = 0
-            for traj_chunk in Trajectory.EnumChunksFromLHDF( traj_fn, AtomIndices=atom_indices ):
+            for traj_chunk in Trajectory.enum_chunks_from_lhdf( traj_fn, AtomIndices=atom_indices ):
                 #print chunk_ind
                 traj_asa.extend( asa.calculate_asa( traj_chunk, n_sphere_points = 24 ) )
                 chunk_ind += 1
@@ -44,7 +44,7 @@ def run(project, atom_indices=None, traj_fn = 'all'):
 
     else:
         traj_asa = []
-        for traj_chunk in Trajectory.EnumChunksFromLHDF( traj_fn, AtomIndices=atom_indices ):
+        for traj_chunk in Trajectory.enum_chunks_from_lhdf( traj_fn, AtomIndices=atom_indices ):
             traj_asa.extend( asa.calculate_asa( traj_chunk ) )
 
         SASA = np.array( traj_asa )
@@ -75,9 +75,9 @@ if __name__ == '__main__':
     else:
         atom_indices = np.loadtxt( args.atom_indices ).astype(int)
 
-    project = Project.LoadFromHDF( args.project )
+    project = Project.load_from_hdf( args.project )
 
     SASA = run( project, atom_indices, args.traj_fn )
 
-    Serializer.SaveData( args.output, SASA )
+    Serializer.save_data( args.output, SASA )
 

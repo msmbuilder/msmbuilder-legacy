@@ -1,3 +1,4 @@
+import numpy as np
 import logging
 logger = logging.getLogger('metrics')
 from baseclasses import AbstractDistanceMetric

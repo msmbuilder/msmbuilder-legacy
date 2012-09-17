@@ -34,11 +34,11 @@ def run(project, assignments, num_confs_per_state, output, format):
     random_confs = project.GetRandomConfsFromEachState(assignments, num_states, num_confs_per_state)
     
     if format == 'pdb':
-        random_confs.SaveToPDB(output)
+        random_confs.save_to_pdb(output)
     elif format == 'lh5':
-        random_confs.SaveToLHDF(output)
+        random_confs.save_to_lhdf(output)
     elif format == 'xtc':
-        random_confs.SaveToXTC(output)
+        random_confs.save_to_xtc(output)
     else:
         raise ValueError('Unrecognized format')
    

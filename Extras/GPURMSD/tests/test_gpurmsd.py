@@ -12,12 +12,12 @@ def fixtures_dir():
     return os.path.join(os.path.dirname(inspect.getfile(inspect.currentframe())), 'fixtures')
 
 trj_path = os.path.join(fixtures_dir(), 'trj0.lh5')
-ww_conf = Trajectory.LoadTrajectoryFile(os.path.join(fixtures_dir(), 'ww.pdb'))
+ww_conf = Trajectory.load_trajectory_file(os.path.join(fixtures_dir(), 'ww.pdb'))
 ww_1 = os.path.join(fixtures_dir(), 'ww.xtc')
 ww_2 = os.path.join(fixtures_dir(), 'ww-aligned.xtc')
 
 def test_gpurmsd():
-    traj = Trajectory.LoadTrajectoryFile(trj_path)    
+    traj = Trajectory.load_trajectory_file(trj_path)    
 
     gpurmsd = GPURMSD()
     ptraj = gpurmsd.prepare_trajectory(traj)
@@ -31,10 +31,10 @@ def test_gpurmsd():
     npt.assert_array_almost_equal(cpu_distances, gpu_distances, decimal=4)
 
 def plot_gpu_cmd_correlation():
-    traj1 = Trajectory.LoadTrajectoryFile(ww_1, Conf=ww_conf)
-    traj1_copy = Trajectory.LoadTrajectoryFile(ww_1, Conf=ww_conf)
-    #traj2 = Trajectory.LoadTrajectoryFile(ww_2, Conf=ww_conf)
-    #traj2_copy = Trajectory.LoadTrajectoryFile(ww_2, Conf=ww_conf)
+    traj1 = Trajectory.load_trajectory_file(ww_1, Conf=ww_conf)
+    traj1_copy = Trajectory.load_trajectory_file(ww_1, Conf=ww_conf)
+    #traj2 = Trajectory.load_trajectory_file(ww_2, Conf=ww_conf)
+    #traj2_copy = Trajectory.load_trajectory_file(ww_2, Conf=ww_conf)
 
     def gpudist(t):
         gpurmsd = GPURMSD()

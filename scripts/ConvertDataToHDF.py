@@ -23,7 +23,7 @@ import re
 import glob
 import cPickle
 
-from msmbuilder import FahProject
+from msmbuilder import fahproject
 from msmbuilder import Project
 from msmbuilder.utils import keynat
 import logging
@@ -128,7 +128,7 @@ def run(projectfn, PDBfn, InputDir, source, mingen, stride, rmsd_cutoff,
             logger.error("Allowed parallel options for FAH: None or multiprocessing")
             raise Exception("Error parsing parallel option: %s" % parallel)
 
-        fahproject = FahProject( PDBfn, project_number=project_number, projectinfo_file=projectfn )
+        fahproject = fahproject.FahProject( PDBfn, project_number=project_number, projectinfo_file=projectfn )
 
         if update:
             fahproject.retrieve.update_trajectories()

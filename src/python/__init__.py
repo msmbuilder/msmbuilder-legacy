@@ -28,26 +28,9 @@ Copyright 2011 Stanford University
 """
 
 # list of all the modules (files) that are part of msmbuilder
-__all__ = [
-"Citation",
-"assigning"
-"clustering",
-"Conformation", 
-"CopernicusProject",
-"CreateMergedTrajectoriesFromFAH",
-"FahProject",
-"metrics", 
-"MSMLib",
-"lumping", 
-"PDB", 
-"plot_graph", 
-"Project", 
-"Serializer", 
-"Trajectory", 
-"transition_path_theory"
-"xtc",
-"utils"
-]
+import os
+import glob
+__all__ = [os.path.basename(f)[:-3] for f in glob.glob(os.path.dirname(__file__) + "/*.py") if not f.endswith('__init__.py')]
 
 import logging
 __LOGGING_FORMAT = '%(asctime)s: %(levelname)s: %(message)s'
@@ -59,4 +42,3 @@ from Conformation import ConformationBaseClass
 from Conformation import Conformation
 from Trajectory import Trajectory
 from Project import Project
-from FahProject import FahProject

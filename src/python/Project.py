@@ -67,10 +67,10 @@ class Project(Serializer):
         for key in ["RunList","CloneList","NumGensList"]:
             if key in S: self[key]=S[key]
         try:
-            self.Conf=Conformation.LoadFromPDB(self["ConfFilename"])
+            self.Conf=Conformation.load_from_pdb(self["ConfFilename"])
         except IOError:
             logger.info("Could not find %s; trying current directory.", self["ConfFilename"])
-            self.Conf=Conformation.LoadFromPDB(os.path.basename(self["ConfFilename"]))
+            self.Conf=Conformation.load_from_pdb(os.path.basename(self["ConfFilename"]))
     
     @classmethod   
     def CountLocalTrajectories(cls, TrajFilePath, TrajFileBaseName, TrajFileType):
@@ -96,7 +96,7 @@ class Project(Serializer):
 
         if ConfFilename is None:
             raise ValueError('You must supply a conf (.pdb)')
-        Conf = Conformation.LoadFromPDB(ConfFilename)
+        Conf = Conformation.load_from_pdb(ConfFilename)
 
         NumTraj = cls.CountLocalTrajectories(TrajFilePath,TrajFileBaseName,TrajFileType)
         
@@ -108,7 +108,7 @@ class Project(Serializer):
         LenList=[]
         for i in range(NumTraj):
             f = os.path.join(TrajFilePath, TrajFileBaseName + str(i) + TrajFileType)
-            LenList.append(Trajectory.LoadTrajectoryFile(f,JustInspect=True,Conf=Conf)[0])
+            LenList.append(Trajectory.load_trajectory_file(f,JustInspect=True,Conf=Conf)[0])
 
         DictContainer={ "TrajLengths"      : np.array(LenList),
                         "TrajFilePath"     : TrajFilePath,
@@ -124,7 +124,7 @@ class Project(Serializer):
             DictContainer["NumGensList"]=NumGensList
         Project = cls(DictContainer)
         if Filename!=None:
-            Project.SaveToHDF(Filename)
+            Project.save_to_hdf(Filename)
         
         try:
             os.mkdir("./Data")
@@ -145,7 +145,7 @@ class Project(Serializer):
         
     def LoadTraj(self, i, stride=1):
         """Return a trajectory object of the ith trajectory."""
-        return Trajectory.LoadTrajectoryFile(self.GetTrajFilename(i), Conf=self.Conf, Stride=stride)
+        return Trajectory.load_trajectory_file(self.GetTrajFilename(i), Conf=self.Conf, Stride=stride)
     
     def EnumTrajs(self):
         """Convenience method: return an iterator over the trajectories (a generator)
@@ -158,12 +158,12 @@ class Project(Serializer):
         
         """
         for i in xrange(self['NumTrajs']):
-            yield Trajectory.LoadTrajectoryFile(self.GetTrajFilename(i), Conf=self.Conf)
+            yield Trajectory.load_trajectory_file(self.GetTrajFilename(i), Conf=self.Conf)
         
     
-    def ReadFrame(self,WhichTraj,WhichFrame):
+    def read_frame(self,WhichTraj,WhichFrame):
         """Read a single frame of a single trajectory."""
-        return(Trajectory.ReadFrame(self.GetTrajFilename(WhichTraj),WhichFrame,Conf=self.Conf))
+        return(Trajectory.read_frame(self.GetTrajFilename(WhichTraj),WhichFrame,Conf=self.Conf))
     
     def EvaluateObservableAcrossProject(self,f,Stride=1,ByTraj=False,ResultDim=None):
         """Evaluate an observable function f for every conformation in a dataset.
@@ -202,7 +202,7 @@ class Project(Serializer):
     
     def GetEmptyTrajectory(self):
         """This creates a trajectory with the correct atoms and residues, but leaves the coordinate data empty (XYZList)."""
-        Traj = Trajectory.LoadTrajectoryFile(self['ConfFilename'])
+        Traj = Trajectory.load_trajectory_file(self['ConfFilename'])
         Traj.pop("XYZList")
         return(Traj)
     
@@ -239,7 +239,7 @@ class Project(Serializer):
                 k2=ind[1][r]*Subsampling
                 # print("k1,k2",k1,k2)
                 if not JustGetIndices:
-                    XYZList.append(self.ReadFrame(k1,k2))
+                    XYZList.append(self.read_frame(k1,k2))
                 else:
                     XYZList.append((k1,k2))
         except ValueError:
@@ -257,7 +257,7 @@ class Project(Serializer):
         
         Trj["XYZList"]=np.zeros((0,NumAtoms,NumAxes),dtype='float32')
         for i in range(N1):
-            X=self.ReadFrame(Which[i,0],Which[i,1])
+            X=self.read_frame(Which[i,0],Which[i,1])
             Trj["XYZList"].resize((Current+1,NumAtoms,NumAxes))
             Trj["XYZList"][Current]=X
             Current+=1
@@ -395,20 +395,20 @@ def _convert_filename_list( args):
         logger.info(file_list)
         
         if input_file_type =='.dcd':
-            traj = Trajectory.LoadFromDCD(file_list, PDBFilename=pdb_filename)
+            traj = Trajectory.load_from_dcd(file_list, PDBFilename=pdb_filename)
         elif input_file_type == '.xtc':
-            traj = Trajectory.LoadFromXTC(file_list, PDBFilename=pdb_filename)
+            traj = Trajectory.load_from_xtc(file_list, PDBFilename=pdb_filename)
         else:
             raise Exception("Unknown file type: %s" % input_file_type)
 
         traj["XYZList"] = traj["XYZList"][::stride]
         
         if atom_indices != None:
-            trj['XYZList'] = traj['XYZList'][:,atom_indices,:]
+            traj['XYZList'] = traj['XYZList'][:,atom_indices,:]
         #if atom_indices!=None:
-        #    traj.RestrictAtomIndices(atom_indices)
+        #    traj.restrict_atom_indices(atom_indices)
 
-        traj.Save("%s/%s%d.lh5" % (output_directory, new_traj_root, i) )
+        traj.save("%s/%s%d.lh5" % (output_directory, new_traj_root, i) )
 
 
 

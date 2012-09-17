@@ -55,10 +55,10 @@ Output: A trimmed assignments file (Assignments.Trimmed.h5).""")
     
     arglib.die_if_path_exists(args.output)
     
-    assignments = Serializer.LoadData( args.assignments )
-    assignments_rmsd = Serializer.LoadData( args.assignments_rmsd )
+    assignments = Serializer.load_data( args.assignments )
+    assignments_rmsd = Serializer.load_data( args.assignments_rmsd )
 
     trimmed = run(assignments, assignments_rmsd, args.rmsd_cutoff)
     
-    Serializer.SaveData(args.output, trimmed)
+    Serializer.save_data(args.output, trimmed)
     logger.info('Saved output to %s', args.output)
