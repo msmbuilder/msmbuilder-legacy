@@ -39,6 +39,7 @@ Model Building
   :toctree: generated/
 
   build_msm
+  build_msm_from_counts
   estimate_rate_matrix
   mle_reversible_count_matrix
   estimate_transition_matrix

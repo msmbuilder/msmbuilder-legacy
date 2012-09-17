@@ -1,11 +1,33 @@
-arglib: :class:`msmbuilder.arglib`
-============================================
+.. currentmodule:: msmbuilder.arglib
 
-.. module:: msmbuilder.arglib
+arglib: :mod:`msmbuilder.arglib`
+==================================
+
+Support for command line scripts, making it easier to parse arguments
+  
+Parsers
+-------
 
 .. autoclass:: ArgumentParser
-  :members:
+
+  .. autosummary::
+    :toctree: generated/
+
+    ArgumentParser.add_argument
+    ArgumentParser.add_argument_group
+    ArgumentParser.add_subparsers
+    ArgumentParser.parse_args
+
+.. autosummary::
+  :toctree: generated/
   
-.. autofunction:: die_if_path_exists
-.. autofunction:: ensure_path_exists
-.. autofunction:: add_argument
+  add_argument
+
+Path Manipulation
+-----------------
+
+.. autosummary::
+  :toctree: generated/
+  
+  die_if_path_exists
+  ensure_path_exists
