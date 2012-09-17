@@ -527,7 +527,8 @@ def calc_expectation_timeseries(tprob, observable, init_pop=None, timepoints=10*
     """
 
     # first, perform the eigendecomposition
-    lambd, psi_R = sparse_eigen(tprob.T, k=n_modes)
+    lambd, psi_R = sparse_eigen(tprob, k=n_modes, which='LR')
+    #lambd, psi_R = get_eigenvectors(tprob, n_modes, right=True)
     psi_R = np.real(psi_R)
     lambd = np.real(lambd)
 
@@ -537,7 +538,7 @@ def calc_expectation_timeseries(tprob, observable, init_pop=None, timepoints=10*
 
     psi_L = np.zeros(psi_R.shape)
     for i in range(n_modes):
-        psi_R[:, i] *= np.sqrt(np.sum(np.power(psi_R[:, i], 2.0) / pi))
+        psi_R[:, i] /= np.sqrt( np.sum( np.square( psi_R[:, i] ) / pi ) )
         psi_L[:, i] = psi_R[:, i] / pi
         psi_L[:, i] /= np.dot(psi_L[:, i], psi_R[:, i])
 
