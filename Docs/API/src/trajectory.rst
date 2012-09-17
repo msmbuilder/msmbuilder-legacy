@@ -5,76 +5,85 @@ Serializer
 ----------
 .. currentmodule:: msmbuilder.Serializer
 
-.. class:: Serializer (DictLikeObject={})
-  
-  A generic class for dumping dictionaries of data onto disk using the pytables HDF5 library. 
+.. autoclass:: Serializer
+  :show-inheritance:
   
   .. autosummary::
       :toctree: generated/
 
       Serializer.__init__
-      Serializer.CheckIfFileExists
-      Serializer.LoadCSRMatrix
-      Serializer.LoadFromHDF
-      Serializer.SaveToHDF
-      Serializer.SaveEntryAsEArray
-      Serializer.SaveEntryAsCArray
-      Serializer.SaveCSRMatrix
-      Serializer.LoadCSRMatrix
-      Serializer.SaveData
-      Serializer.LoadData
+      Serializer.save_data
+      Serializer.load_data
+      Serializer.check_if_file_exists
+      Serializer.load_csr_matrix
+      Serializer.load_from_hdf
+      Serializer.save_to_hdf
+      Serializer.save_e_array
+      Serializer.save_c_array
+      Serializer.save_csr_matrix
+      Serializer.load_csr_matrix
+
 
 Trajectory
 ----------
 .. currentmodule:: msmbuilder.Trajectory
 
-.. class:: Trajectory (S)
-
-  Represent a sequence of conformations
+.. autoclass:: Trajectory
+  :show-inheritance:
   
   Loading from disk
   
   .. autosummary::
     :toctree: generated/
     
-    Trajectory.LoadTrajectoryFile
-    Trajectory.LoadFromPDB
-    Trajectory.LoadFromPDBList
-    Trajectory.LoadFromDCD    
-    Trajectory.LoadFromTRR
-    Trajectory.LoadFromHDF
-    Trajectory.LoadFromXTC
-    Trajectory.LoadFromLHDF
+    Trajectory.load_trajectory_file
+    Trajectory.load_from_pdb
+    Trajectory.load_from_pdbList
+    Trajectory.load_from_trr
+    Trajectory.load_from_dcd
+    Trajectory.load_from_xtc
+    Trajectory.load_from_hdf
+    Trajectory.load_from_lhdf
+  
+  Reading in chunks
+  
+  .. autosummary::
+    :toctree: generated/
+    
+    Trajectory.enum_chunks_from_hdf
+    Trajectory.enum_chunks_from_lhdf
+  
   
   Saving to disk
   
   .. autosummary::
     :toctree: generated/
   
-    Trajectory.Save
+    Trajectory.save
     Trajectory.SaveToHDF
-    Trajectory.SaveToLHDF
-    Trajectory.SaveToXTC
-    Trajectory.SaveToPDB
-    Trajectory.SaveToXYZ
+    Trajectory.save_to_lhdf
+    Trajectory.save_to_xtc
+    Trajectory.save_to_pdb
+    Trajectory.save_to_xyz
   
   Read a single frame
   
   .. autosummary::
     :toctree: generated/
   
-    Trajectory.ReadDCDFrame
-    Trajectory.ReadLHDF5Frame
-    Trajectory.ReadFrame
-    Trajectory.ReadXTCFrame
-    Trajectory.ReadHDF5Frame
+    Trajectory.read_frame
+    Trajectory.read_hdf_frame
+    Trajectory.read_lhdf_frame
+    Trajectory.read_dcd_frame
+    Trajectory.read_xtc_frame
+
   
   Appending
   
   .. autosummary::
     :toctree: generated/
   
-    Trajectory.AppendFramesToFile
+    Trajectory.append_frames_to_file
     Trajectory.AppendPDB
     
   Manipulation
@@ -82,6 +91,8 @@ Trajectory
   .. autosummary::
     :toctree: generated/
     
+    Trajectory.restrict_atom_indices
+    Trajectory.subsample
     Trajectory.GetEnumeratedAtomID
     Trajectory.GetEnumeratedResidueID
     Trajectory.GetNumberOfAtoms

@@ -47,9 +47,9 @@ def run(MinLagtime, MaxLagtime, Interval, NumEigen, AssignmentsFn, symmetrize, n
     logger.info("Building MSMs at the following lag times: %s", lagTimes)
 
     # Get the implied timescales (eigenvalues)
-    impTimes = msm_analysis.get_implied_timescales(AssignmentsFn, NumStates,
-                                           lagTimes, n_implied_times=NumEigen,
-                                           sliding_window=True, symmetrize=symmetrize, n_procs=nProc)
+    impTimes = msm_analysis.get_implied_timescales(AssignmentsFn, lagTimes,
+        n_implied_times=NumEigen, sliding_window=True, symmetrize=symmetrize,
+        n_procs=nProc)
     numpy.savetxt(output, impTimes)
     return
 

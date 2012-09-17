@@ -134,15 +134,13 @@ def get_eigenvectors(t_matrix, n_eigs, epsilon=.001, dense_cutoff=50, right=Fals
     return e_lambda, e_vectors
 
 
-def get_implied_timescales(assignments_fn, n_states, lag_times, n_implied_times=100, sliding_window=True, trimming=True, symmetrize=None, n_procs=1):
+def get_implied_timescales(assignments_fn, lag_times, n_implied_times=100, sliding_window=True, trimming=True, symmetrize=None, n_procs=1):
     """Calculate implied timescales in parallel using multiprocessing library.  Does not work in interactive mode.
 
     Parameters
     ----------
     AssignmentsFn : str
         Path to Assignments.h5 file on disk
-    NumStates : int
-        Number of states
     LagTimes : list
         List of lag times to calculate the timescales at
     NumImpledTimes : int, optional
@@ -174,7 +172,7 @@ def get_implied_timescales(assignments_fn, n_states, lag_times, n_implied_times=
 
     # subtle bug possibility; uneven_zip will let strings be iterable, whicj
     # we dont want
-    inputs = uneven_zip([assignments_fn], n_states, lag_times, n_implied_times,
+    inputs = uneven_zip([assignments_fn], lag_times, n_implied_times,
         sliding_window, trimming, [symmetrize])
     result = pool.map_async(get_implied_timescales_helper, inputs)
     lags = result.get(999999)
@@ -225,14 +223,14 @@ def get_implied_timescales_helper(args):
     get_eigenvectors
     """
 
-    assignments_fn, n_states, lag_time, n_implied_times, sliding_window, trimming, symmetrize = args
+    assignments_fn, lag_time, n_implied_times, sliding_window, trimming, symmetrize = args
 
     assignments = Serializer.load_data(assignments_fn)
 
     try:
         from msmbuilder import MSMLib
-        t_matrix = MSMLib.build_msm(assignments, lag_time, n_states, symmetrize, sliding_window,
-            trimming)[2]
+        t_matrix = MSMLib.build_msm(assignments, lag_time, symmetrize,
+                                    sliding_window, trimming)[1]
     except ValueError as e:
         logger.critical(e)
         sys.exit(1)
