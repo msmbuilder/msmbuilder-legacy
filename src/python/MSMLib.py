@@ -183,25 +183,10 @@ def build_msm(assignments, lag_time, symmetrize='MLE', sliding_window=True, trim
     
     counts = get_count_matrix_from_assignments(assignments, lag_time=lag_time, 
                                                sliding_window=sliding_window)
-    if trim:
-        counts, mapping = ergodic_trim(counts)
-    else:
-        mapping = np.arange( counts.shape[0] )
-    
-    # Apply a symmetrization scheme
-    t_matrix, counts = build_msm_from_counts(counts, lag_time, 
-                                             symmetrize, return_rev_counts=True)
-    
-    # compute the equilibrium populations
-    if symmetrize in ['mle', 'transpose']:
-        populations = np.array(rev_counts.sum(0)).flatten()
-    else:
-        vectors = msm_analysis.get_eigenvectors(t_matrix, 5)[1]
-        populations = vectors[:, 0]
-    populations /= populations.sum()
-    
-    return counts, t_matrix, populations, mapping
 
+    counts, rev_counts, t_matrix, populations, mapping = build_msm_from_counts( counts, lag_time, symmetrize, return_rev_counts=True, trim=trim )
+
+    return rev_counts, t_matrix, populations, mapping
 
 def build_msm_from_counts(counts, lag_time, symmetrize, return_rev_counts=False, trim=True):
     """
