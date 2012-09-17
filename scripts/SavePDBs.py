@@ -55,9 +55,9 @@ def run(project, assignments, conformations_per_state, states, output_dir):
             outfile = os.path.join(output_dir, 'State%d-%d.pdb' % (s, i))
             if not os.path.exists(outfile):
                 logger.info('Saving state %d (traj %d, frame %d) as %s', s, traj, frame, outfile)
-                xyz = project.ReadFrame(traj, frame)
+                xyz = project.read_frame(traj, frame)
                 empty_traj['XYZList'] = np.array([xyz])
-                empty_traj.SaveToPDB(outfile)
+                empty_traj.save_to_pdb(outfile)
             else:
                 logger.warning('Skipping %s. Already exists', outfile)
                 
@@ -85,6 +85,6 @@ to use GetRandomConfs.py""")
         logger.info("Ripping PDBs for all states")
         args.states = 'all'
     
-    run(Project.LoadFromHDF(args.project), Serializer.LoadData(args.assignments), args.conformations_per_state,
+    run(Project.load_from_hdf(args.project), Serializer.LoadData(args.assignments), args.conformations_per_state,
          args.states, args.output_dir)
 

@@ -41,8 +41,8 @@ microstate it is assigned to.""", get_metric=True)#, formatter_class=argparse.Ra
     assignments_path = os.path.join(args.output_dir, "Assignments.h5")
     distances_path = os.path.join(args.output_dir, "Assignments.h5.distances")
     lock_path = os.path.join(args.output_dir, "Assignments.lock")
-    project = Project.LoadFromHDF(args.project)
-    gens = Trajectory.LoadTrajectoryFile(args.generators)
+    project = Project.load_from_hdf(args.project)
+    gens = Trajectory.load_trajectory_file(args.generators)
     
     # this runs assignment and prints them to disk
     all_asgn, all_dist = assign_with_checkpoint(metric, project, gens, assignments_path, distances_path)

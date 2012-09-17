@@ -122,7 +122,7 @@ def run(PDBfn, atomtype):
       logger.error("Cannot understand atom type: %s", atomtype)
       sys.exit(1)
 
-  C1 = Conformation.LoadFromPDB(PDBfn)
+  C1 = Conformation.load_from_pdb(PDBfn)
 
   if atomtype != "all":
     IndicesToKeep = GrabSpecificAtoms(C1,toKeepDict)

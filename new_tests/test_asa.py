@@ -47,7 +47,7 @@ def test_asa_1():
 
 
 def test_asa_2():
-    t = Trajectory.LoadTrajectoryFile(os.path.join(fixtures_dir(), 'trj0.lh5'))
+    t = Trajectory.load_trajectory_file(os.path.join(fixtures_dir(), 'trj0.lh5'))
     val1 = np.sum(calculate_asa(t[0])) # calculate only frame 0
     val2 = np.sum(calculate_asa(t)[0]) # calculate on all frames
     true_frame_0_asa = 2.859646797180176
@@ -58,9 +58,9 @@ def test_asa_2():
 def test_asa_3():
 
     traj_ref = np.loadtxt( os.path.join(reference_dir(),'g_sas_ref.dat'))
-    Conf = Trajectory.LoadFromPDB(os.path.join( fixtures_dir(), 'native.pdb'))
+    Conf = Trajectory.load_from_pdb(os.path.join( fixtures_dir(), 'native.pdb'))
 
-    traj = Trajectory.LoadTrajectoryFile( os.path.join(fixtures_dir(), 'trj0.xtc') , Conf=Conf)
+    traj = Trajectory.load_trajectory_file( os.path.join(fixtures_dir(), 'trj0.xtc') , Conf=Conf)
     traj_asa = calculate_asa(traj, probe_radius=0.14, n_sphere_points = 960)
     
     # the algorithm used by gromacs' g_sas is slightly different than the one

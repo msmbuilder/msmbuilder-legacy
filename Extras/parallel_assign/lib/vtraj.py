@@ -2,7 +2,7 @@ from hashlib import sha1
 import numpy
 import tables
 from msmbuilder import Trajectory
-from msmbuilder.Trajectory import _ConvertFromLossyIntegers
+from msmbuilder.Trajectory import _convert_from_lossy_integers
 
 class Chunk(object):
     def __init__(self, traj, start, stop):
@@ -97,7 +97,7 @@ class VTraj(object):
         
         for trj_i, start, stop in self.chunks:
             f = tables.File(self.project.GetTrajFilename(trj_i))
-            frames = _ConvertFromLossyIntegers(f.root.XYZList[start:stop], 1000)
+            frames = _convert_from_lossy_integers(f.root.XYZList[start:stop], 1000)
             
             xyzlist[last_frame:last_frame + len(frames), :, :] = frames
             last_frame += len(frames)

@@ -52,7 +52,7 @@ from msmbuilder import Trajectory
 from msmbuilder import Conformation
 from msmbuilder import Serializer
 from msmbuilder import MSMLib
-from msmbuilder import transition_path_theory
+from msmbuilder import tpt
 
 ### Local Imports ###
 #from msmbuilder.scripts import Assign
@@ -94,9 +94,9 @@ class TestWrappers(unittest.TestCase):
         shutil.copy(PDBFn,"./")
                     #def run(projectfn, PDBfn, InputDir, source, mingen, stride, rmsd_cutoff,  parallel='None'):
         ConvertDataToHDF.run(ProjectFn, PDBFn, TutorialDir+"/XTC", "file", 0, 1, 0,1000000)
-        P1 = Project.LoadFromHDF(ProjectFn)
+        P1 = Project.load_from_hdf(ProjectFn)
         
-        r_P1 = Project.LoadFromHDF(os.path.abspath(os.path.join('..', ReferenceDir, ProjectFn)))
+        r_P1 = Project.load_from_hdf(os.path.abspath(os.path.join('..', ReferenceDir, ProjectFn)))
         
         #self.assertEqual(P1['ConfFilename'], r_P1['ConfFilename'])
         self.assertEqual(P1['NumTrajs'], r_P1['NumTrajs'])
@@ -130,19 +130,19 @@ class TestWrappers(unittest.TestCase):
             pass
 
         
-        G   = Trajectory.LoadTrajectoryFile(GensPath)
-        r_G = Trajectory.LoadTrajectoryFile(ReferenceDir +'/'+ GensPath)
+        G   = Trajectory.load_trajectory_file(GensPath)
+        r_G = Trajectory.load_trajectory_file(ReferenceDir +'/'+ GensPath)
         self.assert_trajectories_equal(G, r_G)
 
     def test_d_Assign(self):
         cmd = "Assign.py -p %s -g %s -o %s rmsd -a %s" % (ProjectFn, GensPath, "./Data", "AtomIndices.dat")
         os.system(cmd)
         
-        Assignments       = Serializer.LoadData("./Data/Assignments.h5")
-        AssignmentsRMSD   = Serializer.LoadData("./Data/Assignments.h5.distances")
+        Assignments       = Serializer.load_data("./Data/Assignments.h5")
+        AssignmentsRMSD   = Serializer.load_data("./Data/Assignments.h5.distances")
         
-        r_Assignments     = Serializer.LoadData(ReferenceDir +"/Data/Assignments.h5")
-        r_AssignmentsRMSD = Serializer.LoadData(ReferenceDir +"/Data/Assignments.h5.RMSD")
+        r_Assignments     = Serializer.load_data(ReferenceDir +"/Data/Assignments.h5")
+        r_AssignmentsRMSD = Serializer.load_data(ReferenceDir +"/Data/Assignments.h5.RMSD")
         
         
         numpy.testing.assert_array_equal(Assignments, r_Assignments)
@@ -150,7 +150,7 @@ class TestWrappers(unittest.TestCase):
         
     
     def test_e_BuildMSM(self):
-        Assignments = Serializer.LoadData("Data/Assignments.h5")
+        Assignments = Serializer.load_data("Data/Assignments.h5")
         BuildMSM.run(Lagtime, Assignments, Symmetrize="MLE")
         # Test mapping
         m   = np.loadtxt("Data/Mapping.dat")
@@ -190,32 +190,32 @@ class TestWrappers(unittest.TestCase):
 
     def test_g_GetRandomConfs(self):
         # This one is tricky since it is stochastic...
-        P1 = Project.LoadFromHDF(ProjectFn)
-        Assignments = Serializer.LoadData("Data/Assignments.Fixed.h5")
+        P1 = Project.load_from_hdf(ProjectFn)
+        Assignments = Serializer.load_data("Data/Assignments.Fixed.h5")
         GetRandomConfs.run(P1, Assignments, NumRandomConformations, "2RandomConfs.lh5", 'lh5')
-        Trajectory.LoadTrajectoryFile("2RandomConfs.lh5")
+        Trajectory.load_trajectory_file("2RandomConfs.lh5")
         # Kyle: you may have a good idea for the efficient testing of this
 
     def test_h_CalculateClusterRadii(self):
 
         #args = ("Data/Assignments.h5", "Data/Assignments.h5.distances", MinState,MaxState)
         #Note this one RETURNS a value, not saves it to disk.
-        cr = CalculateClusterRadii.main(Serializer.LoadData("Data/Assignments.h5"),
-                                        Serializer.LoadData("Data/Assignments.h5.distances"))
+        cr = CalculateClusterRadii.main(Serializer.load_data("Data/Assignments.h5"),
+                                        Serializer.load_data("Data/Assignments.h5.distances"))
         #recall that this one bundles stuff
         #time.sleep(10) # we have to wait a little to get results
         cr_r = np.loadtxt(ReferenceDir +"/ClusterRadii.dat")
         numpy.testing.assert_array_almost_equal(cr, cr_r)
 
     def test_i_CalculateRMSD(self):
-        #C1   = Conformation.Conformation.LoadFromPDB(PDBFn)
-        #Traj = Trajectory.LoadTrajectoryFile("Data/Gens.lh5")
+        #C1   = Conformation.Conformation.load_from_pdb(PDBFn)
+        #Traj = Trajectory.load_trajectory_file("Data/Gens.lh5")
         #AInd = np.loadtxt("AtomIndices.dat", int)
         #CalculateRMSD.run(C1, Traj, AInd, "RMSD.dat")
         outpath = os.path.join(WorkingDir, "RMSD_Gens.h5")
         os.system('CalculateProjectDistance.py -s %s -t %s -o %s rmsd -a %s' % (PDBFn, "Data/Gens.lh5", outpath, "AtomIndices.dat" ) )
         
-        cr   = Serializer.LoadData(outpath)
+        cr   = Serializer.load_data(outpath)
         cr_r = np.loadtxt(os.path.join(ReferenceDir, "RMSD.dat"))
         numpy.testing.assert_array_almost_equal(cr, cr_r)
 
@@ -223,14 +223,14 @@ class TestWrappers(unittest.TestCase):
     def test_j_PCCA(self):
 
         TC = scipy.io.mmread(os.path.join(WorkingDir,"Data", "tProb.mtx"))
-        A  = Serializer.LoadData(os.path.join(WorkingDir,"Data", "Assignments.Fixed.h5"))
+        A  = Serializer.load_data(os.path.join(WorkingDir,"Data", "Assignments.Fixed.h5"))
         PCCA.run_pcca(NumMacroStates, A, TC, os.path.join(WorkingDir, 'Data'))
 
         mm   = np.loadtxt(os.path.join(WorkingDir, "Data", "MacroMapping.dat"),'int')
         mm_r = np.loadtxt(os.path.join(ReferenceDir, "Data", "MacroMapping.dat"),'int')
 
-        ma   = Serializer.LoadData(os.path.join(WorkingDir, "Data", "MacroAssignments.h5"))
-        ma_r = Serializer.LoadData(os.path.join(ReferenceDir, "Data", "MacroAssignments.h5"))
+        ma   = Serializer.load_data(os.path.join(WorkingDir, "Data", "MacroAssignments.h5"))
+        ma_r = Serializer.load_data(os.path.join(ReferenceDir, "Data", "MacroAssignments.h5"))
 
         num_macro = NumMacroStates
         permutation_mapping = np.zeros(num_macro,'int')
@@ -247,24 +247,24 @@ class TestWrappers(unittest.TestCase):
         numpy.testing.assert_array_almost_equal(ma, ma_r)
 
     def test_k_CalculateProjectRMSD(self):
-        #C1 = Conformation.LoadFromPDB(PDBFn)
-        #P1 = Project.LoadFromHDF(ProjectFn)
+        #C1 = Conformation.load_from_pdb(PDBFn)
+        #P1 = Project.load_from_hdf(ProjectFn)
         #AInd=np.loadtxt("AtomIndices.dat", int)
         #CalculateProjectRMSD.run(C1,P1,AInd,"RMSD.h5")
         outpath = os.path.join(WorkingDir, "RMSD.h5")
         os.system('CalculateProjectDistance.py -s %s -o %s -p %s rmsd -a %s' % (PDBFn, outpath, ProjectFn, "AtomIndices.dat") )
         
         
-        r0=Serializer.LoadData(ReferenceDir+"/RMSD.h5")
-        r1=Serializer.LoadData(WorkingDir+"/RMSD.h5")
+        r0=Serializer.load_data(ReferenceDir+"/RMSD.h5")
+        r1=Serializer.load_data(WorkingDir+"/RMSD.h5")
         numpy.testing.assert_array_almost_equal(r0,r1, err_msg="Error: Project RMSDs disagree!")
 
     def test_l_CalculateProjectSASA(self):
         outpath = os.path.join(WorkingDir, "SASA.h5")
         os.system('CalculateProjectSASA.py -o %s -p %s' % (outpath, ProjectFn) )
 
-        r0=Serializer.LoadData(os.path.join( ReferenceDir, "SASA.h5" ))
-        r1=Serializer.LoadData(os.path.join( WorkingDir, "SASA.h5" ))
+        r0=Serializer.load_data(os.path.join( ReferenceDir, "SASA.h5" ))
+        r1=Serializer.load_data(os.path.join( WorkingDir, "SASA.h5" ))
         numpy.testing.assert_array_almost_equal(r0,r1, err_msg="Error: Project SASAs disagree!")
 
     def test_m_DoTPT(self): 
@@ -272,8 +272,8 @@ class TestWrappers(unittest.TestCase):
         sources = [0]
         sinks = [70]
         script_out = DoTPT.run(T, sources, sinks)
-        committors_ref = Serializer.LoadData(os.path.join(ReferenceDir, "transition_path_theory_reference", "committors.h5"))
-        net_flux_ref = Serializer.LoadData(os.path.join(ReferenceDir, "transition_path_theory_reference", "net_flux.h5"))
+        committors_ref = Serializer.load_data(os.path.join(ReferenceDir, "transition_path_theory_reference", "committors.h5"))
+        net_flux_ref = Serializer.load_data(os.path.join(ReferenceDir, "transition_path_theory_reference", "net_flux.h5"))
         numpy.testing.assert_array_almost_equal(script_out[0], committors_ref)
         numpy.testing.assert_array_almost_equal(script_out[1].toarray(), net_flux_ref)
 
@@ -283,8 +283,8 @@ class TestWrappers(unittest.TestCase):
         sinks = [70]
         paths, bottlenecks, fluxes = FindPaths.run(tprob, sources, sinks, 10)
         # paths are hard to test due to type issues, adding later --TJL
-        bottlenecks_ref = Serializer.LoadData(os.path.join(ReferenceDir, "transition_path_theory_reference", "dijkstra_bottlenecks.h5"))
-        fluxes_ref = Serializer.LoadData(os.path.join(ReferenceDir, "transition_path_theory_reference", "dijkstra_fluxes.h5"))
+        bottlenecks_ref = Serializer.load_data(os.path.join(ReferenceDir, "transition_path_theory_reference", "dijkstra_bottlenecks.h5"))
+        fluxes_ref = Serializer.load_data(os.path.join(ReferenceDir, "transition_path_theory_reference", "dijkstra_fluxes.h5"))
         numpy.testing.assert_array_almost_equal(bottlenecks, bottlenecks_ref)
         numpy.testing.assert_array_almost_equal(fluxes, fluxes_ref)
 

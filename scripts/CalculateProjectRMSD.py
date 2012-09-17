@@ -62,11 +62,11 @@ Please use CalculateProjectDistance.py
 
     arglib.die_if_path_exists(args.output)
 
-    project = Project.LoadFromHDF( args.project )    
-    pdb = Trajectory.LoadTrajectoryFile( args.pdb )
+    project = Project.load_from_hdf( args.project )    
+    pdb = Trajectory.load_trajectory_file( args.pdb )
     atom_indices = np.loadtxt( args.atom_indices ).astype(int)
 
     distances = run(project, pdb, atom_indices)
     
-    Serializer.SaveData(args.output, distances)
+    Serializer.save_data(args.output, distances)
     logger.info('Saved to %s', args.output)

@@ -10,7 +10,7 @@ import tables
 import tempfile
 import unittest
 
-from msmbuilder.Serializer import Filter
+from msmbuilder.Serializer import FILTER
 from msmbuilder import Serializer
 import numpy as np
 
@@ -36,12 +36,12 @@ class TestSerializer(unittest.TestCase):
         """Write Data to an HDF5 file as a compressed CArray."""
         hdfFile = tables.File(Filename1, 'a')
         #The filter is the same used to save MSMB2 data
-        hdfFile.createCArray("/", "Data", tables.Float32Atom(),Data.shape,filters=Filter)
+        hdfFile.createCArray("/", "Data", tables.Float32Atom(),Data.shape,filters=FILTER)
         hdfFile.root.Data[:]=Data[:]
         hdfFile.flush()
         hdfFile.close()
         
-    def test2_LoadFromHDF(self):
+    def test2_load_from_hdf(self):
         """Load HDF5 file from (0) and verify correctness."""
         TestData=Serializer.LoadData(Filename1)        
         # check correctness or raise error

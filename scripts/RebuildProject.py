@@ -6,7 +6,6 @@
 import os
 
 from msmbuilder import Project
-from msmbuilder import CreateMergedTrajectoriesFromFAH
 from msmbuilder import arglib
 import logging
 logger = logging.getLogger(__name__)

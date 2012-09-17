@@ -55,7 +55,7 @@ def run(project, assignments, conformations_per_state, states, output_dir, gens_
     digits = len(str(max(states)))
     # Create a trajectory of generators and prepare it.
     if os.path.exists(gens_file):
-        gens_traj = Trajectory.LoadTrajectoryFile(gens_file)
+        gens_traj = Trajectory.load_trajectory_file(gens_file)
         p_gens_traj = rmsd_metric.prepare_trajectory(gens_traj)
         formstr_pdb = '\"Generator-%%0%ii.pdb\"' % digits
     
@@ -124,9 +124,9 @@ def run(project, assignments, conformations_per_state, states, output_dir, gens_
         outxtc = eval(formstr_xtc) % s
         this_gen_traj = p_gens_traj[s]
         print ", saving PDB to %s" % os.path.join(output_dir,outpdb),
-        this_gen_traj.SaveToPDB(os.path.join(output_dir,outpdb))
+        this_gen_traj.save_to_pdb(os.path.join(output_dir,outpdb))
         print ", saving XTC to %s" % os.path.join(output_dir,outxtc),
-        p_cluster_traj.SaveToXTC(os.path.join(output_dir,outxtc))
+        p_cluster_traj.save_to_xtc(os.path.join(output_dir,outxtc))
         print ", saved"
         NowMem = float(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss) / 1048576
         if NowMem > MaxMem:
@@ -178,7 +178,7 @@ to use GetRandomConfs.py""")
 
     atom_indices = np.loadtxt(args.lprmsd_atom_indices, np.int)
     assignments = Serializer.LoadData(args.assignments)
-    project = Project.LoadFromHDF(args.project)
+    project = Project.load_from_hdf(args.project)
     
     if args.lprmsd_permute_atoms == 'None':
         permute_indices = None

@@ -43,7 +43,7 @@ def run_pcca(num_macrostates, assignments, tProb, output_dir):
     MSMLib.apply_mapping_to_assignments(assignments, MAP)
 
     np.savetxt(MacroMapFn, MAP, "%d")
-    Serializer.SaveData(MacroAssignmentsFn,assignments)
+    Serializer.save_data(MacroAssignmentsFn,assignments)
     
     logger.info("Saved output to: %s, %s", MacroAssignmentsFn, MacroMapFn)
     
@@ -63,7 +63,7 @@ def run_pcca_plus(num_macrostates, assignments, tProb, output_dir, flux_cutoff=0
     np.savetxt(ChiFn, chi)
     np.savetxt(AFn, A)
     np.savetxt(MacroMapFn, MAP,"%d")
-    Serializer.SaveData(MacroAssignmentsFn, assignments)
+    Serializer.save_data(MacroAssignmentsFn, assignments)
     logger.info('Saved output to: %s, %s, %s, %s', ChiFn, AFn, MacroMapFn, MacroAssignmentsFn)
 
 

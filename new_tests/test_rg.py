@@ -20,7 +20,7 @@ def reference_rg(xyzlist):
     return Rg
 
 def test_rg_1():
-    project = Project.LoadFromHDF(os.path.join(fixtures_dir(),
+    project = Project.load_from_hdf(os.path.join(fixtures_dir(),
         'ProjectInfo.h5'))
     traj = project.LoadTraj(0)
     xyzlist = traj['XYZList']

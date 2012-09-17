@@ -43,7 +43,7 @@ def main():
     
     assignments = hierarchical_clustering_zmatrix.get_assignments(k=k, cutoff_distance=d)
     
-    Serializer.SaveData(args.assignments, assignments)
+    Serializer.save_data(args.assignments, assignments)
     logger.info('Saved assignments to %s', args.assignments)
     
 if __name__ == "__main__":

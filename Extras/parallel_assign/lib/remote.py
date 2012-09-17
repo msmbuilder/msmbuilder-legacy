@@ -21,8 +21,8 @@ def load_gens(gens_fn, conf_fn, metric):
     global PGENS, CONF, METRIC, PREPARED
     
     METRIC = metric
-    CONF = Trajectory.LoadTrajectoryFile(conf_fn)
-    gens = Trajectory.LoadTrajectoryFile(gens_fn)
+    CONF = Trajectory.load_trajectory_file(conf_fn)
+    gens = Trajectory.load_trajectory_file(gens_fn)
     PGENS = metric.prepare_trajectory(gens)
     PREPARED = True
     

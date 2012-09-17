@@ -91,7 +91,7 @@ def CreateCopernicusProject(ConfFilename, FileList):
     if ConfFilename == None:
         print "No reference conf! ERROR"
         return
-    Conf=Conformation.Conformation.LoadFromPDB(ConfFilename)
+    Conf=Conformation.Conformation.load_from_pdb(ConfFilename)
 
     NumTraj = 0
     PartsLenList = []
@@ -127,7 +127,7 @@ def CreateCopernicusProject(ConfFilename, FileList):
     for i in range(NumTraj):
         f=P1.GetTrajFilename(i)
         print f
-        LenList.append(Trajectory.Trajectory.LoadTrajectoryFile(f,Conf=Conf,JustInspect=True)[0])
+        LenList.append(Trajectory.Trajectory.load_trajectory_file(f,Conf=Conf,JustInspect=True)[0])
 
     P1["TrajLengths"]=np.array(LenList)
 
