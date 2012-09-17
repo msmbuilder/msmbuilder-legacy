@@ -14,15 +14,17 @@ Contents:
    intro
    metrics
    clustering
+   assigning
    msmlib
    msmanalysis
+   lumping
+   tpt
+   cfep
    trajectory
    arglib
-   lumping
    utils
    project
    fahproject
-   cfep   
 
    developer
    

@@ -92,7 +92,7 @@ class TestCfep():
         
         test_dir = os.path.join( reference_dir(), 'cfep_reference/' )
     
-        self.generators = Trajectory.LoadTrajectoryFile(test_dir + 'Gens.lh5')
+        self.generators = Trajectory.load_trajectory_file(test_dir + 'Gens.lh5')
         N = len(self.generators)
     
         self.counts = io.mmread(test_dir + 'tCounts.mtx')
