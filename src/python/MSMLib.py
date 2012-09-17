@@ -151,7 +151,7 @@ def build_msm(assignments, lag_time, symmetrize='MLE', sliding_window=True, trim
             data.
         (5) Compute the equilibirum populations of each state dicated by the
             transition matrix.
-    
+
     Parameters
     ----------
     assignments : np.ndarray, int
@@ -166,7 +166,7 @@ def build_msm(assignments, lag_time, symmetrize='MLE', sliding_window=True, trim
         counting, if false, only the first frame of reference is used.
     trim : bool, optional
         If true, trims out unconnected components of the MSM network
-    
+
     Returns
     -------
     counts : scipy.sparse.csr_matric
@@ -180,18 +180,16 @@ def build_msm(assignments, lag_time, symmetrize='MLE', sliding_window=True, trim
         the new state indices in the objects returned. This is
         necessary since the `trim`ing procedue can remove states.
     """
-    
+
     counts = get_count_matrix_from_assignments(assignments, lag_time=lag_time, 
                                                sliding_window=sliding_window)
     if trim:
         counts, mapping = ergodic_trim(counts)
     else:
         mapping = np.arange( counts.shape[0] )
-    
-    # Apply a symmetrization scheme
-    t_matrix, counts = build_msm_from_counts(counts, lag_time, 
-                                             symmetrize, return_rev_counts=True)
-    
+
+    t_matrix, counts = build_msm_from_counts(counts, lag_time, symmetrize, return_rev_counts=True)
+
     # compute the equilibrium populations
     if symmetrize in ['mle', 'transpose']:
         populations = np.array(rev_counts.sum(0)).flatten()
@@ -232,38 +230,21 @@ def build_msm_from_counts(counts, lag_time, symmetrize, return_rev_counts=False)
     symmetrization_error = ValueError("Invalid symmetrization scheme requested: %s. Exiting." % symmetrize)
     if symmetrize not in ['mle', 'transpose', 'none']:
         raise symmetrization_error
-
-    counts = get_count_matrix_from_assignments(assignments, n_states=n_states, lag_time=lag_time, sliding_window=sliding_window)
-    if trimming:
-        counts, mapping = ergodic_trim(counts)
-
-    # Apply a symmetrization scheme
+    
     if symmetrize == 'mle':
         rev_counts = mle_reversible_count_matrix(counts, prior=0.0)
-
     elif symmetrize == 'transpose':
         rev_counts = 0.5*(counts + counts.transpose())
-
     elif symmetrize == 'none':
         rev_counts = counts
-
     else:
         raise symmetrization_error
-
+    
     t_matrix = estimate_transition_matrix(rev_counts)
-
-    if symmetrize in ['mle', 'transpose']:
-        populations = np.array(rev_counts.sum(0)).flatten()
-    elif get_populations and symmetrize == 'none':
-        vectors = msm_analysis.get_eigenvectors(t_matrix, 5)[1]
-        populations = vectors[:, 0]
-    else:
-        populations = None
-
-    if populations is not None:
-        populations /= populations.sum()
-
-    return counts, rev_counts, t_matrix, populations, mapping
+    
+    if return_rev_counts:
+        return t_matrix, rev_counts
+    return t_matrix
 
 
 def get_count_matrix_from_assignments(assignments, n_states=None, lag_time=1, sliding_window=True):

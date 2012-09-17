@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 from msmbuilder import MSMLib
 from msmbuilder import Serializer
-from msmbuilder import transition_path_theory as tpt
+from msmbuilder import tpt
 from msmbuilder.msm_analysis import get_eigenvectors
 from msmbuilder.geometry.contact import atom_distances
 
