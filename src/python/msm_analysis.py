@@ -558,7 +558,7 @@ def calc_expectation_timeseries(tprob, observable, init_pop=None, timepoints=10*
         mode_decay = front * np.power(lambd[i], np.arange(timepoints)) * back
         timeseries += np.real(mode_decay)
 
-    logger.info(np.dot(pi, observable), timeseries[-1])
+    logger.info('%f %f', np.dot(pi, observable), timeseries[-1])
 
     return timeseries
 
