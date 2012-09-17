@@ -8,7 +8,7 @@ Modified version of RMSD distance metric that does the following:
 """
 from msmbuilder.metrics import AbstractDistanceMetric
 from msmbuilder.metrics import RMSD
-from msmbuilder import _lprmsd
+import _lprmsd
 from msmbuilder.Trajectory import Trajectory
 
 import numpy as np
