@@ -24,6 +24,7 @@ should have this functionality by default.
 To Do
 -----
 > Choose best search method in `optimize`
+> Add functionality for saving/loading the state of VariableCoordinate
 """
 
 TIME = False
@@ -502,10 +503,17 @@ class VariableCoordinate(CutCoordinate):
         return
 
 
-    def optimize(self):
+    def optimize(self, maxiter=1000):
         """
         Compute an optimized reaction coordinate, where optimized means the
         coordinate the maximizes the barrier between two metastable basins.
+
+        Parameters
+        ----------
+        maxiter : int (optional)
+            The maximum number of iterations to run the optimization algorithm
+            for. Note that you can always do a little, check the answer, then 
+            come back and optimize more later.
 
         Stores
         ------
@@ -533,7 +541,7 @@ class VariableCoordinate(CutCoordinate):
 
         optimal_alphas = scipy.optimize.fmin_cg( objective, self.rc_alphas,
                                                  args=(self.generators,),
-                                                 maxiter=1000 )
+                                                 maxiter=maxiter )
 
         self.rc_alphas = optimal_alphas
         self._evaluate_reaction_coordinate()
@@ -573,7 +581,7 @@ def test():
     initial_weights = np.ones( (1225,26104) )
 
     contact_cfep = VariableCoordinate(contact_reaction_coordinate, initial_weights,
-                                    counts, generators, reactant, product)
+                                      counts, generators, reactant, product)
 
     contact_cfep.evaluate_partition_functions()
     print contact_cfep.zh
