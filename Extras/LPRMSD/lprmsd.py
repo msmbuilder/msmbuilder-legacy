@@ -5,6 +5,8 @@ Modified version of RMSD distance metric that does the following:
 2) Permutes selected atomic indices.
 3) Perform the alignment again.
 
+Mao
+
 """
 from msmbuilder.metrics import AbstractDistanceMetric
 from msmbuilder.metrics import RMSD
