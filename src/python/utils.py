@@ -7,7 +7,6 @@ import warnings
 import functools
 warnings.simplefilter('always')
 
-
 def fft_acf(data):
     '''Return the autocorrelation of a 1D array using the fft
     Note: the result is normalized'''
@@ -174,3 +173,41 @@ def future_warning(func):
         )
         return func(*args, **kwargs)
     return new_func
+
+def highlight(text,color='Red',bold=False):
+    """Return a highlighted string using color or bold.
+
+    @param[in] text The string that the printout is based upon.  This function
+    will return the highlighted string.
+    
+    @param[in] color String or number corresponding to the color.
+    1 red\n
+    2 green\n
+    3 yellow\n
+    4 blue\n
+    5 magenta\n
+    6 cyan\n
+    7 white
+
+    @param[in] bold Whether to use bold print
+    """
+    
+    colordict = {'red' : 1,
+                 'green' : 2,
+                 'yellow' : 3,
+                 'blue' : 4,
+                 'magenta' : 5,
+                 'cyan' : 6,
+                 'white' : 7}
+
+    if color.lower() in colordict:
+        color = colordict[color.lower()]
+    elif color in ['1', '2', '3', '4', '5', '6', '7']:
+        color = int(color)
+    elif color in range(1, 8):
+        pass
+    else:
+        raise ValueError('Invalid argument given for color (use integer 1-7 or case-insensitive word: red, green, yellow, blue, magenta, cyan, or white)')
+    
+
+    return "\x1b[%s9%im" % (bold and "1;" or "", color) + text + "\x1b[0m"
