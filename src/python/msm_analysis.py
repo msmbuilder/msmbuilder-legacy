@@ -527,20 +527,21 @@ def calc_expectation_timeseries(tprob, observable, init_pop=None, timepoints=10*
     """
 
     # first, perform the eigendecomposition
-    lambd, psi_R = sparse_eigen(tprob, k=n_modes, which='LR')
+    lambd, psi_L = sparse_eigen(tprob.T, k=n_modes, which='LR')
     #lambd, psi_R = get_eigenvectors(tprob, n_modes, right=True)
-    psi_R = np.real(psi_R)
+    psi_L = np.real(psi_L)
     lambd = np.real(lambd)
 
     # normalize eigenvectors
-    pi = psi_R[:, 0]
+    pi = psi_L[:, 0]
     pi /= pi.sum()
 
-    psi_L = np.zeros(psi_R.shape)
+    np.savetxt('calculated_populations.dat', pi)
+    psi_R = np.zeros(psi_L.shape)
     for i in range(n_modes):
-        psi_R[:, i] /= np.sqrt( np.sum( np.square( psi_R[:, i] ) / pi ) )
-        psi_L[:, i] = psi_R[:, i] / pi
-        psi_L[:, i] /= np.dot(psi_L[:, i], psi_R[:, i])
+        psi_L[:, i] /= np.sqrt( np.sum( np.square( psi_L[:, i] ) / pi ) )
+        psi_R[:, i] = psi_L[:, i] / pi
+        psi_R[:, i] /= np.dot(psi_R[:, i], psi_L[:, i])
 
     if lagtime:
         logger.info("Shortest timescale process included: %s", -lagtime / np.log(np.min(lambd)))
@@ -554,8 +555,8 @@ def calc_expectation_timeseries(tprob, observable, init_pop=None, timepoints=10*
     # generate the timeseries
     timeseries = np.zeros(timepoints)
     for i in range(n_modes):
-        front = np.dot(init_pop, psi_L[:, i])
-        back = np.dot(observable, psi_R[:, i])
+        front = np.dot(init_pop, psi_R[:, i])
+        back = np.dot(observable, psi_L[:, i])
         mode_decay = front * np.power(lambd[i], np.arange(timepoints)) * back
         timeseries += np.real(mode_decay)
 
