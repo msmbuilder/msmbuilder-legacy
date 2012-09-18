@@ -8,7 +8,7 @@ from scipy import io
 
 from msmbuilder import tpt
 from msmbuilder import Serializer
-from common import reference_dir, expected_failure
+from common import reference_dir, expected_failure, skip
 
 
 class TestTPT():
@@ -28,7 +28,8 @@ class TestTPT():
         # set up the reference data for hub scores
         self.hub_ref_dir = os.path.join(self.tpt_ref_dir, "hub_ref")
         K = np.loadtxt( os.path.join(self.hub_ref_dir, 'ratemat_1.dat') )
-        self.hub_T = scipy.linalg.expm( K ) # delta-t should not affect hub scores
+        #self.hub_T = scipy.linalg.expm( K ) # delta-t should not affect hub scores
+        self.hub_T = np.transpose( np.genfromtxt(os.path.join(self.hub_ref_dir, 'mat_1.dat'))[:,:-3] )
         
         for i in range(self.hub_T.shape[0]):
             self.hub_T[i,:] /= np.sum(self.hub_T[i,:])
@@ -86,20 +87,19 @@ class TestTPT():
         tp_time_ref = Serializer.load_data(os.path.join(self.tpt_ref_dir, "tp_time.h5"))
         npt.assert_array_almost_equal(tp_time, tp_time_ref)
         
-    @expected_failure
+        
     def test_fraction_visits(self):
         
-        source = [1]              # chosen by TJL
-        waypoint = 0              # chosen by TJL
-        sinks_from_alex = [2,3,4] # chosen by TJL
+        num_to_test = 11**2 # this can be changed to shorten the test a little
         
-        # do a subset of the calculations -- we don't want the test to take forever
-        for i in range(self.hub_T.shape[0]):
-            sink = sinks_from_alex[i]
+        for i in range(num_to_test):
+            waypoint = int(self.hc[i,0])
+            source   = int(self.hc[i,1])
+            sink     = int(self.hc[i,2])
             hc = tpt.calculate_fraction_visits(self.hub_T, waypoint, source, sink)
             assert np.abs(hc - self.hc[i,3]) < 0.0001
         
-    @expected_failure
+
     def test_hub_scores(self):
         
         all_hub_scores = tpt.calculate_all_hub_scores(self.hub_T)
