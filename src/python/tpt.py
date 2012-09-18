@@ -110,6 +110,7 @@ def find_top_paths(sources, sinks, tprob, num_paths=10, node_wipe=False, net_flu
     # first, do some checking on the input, esp. `sources` and `sinks`
     # we want to make sure all objects are iterable and the sets are disjoint
     sources, sinks = _check_sources_sinks(sources, sinks)
+    msm_analysis.check_transition(tprob)
 
     # check to see if we get net_flux for free, otherwise calculate it
     if not net_flux:
@@ -437,6 +438,7 @@ def calculate_fluxes(sources, sinks, tprob, populations=None, committors=None):
     """
 
     sources, sinks = _check_sources_sinks(sources, sinks)
+    msm_analysis.check_transition(tprob)
 
     if scipy.sparse.issparse(tprob):
         dense = False
@@ -510,6 +512,7 @@ def calculate_net_fluxes(sources, sinks, tprob, populations=None, committors=Non
     """
 
     sources, sinks = _check_sources_sinks(sources, sinks)
+    msm_analysis.check_transition(tprob)
 
     if scipy.sparse.issparse(tprob):
         dense = False
@@ -567,6 +570,7 @@ def calculate_ensemble_mfpt(sources, sinks, tprob, lag_time):
     """
 
     sources, sinks = _check_sources_sinks(sources, sinks)
+    msm_analysis.check_transition(tprob)
 
     X = calculate_mfpt(sinks, tprob, lag_time)
     times = np.zeros(len(sources))
@@ -607,6 +611,7 @@ def calculate_avg_TP_time(sources, sinks, tprob, lag_time):
     """
 
     sources, sinks = _check_sources_sinks(sources, sinks)
+    msm_analysis.check_transition(tprob)
 
     n = tprob.shape[0]
     if scipy.sparse.issparse(tprob):
@@ -664,6 +669,7 @@ def calculate_mfpt(sinks, tprob, lag_time=1.):
     """
 
     sinks = _ensure_iterable(sinks)
+    msm_analysis.check_transition(tprob)
 
     n = tprob.shape[0]
 
@@ -720,6 +726,8 @@ def calculate_all_to_all_mfpt(tprob, populations=None):
         a set of sinks
     """
 
+    msm_analysis.check_transition(tprob)
+    
     if scipy.sparse.issparse(tprob):
         tprob = tprob.toarray()
         logger.warning('calculate_all_to_all_mfpt does not support sparse linear algebra')
@@ -770,6 +778,7 @@ def calculate_committors(sources, sinks, tprob):
     """
 
     sources, sinks = _check_sources_sinks(sources, sinks)
+    msm_analysis.check_transition(tprob)
 
     if scipy.sparse.issparse(tprob):
         dense = False
@@ -825,7 +834,7 @@ def calculate_committors(sources, sinks, tprob):
 #
 
 
-def calculate_fraction_visits(tprob, waypoint, sources, sinks, return_cond_Q=False):
+def calculate_fraction_visits(tprob, waypoint, source, sink, return_cond_Q=False):
     """
     Calculate the fraction of times a walker on `tprob` going from `sources` 
     to `sinks` will travel through the set of states `waypoints` en route.
@@ -883,6 +892,7 @@ def calculate_fraction_visits(tprob, waypoint, sources, sinks, return_cond_Q=Fal
     # the second to last row, and the lumped sinks are in the last row
 
     # check `tprob`
+    msm_analysis.check_transition(tprob)
     if type(tprob) != np.ndarray:
         try:
             tprob = tprob.todense()
@@ -890,56 +900,56 @@ def calculate_fraction_visits(tprob, waypoint, sources, sinks, return_cond_Q=Fal
             raise TypeError('Argument `tprob` must be convertable to a dense'
                             'numpy array. \n%s' % e)
 
-    sources, sinks = _check_sources_sinks(sources, sinks)
+    #sources, sinks = _check_sources_sinks(sources, sinks)
        
     # typecheck `waypoints` 
-    if type(waypoint) == int:
-        pass
-    elif hasattr(waypoint, 'len'):
-        if len(waypoint) == 1:
-            waypoint = waypoint[0]
-    else:
-        raise TypeError('Argument `waypoint` must be an int')
+    for data in [source, sink, waypoint]:
+        if type(data) == int:
+            pass
+        elif hasattr(data, 'len'):
+            if len(data) == 1:
+                data = data[0]
+        else:
+            raise TypeError('Arguments source/sink/waypoint must be an int')
     
-    if np.any(sources == waypoint) or np.any(sinks == waypoint):
-        raise ValueError('sources, sinks, waypoints must all be disjoint!')
+    if (source == waypoint) or (sink == waypoint) or (sink == source):
+        raise ValueError('source, sink, waypoint must all be disjoint!')
 
     N = tprob.shape[0]
+    Q = calculate_committors([source], [sink], tprob)
     
     # permute the transition matrix into cannonical form - send waypoint the the
-    # last row, and sinks to the end after that
+    # last row, and source + sink to the end after that
+    Bsink_indices = [source, sink, waypoint]
     perm = np.arange(N)
-    perm = np.delete(perm, sinks + [waypoint])
-    perm = np.append(perm, sinks + [waypoint])
+    perm = np.delete(perm, Bsink_indices)
+    perm = np.append(perm, Bsink_indices)
     T = MSMLib.permute_mat(tprob, perm)
     
-    Q = calculate_committors(sources, sinks, T)
-    
     # extract P, R
-    n = N - len(sinks) - 1
+    n = N - len(Bsink_indices)
     P = T[:n,:n]
     R = T[:n,n:]
     
-    # calculate the conditional committors ( B = N*R ), B[i,j] is the prob state i
-    # ends in j, where j runs over the sinks + waypoint (waypoint is position -1)
+    # calculate the conditional committors ( B = N*R ), B[i,j] is the prob 
+    # state i ends in j, where j runs over the source + sink + waypoint 
+    # (waypoint is position -1)
     B = np.dot( np.linalg.inv( np.eye(n) - P ), R )
     
-    # add probs for the sinks, waypoint
-    b = np.append( B[:,-1].flatten(), [0.0]*(N-n-1) + [1.0] ) 
-    cond_Q = Q * b
+    # add probs for the sinks, waypoint / b[i] is P( i --> {C & not A, B} )
+    b = np.append( B[:,-1].flatten(), [0.0]*(len(Bsink_indices)-1) + [1.0] )
+    cond_Q = b * Q[waypoint]
+    
     assert cond_Q.shape == (N,)
     assert np.all( cond_Q <= 1.0 )
     assert np.all( cond_Q >= 0.0 )
+    assert np.all( cond_Q <= Q[perm] )
     
-    # finally, calculate the fraction of paths h_C(A,B)
-    numer = 0.0
-    denmr = 0.0
-    for source in sources:
-        numer += np.sum( T[source,:] * cond_Q )
-        denmr += np.sum( T[source,:] * Q )
-        denmr += np.sum( T[source,sinks] )
-        
-    fraction_paths = numer / denmr
+    # finally, calculate the fraction of paths h_C(A,B) (eq. 7 in [1])
+    fraction_paths = np.sum( T[-3,:] * cond_Q ) / np.sum( T[-3,:] * Q[perm] )
+    
+    assert fraction_paths <= 1.0
+    assert fraction_paths >= 0.0
     
     if return_cond_Q:
         cond_Q = cond_Q[ np.argsort(perm) ] # put back in orig. order
@@ -948,11 +958,9 @@ def calculate_fraction_visits(tprob, waypoint, sources, sinks, return_cond_Q=Fal
         return fraction_paths
 
 
-def calculate_hub_score(tprob, waypoints):
+def calculate_hub_score(tprob, waypoint):
     """
-    Calculate the hub score for the set of states `waypoints` - which can
-    either be a list/array of microstates (i.e. a macrostate) or a single
-    microstate.
+    Calculate the hub score for the states `waypoint`.
 
     The "hub score" is a measure of how well traveled a certain state or
     set of states is in a network. Specifically, it is the fraction of
@@ -964,7 +972,7 @@ def calculate_hub_score(tprob, waypoints):
     ----------
     tprob : matrix
         The transition probability matrix
-    waypoints : nd_array, int or int
+    waypoints : int
         The indices of the intermediate state(s)
 
     Returns
@@ -993,26 +1001,30 @@ def calculate_hub_score(tprob, waypoints):
         Article ASAP DOI: 10.1021/ct300537s
     """
     
+    msm_analysis.check_transition(tprob)
+    
     # typecheck
-    if (type(waypoints) or type(waypoints)) == list:
-        pass
-    elif type(waypoints) == int:
-        waypoints = np.array([waypoints])
-    else:
-        raise ValueError('Must pass waypoints as int or list/array of ints')
+    if type(waypoint) != int:
+        if hasattr(waypoint, '__len__'):
+            if len(waypoint) == 1:
+                waypoint = waypoint[0]
+            else:
+                raise ValueError('Must pass waypoints as int or list/array of ints')
+        else:
+            raise ValueError('Must pass waypoints as int or list/array of ints')
 
     # find out which states to include in A, B (i.e. everything but C)
     N = tprob.shape[0]
-    states_to_include = range(N) # TJL: optimization point
-    for w in waypoints:
-        states_to_include.remove(w)
+    states_to_include = range(N)
+    states_to_include.remove(waypoint)
 
     # calculate the hub score
     Hc = 0.0
     for s1 in states_to_include:
         for s2 in states_to_include:
-            if (s1 != s2) and (s1 not in waypoints) and (s2 not in waypoints):
-                Hc += calculate_fraction_visits(tprob, waypoints, [s1], [s2], return_cond_Q=False)
+            if (s1 != s2) and (s1 != waypoint) and (s2 != waypoint):
+                Hc += calculate_fraction_visits(tprob, waypoint, 
+                                                s1, s2, return_cond_Q=False)
 
     Hc /= ((N - 1) * (N - 2))
 
@@ -1076,7 +1088,7 @@ def calculate_all_hub_scores(tprob):
                 for s2 in states:
                     if s1 != s2:
                         if waypoint != s2:
-                            Hc += calculate_fraction_visits(tprob, waypoint, [s1], [s2])
+                            Hc += calculate_fraction_visits(tprob, waypoint, s1, s2)
         
         # store the hub score in an array
         Hc_array[i] = Hc / ((N - 1) * (N - 2))
