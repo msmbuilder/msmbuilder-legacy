@@ -899,10 +899,8 @@ def calculate_fraction_visits(tprob, waypoint, source, sink, return_cond_Q=False
         except AttributeError as e:
             raise TypeError('Argument `tprob` must be convertable to a dense'
                             'numpy array. \n%s' % e)
-
-    #sources, sinks = _check_sources_sinks(sources, sinks)
        
-    # typecheck `waypoints` 
+    # typecheck 
     for data in [source, sink, waypoint]:
         if type(data) == int:
             pass
