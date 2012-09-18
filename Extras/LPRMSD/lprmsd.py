@@ -63,7 +63,7 @@ class LPTraj(Trajectory):
         super(LPTraj,self).__init__(S)
         aidx = list(atomindices) if atomindices != None else []
         pidx = list(itertools.chain(*permuteindices)) if permuteindices != None else []
-
+        
         if atomindices == None:
             self.TD = RMSD.TheoData(S['XYZList'])
         else:
@@ -161,7 +161,7 @@ def AlignToDensity(elem,xyz1,xyz2,binary=False):
     return xyz2R
 
 class LPRMSD(AbstractDistanceMetric):    
-    def __init__(self, atomindices=None, permuteindices=None, altindices=None, moments=False, gridmesh=0):
+    def __init__(self, atomindices=None, permuteindices=None, altindices=None, moments=False, gridmesh=0, debug=False):
         self.atomindices = atomindices
         self.altindices = altindices
         if permuteindices != None:
@@ -172,6 +172,7 @@ class LPRMSD(AbstractDistanceMetric):
             self.permutekeep = None
         self.grid     = None
         self.moments  = moments
+        self.debug    = debug
         if gridmesh > 0:
             # Generate a list of Euler angles
             self.grid = list(itertools.product(*[list(np.arange(0,2*np.pi,2*np.pi/gridmesh)) for i in range(gridmesh)]))
@@ -211,7 +212,8 @@ class LPRMSD(AbstractDistanceMetric):
         XYZOut = pt2['XYZList'].transpose(0,2,1).copy().astype('float32')
         XYZRef = pt1['XYZList'].transpose(0,2,1)[index1].copy().astype('float32')
         RotOut = np.zeros(len(pt2)*9,dtype='float32')
-        RMSDOut = _lprmsd.LPRMSD_Multipurpose(Usage, pt1.TD.NumAtoms, pt1.TD.NumAtomsWithPadding, pt1.TD.NumAtomsWithPadding, 
+        RMSDOut = _lprmsd.LPRMSD_Multipurpose(Usage, self.debug, 
+                                              pt1.TD.NumAtoms, pt1.TD.NumAtomsWithPadding, pt1.TD.NumAtomsWithPadding, 
                                               pt2.TD.XYZData, pt1.TD.XYZData[index1], pt2.TD.G, pt1.TD.G[index1],
                                               id_idx, pi_flat, pi_lens, pi_keep, alt_idx, RotOut, XYZOut, XYZRef) 
 

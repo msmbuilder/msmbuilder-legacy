@@ -369,11 +369,6 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
   */
   struct timeval tv;
   double start, end, dif;
-  int DebugPrint = 0;
-  if (DebugPrint) {
-    start = get_time_precise();
-    printf("Preparing...\n");
-  }
   
   /**********************************/
   /*   Initialize input variables   */
@@ -395,14 +390,21 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
   int Usage=-1;
   // Rectangular permutations (EXPERIMENTAL)
   int bRect=0;
+  // Debug printout on or off.
+  int DebugPrint = 0;
   
   float msd;
   
-  if (!PyArg_ParseTuple(args, "iiiiOOOfOOOOOOOO", &Usage,
+  if (!PyArg_ParseTuple(args, "iiiiiOOOfOOOOOOOO", &Usage, &DebugPrint,
 			&nreal_id, &npad_id, &strd_id, &XYZ_id_a_, &XYZ_id_b_, &G_id_a_, &G_id_b, 
 			&Id_Idx_, &LP_Flat_, &LP_Lens_, &LP_Lens_B_, &Alt_Idx_, &Rotations_, &XYZ_all_a_, &XYZ_all_b_)) {
     printf("Mao says: Inputs / outputs not correctly specified!\n");
     return NULL;
+  }
+
+  if (DebugPrint) {
+    start = get_time_precise();
+    printf("Preparing...\n");
   }
   
   /**********************************/
