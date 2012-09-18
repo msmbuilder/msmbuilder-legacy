@@ -8,6 +8,7 @@ from msmbuilder import Project
 from msmbuilder import Serializer
 from msmbuilder import Trajectory
 from msmbuilder.arglib import die_if_path_exists
+from msmbuilder.utils import highlight
 import logging
 logger = logging.getLogger(__name__)
 
@@ -29,10 +30,10 @@ parser = arglib.ArgumentParser(description='''
     metric and/or clustering algorithm.
     
     Note that there are many distance metrics and clustering algorithms available
-    Many of which have multiple options and parameters.
-    
-    MAKE LIBERAL USE OF THE -h OPTION. The help text changes significantly
-    depending on which level in the options tree you are currently in''',get_metric=True)
+    Many of which have multiple options and parameters. 
+
+    ''' + highlight('''MAKE LIBERAL USE OF THE -h OPTION. The help text changes significantly 
+    depending on which level in the options tree you are currently in''', color='green', bold=True),get_metric=True)
 parser.add_argument('project')
 parser.add_argument( dest='stride', help='Subsample by striding',
     default=1, type=int)
