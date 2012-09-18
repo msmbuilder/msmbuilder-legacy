@@ -90,9 +90,8 @@ class TestTPT():
         
     def test_fraction_visits(self):
         
-        num_to_test = 11**2
+        num_to_test = 11**2 # this can be changed to shorten the test a little
         
-        # do a subset of the calculations -- we don't want the test to take forever
         for i in range(num_to_test):
             waypoint = int(self.hc[i,0])
             source   = int(self.hc[i,1])
