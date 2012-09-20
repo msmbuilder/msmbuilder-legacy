@@ -541,7 +541,6 @@ def calc_expectation_timeseries(tprob, observable, init_pop=None, timepoints=10*
     for i in range(n_modes):
         psi_L[:, i] /= np.sqrt( np.sum( np.square( psi_L[:, i] ) / pi ) )
         psi_R[:, i] = psi_L[:, i] / pi
-        psi_R[:, i] /= np.dot(psi_R[:, i], psi_L[:, i])
 
     if lagtime:
         logger.info("Shortest timescale process included: %s", -lagtime / np.log(np.min(lambd)))
@@ -560,13 +559,13 @@ def calc_expectation_timeseries(tprob, observable, init_pop=None, timepoints=10*
         mode_decay = front * np.power(lambd[i], np.arange(timepoints)) * back
         timeseries += np.real(mode_decay)
 
-    logger.info('Equilibrium Value:%f Last Time Point:%f', np.dot(pi, observable), timeseries[-1])
+    logger.info('The equilibrium value is %f, while the last time point calculated is %f', np.dot(pi, observable), timeseries[-1])
 
     return timeseries
 
 
 # ======================================================== #
-# SOME UTILITY FUNCTIONS FOR CHECKING TRANSITION MATRICIES
+# SOME UTILITY FUNCTIONS FOR CHECKING TRANSITION MATRICES
 # ======================================================== #
 
 def flatten(*args):
