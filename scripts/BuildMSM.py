@@ -21,7 +21,7 @@ import sys, os
 import numpy as np
 import scipy.io
 from msmbuilder import arglib
-from msmbuilder import Serializer
+import msmbuilder.io
 from msmbuilder import MSMLib
 import logging
 logger = logging.getLogger(__name__)
@@ -58,7 +58,7 @@ def run(LagTime, assignments, Symmetrize='MLE', Prior=0.0, OutDir="./Data/"):
     np.savetxt(FnMap, mapping,"%d")
     scipy.io.mmwrite(str(FnTProb), t_matrix)
     scipy.io.mmwrite(str(FnTCounts), rev_counts)
-    Serializer.save_data(FnAss, assignments)
+    msmbuilder.io.saveh(FnAss, assignments)
 
     for output in outputlist:
         logger.info("Wrote: %s", output)
@@ -91,7 +91,10 @@ Assignments.Fixed.h5, tCounts.UnSym.mtx""")
     parser.add_argument('output_dir')
     args = parser.parse_args()
     
-    assignments = Serializer.load_data( args.assignments )
+    try:
+        assignments = msmbuilder.io.loadh(args.assignments, 'arr_0')
+    except KeyError:
+        assignments = msmbuilder.io.loadh(args.assignments, 'Data')
     
     run(args.lagtime, assignments, args.symmetrize, args.prior,
         args.output_dir)

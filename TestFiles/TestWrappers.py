@@ -14,7 +14,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, 111-1307  USA
 
 """
 Tests all the wrapper scripts. One test per wrapper. This should provide a
@@ -45,12 +45,13 @@ import scipy
 import scipy.io
 
 import numpy as np
-import numpy.testing
+from nose.tools import eq_, ok_
+import numpy.testing as npt
 
 from msmbuilder import Project
 from msmbuilder import Trajectory
 from msmbuilder import Conformation
-from msmbuilder import Serializer
+from msmbuilder import io
 from msmbuilder import MSMLib
 from msmbuilder import tpt
 
@@ -82,40 +83,32 @@ class TestWrappers(unittest.TestCase):
 
     def assert_trajectories_equal(self, t1, t2):
         """ asserts that two MSMBuilder trajectories are equivalent """
-        numpy.testing.assert_array_equal(t1["AtomID"], t2["AtomID"])
-        numpy.testing.assert_array_equal(t1["AtomNames"], t2["AtomNames"])
-        numpy.testing.assert_array_equal(t1["ChainID"], t2["ChainID"])
-        self.assertEqual(t1["IndexList"], t2["IndexList"])
-        numpy.testing.assert_array_equal(t1["ResidueID"], t2["ResidueID"])
-        numpy.testing.assert_array_equal(t1["ResidueNames"], t2["ResidueNames"])
-        numpy.testing.assert_array_almost_equal(t1["XYZList"], t2["XYZList"])
+        npt.assert_array_equal(t1["AtomID"], t2["AtomID"])
+        npt.assert_array_equal(t1["AtomNames"], t2["AtomNames"])
+        npt.assert_array_equal(t1["ChainID"], t2["ChainID"])
+        eq_(t1["IndexList"], t2["IndexList"])
+        npt.assert_array_equal(t1["ResidueID"], t2["ResidueID"])
+        npt.assert_array_equal(t1["ResidueNames"], t2["ResidueNames"])
+        npt.assert_array_almost_equal(t1["XYZList"], t2["XYZList"])
 
     def test_a_ConvertDataToHDF(self):
         os.chdir(WorkingDir)
         shutil.copy(PDBFn,"./")
                     #def run(projectfn, PDBfn, InputDir, source, mingen, stride, rmsd_cutoff,  parallel='None'):
-        ConvertDataToHDF.run(ProjectFn, PDBFn, TutorialDir+"/XTC", "file", 0, 1, 0,1000000)
-        P1 = Project.load_from_hdf(ProjectFn)
+        ConvertDataToHDF.run(ProjectFn, PDBFn, TutorialDir+"/XTC", "file", 0, 1, None)
+        P1 = Project.load_from(ProjectFn)
         
-        r_P1 = Project.load_from_hdf(os.path.abspath(os.path.join('..', ReferenceDir, ProjectFn)))
+        r_P1 = Project.load_from(os.path.abspath(os.path.join('..', ReferenceDir, ProjectFn)))
         
-        #self.assertEqual(P1['ConfFilename'], r_P1['ConfFilename'])
-        self.assertEqual(P1['NumTrajs'], r_P1['NumTrajs'])
-        self.assertEqual(P1['TrajFileBaseName'], r_P1['TrajFileBaseName'])
-
-        """The following assert removed by KAB 12-12-11 because it was broken by
-        recent changes to the path conventions in Project files.
-        self.assertEqual(P1['TrajFilePath'], r_P1['TrajFilePath'])
-        """
-        
-        self.assertEqual(P1['TrajFileType'], r_P1['TrajFileType'])
-        numpy.testing.assert_array_equal(P1['TrajLengths'], r_P1['TrajLengths'])
+        eq_(P1.n_trajs, r_P1.n_trajs)
+        npt.assert_equal(P1.traj_lengths, r_P1.traj_lengths)
+        eq_(os.path.basename(P1.traj_filename(0)), os.path.basename(r_P1.traj_filename(0)))
         
     def test_b_CreateAtomIndices(self):
         AInd = CreateAtomIndices.run(PDBFn, 'minimal')
         np.savetxt("AtomIndices.dat", AInd, "%d")
         r_AInd=np.loadtxt(ReferenceDir + "/AtomIndices.dat", int)
-        numpy.testing.assert_array_equal(AInd, r_AInd)
+        npt.assert_array_equal(AInd, r_AInd)
 
     def test_c_Cluster(self):
         # We need to be sure to skip the stochastic k-mediods
@@ -139,29 +132,28 @@ class TestWrappers(unittest.TestCase):
         cmd = "Assign.py -p %s -g %s -o %s rmsd -a %s" % (ProjectFn, GensPath, "./Data", "AtomIndices.dat")
         os.system(cmd)
         
-        Assignments       = Serializer.load_data("./Data/Assignments.h5")
-        AssignmentsRMSD   = Serializer.load_data("./Data/Assignments.h5.distances")
+        Assignments       = io.loadh("./Data/Assignments.h5", 'arr_0')
+        AssignmentsRMSD   = io.loadh("./Data/Assignments.h5.distances", 'arr_0')
         
-        r_Assignments     = Serializer.load_data(ReferenceDir +"/Data/Assignments.h5")
-        r_AssignmentsRMSD = Serializer.load_data(ReferenceDir +"/Data/Assignments.h5.RMSD")
+        r_Assignments     = io.loadh(ReferenceDir +"/Data/Assignments.h5", 'Data')
+        r_AssignmentsRMSD = io.loadh(ReferenceDir +"/Data/Assignments.h5.RMSD", 'Data')
         
-        
-        numpy.testing.assert_array_equal(Assignments, r_Assignments)
-        numpy.testing.assert_array_equal(AssignmentsRMSD, r_AssignmentsRMSD)
+        npt.assert_array_equal(Assignments, r_Assignments)
+        npt.assert_array_equal(AssignmentsRMSD, r_AssignmentsRMSD)
         
     
     def test_e_BuildMSM(self):
-        Assignments = Serializer.load_data("Data/Assignments.h5")
+        Assignments = io.loadh("Data/Assignments.h5", 'arr_0')
         BuildMSM.run(Lagtime, Assignments, Symmetrize="MLE")
         # Test mapping
         m   = np.loadtxt("Data/Mapping.dat")
         r_m = np.loadtxt(ReferenceDir +"/Data/Mapping.dat")
-        numpy.testing.assert_array_almost_equal(m, r_m, err_msg="Mapping.dat incorrect")
+        npt.assert_array_almost_equal(m, r_m, err_msg="Mapping.dat incorrect")
 
         # Test populations
         p   = np.loadtxt("Data/Populations.dat")
         r_p = np.loadtxt(ReferenceDir +"/Data/Populations.dat")
-        numpy.testing.assert_array_almost_equal(p, r_p, err_msg="Populations.dat incorrect")
+        npt.assert_array_almost_equal(p, r_p, err_msg="Populations.dat incorrect")
 
         # Test counts matrix
         C   = scipy.io.mmread("Data/tCounts.mtx")
@@ -173,40 +165,43 @@ class TestWrappers(unittest.TestCase):
         #normalizing makes this test no longer depend on an arbitrary scaling factor (the total number of counts)
         #the relative number of counts in the current and reference models DOES matter, however.
         
-        numpy.testing.assert_array_almost_equal(D, Z, err_msg="tCounts.mtx incorrect")
+        npt.assert_array_almost_equal(D,Z, err_msg="tCounts.mtx incorrect")
 
         # Test transition matrix
         T   = scipy.io.mmread("Data/tProb.mtx")
         r_T = scipy.io.mmread(ReferenceDir +"/Data/tProb.mtx")
         D=(T-r_T).data
         Z=0.*D
-        numpy.testing.assert_array_almost_equal(D,Z, err_msg="tProb.mtx incorrect")
+        npt.assert_array_almost_equal(D,Z, err_msg="tProb.mtx incorrect")
 
     def test_f_CalculateImpliedTimescales(self):
 
         CalculateImpliedTimescales.run(MinLagtime, MaxLagtime, LagtimeInterval, NumEigen, "Data/Assignments.Fixed.h5",Symmetrize, 1, "ImpliedTimescales.dat")
         ImpTS   = np.loadtxt("ImpliedTimescales.dat")
         r_ImpTS = np.loadtxt(ReferenceDir +"/ImpliedTimescales.dat")
-        numpy.testing.assert_array_almost_equal(ImpTS,r_ImpTS,decimal=4)
+        npt.assert_array_almost_equal(ImpTS,r_ImpTS,decimal=4)
 
     def test_g_GetRandomConfs(self):
-        # This one is tricky since it is stochastic...
-        P1 = Project.load_from_hdf(ProjectFn)
-        Assignments = Serializer.load_data("Data/Assignments.Fixed.h5")
-        GetRandomConfs.run(P1, Assignments, NumRandomConformations, "2RandomConfs.lh5", 'lh5')
-        Trajectory.load_trajectory_file("2RandomConfs.lh5")
-        # Kyle: you may have a good idea for the efficient testing of this
+        P1 = Project.load_from(ProjectFn)
+        Assignments = io.loadh("Data/Assignments.Fixed.h5", 'arr_0')
+        
+        # make a predictable stream of random numbers by seeding the RNG with 42
+        random_source = np.random.RandomState(42)
+        randomconfs = GetRandomConfs.run(P1, Assignments, NumRandomConformations, random_source)
+        
+        reference = Trajectory.load_trajectory_file(os.path.join(ReferenceDir, "2RandomConfs.lh5"))
+        self.assert_trajectories_equal(reference, randomconfs)
 
     def test_h_CalculateClusterRadii(self):
 
         #args = ("Data/Assignments.h5", "Data/Assignments.h5.distances", MinState,MaxState)
         #Note this one RETURNS a value, not saves it to disk.
-        cr = CalculateClusterRadii.main(Serializer.load_data("Data/Assignments.h5"),
-                                        Serializer.load_data("Data/Assignments.h5.distances"))
+        cr = CalculateClusterRadii.main(io.loadh("Data/Assignments.h5", 'arr_0'),
+                                        io.loadh("Data/Assignments.h5.distances", 'arr_0'))
         #recall that this one bundles stuff
         #time.sleep(10) # we have to wait a little to get results
         cr_r = np.loadtxt(ReferenceDir +"/ClusterRadii.dat")
-        numpy.testing.assert_array_almost_equal(cr, cr_r)
+        npt.assert_array_almost_equal(cr, cr_r)
 
     def test_i_CalculateRMSD(self):
         #C1   = Conformation.Conformation.load_from_pdb(PDBFn)
@@ -216,22 +211,22 @@ class TestWrappers(unittest.TestCase):
         outpath = os.path.join(WorkingDir, "RMSD_Gens.h5")
         os.system('CalculateProjectDistance.py -s %s -t %s -o %s rmsd -a %s' % (PDBFn, "Data/Gens.lh5", outpath, "AtomIndices.dat" ) )
         
-        cr   = Serializer.load_data(outpath)
+        cr   = io.loadh(outpath, 'arr_0')
         cr_r = np.loadtxt(os.path.join(ReferenceDir, "RMSD.dat"))
-        numpy.testing.assert_array_almost_equal(cr, cr_r)
+        npt.assert_array_almost_equal(cr, cr_r)
 
         
     def test_j_PCCA(self):
 
         TC = scipy.io.mmread(os.path.join(WorkingDir,"Data", "tProb.mtx"))
-        A  = Serializer.load_data(os.path.join(WorkingDir,"Data", "Assignments.Fixed.h5"))
+        A  = io.loadh(os.path.join(WorkingDir,"Data", "Assignments.Fixed.h5"), 'arr_0')
         PCCA.run_pcca(NumMacroStates, A, TC, os.path.join(WorkingDir, 'Data'))
 
         mm   = np.loadtxt(os.path.join(WorkingDir, "Data", "MacroMapping.dat"),'int')
         mm_r = np.loadtxt(os.path.join(ReferenceDir, "Data", "MacroMapping.dat"),'int')
 
-        ma   = Serializer.load_data(os.path.join(WorkingDir, "Data", "MacroAssignments.h5"))
-        ma_r = Serializer.load_data(os.path.join(ReferenceDir, "Data", "MacroAssignments.h5"))
+        ma   = io.loadh(os.path.join(WorkingDir, "Data", "MacroAssignments.h5"), 'arr_0')
+        ma_r = io.loadh(os.path.join(ReferenceDir, "Data", "MacroAssignments.h5"), 'Data')
 
         num_macro = NumMacroStates
         permutation_mapping = np.zeros(num_macro,'int')
@@ -244,8 +239,8 @@ class TestWrappers(unittest.TestCase):
         mm_permuted = permutation_mapping[mm]
         MSMLib.ApplyMappingToAssignments(ma,permutation_mapping)
         
-        numpy.testing.assert_array_almost_equal(mm_permuted, mm_r)
-        numpy.testing.assert_array_almost_equal(ma, ma_r)
+        npt.assert_array_almost_equal(mm_permuted, mm_r)
+        npt.assert_array_almost_equal(ma, ma_r)
 
     def test_k_CalculateProjectRMSD(self):
         #C1 = Conformation.load_from_pdb(PDBFn)
@@ -256,27 +251,27 @@ class TestWrappers(unittest.TestCase):
         os.system('CalculateProjectDistance.py -s %s -o %s -p %s rmsd -a %s' % (PDBFn, outpath, ProjectFn, "AtomIndices.dat") )
         
         
-        r0=Serializer.load_data(ReferenceDir+"/RMSD.h5")
-        r1=Serializer.load_data(WorkingDir+"/RMSD.h5")
-        numpy.testing.assert_array_almost_equal(r0,r1, err_msg="Error: Project RMSDs disagree!")
+        r0 = io.loadh(ReferenceDir+"/RMSD.h5", 'Data')
+        r1 = io.loadh(WorkingDir+"/RMSD.h5", 'arr_0')
+        npt.assert_array_almost_equal(r0,r1, err_msg="Error: Project RMSDs disagree!")
 
     def test_l_CalculateProjectSASA(self):
         outpath = os.path.join(WorkingDir, "SASA.h5")
         os.system('CalculateProjectSASA.py -o %s -p %s' % (outpath, ProjectFn) )
 
-        r0=Serializer.load_data(os.path.join( ReferenceDir, "SASA.h5" ))
-        r1=Serializer.load_data(os.path.join( WorkingDir, "SASA.h5" ))
-        numpy.testing.assert_array_almost_equal(r0,r1, err_msg="Error: Project SASAs disagree!")
+        r0 = io.loadh(os.path.join( ReferenceDir, "SASA.h5" ), 'Data')
+        r1 = io.loadh(os.path.join( WorkingDir, "SASA.h5" ), 'arr_0')
+        npt.assert_array_almost_equal(r0,r1, err_msg="Error: Project SASAs disagree!")
 
     def test_m_DoTPT(self): 
         T = scipy.io.mmread(os.path.join(ReferenceDir, "Data", "tProb.mtx"))
         sources = [0]
         sinks = [70]
         script_out = DoTPT.run(T, sources, sinks)
-        committors_ref = Serializer.load_data(os.path.join(ReferenceDir, "transition_path_theory_reference", "committors.h5"))
-        net_flux_ref = Serializer.load_data(os.path.join(ReferenceDir, "transition_path_theory_reference", "net_flux.h5"))
-        numpy.testing.assert_array_almost_equal(script_out[0], committors_ref)
-        numpy.testing.assert_array_almost_equal(script_out[1].toarray(), net_flux_ref)
+        committors_ref = io.loadh(os.path.join(ReferenceDir, "transition_path_theory_reference", "committors.h5"), 'Data')
+        net_flux_ref = io.loadh(os.path.join(ReferenceDir, "transition_path_theory_reference", "net_flux.h5"), 'Data')
+        npt.assert_array_almost_equal(script_out[0], committors_ref)
+        npt.assert_array_almost_equal(script_out[1].toarray(), net_flux_ref)
 
     def test_n_FindPaths(self):
         tprob = scipy.io.mmread(os.path.join(ReferenceDir, "Data", "tProb.mtx"))
@@ -284,10 +279,10 @@ class TestWrappers(unittest.TestCase):
         sinks = [70]
         paths, bottlenecks, fluxes = FindPaths.run(tprob, sources, sinks, 10)
         # paths are hard to test due to type issues, adding later --TJL
-        bottlenecks_ref = Serializer.load_data(os.path.join(ReferenceDir, "transition_path_theory_reference", "dijkstra_bottlenecks.h5"))
-        fluxes_ref = Serializer.load_data(os.path.join(ReferenceDir, "transition_path_theory_reference", "dijkstra_fluxes.h5"))
-        numpy.testing.assert_array_almost_equal(bottlenecks, bottlenecks_ref)
-        numpy.testing.assert_array_almost_equal(fluxes, fluxes_ref)
+        bottlenecks_ref = io.loadh(os.path.join(ReferenceDir, "transition_path_theory_reference", "dijkstra_bottlenecks.h5"), 'Data')
+        fluxes_ref = io.loadh(os.path.join(ReferenceDir, "transition_path_theory_reference", "dijkstra_fluxes.h5"), 'Data')
+        npt.assert_array_almost_equal(bottlenecks, bottlenecks_ref)
+        npt.assert_array_almost_equal(fluxes, fluxes_ref)
 
     def test_z_Cleanup(self):
         """Are we removing all unittest files? """+str(DeleteWhenFinished)

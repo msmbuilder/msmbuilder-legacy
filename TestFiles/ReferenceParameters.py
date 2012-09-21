@@ -10,7 +10,7 @@ WorkingDir   = os.path.join(this_file_dir, "UnitTestWorkingDir/")
 TutorialDir   = os.path.join(this_file_dir, "../Tutorial/")
 
 PDBFn         = TutorialDir+"/native.pdb"
-ProjectFn     = "ProjectInfo.h5"
+ProjectFn     = "ProjectInfo.yaml"
 GensPath      = "Data/Gens.lh5"
 
 print "Set working dir: %s"   % WorkingDir
