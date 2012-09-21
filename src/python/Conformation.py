@@ -19,13 +19,14 @@
 """Contains classes for dealing with conformations.
 """
 import numpy as np
-from msmbuilder import PDB, Serializer
+from msmbuilder import PDB
 
-class ConformationBaseClass(Serializer):
+class ConformationBaseClass(dict):
     """Base class for Trajectory and Conformation classes.  Not for separate use."""
     def __init__(self,DictLike=None):
         """Initialize object.  Optionally include data from a dictionary object DictLike."""
-        Serializer.__init__(self,DictLike)
+        super(ConformationBaseClass, self).__init__(DictLike)
+        
         KeysToForceCopy=["ChainID","AtomNames","ResidueNames","AtomID","ResidueID"]
         for key in KeysToForceCopy:#Force copy to avoid owning same numpy memory.
             self[key]=self[key].copy()
