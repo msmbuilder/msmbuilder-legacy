@@ -26,7 +26,7 @@ from msmbuilder import MSMLib
 import logging
 logger = logging.getLogger(__name__)
 
-def run(LagTime, assignments, Symmetrize='MLE', input_mapping=None, Prior=0.0, OutDir="./Data/"):
+def run(LagTime, assignments, Symmetrize='MLE', input_mapping="None", Prior=0.0, OutDir="./Data/"):
 
     # set the filenames for output
     FnTProb = os.path.join(OutDir, "tProb.mtx")
@@ -40,7 +40,7 @@ def run(LagTime, assignments, Symmetrize='MLE', input_mapping=None, Prior=0.0, O
     arglib.die_if_path_exists(outputlist)
 
     # if given, apply mapping to assignments
-    if input_mapping != None:
+    if input_mapping != "None":
         MSMLib.apply_mapping_to_assignments(assignments, input_mapping)
 
     n_states = np.max(assignments.flatten()) + 1
@@ -51,7 +51,7 @@ def run(LagTime, assignments, Symmetrize='MLE', input_mapping=None, Prior=0.0, O
         sliding_window=True, trim=True)
 
     # if had input mapping, then update it
-    if input_mapping != None:
+    if input_mapping != "None":
         mapping = mapping[input_mapping]
 
     MSMLib.apply_mapping_to_assignments(assignments, mapping)
@@ -93,7 +93,7 @@ Assignments.Fixed.h5, tCounts.UnSym.mtx""")
     parser.add_argument('lagtime', help='''Lag time to use in model (in
         number of snapshots. EG, if you have snapshots every 200ps, and set the
         lagtime=50, you'll get a model with a lagtime of 10ns)''', type=int)
-    parser.add_argument('mapping', help='''Mapping, EG from microstates to macrostates. If given, this mapping will be applied to the specified assignments before creating an MSM.''', default=None)
+    parser.add_argument('mapping', help='''Mapping, EG from microstates to macrostates. If given, this mapping will be applied to the specified assignments before creating an MSM.''', default="None")
     parser.add_argument('prior', help='''Strength of Symmetric Prior.
         This prior mitigates the effect of sinks when estimating a reversible
         counts matrix (MLE Estimator).''', default=0.0, type=float)
@@ -105,7 +105,7 @@ Assignments.Fixed.h5, tCounts.UnSym.mtx""")
     except KeyError:
         assignments = msmbuilder.io.loadh(args.assignments, 'Data')
    
-    if args.mapping != None:
+    if args.mapping != "None":
         args.mapping = np.array(np.loadtxt(args.mapping), dtype=int)
 
     run(args.lagtime, assignments, args.symmetrize, args.mapping, args.prior,
