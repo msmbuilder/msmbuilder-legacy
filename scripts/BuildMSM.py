@@ -26,7 +26,7 @@ from msmbuilder import MSMLib
 import logging
 logger = logging.getLogger(__name__)
 
-def run(LagTime, assignments, Symmetrize='MLE', Prior=0.0, OutDir="./Data/"):
+def run(LagTime, assignments, Symmetrize='MLE', input_mapping=None, Prior=0.0, OutDir="./Data/"):
 
     # set the filenames for output
     FnTProb = os.path.join(OutDir, "tProb.mtx")
@@ -39,12 +39,20 @@ def run(LagTime, assignments, Symmetrize='MLE', Prior=0.0, OutDir="./Data/"):
     outputlist = [FnTProb, FnTCounts, FnMap, FnAss, FnPops]
     arglib.die_if_path_exists(outputlist)
 
+    # if given, apply mapping to assignments
+    if input_mapping != None:
+        MSMLib.apply_mapping_to_assignments(assignments, input_mapping)
+
     n_states = np.max(assignments.flatten()) + 1
     n_assigns_before_trim = len( np.where( assignments.flatten() != -1 )[0] )
     
     rev_counts, t_matrix, populations, mapping = MSMLib.build_msm(assignments,
         lag_time=LagTime, symmetrize=Symmetrize,
         sliding_window=True, trim=True)
+
+    # if had input mapping, then update it
+    if input_mapping != None:
+        mapping = mapping[input_mapping]
 
     MSMLib.apply_mapping_to_assignments(assignments, mapping)
     n_assigns_after_trim = len( np.where( assignments.flatten() != -1 )[0] )
@@ -85,6 +93,7 @@ Assignments.Fixed.h5, tCounts.UnSym.mtx""")
     parser.add_argument('lagtime', help='''Lag time to use in model (in
         number of snapshots. EG, if you have snapshots every 200ps, and set the
         lagtime=50, you'll get a model with a lagtime of 10ns)''', type=int)
+    parser.add_argument('mapping', help='''Mapping, EG from microstates to macrostates. If given, this mapping will be applied to the specified assignments before creating an MSM.''', default=None)
     parser.add_argument('prior', help='''Strength of Symmetric Prior.
         This prior mitigates the effect of sinks when estimating a reversible
         counts matrix (MLE Estimator).''', default=0.0, type=float)
@@ -95,6 +104,9 @@ Assignments.Fixed.h5, tCounts.UnSym.mtx""")
         assignments = msmbuilder.io.loadh(args.assignments, 'arr_0')
     except KeyError:
         assignments = msmbuilder.io.loadh(args.assignments, 'Data')
-    
-    run(args.lagtime, assignments, args.symmetrize, args.prior,
+   
+    if args.mapping != None:
+        args.mapping = np.array(np.loadtxt(args.mapping), dtype=int)
+
+    run(args.lagtime, assignments, args.symmetrize, args.mapping, args.prior,
         args.output_dir)
