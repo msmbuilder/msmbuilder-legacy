@@ -18,66 +18,65 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 import numpy as np
-from msmbuilder import Trajectory, Project, arglib, Serializer
+from msmbuilder import Trajectory, Project, arglib, io
 from msmbuilder.geometry import asa
 import logging
 logger = logging.getLogger(__name__)
 
 def run(project, atom_indices=None, traj_fn = 'all'):
 
-    num_atoms = project.GetConformations(Which=np.array([ [0,0] ]) )['XYZList'].shape[1]
+    n_atoms = project.load_conf()['XYZList'].shape[1]
 
     if traj_fn.lower() == 'all':
 
-        SASA = np.ones( (project['NumTrajs'], project['TrajLengths'].max(), num_atoms ) ) * -1
+        SASA = np.ones((project.n_trajs, np.max(project.traj_lengths), n_atoms)) * -1
 
-        for traj_ind in xrange( project['NumTrajs'] ):
+        for traj_ind in xrange(project.n_trajs):
             traj_asa = []
-            logger.info("Working on Trajectory %d", traj_ind )
-            traj_fn = project.GetTrajFilename( traj_ind )
+            logger.info("Working on Trajectory %d", traj_ind)
+            traj_fn = project.traj_filename(traj_ind)
             chunk_ind = 0
-            for traj_chunk in Trajectory.EnumChunksFromLHDF( traj_fn, AtomIndices=atom_indices ):
+            for traj_chunk in Trajectory.enum_chunks_from_lhdf( traj_fn, AtomIndices=atom_indices ):
                 #print chunk_ind
-                traj_asa.extend( asa.calculate_asa( traj_chunk, n_sphere_points = 24 ) )
+                traj_asa.extend(asa.calculate_asa(traj_chunk, n_sphere_points = 24))
                 chunk_ind += 1
-            SASA[ traj_ind, : project['TrajLengths'][traj_ind] ] = traj_asa
+            SASA[traj_ind, 0:project.traj_lengths[traj_ind]] = traj_asa
 
     else:
         traj_asa = []
-        for traj_chunk in Trajectory.EnumChunksFromLHDF( traj_fn, AtomIndices=atom_indices ):
+        for traj_chunk in Trajectory.enum_chunks_from_lhdf( traj_fn, AtomIndices=atom_indices ):
             traj_asa.extend( asa.calculate_asa( traj_chunk ) )
 
-        SASA = np.array( traj_asa )
-            
+        SASA = np.array(traj_asa)
+
     return SASA
-    
-    
+
+
 if __name__ == '__main__':
     parser = arglib.ArgumentParser("""Calculates the Solvent Accessible Surface Area
-    of all atoms in a given trajectory, or for all trajectories in the project. The 
-    output is a Serializer object which contains the SASA for each atom in each frame
+    of all atoms in a given trajectory, or for all trajectories in the project. The
+    output is a hdf5 file which contains the SASA for each atom in each frame
     in each trajectory (or the single trajectory you passed in.""" )
     parser.add_argument('project')
     parser.add_argument('atom_indices', help='Indices of atoms to calculate SASA',
         default='all')
-    parser.add_argument('output', help='''Serializer File for output. Note this will
+    parser.add_argument('output', help='''hdf5 file for output. Note this will
         be THREE dimensional: ( trajectory, frame, atom ), unless you just ask for
         one trajectory, in which case it will be shape (frame, atom).''',
         default='SASA.h5')
     parser.add_argument('traj_fn', help='''Pass a trajectory file if you only
         want to calclate the SASA for a single trajectory''', default='all' )
     args = parser.parse_args()
-    
+
     arglib.die_if_path_exists(args.output)
 
     if args.atom_indices.lower() == 'all':
         atom_indices = None
     else:
-        atom_indices = np.loadtxt( args.atom_indices ).astype(int)
+        atom_indices = np.loadtxt(args.atom_indices).astype(int)
 
-    project = Project.LoadFromHDF( args.project )
+    project = Project.load_from(args.project)
 
-    SASA = run( project, atom_indices, args.traj_fn )
+    SASA = run(project, atom_indices, args.traj_fn)
 
-    Serializer.SaveData( args.output, SASA )
-
+    io.saveh(args.output, SASA)

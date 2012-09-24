@@ -1,0 +1,86 @@
+MSMBuilder Distance Metric Plugin API
+-------------------------------------
+
+MSMBuilder uses the `pkg_resources` plugin system to discover and
+display new distance metrics for use in clustering and assigning.
+
+Here's the API used to communicate between MSMBuilder and the
+plugins. Each plugin needs to provide three things: the first
+is a method used to display the distance metric in MSMBuilder's
+argparse-based menu system; the second is a method to construct
+the distance metric from the arguments provided from the command
+line; the third is obviously the distance metric itself, which should
+be a subclass of `msmbuilder.metrics.AbstractDistanceMetric`.
+
+The method to display the distance metric in the menu system should
+have the following signature:
+
+    def add_metric_parser(parsergroup, add_argument):
+        mymetric = parsergroup.add_subparser("mymetric",
+            description='description')
+        add_argument(mymetric, '-a', help='option', dest='my_option',
+            default=1, type=int)
+        
+        return mymetric
+
+The function takes two arguments, the first of
+which is an argparse parser or subparser to which you should add your
+subparser to, and the second of which is a function that you should use
+to add options. (the function is a wrapper around the built in
+argparse.ArgumentParser.add_argument() method).
+
+The function should return the new parser.
+
+--------
+
+The next method should construct the distance metric. It takes as input
+the Namespace produced by parser.parse_args(). For example:
+
+    def construct_metric(args):
+        if args.metric != 'mymetric':
+            return None
+        return MyMetric(args.my_option)
+
+The input to this method is a argparse.Namespace object that might look
+like
+
+    Namespace(alg='kcenters', assignments='Data/Assignments.h5', distances='Data/Assignments.h5.distances', generators='Data/Gens.lh5', kcenters_distance_cutoff=None, kcenters_num_clusters=100, kcenters_seed=0, lprmsd_alt_indices=None, lprmsd_atom_indices='AtomIndices.dat', lprmsd_permute_atoms=None, metric='lprmsd', project='ProjectInfo.h5', quiet=False, stride=1)
+
+The namespace includes both options that are set by your parser (e.g.
+lprmsd_atom_indices in this Namespace) and the rest of them are set by
+other parts of the parser.
+
+The return value of the method should be `None` if your metric was not invoked
+by the user -- this can be detected by looking args the args.metric option --
+or a metric object (instance of a subclass of msmbuilder.metrics.AbstractDistanceMetric) if your metric was asked for by
+the user.
+
+
+Registering your plugin with MSMBuilder
+---------------------------------------
+
+Your plugin should be installable as a separate python package, using
+python's setuptools packaging.
+
+To the setup function, you should provide the `entry_points` keyword
+argument, which takes a special string such as the one below.
+
+    setup(...
+        entry_points="""
+        [msmbuilder.metrics]
+         metric_class=lprmsd.lprmsd:LPRMSD
+         add_metric_parser=lprmsd.lprmsd:add_metric_parser
+         construct_metric=lprmsd.lprmsd:construct_metric
+        """
+        ...)
+
+This code is a snippet from the LPRMSD plugin's setup.py script. The format
+of the entry points string is described a little here: http://stackoverflow.com/questions/774824/explain-python-entry-points.
+
+The first part of the string, "[msmbuilder.metrics]", says that your registering
+in the msmbuilder.metrics "group", which is where MSMBuilder looks for new metrics. Within that "group", you need to provide the path to the functions and classes that implement your metric (the add_metric_parser, construct_metric and AbstractDistanceMetric implementation).
+
+This way, when MSMBuilder wants to find your plugin, it will say "I'm looking for the `metric_class` name in the `msmbuilder.metrics` group, and can load up
+your class (as well as the classes for all of the other plugins which are registered).
+
+

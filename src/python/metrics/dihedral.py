@@ -1,3 +1,5 @@
+import logging
+logger = logging.getLogger('metrics')
 import numpy as np
 from baseclasses import Vectorized, AbstractDistanceMetric
 from msmbuilder.geometry import dihedral as _dihedralcalc

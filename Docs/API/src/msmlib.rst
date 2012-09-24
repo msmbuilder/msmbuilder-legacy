@@ -1,20 +1,19 @@
-MSMLib
-******
+.. module:: msmbuilder.MSMLib
 
-MSM Construction: :class:`msmbuilder.MSMLib`
+MSM Construction: :mod:`msmbuilder.MSMLib`
+============================================
 
 Functions for building MSMs
 
 Notes
-=====
+-----
 * Assignments typically refer to a numpy array of integers such that Assignments[i,j] gives the state of trajectory i, frame j.
 * Transition and Count matrices are typically stored in scipy.sparse.csr_matrix format.
 * Some functionality from this module was moved into msmanalysis in version2.6
-
-.. currentmodule:: msmbuilder.MSMLib
-
+  
 Mapping
-=======
+-------
+
 .. autosummary::
   :toctree: generated/
   
@@ -25,7 +24,8 @@ Mapping
   
   
 Trimming
-========
+--------
+
 .. autosummary::
   :toctree: generated/
 
@@ -33,11 +33,13 @@ Trimming
   ergodic_trim
 
 Model Building
-==============
+--------------
+
 .. autosummary::
   :toctree: generated/
 
   build_msm
+  build_msm_from_counts
   estimate_rate_matrix
   mle_reversible_count_matrix
   estimate_transition_matrix

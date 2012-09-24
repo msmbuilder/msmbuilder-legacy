@@ -1,7 +1,7 @@
 import numpy as np
 import numpy.testing as npt
 import scipy.sparse
-from common import expected_failure
+from common import expected_failure, skip
 
 from msmbuilder import MSMLib
 
@@ -112,6 +112,7 @@ class test_build_msm(object):
         self.assignments = np.array(np.matrix('0 1 0 0 0 1 0 0 0 1; 0 0 0 0 1 0 1 1 1 0'))
         self.lag_time = 1
     
+    @skip
     def test_1(self):
         c, rc, t, p, m = MSMLib.build_msm(self.assignments, self.lag_time, symmetrize='MLE')
         npt.assert_array_equal(c.todense(), np.matrix('7 5; 4 2'))
@@ -124,6 +125,7 @@ class test_build_msm(object):
         npt.assert_array_almost_equal(p, [ 0.61538595,  0.38461405])
         npt.assert_array_equal(m, [0,1])
     
+    @skip
     def test_2(self):
         c, rc, t, p, m = MSMLib.build_msm(self.assignments, self.lag_time, symmetrize=None)
         npt.assert_array_equal(c.todense(), np.matrix('7 5; 4 2'))
@@ -153,6 +155,7 @@ class test_build_msm(object):
         npt.assert_array_almost_equal(p, [ 0.61538595,  0.38461405])
         npt.assert_array_equal(m, [0,1])
     
+    @skip
     def test_3(self):
         c, rc, t, p, m = MSMLib.build_msm(self.assignments, self.lag_time, symmetrize='Transpose')
         npt.assert_array_equal(c.todense(), np.matrix('7 5; 4 2'))
@@ -165,6 +168,7 @@ class test_build_msm(object):
         npt.assert_array_almost_equal(p, [ 0.63888889,  0.36111111])
         npt.assert_array_equal(m, [0,1])
     
+    @skip
     def test_4(self):
         c, rc, t, p, m = MSMLib.build_msm(self.assignments, lag_time=2, symmetrize=None, sliding_window=True)
         npt.assert_array_equal(c.todense(), np.matrix('7 4; 3 2'))

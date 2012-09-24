@@ -4,7 +4,8 @@
 
 import os, sys
 import scipy.io
-from msmbuilder import Serializer, MSMLib, SCRE, arglib
+import msmbuilder.io
+from msmbuilder import MSMLib, SCRE, arglib
 import numpy as np
 import string
 import matplotlib
@@ -87,14 +88,15 @@ if __name__ == "__main__":
     parser.add_argument('output_dir')
     parser.add_argument('assignments')
     args = parser.parse_args()
-    
-    assignments_filename = args.assignments
-    output_dir = args.output_dir
 
-    assignments = Serializer.LoadData(assignments_filename)
+    try:
+        assignments = msmbuilder.io.loadh(args.assignments, 'arr_0')
+    except KeyError:
+        assignments = msmbuilder.io.loadh(args.assignments, 'Data')
+
     K = run(assignments)
 
-    T=scipy.linalg.matfuncs.expm(K)
+    T = scipy.linalg.matfuncs.expm(K)
 
-    np.savetxt(os.path.join(output_dir, "Rate.dat"), K)
-    scipy.io.mmwrite(os.path.join(output_dir, "tProb.mtx.tl"), T)
+    np.savetxt(os.path.join(args.output_dir, "Rate.dat"), K)
+    scipy.io.mmwrite(os.path.join(args.output_dir, "tProb.mtx.tl"), T)

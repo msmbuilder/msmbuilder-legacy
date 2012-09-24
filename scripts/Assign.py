@@ -37,15 +37,16 @@ microstate it is assigned to.""", get_metric=True)#, formatter_class=argparse.Ra
     parser.add_argument( 'output_dir' )
     
     args, metric = parser.parse_args()
+    if not os.path.exists(args.output_dir):
+        os.makedirs(args.output_dir)
     
     assignments_path = os.path.join(args.output_dir, "Assignments.h5")
     distances_path = os.path.join(args.output_dir, "Assignments.h5.distances")
-    lock_path = os.path.join(args.output_dir, "Assignments.lock")
-    project = Project.LoadFromHDF(args.project)
-    gens = Trajectory.LoadTrajectoryFile(args.generators)
+    project = Project.load_from(args.project)
+    gens = Trajectory.load_trajectory_file(args.generators)
     
     # this runs assignment and prints them to disk
-    all_asgn, all_dist = assign_with_checkpoint(metric, project, gens, assignments_path, distances_path)
+    assign_with_checkpoint(metric, project, gens, assignments_path, distances_path)
 
     logger.info('All Done!')
 

@@ -9,5 +9,5 @@ setup(name='parallel_assign',
                 'parallel_assign.scripts'],
       package_dir={'parallel_assign':'lib',
                    'parallel_assign.scripts':'scripts'},
-      install_requires=['ipython>0.13'],
+      install_requires=['ipython==0.13'],
       scripts=filter(lambda elem: '_' not in elem, glob.glob('scripts/*')))

@@ -6,9 +6,10 @@ import warnings
 from msmbuilder import arglib
 from msmbuilder import clustering
 from msmbuilder import Project
-from msmbuilder import Serializer
+from msmbuilder import io
 from msmbuilder import Trajectory
 from msmbuilder.arglib import die_if_path_exists
+from msmbuilder.utils import highlight
 import logging
 logger = logging.getLogger(__name__)
 
@@ -30,10 +31,10 @@ parser = arglib.ArgumentParser(description='''
     metric and/or clustering algorithm.
     
     Note that there are many distance metrics and clustering algorithms available
-    Many of which have multiple options and parameters.
-    
-    MAKE LIBERAL USE OF THE -h OPTION. The help text changes significantly
-    depending on which level in the options tree you are currently in''',get_metric=True)
+    Many of which have multiple options and parameters. 
+
+    ''' + highlight('''MAKE LIBERAL USE OF THE -h OPTION. The help text changes significantly 
+    depending on which level in the options tree you are currently in''', color='green', bold=True),get_metric=True)
 parser.add_argument('project')
 parser.add_argument( dest='stride', help='Subsample by striding',
     default=1, type=int)
@@ -111,13 +112,13 @@ for metric_parser in parser.metric_parser_list: # arglib stores the metric subpa
     add_argument(hier, '-o', dest='hierarchical_save_zmatrix', help='Save Z-matrix to disk', default='Data/Zmatrix.h5')
 
 def load_trajectories(projectfn, stride):
-    project = Project.LoadFromHDF(projectfn)
+    project = Project.load_from(projectfn)
 
     list_of_trajs = []
-    for i in xrange(project['NumTrajs']):
+    for i in xrange(project.n_trajs):
         # note, LoadTraj is only using the fast strided loading for
         # HDF5 formatted trajs
-        traj = project.LoadTraj(i, stride=stride)
+        traj = project.load_traj(i, stride=stride)
         list_of_trajs.append(traj)
 
     return list_of_trajs
@@ -185,15 +186,15 @@ could stride a little at the begining, but its not recommended.""")
     if not isinstance(clusterer, clustering.Hierarchical):
         generators = clusterer.get_generators_as_traj()
         logger.info('Saving %s', args.generators)
-        generators.SaveToLHDF(args.generators)
+        generators.save_to_lhdf(args.generators)
         if args.stride == 1:
             assignments = clusterer.get_assignments()
             distances = clusterer.get_distances()
             
             logger.info('Since stride=1, Saving %s', args.assignments)
             logger.info('Since stride=1, Saving %s', args.distances)
-            Serializer.SaveData(args.assignments, assignments)
-            Serializer.SaveData(args.distances, distances)
+            io.saveh(args.assignments, assignments)
+            io.saveh(args.distances, distances)
 
 if __name__ == '__main__':
     args, metric = parser.parse_args()

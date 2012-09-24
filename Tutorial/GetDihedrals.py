@@ -99,8 +99,8 @@ import os
 import KyleTools
 from msmbuilder import Conformation,Trajectory,Project,Serializer
 
-C1=Conformation.Conformation.LoadFromPDB("./dipeptide.pdb")
-P1=Project.Project.LoadFromHDF("./ProjectInfo.h5")
+C1=Conformation.Conformation.load_from_pdb("./dipeptide.pdb")
+P1=Project.Project.load_from_hdf("./ProjectInfo.h5")
 
 NumResi,a,aC,aN,aCA,X=GetPhiAtomIndicesAndPosition(C1)
 def GetPhi(X):

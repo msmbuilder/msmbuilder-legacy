@@ -356,7 +356,18 @@ class TRRReader:
         self._nextframe += self._stepframe
         return config
 
-loadXDRLibrary()
+try:
+    loadXDRLibrary()
+except OSError:
+    # HACK for building the documentation on READTHEDOCS
+    # this is a workaround because DLL open is hard to mock
+    # but basically, if we're on the readthedocs.org build server
+    # we need to be able to import packages to introspect their docstrings,
+    # but we don't actually have any of the C libraries installed
+    if os.environ.get('READTHEDOCS', None) == 'True':
+        pass
+    else:
+        raise
 
 if __name__ == "__main__":
     if _xdrlib:

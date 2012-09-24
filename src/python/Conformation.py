@@ -20,13 +20,14 @@
 """Contains classes for dealing with conformations.
 """
 import numpy as np
-from msmbuilder import PDB, Serializer
+from msmbuilder import PDB
 
-class ConformationBaseClass(Serializer):
+class ConformationBaseClass(dict):
     """Base class for Trajectory and Conformation classes.  Not for separate use."""
     def __init__(self,DictLike=None):
         """Initialize object.  Optionally include data from a dictionary object DictLike."""
-        Serializer.__init__(self,DictLike)
+        super(ConformationBaseClass, self).__init__(DictLike)
+        
         KeysToForceCopy=["ChainID","AtomNames","ResidueNames","AtomID","ResidueID"]
         for key in KeysToForceCopy:#Force copy to avoid owning same numpy memory.
             self[key]=self[key].copy()
@@ -71,29 +72,29 @@ class ConformationBaseClass(Serializer):
             X[i]=D[self["ResidueID"][i]]
         return X
 
-    def RestrictAtomIndices(self,AtomIndices):
+    def restrict_atom_indices(self,AtomIndices):
         for key in ["AtomID","ChainID","ResidueID","AtomNames","ResidueNames"]:
             self[key]=self[key][AtomIndices]
 
         self.UpdateIndexList()
 
 class Conformation(ConformationBaseClass):
-    """A single biomolecule conformation.  Use classmethod LoadFromPDB to create an instance of this class from a PDB filename"""    
+    """A single biomolecule conformation.  Use classmethod load_from_pdb to create an instance of this class from a PDB filename"""    
     def __init__(self,S):
         """Initializes object from a dictionary-like object S."""
         ConformationBaseClass.__init__(self,S)
         self["XYZ"]=S["XYZ"].copy()
 
-    def RestrictAtomIndices(self,AtomIndices):
-        ConformationBaseClass.RestrictAtomIndices(self,AtomIndices)
+    def restrict_atom_indices(self,AtomIndices):
+        ConformationBaseClass.restrict_atom_indices(self,AtomIndices)
         self["XYZ"]=self["XYZ"][AtomIndices]
         
-    def SaveToPDB(self,Filename):
+    def save_to_pdb(self,Filename):
         """Write conformation as a PDB file."""
         PDB.WritePDBConformation(Filename,self["AtomID"], self["AtomNames"],self["ResidueNames"],self["ResidueID"],self["XYZ"],self["ChainID"])
         
     @classmethod
-    def LoadFromPDB(cls,Filename):       
+    def load_from_pdb(cls,Filename):       
         """Create a conformation from a PDB File."""
         return(cls(PDB.LoadPDB(Filename)))
 

@@ -50,10 +50,10 @@ class test_main:
             logger = AssignParallel.setup_logger()
             AssignParallel.main(args, self.metric, logger)
 
-            assignments = Serializer.LoadData(os.path.join(args.output_dir, 'Assignments.h5'))
-            r_assignments = Serializer.LoadData(os.path.join(fixtures_dir(), 'Assignments.h5'))
-            distances = Serializer.LoadData(os.path.join(args.output_dir, 'Assignments.h5.distances'))
-            r_distances = Serializer.LoadData(os.path.join(fixtures_dir(), 'Assignments.h5.distances'))
+            assignments = Serializer.load_data(os.path.join(args.output_dir, 'Assignments.h5'))
+            r_assignments = Serializer.load_data(os.path.join(fixtures_dir(), 'Assignments.h5'))
+            distances = Serializer.load_data(os.path.join(args.output_dir, 'Assignments.h5.distances'))
+            r_distances = Serializer.load_data(os.path.join(fixtures_dir(), 'Assignments.h5.distances'))
             
             npt.assert_array_equal(assignments, r_assignments)
             npt.assert_array_almost_equal(distances, r_distances)
@@ -76,10 +76,10 @@ class test_main:
             logger = AssignParallel.setup_logger()
             AssignParallel.main(args, self.metric, logger)
 
-            assignments = Serializer.LoadData(os.path.join(args.output_dir, 'Assignments.h5'))
-            r_assignments = Serializer.LoadData(os.path.join(fixtures_dir(), 'Assignments.h5'))
-            distances = Serializer.LoadData(os.path.join(args.output_dir, 'Assignments.h5.distances'))
-            r_distances = Serializer.LoadData(os.path.join(fixtures_dir(), 'Assignments.h5.distances')) 
+            assignments = Serializer.load_data(os.path.join(args.output_dir, 'Assignments.h5'))
+            r_assignments = Serializer.load_data(os.path.join(fixtures_dir(), 'Assignments.h5'))
+            distances = Serializer.load_data(os.path.join(args.output_dir, 'Assignments.h5.distances'))
+            r_distances = Serializer.load_data(os.path.join(fixtures_dir(), 'Assignments.h5.distances')) 
 
             npt.assert_array_equal(assignments, r_assignments)
             npt.assert_array_almost_equal(distances, r_distances)

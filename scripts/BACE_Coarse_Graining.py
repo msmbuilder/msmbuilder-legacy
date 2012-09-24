@@ -40,7 +40,9 @@ of the License, or (at your option) any later version.
 --------------------------------------------------------------------------------
 
 Please cite:
-GR Bowman. Coarse-grained Markov chains capture molecular thermodynamics and kinetics in no uncertain terms. arXiv:1201.3867 2012.
+GR Bowman. Improved coarse-graining of Markov state models via explicit consideration of statistical uncertainty. J Chem Phys 2012.
+
+Currently available as arXiv:1201.3867 2012.
 
 --------------------------------------------------------------------------------
 """ % version
@@ -53,8 +55,9 @@ import os
 import scipy.io
 import scipy.sparse
 import logging
+logging.basicConfig(format="%(message)s")
 logger = logging.getLogger(__name__)
-
+logger.setLevel(logging.INFO)
 
 def getInds(c, stateInds, chunkSize, isSparse, updateSingleState=None):
     indices = []
@@ -203,7 +206,7 @@ def calcDMat(c, w, fBayesFact, indRecalc, dMat, nProc, statesKeep, multiDist, un
         minX = np.floor(indMin / dMat.shape[1])
         minY = indMin % dMat.shape[1]
 
-    fBayesFact.write("%f\n" % (1./dMat[minX,minY]))
+    fBayesFact.write("%d %f\n" % (statesKeep.shape[0]-1, 1./dMat[minX,minY]))
     return dMat, minX, minY
 
 def multiDistDense(indicesList, c, w, statesKeep, unmerged, chunkSize):
