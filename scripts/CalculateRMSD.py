@@ -59,9 +59,9 @@ Please use CalculateProjectDistance.py
     
     arglib.die_if_path_exists(args.output)
 
-    pdb = Trajectory.LoadTrajectoryFile( args.pdb )
+    pdb = Trajectory.load_trajectory_file( args.pdb )
     atom_indices = np.loadtxt( args.atom_indices ).astype(int)
-    traj = Trajectory.LoadTrajectoryFile( args.input )
+    traj = Trajectory.load_trajectory_file( args.input )
 
     distances = run(pdb, traj, atom_indices)
     np.savetxt(args.output, distances)

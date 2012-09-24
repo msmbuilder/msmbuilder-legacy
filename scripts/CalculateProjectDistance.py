@@ -21,7 +21,7 @@ import os, sys
 import numpy as np
 from msmbuilder import Project
 from msmbuilder import Trajectory
-from msmbuilder import Serializer
+from msmbuilder import io
 from msmbuilder import arglib
 
 import logging
@@ -32,15 +32,15 @@ def run(project, pdb, metric, traj_fn = None):
     ppdb = metric.prepare_trajectory(pdb)
     
     if traj_fn == None:
-        distances = -1 * np.ones((project['NumTrajs'], max(project['TrajLengths'])))
+        distances = -1 * np.ones((project.n_trajs, np.max(project.traj_lengths)))
 
-        for i in xrange(project['NumTrajs']):
+        for i in xrange(project.n_trajs):
             logger.info("Working on Trajectory %d", i )
-            ptraj = metric.prepare_trajectory(project.LoadTraj(i))
+            ptraj = metric.prepare_trajectory(project.load_traj(i))
             d = metric.one_to_all(ppdb, ptraj, 0)
             distances[i, 0:len(d)] = d
     else:
-        traj = Trajectory.LoadTrajectoryFile( traj_fn )
+        traj = Trajectory.load_trajectory_file( traj_fn )
         ptraj = metric.prepare_trajectory( traj )
 
         distances = metric.one_to_all(ppdb, ptraj, 0)
@@ -53,7 +53,7 @@ if __name__ == '__main__':
 Calculate the distance between an input PDB and all conformations in your project.
 Alternatively, you can limit the distance calculate to a single trajectory by
 passing a trajectory filename.
-Output as a HDF5 file (load using Serializer.LoadData())""", get_metric=True)
+Output as a HDF5 file (load using msmbuilder.io.loadh())""", get_metric=True)
     parser.add_argument('pdb')
     parser.add_argument('output', help='''Output file name. Output is an
         .h5 file with RMSD entries corresponding to the Assignments.h5 file.''',
@@ -67,8 +67,8 @@ Output as a HDF5 file (load using Serializer.LoadData())""", get_metric=True)
     
     arglib.die_if_path_exists(args.output)
 
-    project = Project.LoadFromHDF( args.project )    
-    pdb = Trajectory.LoadTrajectoryFile( args.pdb )
+    project = Project.load_from(args.project)
+    pdb = Trajectory.load_trajectory_file( args.pdb )
     if args.traj_fn.lower() == 'all':
         traj_fn = None
     else:
@@ -76,5 +76,5 @@ Output as a HDF5 file (load using Serializer.LoadData())""", get_metric=True)
 
     distances = run(project, pdb, metric, traj_fn)
     
-    Serializer.SaveData(args.output, distances)
+    io.saveh(args.output, distances)
     logger.info('Saved to %s', args.output)

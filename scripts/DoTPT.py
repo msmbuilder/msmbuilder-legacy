@@ -21,7 +21,7 @@ import os
 import numpy as np
 import scipy.io
 
-from msmbuilder.transition_path_theory import calculate_committors, calculate_net_fluxes
+from msmbuilder.tpt import calculate_committors, calculate_net_fluxes
 
 from msmbuilder import arglib
 import logging

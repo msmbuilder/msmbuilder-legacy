@@ -22,7 +22,7 @@ import numpy as np
 from msmbuilder.metrics import RMSD
 from msmbuilder import Project
 from msmbuilder import Trajectory
-from msmbuilder import Serializer
+from msmbuilder import io
 from msmbuilder import arglib
 
 import logging
@@ -30,12 +30,12 @@ logger = logging.getLogger(__name__)
 
 
 def run(project, pdb, atom_indices):    
-    distances = -1 * np.ones((project['NumTrajs'], max(project['TrajLengths'])))
+    distances = -1 * np.ones((project.n_trajs, np.max(project.n_trajs)))
     rmsd = RMSD(atom_indices)
     ppdb = rmsd.prepare_trajectory(pdb)
     
-    for i in xrange(project['NumTrajs']):
-        ptraj = rmsd.prepare_trajectory(project.LoadTraj(i))
+    for i in xrange(project.n_trajs):
+        ptraj = rmsd.prepare_trajectory(project.load_traj(i))
         d = rmsd.one_to_all(ppdb, ptraj, 0)
         distances[i, 0:len(d)] = d
     
@@ -43,14 +43,18 @@ def run(project, pdb, atom_indices):
     
     
 if __name__ == '__main__':
-    parser = arglib.ArgumentParser(description="""
-Calculate the RMSD between an input PDB and all conformations in your project.
-Output as a HDF5 file (load using Serializer.LoadData())
+    deprecationmessage = """
 ===============================================================================
 This script is deprecated and will be removed in v2.7 
 Please use CalculateProjectDistance.py
 ===============================================================================
-""")
+"""
+    parser = arglib.ArgumentParser(description="""
+Calculate the RMSD between an input PDB and all conformations in your project.
+Output as a HDF5 file (load using msmbuilder.io.loadh())
+""" + deprecationmessage)
+    warnings.warn(deprecationmessage, DeprecationWarning)
+    
     parser.add_argument('pdb')
     parser.add_argument('atom_indices', help='Indices of atoms to compare',
         default='AtomIndices.dat')
@@ -62,11 +66,11 @@ Please use CalculateProjectDistance.py
 
     arglib.die_if_path_exists(args.output)
 
-    project = Project.LoadFromHDF( args.project )    
-    pdb = Trajectory.LoadTrajectoryFile( args.pdb )
+    project = Project.load_from(args.project)
+    pdb = Trajectory.load_trajectory_file( args.pdb )
     atom_indices = np.loadtxt( args.atom_indices ).astype(int)
 
     distances = run(project, pdb, atom_indices)
     
-    Serializer.SaveData(args.output, distances)
+    io.saveh(args.output, distances)
     logger.info('Saved to %s', args.output)

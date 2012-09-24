@@ -21,7 +21,7 @@ import sys, os
 import scipy.io
 import numpy as np
 
-from msmbuilder import Serializer
+import msmbuilder.io
 from msmbuilder import MSMLib
 from msmbuilder import lumping
 from msmbuilder import arglib
@@ -43,7 +43,7 @@ def run_pcca(num_macrostates, assignments, tProb, output_dir):
     MSMLib.apply_mapping_to_assignments(assignments, MAP)
 
     np.savetxt(MacroMapFn, MAP, "%d")
-    Serializer.SaveData(MacroAssignmentsFn,assignments)
+    msmbuilder.io.saveh(MacroAssignmentsFn, assignments)
     
     logger.info("Saved output to: %s, %s", MacroAssignmentsFn, MacroMapFn)
     
@@ -63,7 +63,7 @@ def run_pcca_plus(num_macrostates, assignments, tProb, output_dir, flux_cutoff=0
     np.savetxt(ChiFn, chi)
     np.savetxt(AFn, A)
     np.savetxt(MacroMapFn, MAP,"%d")
-    Serializer.SaveData(MacroAssignmentsFn, assignments)
+    msmbuilder.io.saveh(MacroAssignmentsFn, assignments)
     logger.info('Saved output to: %s, %s, %s, %s', ChiFn, AFn, MacroMapFn, MacroAssignmentsFn)
 
 
@@ -87,8 +87,16 @@ Output: MacroAssignments.h5, a new assignments HDF file, for the Macro MSM.""")
         objective function (crisp_metastability, metastability, or crispness)''',
                         default="crisp_metastability")
     parser.add_argument('do_minimization', help='Use PCCA+ minimization', default=True)
-    
     args = parser.parse_args()
+
+    # load args
+    try:
+        assignments = msmbuilder.io.loadh(args.assignments, 'arr_0')
+    except KeyError:
+        assignments = msmbuilder.io.loadh(args.assignments, 'Data')
+
+    tProb = scipy.io.mmread(args.tProb)
+    
     
     if args.do_minimization in ["False", "0"]:#workaround for arglib funniness?
         args.do_minimization = False
@@ -96,9 +104,10 @@ Output: MacroAssignments.h5, a new assignments HDF file, for the Macro MSM.""")
         args.do_minimization = True
     
     if args.algorithm == 'PCCA':
-        run_pcca(args.num_macrostates, args.assignments['Data'], args.tProb, args.output_dir)
+        run_pcca(args.num_macrostates, assignments, args.tProb, args.output_dir)
     elif args.algorithm == 'PCCA+':
-        run_pcca_plus(args.num_macrostates, args.assignments['Data'], args.tProb, args.output_dir,
-                      args.flux_cutoff, objective_function=args.objective_function,do_minimization=args.do_minimization)
+        run_pcca_plus(args.num_macrostates, assignments, tProb, args.output_dir,
+                      args.flux_cutoff, objective_function=args.objective_function,
+                      do_minimization=args.do_minimization)
     else:
         raise Exception()

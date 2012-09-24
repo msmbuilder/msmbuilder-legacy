@@ -24,36 +24,30 @@ A simple interface to VMD's DCD molfile plugin.
 
 # July 2011: Initial version (Toni)
 
+import os, sys
 import numpy as np
-from numpy.ctypeslib import ndpointer
-from ctypes import *
+from ctypes import Structure, POINTER, c_float, c_double, CDLL, c_char_p, c_int
+from ctypes import c_void_p, byref
 from ctypes.util import find_library
-import os.path
-import sys
 import imp
 
 # define handle to dcd library as global variable (but it should only be used within this module)
 _dcdlib = None
 
 
-
-
-
 class MolfileTimestep(Structure):
     """Wrapper for the timestep C structure used in molfile plugins."""
     _fields_ = [
-        ("coords",POINTER(c_float)),
-        ("velocities",POINTER(c_float)),
-        ("A",c_float),
-        ("B",c_float),
-        ("C",c_float),
-        ("alpha",c_float),
-        ("beta",c_float),
-        ("gamma",c_float),
-        ("physical_time",c_double)
+        ("coords", POINTER(c_float)),
+        ("velocities", POINTER(c_float)),
+        ("A", c_float),
+        ("B", c_float),
+        ("C", c_float),
+        ("alpha", c_float),
+        ("beta", c_float),
+        ("gamma", c_float),
+        ("physical_time", c_double)
         ]
-
-
 
 
 def loadDCDLibrary(LoadDirectFromMSMBuilder=True):
@@ -62,9 +56,9 @@ def loadDCDLibrary(LoadDirectFromMSMBuilder=True):
     dcd_library_path = find_library("dcdplugin_s.so")
     if dcd_library_path and not LoadDirectFromMSMBuilder:
         _dcdlib = CDLL(dcd_library_path)
-    elif LoadDirectFromMSMBuilder==True:
-        MSMBuilderPath=imp.find_module("msmbuilder")[1]
-        _dcdlib = CDLL(MSMBuilderPath+"/dcdplugin_s.so")
+    elif LoadDirectFromMSMBuilder == True:
+        MSMBuilderPath = imp.find_module("msmbuilder")[1]
+        _dcdlib = CDLL(MSMBuilderPath + "/dcdplugin_s.so")
     else:
         # Lutz: find_library does not look in LD_LIBRARY_PATH on linux
         # machines (see http://bugs.python.org/issue2936), even though
@@ -80,19 +74,17 @@ def loadDCDLibrary(LoadDirectFromMSMBuilder=True):
 
     # declare interface for functions in the dcd library to insure
     # some amount of type safety for use of numpy arrays in ctypes,
-    # (DCD writing functions could also be wrapped) 
+    # (DCD writing functions could also be wrapped)
 
-    _dcdlib.open_dcd_read.argtypes=[c_char_p,c_char_p,POINTER(c_int)]
-    _dcdlib.open_dcd_read.restype=c_void_p
+    _dcdlib.open_dcd_read.argtypes = [c_char_p, c_char_p, POINTER(c_int)]
+    _dcdlib.open_dcd_read.restype = c_void_p
     
     # 0 is OK,  -1 is EOF, else error
-    _dcdlib.read_next_timestep.argtypes=[c_void_p,c_int,POINTER(MolfileTimestep)]
-    _dcdlib.read_next_timestep.restype=c_int
+    _dcdlib.read_next_timestep.argtypes = [c_void_p, c_int, POINTER(MolfileTimestep)]
+    _dcdlib.read_next_timestep.restype = c_int
 
-    _dcdlib.close_file_read.argtypes=[c_void_p]
-    _dcdlib.close_file_read.restype=None
-
-
+    _dcdlib.close_file_read.argtypes = [c_void_p]
+    _dcdlib.close_file_read.restype = None
 
 
 class DCDReader:
@@ -111,11 +103,9 @@ class DCDReader:
         print c.step
     """
         
-
-
     def _open(self, filename):
         """Opens the dcd file with the specified name."""
-        self._filename=filename
+        self._filename = filename
         self.dcd = _dcdlib.open_dcd_read(filename, "dcd", byref(self.natoms))
         if not self.dcd:
             raise IOError("Unable to open dcd file " + str(filename) + ".")
@@ -129,8 +119,8 @@ class DCDReader:
             _dcdlib.close_file_read(self.dcd)
             self.dcd = None
 
-    def __init__(self, filenames, firstframe = 0, lastframe = None, 
-                 stepframe = 1, atomindices = None, skipcont = True):
+    def __init__(self, filenames, firstframe=0, lastframe=None,
+                 stepframe=1, atomindices=None, skipcont=True):
         self._firstframe = firstframe
         self._lastframe = lastframe
         self._stepframe = stepframe
@@ -141,7 +131,7 @@ class DCDReader:
         if isinstance(filenames, str):
             self._filenames = [filenames]
         else:
-            self._filenames = filenames[:]#Want to copy the list so as not to destroy it.
+            self._filenames = filenames[:]  # Want to copy the list so as not to destroy it.
 
         print(self._filenames)
 
@@ -149,8 +139,8 @@ class DCDReader:
         if _dcdlib.vmdplugin_init() != 0:
             raise IOError("Unable to init DCD plugin")
 
-        self._ts=MolfileTimestep()
-        self.natoms=c_int(-1)
+        self._ts = MolfileTimestep()
+        self.natoms = c_int(-1)
         self._frame = -1         # why was -1?
 
         # self.natoms = number_of_atoms(self._filenames[0])
@@ -171,9 +161,9 @@ class DCDReader:
         return self
 
     def next(self):
-        Coords=c_float * (self.natoms.value * 3)
-        xyzvec=Coords()
-        self._ts.coords=xyzvec
+        Coords = c_float * (self.natoms.value * 3)
+        xyzvec = Coords()
+        self._ts.coords = xyzvec
 
         while self._frame < self._nextframe:
             if self._lastframe != None and self._frame >= self._lastframe:
@@ -184,12 +174,12 @@ class DCDReader:
                 self._frame += 1
             elif result == -1:  # EOF
                 print "Finished with file %s, %d atoms, at frame %d" % \
-                    (self._filename,self.natoms.value,self._frame+1)
+                    (self._filename, self.natoms.value, self._frame + 1)
                 self._close()
                 if not self._filenames:
                     raise StopIteration
                 else:
-                    self._open(self._filenames.pop(0))                   
+                    self._open(self._filenames.pop(0))
                     if self._skipcont:
                         self._nextframe += 1
             else:
@@ -202,22 +192,28 @@ class DCDReader:
         self._nextframe += self._stepframe
 
         # create a "coords" numpy array for returning
-        coords=np.asfarray(np.array(xyzvec).reshape(self.natoms.value,3))
+        coords = np.asfarray(np.array(xyzvec).reshape(self.natoms.value, 3))
         if self._atomindices != None:
-            coords=coords[self._atomindices,]
-        coords=coords*0.1       # \AA -> nm
+            coords = coords[self._atomindices, ]
+        coords = coords * 0.1       # \AA -> nm
 #        print coords
         return coords
 
-
-
-
-loadDCDLibrary()
+try:
+    loadDCDLibrary()
+except OSError:
+    # HACK for building the documentation on READTHEDOCS
+    # this is a workaround because DLL open is hard to mock
+    # but basically, if we're on the readthedocs.org build server
+    # we need to be able to import packages to introspect their docstrings,
+    # but we don't actually have any of the C libraries installed
+    if os.environ.get('READTHEDOCS', None) == 'True':
+        pass
+    else:
+        raise
 
 if __name__ == "__main__":
     if _dcdlib:
         print "Successfully loaded dcdfile library."
     else:
         print "Unable to load dcdfile library."
-
-    

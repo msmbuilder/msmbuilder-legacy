@@ -27,7 +27,7 @@ def setup_logger(console_stream=sys.stdout):
 
 def main(args, metric, logger):
     
-    project = Project.LoadFromHDF(args.project)
+    project = Project.load_from_hdf(args.project)
     if not os.path.exists(args.generators):
         raise IOError('Could not open generators')
     generators = os.path.abspath(args.generators)

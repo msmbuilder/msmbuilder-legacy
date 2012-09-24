@@ -22,7 +22,7 @@ import os
 import numpy
 
 from msmbuilder import MSMLib
-from msmbuilder import Serializer
+from msmbuilder import io
 from msmbuilder import arglib
 from msmbuilder import msm_analysis
 
@@ -35,7 +35,11 @@ def run(MinLagtime, MaxLagtime, Interval, NumEigen, AssignmentsFn, symmetrize, n
     arglib.die_if_path_exists(output)
     
     # Setup some model parameters
-    Assignments = Serializer.LoadData(AssignmentsFn)
+    try:
+        Assignments = io.loadh(AssignmentsFn, 'arr_0')
+    except KeyError:
+        Assignments = io.loadh(AssignmentsFn, 'Data')
+    
     NumStates = max(Assignments.flatten())+1
     if NumStates <= NumEigen-1: 
         NumEigen = NumStates-2
@@ -47,9 +51,9 @@ def run(MinLagtime, MaxLagtime, Interval, NumEigen, AssignmentsFn, symmetrize, n
     logger.info("Building MSMs at the following lag times: %s", lagTimes)
 
     # Get the implied timescales (eigenvalues)
-    impTimes = msm_analysis.get_implied_timescales(AssignmentsFn, NumStates,
-                                           lagTimes, n_implied_times=NumEigen,
-                                           sliding_window=True, symmetrize=symmetrize, n_procs=nProc)
+    impTimes = msm_analysis.get_implied_timescales(AssignmentsFn, lagTimes,
+        n_implied_times=NumEigen, sliding_window=True, symmetrize=symmetrize,
+        n_procs=nProc)
     numpy.savetxt(output, impTimes)
     return
 

@@ -24,7 +24,7 @@ from collections import defaultdict
 import numpy as np
 import random
 import logging
-from msmbuilder import Serializer, Project
+from msmbuilder import io, Project
 logger = logging.getLogger(__name__)
 
 def run(project, assignments, conformations_per_state, states, output_dir):
@@ -55,9 +55,9 @@ def run(project, assignments, conformations_per_state, states, output_dir):
             outfile = os.path.join(output_dir, 'State%d-%d.pdb' % (s, i))
             if not os.path.exists(outfile):
                 logger.info('Saving state %d (traj %d, frame %d) as %s', s, traj, frame, outfile)
-                xyz = project.ReadFrame(traj, frame)
+                xyz = project.read_frame(traj, frame)
                 empty_traj['XYZList'] = np.array([xyz])
-                empty_traj.SaveToPDB(outfile)
+                empty_traj.save_to_pdb(outfile)
             else:
                 logger.warning('Skipping %s. Already exists', outfile)
                 
@@ -84,7 +84,13 @@ to use GetRandomConfs.py""")
     if -1 in args.states:
         logger.info("Ripping PDBs for all states")
         args.states = 'all'
+
+    try:
+        assignments = io.loadh(args.assignments, 'arr_0')
+    except KeyError:
+        assignments = io.loadh(args.assignments, 'Data')
+    project = Project.load_from(args.project)
     
-    run(Project.LoadFromHDF(args.project), Serializer.LoadData(args.assignments), args.conformations_per_state,
+    run(project, assignments, args.conformations_per_state,
          args.states, args.output_dir)
 
