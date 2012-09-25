@@ -50,12 +50,12 @@ def run(LagTime, assignments, Symmetrize='MLE', input_mapping="None", Prior=0.0,
         lag_time=LagTime, symmetrize=Symmetrize,
         sliding_window=True, trim=True)
 
+    MSMLib.apply_mapping_to_assignments(assignments, mapping)
+    n_assigns_after_trim = len( np.where( assignments.flatten() != -1 )[0] )
+
     # if had input mapping, then update it
     if input_mapping != "None":
         mapping = mapping[input_mapping]
-
-    MSMLib.apply_mapping_to_assignments(assignments, mapping)
-    n_assigns_after_trim = len( np.where( assignments.flatten() != -1 )[0] )
     
     # Print a statement showing how much data was discarded in trimming
     percent = (1.0 - float(n_assigns_after_trim) / float(n_assigns_before_trim)) * 100.0
