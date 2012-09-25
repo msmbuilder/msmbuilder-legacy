@@ -153,7 +153,7 @@ class Project(object):
 
             for i in xrange(n_trajs):
                 # this is the convention used in the hdf project format to get the traj paths
-                path = ondisk['TrajFilePath'][i] + ondisk['TrajFileBaseName'][0] + str(i) + ondisk['TrajFileType'][i]
+                path = os.path.join( ondisk['TrajFilePath'][0], ondisk['TrajFileBaseName'][0] + str(i) + ondisk['TrajFileType'][0] )
                 records['traj_paths'].append(path)
 
         else:
