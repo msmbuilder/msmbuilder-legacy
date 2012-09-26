@@ -1,7 +1,9 @@
 "Methods to get internal coordinates"
 import numpy as np
 import IPython as ip
+import scipy.linalg
 from itertools import combinations, ifilter
+import logging
 
 from msmbuilder.geometry.contact import atom_distances
 from msmbuilder.geometry.dihedral import compute_dihedrals
@@ -15,6 +17,13 @@ import networkx as nx
 # http://pubs.rsc.org/en/Content/ArticleLanding/2008/DT/b801115j
 COVALENT_RADII = {'C': 0.0762, 'N': 0.0706, 'O': 0.0661, 'H': 0.031,
                   'S': 0.105}
+logger = logging.getLogger('geometry.internal')
+
+__all__ = ['get_redundant_internal_coordinates',
+           'get_nonredundant_internal_coordinates', 'get_connectivity',
+           'get_bond_connectivity', 'get_angle_connectivity',
+           'get_dihedral_connectivity', 'get_wilson_B', 'get_bond_derivs',
+           'get_angle_derivs', 'get_dihedral_derivs']
 
 
 ################################################################################
@@ -22,20 +31,28 @@ COVALENT_RADII = {'C': 0.0762, 'N': 0.0706, 'O': 0.0661, 'H': 0.031,
 ################################################################################
 
 
-def get_redundant_internal_coordinates(trajectory):
+def get_redundant_internal_coordinates(trajectory, **kwargs):
     """Compute internal coordinates from the cartesian coordinates
     
     Parameters
     ----------
-    xyzlist : np.ndarray, shape=[n_frames, n_atoms, 3], dtype=float
-        The cartesian coordinates
-    ibonds : np.ndarray, shape[n_bonds, 2], dtype=int
+    trajectory : msmbuilder.Trajectory
+        Trajectory object containing the internal coordinates
+
+    Additional Parameters
+    ---------------------
+    ibonds : np.ndarray, optional, shape[n_bonds, 2], dtype=int
         Each row gives the indices of two atoms involved in a bond
-    iangles : np.ndarray, shape[n_angles, 3], dtype=int
+    iangles : np.ndarray, optional shape[n_angles, 3], dtype=int
         Each row gives the indices of three atoms which together make an angle
-    idihedrals : np.ndarray, shape[n_dihedrals, 4], dtype=int
+    idihedrals : np.ndarray, optional, shape[n_dihedrals, 4], dtype=int
         Each row gives the indices of the four atoms which together make a
         dihedral
+    
+    Notes
+    -----
+    ibonds, iangles, and idihedrals will be computed usig the first
+    frame in the trajectory, if not supplied
     
     Returns
     -------
@@ -44,7 +61,12 @@ def get_redundant_internal_coordinates(trajectory):
         internal_coords[i,j] gives the jth coordinate for the ith frame.
     """
     
-    ibonds, iangles, idihedrals = get_connectivity(trajectory)
+    if 'ibonds' in kwargs and  'iangles' in kwargs and 'idihedrals' in kwargs:
+        ibonds = kwargs['ibonds']
+        iangles = kwargs['iangles']
+        idihedrals = kwargs['idihedrals']
+    else:
+        ibonds, iangles, idihedrals = get_connectivity(trajectory)
     
     # convert everything to the right shape and C ordering, since
     # all of these methods are in C and are going to need things to be
@@ -62,29 +84,101 @@ def get_redundant_internal_coordinates(trajectory):
     a = bond_angles(xyzlist, iangles)
     d = compute_dihedrals(xyzlist, idihedrals, degrees=False)
     
-    return np.hstack((b,a,d))
+    print compute_dihedrals(xyzlist, idihedrals, degrees=True)
+    
+    return np.hstack((b, a, d))
 
 
-def get_wilson_B(conformation):
-    """Calculate the Wilson B matrix, which collects the derivatives of the
-    redundant internal coordinates w/r/t the cartesian coordinates.
+def get_nonredundant_internal_coordinates(trajectory, conformation, get_operator=False):
+    """Compute nonredudant delocalized internal coordinates from the
+    cartesian coordinates
+    
+    These are basically a set of 3N-6 linear combinations of bond lengths,
+    bond angles and dihedral angles that span the full space of internal
+    coordinates without being redundant. The procedure to generate them
+    involves collecting a bunch of "primative" internal coordinates and then
+    and then taking linear combinations correspondong to eigenvectors with
+    nonzero corresponding eigenvalues of G=B*B.T, where B is the so called
+    "Wilson B matrix" which relates small displacements in cartesian space
+    to small displacements in the internal coordinate space.
+    
+    Notes
+    -----
+    The projection operator from the redundant coordinate space into the 
+    active or nonredudant subspace is formed from the geometery in
+    `conformation`, but is then applied unformly to all of the frames in
+    trajectory.
+    
+    Parameters
+    ----------
+    trajectory : msmbuilder.Trajectory
+        Trajectory object containing the cartesian coordinates of every
+        frame in the dataset
+    conformation : msmbuilder.Trajectory
+        Trajectort object containing a single frame (the first) to be used
+        as the reference for defining the projection operator into the active
+        space.
+    get_operator : boolean
+        Retreive the information necessary to define the cartesian ->
+        nonredundant internal coordinates projection operator, including
+        both the indices for generating the redudant internal coordinates
+        and the linear operator that removes the redundant subspace.
+        
+    
+    Returns
+    -------
+    internal_coordinates : np.ndarray, shape[n_frames, 3*N-6], dtype=float
+        The position of each frame in the trajectory, represented in internal
+        coordinates
 
-    .. math:: 
+    (if get_operator == True)
 
-        B_{ij} = \frac{\partial q_i}{\partial x_j}
-
-    where :math:`q_i` are the internal coorindates and the :math:`x_j` are
-    the Cartesian displacement coordinates of the atoms.
+    activespace : np.ndarray, shape[n_redundant, n_nonredundant], dtype=float
+        The linear projection operator
+    ibonds : np.ndarray, shape=[n_bonds, 2], dtype=int
+        n_bonds x 2 array of indices, where each row is the index of two
+        atom who participate in a bond.
+    iangles : np.ndarray, shape[n_angles, 3], dtype=int
+        n_angles x 3 array of indices, where each row is the index of three
+        atoms m,n,o such that n is bonded to both m and o.
+    idihedrals : np.ndarray, shape[n_dihedrals, 4], dtype=int
+        All sets of 4 atoms A,B,C,D such that A is bonded to B, B is bonded
+        to C, and C is bonded to D
+    
+    
+    References
+    ----------
+    Baker, Kessi, Delley J. Chem. Phys. 105, 192 (1996); doi: 10.1063/1.471864
     """
-    xyz = conformation['XYZList'][0]
     
     ibonds, iangles, idihedrals = get_connectivity(conformation)
     
-    bd = get_bond_derivs(xyz, ibonds)
-    ad = get_angle_derivs(xyz, iangles)
-    dd = get_dihedral_derivs(xyz, idihedrals)
+    B = get_wilson_B(conformation, ibonds=ibonds, iangles=iangles,
+        idihedrals=idihedrals)
+    # reshape from (n_redundant, n_atoms, 3) to (n_redundant, n_atoms*3)
+    B = B.reshape((B.shape[0], B.shape[1] * B.shape[2]))
     
-    return np.vstack((bd, ad, dd))
+    G = np.dot(B, B.T)
+    eigenvalues, eigenvectors = scipy.linalg.eigh(G)
+    
+    # only the eigenvectors with nonzero eigenvalues
+    # note: there should be 3N-6 of them
+    activespace = eigenvectors[:, np.where(eigenvalues > 1e-10)[0]]
+    
+    if activespace.shape[1] != 3*trajectory['XYZList'].shape[1] - 6:
+        logger.error('Active eigenspace is %dd, but 3*N - 6 = %d',
+            activespace.shape[1], 3*trajectory['XYZList'].shape[1] - 6)
+    
+    
+    redundant = get_redundant_internal_coordinates(trajectory, ibonds=ibonds,
+        iangles=iangles, idihedrals=idihedrals)
+    
+    if get_operator:
+        return np.dot(redundant, activespace), activespace, ibonds, iangles, idihedrals
+    else:
+        return np.dot(redundant, activespace)
+    
+
 
 
 
@@ -103,8 +197,7 @@ def get_connectivity(conf):
 
 
 def get_bond_connectivity(conf):
-    """
-    Get the connectivity of a conformation
+    """Get a list of all the bonds in a conformation
     
     Parameters
     ----------
@@ -113,7 +206,7 @@ def get_bond_connectivity(conf):
     
     Returns
     -------
-    connectivity : np.ndarray, shape=[n_bonds, 2], dtype=int
+    ibonds : np.ndarray, shape=[n_bonds, 2], dtype=int
         n_bonds x 2 array of indices, where each row is the index of two
         atom who participate in a bond.
     
@@ -123,6 +216,8 @@ def get_bond_connectivity(conf):
     the interatomic distance is less than or equal to 1.3 times the
     sum of their respective covalent radii.
     
+    References
+    ----------
     Bakken and Helgaker, JCP Vol. 117, Num. 20 22 Nov. 2002
     http://folk.uio.no/helgaker/reprints/2002/JCP117b_GeoOpt.pdf
     """
@@ -155,63 +250,67 @@ def get_bond_connectivity(conf):
     return np.array(connectivity)
 
 
-def get_angle_connectivity(bond_connectivity):
-    """Given the connectivity, get all of the bond angles
+def get_angle_connectivity(ibonds):
+    """Given the bonds, get the indices of the atoms defining all the bond
+    angles
     
     Parameters
     ----------
-    bond_connectivity : np.ndarray, shape=[n_bonds, 2], dtype=int
+    ibonds : np.ndarray, shape=[n_bonds, 2], dtype=int
         n_bonds x 2 array of indices, where each row is the index of two
         atom who participate in a bond.
     
     Returns
     -------
-    angle_indices : np.ndarray, shape[n_angles, 3], dtype=int
+    iangles : np.ndarray, shape[n_angles, 3], dtype=int
         n_angles x 3 array of indices, where each row is the index of three
         atoms m,n,o such that n is bonded to both m and o.
     """
 
-    graph = nx.from_edgelist(bond_connectivity)
+    graph = nx.from_edgelist(ibonds)
     n_atoms = graph.number_of_nodes()
-    angle_indices = []
+    iangles = []
 
     for i in xrange(n_atoms):
         for (m, n) in combinations(graph.neighbors(i), 2):
             # so now the there is a bond angle m-i-n
-            angle_indices.append((m,i,n))
+            iangles.append((m, i, n))
 
-    return np.array(angle_indices)
+    return np.array(iangles)
 
 
-def get_dihedral_connectivity(bond_connectivity,):
-    """Given the connectivity, get all of the bond angles
+def get_dihedral_connectivity(ibonds):
+    """Given the bonds, get the indices of the atoms defining all the dihedral
+    angles
     
     Parameters
     ----------
-    bond_connectivity : np.ndarray, shape=[n_bonds, 2], dtype=int
+    ibonds : np.ndarray, shape=[n_bonds, 2], dtype=int
         n_bonds x 2 array of indices, where each row is the index of two
         atom who participate in a bond.
-    #conf : msmbuilder.Trajectory
-    #    An msmbuilder trajectory, only the first frame will be used. This
-    #    is used purely to make the check for angle(ABC) != 180.
     
     Returns
     -------
-    dihedral_indices : np.ndarray, shape[n_dihedrals, 4], dtype=int
+    idihedrals : np.ndarray, shape[n_dihedrals, 4], dtype=int
         All sets of 4 atoms A,B,C,D such that A is bonded to B, B is bonded
         to C, and C is bonded to D
     """
-    graph = nx.from_edgelist(bond_connectivity)
+    graph = nx.from_edgelist(ibonds)
     n_atoms = graph.number_of_nodes()
-    dihedral_indices = []
+    idihedrals = []
+    
+    # TODO: CHECK FOR DIHEDRAL ANGLES THAT ARE 180 and recover
+    # conf : msmbuilder.Trajectory
+    #    An msmbuilder trajectory, only the first frame will be used. This
+    #    is used purely to make the check for angle(ABC) != 180.
 
     for a in xrange(n_atoms):
         for b in graph.neighbors(a):
-            for c in ifilter(lambda c: c not in [a,b], graph.neighbors(b)):
-                for d in ifilter(lambda d: d not in [a,b,c], graph.neighbors(c)):
-                    dihedral_indices.append((a,b,c,d))
+            for c in ifilter(lambda c: c not in [a, b], graph.neighbors(b)):
+                for d in ifilter(lambda d: d not in [a, b, c], graph.neighbors(c)):
+                    idihedrals.append((a, b, c, d))
 
-    return np.array(dihedral_indices)
+    return np.array(idihedrals)
 
 
 ################################################################################
@@ -219,7 +318,67 @@ def get_dihedral_connectivity(bond_connectivity,):
 # these methods only operate on a single frame
 ################################################################################
 
+def get_wilson_B(conformation, **kwargs):
+    """Calculate the Wilson B matrix, which collects the derivatives of the
+    redundant internal coordinates w/r/t the cartesian coordinates.
+
+    .. math:: 
+
+        B_{ij} = \frac{\partial q_i}{\partial x_j}
+
+    where :math:`q_i` are the internal coorindates and the :math:`x_j` are
+    the Cartesian displacement coordinates of the atoms.
+    
+    BUT NOTE: THE RETURN VALUE IS ACTUALLY 3D
+    
+    Parameters
+    ----------
+    conformation : msmbuilder.Trajectory
+        Only the first frame is used
+    
+    Additional Parameters
+    ---------------------
+    ibonds : np.ndarray, optional shape[n_bonds, 2], dtype=int
+        Each row gives the indices of two atoms involved in a bond
+    iangles : np.ndarray, optional, shape[n_angles, 3], dtype=int
+        Each row gives the indices of three atoms which together make an angle
+    idihedrals : np.ndarray, optional, shape[n_dihedrals, 4], dtype=int
+        Each row gives the indices of the four atoms which together make a
+        dihedral
+
+    Returns
+    -------
+    B : np.ndarray, shape=[n_internal_coordinates, n_atoms, 3]
+        The layout here is 3 dimensional, where B[i,j,k] is the derivative
+        of internal coordinate`q_i` with respect the cartesian coordinate which
+        is the `k`-th dimension (xyz) of the `j`-th atom.        
+    """
+    if 'ibonds' in kwargs and  'iangles' in kwargs and 'idihedrals' in kwargs:
+        ibonds = kwargs['ibonds']
+        iangles = kwargs['iangles']
+        idihedrals = kwargs['idihedrals']
+    else:
+        ibonds, iangles, idihedrals = get_connectivity(conformation)
+        
+    xyz = conformation['XYZList'][0]
+        
+    bd = get_bond_derivs(xyz, ibonds)
+    ad = get_angle_derivs(xyz, iangles)
+    dd = get_dihedral_derivs(xyz, idihedrals)
+    
+    return np.vstack((bd, ad, dd))
+
+
 def get_bond_derivs(xyz, ibonds):
+    """
+    Derivatives of the bond lengths with respect to cartesian coordinates
+    
+    References
+    ----------
+    Bakken and Helgaker, JCP Vol. 117, Num. 20 22 Nov. 2002
+    http://folk.uio.no/helgaker/reprints/2002/JCP117b_GeoOpt.pdf
+    """
+    
     n_atoms, n_bonds = xyz.shape[0], len(ibonds)
     
     derivatives = np.zeros((n_bonds, n_atoms, 3))
@@ -233,6 +392,15 @@ def get_bond_derivs(xyz, ibonds):
 
 
 def get_angle_derivs(xyz, iangles):
+    """
+    Derivatives of the bond angles with respect to cartesian coordinates
+    
+    References
+    ----------
+    Bakken and Helgaker, JCP Vol. 117, Num. 20 22 Nov. 2002
+    http://folk.uio.no/helgaker/reprints/2002/JCP117b_GeoOpt.pdf
+    """
+    
     n_atoms, n_angles = xyz.shape[0], len(iangles)
 
     derivatives = np.zeros((n_angles, n_atoms, 3))
@@ -255,7 +423,7 @@ def get_angle_derivs(xyz, iangles):
             else:
                 w_prime = np.cross(u, vector1)
         else:
-             w_prime = np.cross(u, v)
+            w_prime = np.cross(u, v)
              
         w = w_prime / np.linalg.norm(w_prime)
 
@@ -268,6 +436,15 @@ def get_angle_derivs(xyz, iangles):
 
 
 def get_dihedral_derivs(xyz, idihedrals):
+    """
+    Derivatives of the dihedral angles with respect to cartesian coordinates
+    
+    References
+    ----------
+    Bakken and Helgaker, JCP Vol. 117, Num. 20 22 Nov. 2002
+    http://folk.uio.no/helgaker/reprints/2002/JCP117b_GeoOpt.pdf
+    """
+    
     n_atoms, n_dihedrals = xyz.shape[0], len(idihedrals)
 
     derivatives = np.zeros((n_dihedrals, n_atoms, 3))
@@ -305,21 +482,21 @@ if __name__ == '__main__':
     from msmbuilder import Trajectory
     h = 1e-4
     conf1 = Trajectory.load_trajectory_file('Tutorial/native.pdb')
-    conf2 = Trajectory.load_trajectory_file('Tutorial/native.pdb')
-    conf2['XYZList'][0, 0, 0] += h
-    
-    internal1 = get_redundant_internal_coordinates(conf1)[0]
-    internal2 = get_redundant_internal_coordinates(conf2)[0]
+    # conf2 = Trajectory.load_trajectory_file('Tutorial/native.pdb')
+    # conf2['XYZList'][0, 0, 0] += h
+    # 
+    # internal1 = get_redundant_internal_coordinates(conf1)[0]
+    # internal2 = get_redundant_internal_coordinates(conf2)[0]
+    # 
+    # fd = (internal2 - internal1) / h
+    # 
+    # # n_internal_coords, n_atoms, n_dims 
+    # b1 = get_wilson_B(conf1)[:, 0, 0]
+    # 
+    # 
+    # 
+    # ip.embed()
+    # print fd - b1
 
-    fd = (internal2 - internal1) / h
-
-    # n_internal_coords, n_atoms, n_dims 
-    b1 = get_wilson_B(conf1)[:, 0, 0]
-
-
-
-    ip.embed()
-    print fd - b1
-
-
+    get_nonredundant_internal_coordinates(conf1, conf1)
     
