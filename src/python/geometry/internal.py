@@ -3,9 +3,9 @@ import numpy as np
 import IPython as ip
 from itertools import combinations, ifilter
 
-from msmbuilder.geometry import contact
-from msmbuilder.geometry import dihedral
-from msmbuilder.geometry import angle
+from msmbuilder.geometry.contact import atom_distances
+from msmbuilder.geometry.dihedral import compute_dihedrals
+from msmbuilder.geometry.angle import bond_angles
 from scipy.spatial.distance import squareform, pdist
 import networkx as nx
 
@@ -17,7 +17,12 @@ COVALENT_RADII = {'C': 0.0762, 'N': 0.0706, 'O': 0.0661, 'H': 0.031,
                   'S': 0.105}
 
 
-def get_redundant_internal_coordinates(xyzlist, ibonds, iangles, idihedrals):
+################################################################################
+# Get actual coordinates
+################################################################################
+
+
+def get_redundant_internal_coordinates(trajectory):
     """Compute internal coordinates from the cartesian coordinates
     
     Parameters
@@ -39,22 +44,62 @@ def get_redundant_internal_coordinates(xyzlist, ibonds, iangles, idihedrals):
         internal_coords[i,j] gives the jth coordinate for the ith frame.
     """
     
+    ibonds, iangles, idihedrals = get_connectivity(trajectory)
+    
     # convert everything to the right shape and C ordering, since
     # all of these methods are in C and are going to need things to be
     # the right type. The methods will all do a copy for things that
     # aren't the right type, but hopefully we can only do the copy once
     # instead of three times if xyzlist really does need to be reordered
     # in memory
-    xyzlist = np.array(xyzlist, dtype=np.float32, order='c')
+    
+    xyzlist = np.array(trajectory['XYZList'], dtype=np.float32, order='c')
     ibonds = np.array(ibonds, dtype=np.int32, order='c')
     iangles = np.array(iangles, dtype=np.int32, order='c')
     idihedrals = np.array(idihedrals, dtype=np.int32, order='c')
     
-    b = contact.atom_distances(xyzlist, ibonds)
-    a = angle.bond_angles(xyzlist, iangles)
-    d = dihedral.compute_dihedrals(xyzlist, idihedrals, degrees=False)
+    b = atom_distances(xyzlist, ibonds)
+    a = bond_angles(xyzlist, iangles)
+    d = compute_dihedrals(xyzlist, idihedrals, degrees=False)
     
     return np.hstack((b,a,d))
+
+
+def get_wilson_B(conformation):
+    """Calculate the Wilson B matrix, which collects the derivatives of the
+    redundant internal coordinates w/r/t the cartesian coordinates.
+
+    .. math:: 
+
+        B_{ij} = \frac{\partial q_i}{\partial x_j}
+
+    where :math:`q_i` are the internal coorindates and the :math:`x_j` are
+    the Cartesian displacement coordinates of the atoms.
+    """
+    xyz = conformation['XYZList'][0]
+    
+    ibonds, iangles, idihedrals = get_connectivity(conformation)
+    
+    bd = get_bond_derivs(xyz, ibonds)
+    ad = get_angle_derivs(xyz, iangles)
+    dd = get_dihedral_derivs(xyz, idihedrals)
+    
+    return np.vstack((bd, ad, dd))
+
+
+
+################################################################################
+# Compte the connectivity, getting lists of atom indices which form bonds, bond
+# angles and dihedrals
+################################################################################
+
+def get_connectivity(conf):
+    "Convenience method"
+    ibonds = get_bond_connectivity(conf)
+    iangles = get_angle_connectivity(ibonds)
+    idihedrals = get_dihedral_connectivity(ibonds)
+
+    return ibonds, iangles, idihedrals
 
 
 def get_bond_connectivity(conf):
@@ -169,33 +214,110 @@ def get_dihedral_connectivity(bond_connectivity,):
     return np.array(dihedral_indices)
 
 
-def get_wilson_B(conf):
-    """Calculate the Wilson B matrix, which collects the derivatives of the
-    redundant internal coordinates w/r/t the cartesian coordinates.
+################################################################################
+# Compute derivatives of internal coordinates w.r.t to cartesian coordinates
+# these methods only operate on a single frame
+################################################################################
 
-    .. math:: 
+def get_bond_derivs(xyz, ibonds):
+    n_atoms, n_bonds = xyz.shape[0], len(ibonds)
+    
+    derivatives = np.zeros((n_bonds, n_atoms, 3))
+    for b, (m, n) in enumerate(ibonds):
+        u = (xyz[m] - xyz[n]) / np.linalg.norm(xyz[m] - xyz[n])
 
-        B_{ij} = \frac{\partial q_i}{\partial x_j}
+        derivatives[b, m, :] = u
+        derivatives[b, n, :] = -u
 
-    where :math:`q_i` are the internal coorindates and the :math:`x_j` are
-    the Cartesian displacement coordinates of the atoms.
-    """
-    pass
+    return derivatives
+
+
+def get_angle_derivs(xyz, iangles):
+    n_atoms, n_angles = xyz.shape[0], len(iangles)
+
+    derivatives = np.zeros((n_angles, n_atoms, 3))
+    vector1 = np.array([1, -1, 1]) / np.sqrt(3)
+    vector2 = np.array([-1, 1, 1]) / np.sqrt(3)
+
+    for a, (m, o, n) in enumerate(iangles):
+        u_prime = (xyz[m] - xyz[o])
+        u_norm = np.linalg.norm(u_prime)
+        v_prime = (xyz[n] - xyz[o])
+        v_norm = np.linalg.norm(v_prime)
+        u = u_prime / u_norm
+        v = v_prime / v_norm
+
+        if np.linalg.norm(u + v) < 1e-10 or np.linalg.norm(u - v) < 1e-10:
+            # if they're parallel            
+            if np.linalg.norm(u + vector1) < 1e-10 or np.linalg.norm(u - vector1) < 1e-10:
+                # and they're parallel o [1, -1, 1]
+                w_prime = np.cross(u, vector2)
+            else:
+                w_prime = np.cross(u, vector1)
+        else:
+             w_prime = np.cross(u, v)
+             
+        w = w_prime / np.linalg.norm(w_prime)
+
+
+        derivatives[a, m, :] = np.cross(u, w) / u_norm
+        derivatives[a, n, :] = np.cross(w, v) / v_norm
+        derivatives[a, o, :] = -np.cross(u, w) / u_norm - np.cross(w, v) / v_norm
+
+    return derivatives
+
+
+def get_dihedral_derivs(xyz, idihedrals):
+    n_atoms, n_dihedrals = xyz.shape[0], len(idihedrals)
+
+    derivatives = np.zeros((n_dihedrals, n_atoms, 3))
+    vector1 = np.array([1, -1, 1]) / np.sqrt(3)
+    vector2 = np.array([-1, 1, 1]) / np.sqrt(3)
+    
+    for d, (m, o, p, n) in enumerate(idihedrals):
+        u_prime = (xyz[m] - xyz[o])
+        w_prime = (xyz[p] - xyz[o])
+        v_prime = (xyz[n] - xyz[p])
+        
+        u_norm = np.linalg.norm(u_prime)
+        w_norm = np.linalg.norm(w_prime)
+        v_norm = np.linalg.norm(v_prime)
+        
+        u = u_prime / u_norm
+        w = w_prime / w_norm
+        v = v_prime / v_norm
+        
+        term1 = np.cross(u, w) / (u_norm * (1 - np.dot(u, w)**2))
+        term2 = np.cross(v, w) / (v_norm * (1 - np.dot(v, w)**2))
+        term3 = np.cross(u, w) * np.dot(u, w) / (w_norm * (1 - np.dot(u, w)**2))
+        term4 = np.cross(v, w) * -np.dot(v, w) / (w_norm * (1 - np.dot(v, w)**2))
+
+        derivatives[d, m, :] = term1
+        derivatives[d, n, :] = -term2
+        derivatives[d, o, :] = -term1 + term3 - term4
+        derivatives[d, p, :] = term2 - term3 + term4
+    
+    return derivatives
+
 
 
 if __name__ == '__main__':
     from msmbuilder import Trajectory
-    conf = Trajectory.load_trajectory_file('Tutorial/native.pdb')
-    b = get_bond_connectivity(conf)
-    a = get_angle_connectivity(b)
-    d = get_dihedral_connectivity(b)
+    h = 1e-4
+    conf1 = Trajectory.load_trajectory_file('Tutorial/native.pdb')
+    conf2 = Trajectory.load_trajectory_file('Tutorial/native.pdb')
+    conf2['XYZList'][0, 0, 0] += h
     
-    coords = get_redundant_internal_coordinates(conf['XYZList'], b, a, d)
-    
-    ip.embed()
+    internal1 = get_redundant_internal_coordinates(conf1)[0]
+    internal2 = get_redundant_internal_coordinates(conf2)[0]
+
+    fd = (internal2 - internal1) / h
+
+    # n_internal_coords, n_atoms, n_dims 
+    b1 = get_wilson_B(conf1)[:, 0, 0]
 
 
-
+    print fd - b1
 
 
     
