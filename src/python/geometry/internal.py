@@ -84,8 +84,6 @@ def get_redundant_internal_coordinates(trajectory, **kwargs):
     a = bond_angles(xyzlist, iangles)
     d = compute_dihedrals(xyzlist, idihedrals, degrees=False)
     
-    print compute_dihedrals(xyzlist, idihedrals, degrees=True)
-    
     return np.hstack((b, a, d))
 
 
