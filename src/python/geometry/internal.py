@@ -317,6 +317,8 @@ if __name__ == '__main__':
     b1 = get_wilson_B(conf1)[:, 0, 0]
 
 
+
+    ip.embed()
     print fd - b1
 
 
