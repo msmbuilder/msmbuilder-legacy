@@ -104,7 +104,7 @@ def bond_angles(xyzlist, angle_indices):
             norm_u = sqrt(up_x*up_x + up_y*up_y + up_z*up_z);
             norm_v = sqrt(vp_x*vp_x + vp_y*vp_y + vp_z*vp_z);
             
-            angles[i*n_frames + j] = acos((up_x*vp_x + up_y*vp_y + up_z*vp_z) / (norm_u * norm_v));
+            angles[i*n_angles + j] = acos((up_x*vp_x + up_y*vp_y + up_z*vp_z) / (norm_u * norm_v));
         }
     }
     Py_END_ALLOW_THREADS
