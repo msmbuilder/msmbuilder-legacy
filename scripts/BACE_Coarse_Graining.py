@@ -55,7 +55,7 @@ import os
 import scipy.io
 import scipy.sparse
 import logging
-logging.basicConfig(format="%(message)s")
+logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%H:%M:%S")
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
