@@ -19,12 +19,12 @@
 
 import os, sys
 
-from msmbuilder import arglib
+from msmbuilder import arglib, io, Trajectory
+from msmbuilder.project import Project
 from collections import defaultdict
 import numpy as np
 import random
 import logging
-from msmbuilder import io, Project
 logger = logging.getLogger(__name__)
 
 def run(project, assignments, conformations_per_state, states, output_dir):
@@ -39,7 +39,7 @@ def run(project, assignments, conformations_per_state, states, output_dir):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     
-    empty_traj = project.GetEmptyTrajectory()
+    empty_traj = project.empty_traj()
     for s in states:
         if len(inverse_assignments[s]) == 0:
             raise ValueError('No assignments to state! %s' % s)
@@ -51,11 +51,12 @@ def run(project, assignments, conformations_per_state, states, output_dir):
             confs = inverse_assignments[s]
             logger.warning('Not enough assignments in state %s', s)
         
-        for i, (traj, frame) in enumerate(confs):
+        for i, (traj_ind, frame) in enumerate(confs):
             outfile = os.path.join(output_dir, 'State%d-%d.pdb' % (s, i))
             if not os.path.exists(outfile):
-                logger.info('Saving state %d (traj %d, frame %d) as %s', s, traj, frame, outfile)
-                xyz = project.read_frame(traj, frame)
+                logger.info('Saving state %d (traj %d, frame %d) as %s', s, traj_ind, frame, outfile)
+                traj_filename = project.traj_filename(traj_ind)
+                xyz = Trajectory.read_frame(traj_filename, frame)
                 empty_traj['XYZList'] = np.array([xyz])
                 empty_traj.save_to_pdb(outfile)
             else:

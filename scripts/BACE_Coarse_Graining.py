@@ -369,8 +369,8 @@ if __name__ == '__main__':
 The algorithm works by iteratively merging states until the final desired number of states (the nMacro parameter) is reached.
 
 Description output (put into directory specified with outDir): 
-    bayesFactors.dat = the Bayes factors (cost) for each merging of two states
-    mapX.dat = the mapping from the original state numbering to X coarse-grained states'''
+    bayesFactors.dat = the Bayes factors (cost) for each merging of two states. The first column is the number of macrostates (M) and the second column is the Bayes factor (cost) for coarse-graining from M+1 states to M states.
+    mapX.dat = the mapping from the original state numbering to X coarse-grained states.'''
 
 , formatter_class=argparse.RawDescriptionHelpFormatter)
     add_argument(parser, '-c', dest='tCountFn', help='Path to transition count matrix file (sparse and dense formats accepted).', required=True)
