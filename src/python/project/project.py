@@ -148,7 +148,7 @@ class Project(object):
             records = {'conf_filename': str(ondisk['ConfFilename'][0]),
                        'traj_lengths': ondisk['TrajLengths'],
                        'traj_paths': [],
-                       'traj_converted_from': [None] * n_trajs,
+                       'traj_converted_from': [ [None] ] * n_trajs,
                        'traj_errors': [None] * n_trajs}
 
             for i in xrange(n_trajs):
@@ -160,7 +160,7 @@ class Project(object):
             raise ValueError('Sorry, I can only open files in .yaml'
                              ' or .h5 format: %s' % filename)
 
-        return cls(records, validate=True, project_dir=rootdir)
+        return cls(records, validate=False, project_dir=rootdir)
 
     def save(self, filename_or_file):
         if isinstance(filename_or_file, basestring):
