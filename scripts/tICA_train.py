@@ -13,7 +13,7 @@ def run( project, stride, atom_indices, out_fn, dt, min_length, lag ):
     else: # If lag is zero, this is equivalent to regular PCA
         cov_mat_obj = tICA.CovarianceMatrix( lag=lag, procs=procs, normalize=False )
     
-    for i in xrange(project['NumTrajs']):
+    for i in xrange(project.n_trajs):
         print "Working on trajectory %d" % i
 
         if project['TrajLengths'][i] <= lag:
