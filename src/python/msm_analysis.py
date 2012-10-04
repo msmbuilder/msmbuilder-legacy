@@ -564,6 +564,58 @@ def calc_expectation_timeseries(tprob, observable, init_pop=None, timepoints=10*
     return timeseries
 
 
+def msm_acf(tprob, observable, timepoints, num_modes=10):
+    """
+    Calculate an autocorrelation function from an MSM.
+
+    Rapid calculation of the autocorrelation of an MSM is
+    performed via an eigenmode decomposition.
+
+    Parameters
+    ----------
+    tprob : matrix
+        Transition probability matrix
+    observable : ndarray, float
+        Vector representing the observable value for each state
+    timepoints : int
+        The number of timepoints to calculate the decay for, in units of lag
+        times.
+    num_modes : int (num_modes)
+        The number of eigenmodes to employ. More modes, more accurate,
+        but slower.
+
+    Returns
+    -------
+    acf : ndarray, float
+        The autocorrelation function.
+    """
+
+    if num_modes > tprob.shape[0]-2:
+        logger.warning('Number of eigenmodes requsted larger than'
+                        ' is possible given rank of tprob. Using'
+                        ' as many eigenmodes as possible.')
+        num_modes = tprob.shape[0]-3
+
+    eigenvalues, eigenvectors = GetEigenvectors_Right(tprob, num_modes+1)
+
+    # discard the stationary eigenmode
+    eigenvalues = np.real( eigenvalues[1:] )
+    eigenvectors = np.real( eigenvectors[:,1:] )
+
+    timescales = - 1.0 / np.log(eigenvalues)
+
+    amplitudes = np.zeros(num_modes)
+    for mode in range(num_modes):
+        amplitudes[mode] = np.dot(observable, eigenvectors[:,mode])
+
+    weight = amplitudes * amplitudes
+    sum_weight = np.sum(weight)
+    acf = np.zeros(timepoints)
+    for t in range(0, N):
+        acf[t] = np.dot(weight, np.power(eigenvalues, t)) / sum_weight
+
+    return acf
+
 # ======================================================== #
 # SOME UTILITY FUNCTIONS FOR CHECKING TRANSITION MATRICES
 # ======================================================== #
