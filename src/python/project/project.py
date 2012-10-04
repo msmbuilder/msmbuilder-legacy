@@ -42,7 +42,7 @@ class Project(object):
         """Length of each of the trajectories, in frames"""
         return self._traj_lengths[self._valid_traj_indices]
 
-    def __init__(self, records, validate=True, project_dir='.'):
+    def __init__(self, records, validate=False, project_dir='.'):
         """Create a project from a  set of records
 
         Parameters
