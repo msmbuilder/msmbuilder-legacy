@@ -17,32 +17,66 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-import sys
-import os
-
+import numpy as np
+from msmbuilder import Trajectory
 from msmbuilder import Project
-from msmbuilder import Serializer
+from msmbuilder import MSMLib
 from msmbuilder import arglib
+from msmbuilder import io
 import logging
 logger = logging.getLogger(__name__)
 
-def run(project, assignments, num_confs_per_state, output, format):
-    arglib.die_if_path_exists(output)
-    num_states = max(assignments.flatten()) + 1
-    logger.info("Pulling %s confs for each of %s confs", num_confs_per_state, num_states)
+def run(project, assignments, num_confs_per_state, random_source=None):
+    """
+    Pull random confs from each state in an MSM
     
-    random_confs = project.GetRandomConfsFromEachState(assignments, num_states, num_confs_per_state)
+    Parameters
+    ----------
+    project : msmbuilder.Project
+        Used to load up the trajectories, get topology
+    assignments : np.ndarray, dtype=int
+        State membership for each frame
+    num_confs_per_state : int
+        number of conformations to pull from each state
+    random_source : numpy.random.RandomState, optional
+        If supplied, random numbers will be pulled from this random source,
+        instead of the default, which is np.random. This argument is used
+        for testing, to ensure that the random number generator always
+        gives the same stream.
+        
+    Notes
+    -----
+    A new random_source can be initialized by calling numpy.random.RandomState(seed)
+    with whatever seed you like. See http://stackoverflow.com/questions/5836335/consistenly-create-same-random-numpy-array
+    for some discussion.
+                
+    """
     
-    if format == 'pdb':
-        random_confs.save_to_pdb(output)
-    elif format == 'lh5':
-        random_confs.save_to_lhdf(output)
-    elif format == 'xtc':
-        random_confs.save_to_xtc(output)
-    else:
-        raise ValueError('Unrecognized format')
-   
-    logger.info("Saved output to %s", output)
+    if random_source is None:
+        random_source = np.random
+    
+    n_states = max(assignments.flatten()) + 1
+    logger.info("Pulling %s confs for each of %s confs", num_confs_per_state, n_states)
+    
+    inv = MSMLib.invert_assignments(assignments)
+    xyzlist = []
+    for s in xrange(n_states):
+        trj, frame = inv[s]
+        # trj and frame are a list of indices, such that
+        # project.load_traj(trj[i])[frame[i]] is a frame assigned to state s
+        for j in xrange(num_confs_per_state):
+            r = random_source.randint(len(trj))
+            xyz = Trajectory.read_frame(project.traj_filename(trj[r]), frame[r])
+            xyzlist.append(xyz)
+            
+    # xyzlist is now a list of (n_atoms, 3) arrays, and we're going
+    # to stack it along the third dimension 
+    xyzlist = np.dstack(xyzlist)
+    # load up the conf to get the topology, put then pop in the new coordinates
+    output = project.load_conf()
+    output['XYZList'] = xyzlist
+    
+    return output
     
 
 
@@ -69,6 +103,22 @@ Output default: XRandomConfs.lh5, where X=Number of Conformations.""")
     
     if args.output == 'XRandomConfs':
             args.output = '%dRandomConfs.%s' % (args.conformations_per_state, args.format)
+    
+    try:
+        assignments = io.loadh(args.assignments, 'arr_0')
+    except KeyError:
+       assignments = io.loadh(args.assignments, 'Data')
+    project = Project.load_from(args.project)
+    
+    random_confs = run(project, assignments, args.conformations_per_state)
+        
+    if args.format == 'pdb':
+        random_confs.SaveToPDB(args.output)
+    elif args.format == 'lh5':
+        random_confs.SaveToLHDF(args.output)
+    elif args.format == 'xtc':
+        random_confs.SaveToXTC(args.output)
+    else:
+        raise ValueError('Unrecognized format')
 
-    run(args.project, args.assignments['Data'], args.conformations_per_state,
-        args.output, args.format)
+    logger.info("Saved output to %s", args.output)

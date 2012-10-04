@@ -40,7 +40,9 @@ of the License, or (at your option) any later version.
 --------------------------------------------------------------------------------
 
 Please cite:
-GR Bowman. Coarse-grained Markov chains capture molecular thermodynamics and kinetics in no uncertain terms. arXiv:1201.3867 2012.
+GR Bowman. Improved coarse-graining of Markov state models via explicit consideration of statistical uncertainty. J Chem Phys 2012.
+
+Currently available as arXiv:1201.3867 2012.
 
 --------------------------------------------------------------------------------
 """ % version
@@ -53,8 +55,9 @@ import os
 import scipy.io
 import scipy.sparse
 import logging
+logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%H:%M:%S")
 logger = logging.getLogger(__name__)
-
+logger.setLevel(logging.INFO)
 
 def getInds(c, stateInds, chunkSize, isSparse, updateSingleState=None):
     indices = []
@@ -203,7 +206,7 @@ def calcDMat(c, w, fBayesFact, indRecalc, dMat, nProc, statesKeep, multiDist, un
         minX = np.floor(indMin / dMat.shape[1])
         minY = indMin % dMat.shape[1]
 
-    fBayesFact.write("%f\n" % (1./dMat[minX,minY]))
+    fBayesFact.write("%d %f\n" % (statesKeep.shape[0]-1, 1./dMat[minX,minY]))
     return dMat, minX, minY
 
 def multiDistDense(indicesList, c, w, statesKeep, unmerged, chunkSize):
@@ -366,8 +369,8 @@ if __name__ == '__main__':
 The algorithm works by iteratively merging states until the final desired number of states (the nMacro parameter) is reached.
 
 Description output (put into directory specified with outDir): 
-    bayesFactors.dat = the Bayes factors (cost) for each merging of two states
-    mapX.dat = the mapping from the original state numbering to X coarse-grained states'''
+    bayesFactors.dat = the Bayes factors (cost) for each merging of two states. The first column is the number of macrostates (M) and the second column is the Bayes factor (cost) for coarse-graining from M+1 states to M states.
+    mapX.dat = the mapping from the original state numbering to X coarse-grained states.'''
 
 , formatter_class=argparse.RawDescriptionHelpFormatter)
     add_argument(parser, '-c', dest='tCountFn', help='Path to transition count matrix file (sparse and dense formats accepted).', required=True)

@@ -12,8 +12,8 @@ import scipy.cluster.hierarchy
 
 
 from msmbuilder import metrics
-from msmbuilder.Trajectory import Trajectory
-from msmbuilder.Serializer import Serializer
+from msmbuilder import Trajectory
+from msmbuilder import io
 from msmbuilder.utils import uneven_zip, deprecated
 
 from multiprocessing import Pool
@@ -827,9 +827,8 @@ class Hierarchical(object):
         ------
         Exception if something already exists at `filename`
         """
-        s = Serializer({'z_matrix': self.Z, 'traj_lengths': self.traj_lengths})
-        s.save_to_hdf(filename)
-
+        io.saveh(filename, z_matrix=self.Z, traj_lengths=self.traj_lengths)
+    
     @classmethod
     def load_from_disk(cls, filename):
         """Load up a clusterer from disk
@@ -846,8 +845,8 @@ class Hierarchical(object):
         ------
         TODO: Probablt raises something if filename doesn't exist?
         """
-        s = Serializer.load_from_hdf(filename)
-        Z, traj_lengths = s['z_matrix'], s['traj_lengths']
+        data = io.loadh(filename, deferred=False)
+        Z, traj_lengths = data['z_matrix'], data['traj_lengths']
         #Next two lines are a hack to fix Serializer bug. KAB
         if np.rank(traj_lengths)==0:
             traj_lengths = [traj_lengths]

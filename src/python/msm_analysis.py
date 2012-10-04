@@ -23,9 +23,8 @@ import scipy
 import numpy as np
 import multiprocessing
 import warnings
-
+from msmbuilder import io
 from msmbuilder.utils import uneven_zip
-from msmbuilder import Serializer
 import logging
 logger = logging.getLogger('msm_analysis')
 
@@ -222,11 +221,14 @@ def get_implied_timescales_helper(args):
     MSMLib.build_msm
     get_eigenvectors
     """
-
+    
     assignments_fn, lag_time, n_implied_times, sliding_window, trimming, symmetrize = args
-
-    assignments = Serializer.load_data(assignments_fn)
-
+    
+    try:
+        assignments = io.loadh(assignments_fn, 'arr_0')
+    except KeyError:
+        assignments = io.loadh(assignments_fn, 'Data')
+    
     try:
         from msmbuilder import MSMLib
         t_matrix = MSMLib.build_msm(assignments, lag_time, symmetrize,

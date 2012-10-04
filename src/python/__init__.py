@@ -37,8 +37,6 @@ __LOGGING_FORMAT = '%(asctime)s: %(levelname)s: %(message)s'
 logging.basicConfig(format=__LOGGING_FORMAT, level=logging.INFO, datefmt="%Y-%m-%d %H:%M:%S")
 
 import PDB
-from Serializer import Serializer
-from Conformation import ConformationBaseClass
-from Conformation import Conformation
 from Trajectory import Trajectory
-from Project import Project
+from Conformation import Conformation
+from project import Project
