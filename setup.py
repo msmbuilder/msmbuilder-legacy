@@ -14,7 +14,7 @@ metadata = {
     'license': 'GPL v3.0',
     'url': 'https://simtk.org/home/msmbuilder',
     'download_url': 'https://simtk.org/home/msmbuilder',
-    'install_requires': ['scipy', 'numpy', 'matplotlib',
+    'install_requires': ['scipy', 'matplotlib', 'pyyaml',
                          'deap', 'fastcluster==1.1.6'],
     'platforms': ["Linux", "Mac OS X"],
     'description': "Python Code for Building Markov State Models",
@@ -87,6 +87,9 @@ def configuration(parent_package='',top_path=None):
     # add geometry subpackage
     config.add_subpackage('geometry',
                           subpackage_path='src/python/geometry')
+
+    config.add_subpackage('project',
+                          subpackage_path='src/python/project')
 
     # add asa extension
     # note this is wrapped using f2py, which

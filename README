@@ -1,6 +1,20 @@
+Usage
+-----
 See Tutorial.pdf for complete installation and usage instructions.
 
 To install MSMBuilder:
 
 python setup.py build
 python setup.py install
+
+Web Based Documentation
+-----------------------
+Are you curious about how the MSMBuilder internals work, or would you like to  use the MSMBuilder libraries in your own project?
+
+Check out the web based documentation of the libraries at http://msmbuilder.readthedocs.org/en/latest/index.html
+
+Contributing
+------------
+Have you found a bug? Do you have an idea for a great new feature, or a gripe about an existing one? Have you written some code that you'd like to contribute to MSMBuilder? Awesome! We'd love to have your contribution! 
+
+MSMBuilder is hosted on GitHub at https://github.com/SimTk/msmbuilder. Filing an "issue" such as a bug report of feature request is easy and will contribute to  the future development of MSMBuilder. Contributing code is easy too, just fork the repository and then submit a pull request. A few guidelines on contributing can be found at http://msmbuilder.readthedocs.org/en/latest/developer.html

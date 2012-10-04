@@ -25,7 +25,7 @@ import os
 import scipy.io
 
 from msmbuilder import tpt
-from msmbuilder import Serializer
+import msmbuilder.io 
 from msmbuilder import arglib
 import logging
 logger = logging.getLogger(__name__)
@@ -84,7 +84,5 @@ Paths.h5 can be read by RenderPaths.py which generates a .dot file capturing the
     arglib.die_if_path_exists(args.output)
     paths, bottlenecks, fluxes = run(tprob, U, F, args.number)
     
-    Serializer({'Paths': paths,
-                'Bottlenecks': bottlenecks,
-                'fluxes': fluxes}).save_to_hdf(args.output)
+    msmbuilder.io.saveh(args.output, Paths=paths, Bottlenecks=bottlenecks, fluxes=fluxes)
     logger.info('Saved output to %s', args.output)

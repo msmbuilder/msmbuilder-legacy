@@ -238,7 +238,7 @@ def build_msm_from_counts(counts, lag_time, symmetrize, return_rev_counts=False,
 
     if symmetrize in ['mle', 'transpose']:
         populations = np.array(rev_counts.sum(0)).flatten()
-    elif get_populations and symmetrize == 'none':
+    elif symmetrize == 'none':
         vectors = msm_analysis.get_eigenvectors(t_matrix, 5)[1]
         populations = vectors[:, 0]
     else:

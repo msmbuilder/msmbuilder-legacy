@@ -25,8 +25,8 @@ import tables
 import numpy as np
 
 from msmbuilder import PDB
-from msmbuilder import Serializer
-from msmbuilder import ConformationBaseClass, Conformation
+from msmbuilder import io
+from msmbuilder.Conformation import ConformationBaseClass, Conformation
 from msmbuilder import xtc
 from msmbuilder import dcd
 
@@ -182,19 +182,18 @@ class Trajectory(ConformationBaseClass):
         ----------
         Filename: str
             location to save to
-        precision: float, optional
-            I'm not really sure what this does (RTM 6/27).
+        Precision : float, optional
+            Precision to save xyzlist
         """
-        Serializer.check_if_file_exists(filename)
-        key = "XYZList"
-        X = self.pop(key)
-        Serializer.save_to_hdf(self, filename)
-        Rounded = _convert_to_lossy_integers(X, precision)
-        self[key] = Rounded
-        Serializer.save_e_array(self[key], key, filename=filename)
-        self[key] = X
-
-    def save_to_xtc(self, Filename, precision=DEFAULT_PRECISION):
+        self.pop('IndexList')
+        
+        xyzlist = self.pop('XYZList')
+        rounded = _convert_to_lossy_integers(xyzlist, precision)
+        self['XYZList'] = rounded
+        io.saveh(filename, **self)
+        self['XYZList'] = xyzlist
+        
+    def save_to_xtc(self, filename, precision=DEFAULT_PRECISION):
         """Dump the coordinates to XTC
 
         Parameters
@@ -204,9 +203,10 @@ class Trajectory(ConformationBaseClass):
         precision: float, optional
             I'm not really sure what this does (RTM 6/27).
         """
-
-        Serializer.check_if_file_exists(Filename)
-        XTCFile = xtc.XTCWriter(Filename)
+ 
+        if os.path.exists(filename):
+            raise IOError("%s already exists" % filename)
+        XTCFile=xtc.XTCWriter(filename)
         for i in range(len(self["XYZList"])):
             XTCFile.write(self["XYZList"][i], 1, i, np.eye(3, 3, dtype='float32'), precision)
 
@@ -477,8 +477,9 @@ class Trajectory(ConformationBaseClass):
                                             # to line up
                 ChunkSize -= 1
 
-        A = Serializer()
-        F = tables.File(TrajFilename, 'r')  # load all the data other than XYZList
+        A={}
+        F=tables.File(TrajFilename,'r')
+        # load all the data other than XYZList
 
         if RestrictAtoms:
             A['AtomID'] = np.array(F.root.AtomID[AtomIndices], dtype=np.int32)
@@ -489,18 +490,18 @@ class Trajectory(ConformationBaseClass):
 
             # IndexList is a VLArray, so we need to read the whole list with node.read() (same as node[:]) and then loop through each
                 # row (residue) and remove the atom indices that are not wanted
-            A['IndexList'] = [[i for i in row if (i in AtomIndices)] for row in F.root.IndexList[:]]
-
+            #A['IndexList'] = [ [ i for i in row if (i in AtomIndices) ] for row in F.root.IndexList[:] ]
+            
         else:
-            A['AtomID'] = np.array(F.root.AtomID[:], dtype=np.int32)
-            A['AtomNames'] = np.array(F.root.AtomNames[:])
-            A['ChainID'] = np.array(F.root.ChainID[:])
-            A['ResidueID'] = np.array(F.root.ResidueID[:], dtype=np.int32)
-            A['ResidueNames'] = np.array(F.root.ResidueNames[:])
+            A['AtomID'] = np.array( F.root.AtomID[:], dtype=np.int32 )
+            A['AtomNames'] = np.array( F.root.AtomNames[:] )
+            A['ChainID'] = np.array( F.root.ChainID[:])
+            A['ResidueID'] = np.array( F.root.ResidueID[:], dtype=np.int32 )
+            A['ResidueNames'] = np.array( F.root.ResidueNames[:] )
+            
+            #A['IndexList'] = F.root.IndexList[:]
 
-            A['IndexList'] = F.root.IndexList[:]
-
-        A['SerializerFilename'] = os.path.abspath(TrajFilename)
+        #A['SerializerFilename'] = os.path.abspath(TrajFilename)
 
         # Loaded everything except XYZList
 

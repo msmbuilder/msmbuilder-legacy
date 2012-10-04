@@ -44,7 +44,7 @@ def ensure_path_exists(path):
         sys.exit(1)
 
 RESERVED = {'assignments': ('-a', 'Path to assignments file.', 'Data/Assignments.h5', str),
-            'project': ('-p', 'Path to ProjectInfo file.', 'ProjectInfo.h5', str),
+            'project': ('-p', 'Path to ProjectInfo file.', 'ProjectInfo.yaml', str),
             'tProb': ('-t', 'Path to transition matrix.', 'Data/tProb.mtx', str),
             'output_dir': ('-o', 'Location to save results.', 'Data/', str),
             'pdb': ('-s', 'Path to PDB structure file.', None, str)}

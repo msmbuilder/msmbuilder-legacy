@@ -19,16 +19,16 @@
 
 import sys
 import numpy as np
-from msmbuilder import Serializer
+from msmbuilder import io
 from msmbuilder import arglib
 import logging
 logger = logging.getLogger(__name__)
 
-def run(assignments, ass_rmsd, rmsdcutoff):
-    number = np.count_nonzero(ass_rmsd > rmsdcutoff)
+def run(assignments, distances, cutoff):
+    number = np.count_nonzero(distances > cutoff)
     logger.info('Discarding %d assignments', number)
     
-    assignments[ np.where(ass_rmsd > rmsdcutoff) ] = -1
+    assignments[ np.where(distances > cutoff) ] = -1
     return assignments
 
 
@@ -46,19 +46,23 @@ a handle on how big they are before you trim. Recall the radius is the
 
 Output: A trimmed assignments file (Assignments.Trimmed.h5).""")
     parser.add_argument('assignments', default='Data/Assignments.Fixed.h5')
-    parser.add_argument('assignments_rmsd', default='Data/Assignments.h5.RMSD')
-    parser.add_argument('rmsd_cutoff', help="""RMSD value at which to trim,
-        in nm. Data further than this value in RMSD from its generator will be
-        discarded.""", type=float)
+    parser.add_argument('distances', default='Data/Assignments.h5.distances')
+    parser.add_argument('rmsd_cutoff', help="""distance value at which to trim,
+        in. Data further than this value to its generator will be
+        discarded. Note: this is measured with whatever distance metric you used to cluster""", type=float)
     parser.add_argument('output', default='Data/Assignments.Trimmed.h5')
     args = parser.parse_args()
     
     arglib.die_if_path_exists(args.output)
     
-    assignments = Serializer.load_data( args.assignments )
-    assignments_rmsd = Serializer.load_data( args.assignments_rmsd )
+    try:
+        assignments = io.loadh(args.assignments, 'arr_0')
+        distances =  io.loadh(args.distances, 'arr_0')
+    except KeyError:
+        assignments = io.loadh(args.assignments, 'Data')
+        distances =  io.loadh(args.distances, 'Data')
 
-    trimmed = run(assignments, assignments_rmsd, args.rmsd_cutoff)
+    trimmed = run(assignments, distances, args.rmsd_cutoff)
     
-    Serializer.save_data(args.output, trimmed)
+    io.saveh(args.output, trimmed)
     logger.info('Saved output to %s', args.output)

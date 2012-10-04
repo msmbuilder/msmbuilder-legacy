@@ -18,7 +18,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 import sys, os
-from msmbuilder import Serializer
+import msmbuilder.io
 from msmbuilder.clustering import Hierarchical
 from msmbuilder import arglib
 import logging
@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 def main():
     parser = arglib.ArgumentParser(description='Assign data using a hierarchical clustering')
     parser.add_argument('hierarchical_clustering_zmatrix', default='./Data/Zmatrix.h5', 
-        description='Path to hierarchical clustering zmatrix' )
+        help='Path to hierarchical clustering zmatrix' )
     parser.add_argument('num_states', help='Number of States', default='none')
     parser.add_argument('cutoff_distance', help='Maximum cophenetic distance', default='none')
     parser.add_argument('assignments', type=str)
@@ -43,7 +43,7 @@ def main():
     
     assignments = hierarchical_clustering_zmatrix.get_assignments(k=k, cutoff_distance=d)
     
-    Serializer.save_data(args.assignments, assignments)
+    msmbuilder.io.saveh(args.assignments, assignments)
     logger.info('Saved assignments to %s', args.assignments)
     
 if __name__ == "__main__":
