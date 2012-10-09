@@ -29,6 +29,10 @@ import os
 import tarfile
 from msmbuilder.testing import *
 
+from common import skip
+
+from msmbuilder import MSMLib
+
 from msmbuilder.scripts import ConvertDataToHDF
 from msmbuilder.scripts import CreateAtomIndices
 from msmbuilder.scripts import Cluster
@@ -36,6 +40,18 @@ from msmbuilder.scripts import Assign
 from msmbuilder.scripts import AssignHierarchical
 from msmbuilder.scripts import BuildMSM
 from msmbuilder.scripts import CalculateImpliedTimescales
+
+# to write tests for...
+from msmbuilder.scripts import GetRandomConfs
+from msmbuilder.scripts import PCCA
+from msmbuilder.scripts import SavePDBs
+from msmbuilder.scripts import DoTPT
+from msmbuilder.scripts import FindPaths
+from msmbuilder.scripts import CalculateClusterRadii
+
+# are we keeping these?
+from msmbuilder.scripts import CalculateRMSD
+from msmbuilder.scripts import CalculateProjectRMSD
 
 
 def pjoin(*args):
@@ -156,5 +172,79 @@ def test_CalculateImpliedTimescales():
     eq(impTimes, get('ImpliedTimescales.dat'))
 
 
+def test_DoTPT():
+    T = get("tProb.mtx")
+    sources = [0] # chosen arb. for ref. by TJL
+    sinks = [70]  # chosen arb. for ref. by TJL
+    script_out = DoTPT.run(T, sources, sinks)
+    committors_ref = get( pjoin("transition_path_theory_reference", 
+                          "committors.h5"))['Data']
+    net_flux_ref = get( pjoin("transition_path_theory_reference", 
+                        "net_flux.h5"))['Data']
+    eq(script_out[0], committors_ref)
+    eq(script_out[1].toarray(), net_flux_ref)
 
 
+def test_CalculateClusterRadii():
+    cr = CalculateClusterRadii.main(get("Assignments.h5")['Data'],
+                                    get("Assignments.h5.distances")['Data'])
+    cr_r = get("ClusterRadii.dat")
+    eq(cr, cr_r)
+
+
+def test_FindPaths():
+    tprob = get("tProb.mtx")
+    sources = [0]
+    sinks = [70]
+    paths, bottlenecks, fluxes = FindPaths.run(tprob, sources, sinks, 10)
+    # paths are hard to test due to type issues, adding later --TJL
+    bottlenecks_ref = get( pjoin("transition_path_theory_reference", 
+                           "dijkstra_bottlenecks.h5"))['Data']
+    fluxes_ref = get( pjoin("transition_path_theory_reference", 
+                      "dijkstra_fluxes.h5"))['Data']
+    eq(bottlenecks, bottlenecks_ref)
+    eq(fluxes, fluxes_ref)
+
+
+# I am not sure why, but PCCA (the script!) appears to be broken :( --TJL
+# will try to fix later... this test *should* work given a good reference
+
+@skip
+class test_PCCA(WTempdir):
+    
+    def test(self):
+        
+        num_macro = 5
+        
+        TC = get("tProb.mtx")
+        A  = get("Assignments.Fixed.h5")['Data']
+        
+        PCCA.run_pcca(num_macro, A, TC, self.td)
+
+        mm   = load( pjoin(self.td, "MacroMapping.dat") )
+        mm_r = get("MacroMapping.dat")
+        
+        mm = mm.astype(np.int)
+        mm_r = mm_r.astype(np.int)
+
+        # is there a more elengant way to load? --TJL
+        ma   = load( pjoin(self.td, "MacroAssignments.h5") )['arr_0']
+        ma_r = get("MacroAssignments.h5")['Data']
+
+        # The order of macrostates might be different between the reference and 
+        # new lumping. We therefore find a permutation to match them.
+        permutation_mapping = np.zeros(ma.max()+1, 'int')
+        for i in range(num_macro):
+            j = np.where(mm==i)[0][0]
+            permutation_mapping[i] = mm_r[j]
+        
+        mm_permuted = permutation_mapping[mm]
+        MSMLib.ApplyMappingToAssignments(ma, permutation_mapping)
+
+        eq(mm_permuted, mm_r)
+        eq(ma, ma_r)
+
+
+
+
+ 
