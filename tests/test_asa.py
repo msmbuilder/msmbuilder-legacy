@@ -8,6 +8,7 @@ import warnings
 
 from msmbuilder.geometry.asa import calculate_asa, ATOMIC_RADII
 
+from msmbuilder.testing import *
 
 def test_asa_0():    
     # make one atom at the origin
@@ -57,7 +58,7 @@ def test_asa_2():
     
 def test_asa_3():
 
-    traj_ref = np.loadtxt( os.path.join(reference_dir(),'g_sas_ref.dat'))
+    traj_ref = get('g_sas_ref.dat')
     Conf = Trajectory.load_from_pdb(os.path.join( fixtures_dir(), 'native.pdb'))
 
     traj = Trajectory.load_trajectory_file( os.path.join(fixtures_dir(), 'trj0.xtc') , Conf=Conf)

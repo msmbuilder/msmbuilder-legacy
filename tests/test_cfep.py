@@ -21,6 +21,7 @@ from msmbuilder import cfep
 
 from common import reference_dir
 
+from msmbuilder.testing import get
 
 def ref_calc_cFEP(counts, lag_time, rxn_coordinate, rescale=True):
     """
@@ -90,12 +91,12 @@ class TestCfep():
     
     def setUp(self):
         
-        test_dir = os.path.join( reference_dir(), 'cfep_reference/' )
+        test_dir = os.path.join( reference_dir(),  )
     
-        self.generators = Trajectory.load_trajectory_file(test_dir + 'Gens.lh5')
+        self.generators = get('cfep_reference/' + 'Gens.lh5')
         N = len(self.generators)
     
-        self.counts = io.mmread(test_dir + 'tCounts.mtx')
+        self.counts = get('cfep_reference/' + 'tCounts.mtx')
         self.lag_time = 1.0
         self.pfolds = np.random.rand(N)
         self.rescale = False

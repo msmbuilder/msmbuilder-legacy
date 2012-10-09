@@ -10,6 +10,7 @@ from nose.tools import ok_, eq_
 import tempfile, shutil
 from common import reference_dir, skip
 
+from msmbuilder.testing import get
 
 def test_project_1():
     'ensure that the counting of errors works right'
@@ -42,8 +43,7 @@ def test_FahProjectBuilder():
     td = tempfile.mkdtemp()
     os.chdir(td)
 
-    traj_dir = os.path.join(reference_dir(), 
-        "project_reference/project.builder/fah_style_data")
+    traj_dir = get("project_reference/project.builder/fah_style_data", just_filename=True)
     conf_filename = os.path.join(traj_dir, 'native.pdb')
     
     pb = FahProjectBuilder(traj_dir, '.xtc', conf_filename)

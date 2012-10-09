@@ -40,11 +40,7 @@ from msmbuilder.scripts import Assign
 from msmbuilder.scripts import AssignHierarchical
 from msmbuilder.scripts import BuildMSM
 from msmbuilder.scripts import CalculateImpliedTimescales
-
-# to write tests for...
-from msmbuilder.scripts import GetRandomConfs
 from msmbuilder.scripts import PCCA
-from msmbuilder.scripts import SavePDBs
 from msmbuilder.scripts import DoTPT
 from msmbuilder.scripts import FindPaths
 from msmbuilder.scripts import CalculateClusterRadii
