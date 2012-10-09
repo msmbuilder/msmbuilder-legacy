@@ -12,8 +12,7 @@ from msmbuilder import Project
 import logging
 logger = logging.getLogger(__name__)
 
-def main():
-    parser = arglib.ArgumentParser(description="""
+parser = arglib.ArgumentParser(description="""
 Assign data that were not originally used in the clustering (because of
 striding) to the microstates. This is applicable to all medoid-based clustering
 algorithms, which includes all those implemented by Cluster.py except the
@@ -30,16 +29,13 @@ array of real numbers of the same dimension containing the distance (according
 to whichever metric you choose) from each frame to to the medoid of the 
 microstate it is assigned to.""", get_metric=True)#, formatter_class=argparse.RawDescriptionHelpFormatter)
 
-    parser.add_argument( 'project')
-    parser.add_argument( dest='generators', help='''Output trajectory file containing
-        the structures of each of the cluster centers. Note that for hierarchical clustering
-        methods, this file will not be produced.''', default='Data/Gens.lh5')
-    parser.add_argument( 'output_dir' )
-    
-    args, metric = parser.parse_args()
-    if not os.path.exists(args.output_dir):
-        os.makedirs(args.output_dir)
-    
+parser.add_argument( 'project')
+parser.add_argument( dest='generators', help='''Output trajectory file containing
+    the structures of each of the cluster centers. Note that for hierarchical clustering
+    methods, this file will not be produced.''', default='Data/Gens.lh5')
+parser.add_argument( 'output_dir' )
+
+def main(args, metric):
     assignments_path = os.path.join(args.output_dir, "Assignments.h5")
     distances_path = os.path.join(args.output_dir, "Assignments.h5.distances")
     project = Project.load_from(args.project)
@@ -51,4 +47,5 @@ microstate it is assigned to.""", get_metric=True)#, formatter_class=argparse.Ra
     logger.info('All Done!')
 
 if __name__ == '__main__':
-    main()
+    args, metric = parser.parse_args()
+    main(args, metric)
