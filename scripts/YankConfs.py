@@ -39,9 +39,17 @@ def run(project, assignments, states, n_per_state, random=None):
     inv = MSMLib.invert_assignments(assignments)
     for s in states:
         trajs, frames = inv[s]
-        assert len(trajs) == len(frames)
+        if len(trajs) != len(frames):
+            raise RuntimeError('inverse assignments corrupted?')
+        if len(trajs) < n_per_state:
+            raise ValueError("Asked for %d confs per state, but state %d only has %d", n_per_state, s, len(trajs))
+
         # indices of the confs to select
-        r = random.randint(len(trajs), size=n_per_state)
+        # draw n_per_state random numbers between `0` and `len(trajs)` without replacement
+        r = random.permutation(len(trajs))[:n_per_state]
+        
+        # to draw with replacement, use
+        # r = random.randint(len(trajs), size=n_per_state)
 
         results.append(project.load_frame(trajs[r], frames[r]))
 
@@ -131,17 +139,15 @@ conformations), or in the same file.
 
     # states
     if -1 in args.states:
-        n_states = 1 + np.max(assignments)
-        if DEBUG:
-            n_states_also = len(np.unique(assignments[np.where(assignments != -1)]))
-            assert n_states == n_states_also, 'bad news. maybe the numbering in assignments is not contiguous?'
-
+        n_states = len(np.unique(assignments[np.where(assignments != -1)]))
         logger.info('Yanking from all %d states', n_states)
         states = np.arange(n_states)
     else:
-        states = np.array(args.states)
-        # ensure that the states are sorted.
-        states.sort()
+        # ensure that the states are sorted, and that they're unique -- you
+        # can only request each state once
+        states = np.unique(args.states)
+        logger.info("Yanking from the following states: %s", states)
+
 
     # extract the conformations using np.random for the randomness
     confs_by_state = run(project=project, assignments=assignments,
