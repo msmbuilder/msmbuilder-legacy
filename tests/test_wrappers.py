@@ -205,7 +205,7 @@ def test_FindPaths():
 # I am not sure why, but PCCA (the script!) appears to be broken :( --TJL
 # will try to fix later... this test *should* work given a good reference
 
-@skip
+#@skip
 class test_PCCA(WTempdir):
     
     def test(self):
@@ -215,30 +215,26 @@ class test_PCCA(WTempdir):
         TC = get("tProb.mtx")
         A  = get("Assignments.Fixed.h5")['Data']
         
-        PCCA.run_pcca(num_macro, A, TC, self.td)
+        macro_map, macro_assign = PCCA.run_pcca(num_macro, A, TC)
+        r_macro_map = get("MacroMapping.dat")['Data']
 
-        mm   = load( pjoin(self.td, "MacroMapping.dat") )
-        mm_r = get("MacroMapping.dat")
+        macro_map = macro_map.astype(np.int)
+        r_macro_map = r_macro_map.astype(np.int)
         
-        mm = mm.astype(np.int)
-        mm_r = mm_r.astype(np.int)
-
-        # is there a more elengant way to load? --TJL
-        ma   = load( pjoin(self.td, "MacroAssignments.h5") )['arr_0']
-        ma_r = get("MacroAssignments.h5")['Data']
-
         # The order of macrostates might be different between the reference and 
         # new lumping. We therefore find a permutation to match them.
-        permutation_mapping = np.zeros(ma.max()+1, 'int')
+        permutation_mapping = np.zeros(macro_assign.max() + 1, 'int')
         for i in range(num_macro):
-            j = np.where(mm==i)[0][0]
-            permutation_mapping[i] = mm_r[j]
-        
-        mm_permuted = permutation_mapping[mm]
-        MSMLib.ApplyMappingToAssignments(ma, permutation_mapping)
+            j = np.where(macro_map == i)[0][0]
+            permutation_mapping[i] = r_macro_map[j]
 
-        eq(mm_permuted, mm_r)
-        eq(ma, ma_r)
+        print permutation_mapping
+
+        macro_map_permuted = permutation_mapping[macro_map]
+        MSMLib.ApplyMappingToAssignments(macro_assign, permutation_mapping)
+        
+        eq(macro_map_permuted, r_macro_map)
+        eq(macro_assign, r_macro_assign)
 
 
 
