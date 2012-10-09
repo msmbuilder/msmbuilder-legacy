@@ -377,6 +377,7 @@ def apply_mapping_to_assignments(assignments, mapping):
     NewMapping[np.where(mapping == -1)] = mapping.max() + 1
 
     NegativeOneStates = np.where(assignments == -1)
+    
     assignments[:] = NewMapping[assignments]
     WhereEliminatedStates = np.where(assignments == (mapping.max() + 1))
 
