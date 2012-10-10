@@ -65,9 +65,7 @@ from msmbuilder.scripts import CalculateProjectRMSD
 #from msmbuilder.scripts import Cluster
 from msmbuilder.scripts import ConvertDataToHDF
 from msmbuilder.scripts import CreateAtomIndices
-from msmbuilder.scripts import GetRandomConfs
 from msmbuilder.scripts import PCCA
-from msmbuilder.scripts import SavePDBs
 from msmbuilder.scripts import DoTPT
 from msmbuilder.scripts import FindPaths
 
@@ -181,16 +179,16 @@ class TestWrappers(unittest.TestCase):
         r_ImpTS = np.loadtxt(ReferenceDir +"/ImpliedTimescales.dat")
         npt.assert_array_almost_equal(ImpTS,r_ImpTS,decimal=4)
 
-    def test_g_GetRandomConfs(self):
-        P1 = Project.load_from(ProjectFn)
-        Assignments = io.loadh("Data/Assignments.Fixed.h5", 'arr_0')
-        
-        # make a predictable stream of random numbers by seeding the RNG with 42
-        random_source = np.random.RandomState(42)
-        randomconfs = GetRandomConfs.run(P1, Assignments, NumRandomConformations, random_source)
-        
-        reference = Trajectory.load_trajectory_file(os.path.join(ReferenceDir, "2RandomConfs.lh5"))
-        self.assert_trajectories_equal(reference, randomconfs)
+    # def test_g_GetRandomConfs(self):
+    #     P1 = Project.load_from(ProjectFn)
+    #     Assignments = io.loadh("Data/Assignments.Fixed.h5", 'arr_0')
+    #     
+    #     # make a predictable stream of random numbers by seeding the RNG with 42
+    #     random_source = np.random.RandomState(42)
+    #     randomconfs = GetRandomConfs.run(P1, Assignments, NumRandomConformations, random_source)
+    #     
+    #     reference = Trajectory.load_trajectory_file(os.path.join(ReferenceDir, "2RandomConfs.lh5"))
+    #     self.assert_trajectories_equal(reference, randomconfs)
 
     def test_h_CalculateClusterRadii(self):
 
