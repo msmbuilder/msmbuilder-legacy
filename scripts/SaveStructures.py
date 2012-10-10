@@ -68,7 +68,7 @@ def save(confs_by_state, states, style, format, outdir):
                 arglib.die_if_path_exists(fn)
 
                 logger.info("Saving file: %s" % fn)
-                trj[i].save(fn)
+                trj[j].save(fn)
 
     elif style == 'tps':
         for i, trj in enumerate(confs_by_state):
