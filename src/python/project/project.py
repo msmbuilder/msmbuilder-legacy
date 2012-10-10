@@ -41,6 +41,18 @@ class Project(object):
     def traj_lengths(self):
         """Length of each of the trajectories, in frames"""
         return self._traj_lengths[self._valid_traj_indices]
+        
+    def __eq__(self, other):
+        '''Is this project equal to another'''
+        if not isinstance(other, Project):
+            return False
+        return os.path.basename(self._conf_filename) == os.path.basename(other._conf_filename) and \
+            np.all(self._traj_lengths == other._traj_lengths) and \
+            np.all(np.array([os.path.basename(e) for e in self._traj_paths])
+                == np.array([os.path.basename(e) for e in other._traj_paths])) and \
+            np.all(self._traj_errors == other._traj_errors)
+            # np.all(self._traj_converted_from == other._traj_converted_from)
+                                
 
     def __init__(self, records, validate=False, project_dir='.'):
         """Create a project from a  set of records
