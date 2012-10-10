@@ -30,29 +30,20 @@ logger = logging.getLogger(__name__)
 
 float_or_none = lambda s: None if s.lower() == 'none' else float(s)
 
-def run_pcca(num_macrostates, assignments, tProb, output_dir):
-    MacroAssignmentsFn = os.path.join(output_dir, "MacroAssignments.h5")
-    MacroMapFn = os.path.join(output_dir, "MacroMapping.dat")
-    arglib.die_if_path_exists([MacroAssignmentsFn, MacroMapFn])
-
+def run_pcca(num_macrostates, assignments, tProb):
     logger.info("Running PCCA...")
+    if len(np.unique(assignments[np.where(assignments != -1)])) != tProb.shape[0]:
+        raise ValueError('Different number of states in assignments and tProb!')
     MAP = lumping.PCCA(tProb, num_macrostates)
 
     # MAP the new assignments and save, make sure don't
     # mess up negaitve one's (ie where don't have data)
     MSMLib.apply_mapping_to_assignments(assignments, MAP)
 
-    np.savetxt(MacroMapFn, MAP, "%d")
-    msmbuilder.io.saveh(MacroAssignmentsFn, assignments)
+    return MAP, assignments
     
-    logger.info("Saved output to: %s, %s", MacroAssignmentsFn, MacroMapFn)
-    
-def run_pcca_plus(num_macrostates, assignments, tProb, output_dir, flux_cutoff=0.0,objective_function="crispness",do_minimization=True):
-    MacroAssignmentsFn = os.path.join(output_dir, "MacroAssignments.h5")
-    MacroMapFn = os.path.join(output_dir, "MacroMapping.dat")
-    ChiFn = os.path.join(output_dir, 'Chi.dat')
-    AFn = os.path.join(output_dir, 'A.dat')
-    arglib.die_if_path_exists([MacroAssignmentsFn, MacroMapFn, ChiFn, AFn])
+def run_pcca_plus(num_macrostates, assignments, tProb, flux_cutoff=0.0,
+    objective_function="crispness",do_minimization=True):
     
     logger.info("Running PCCA+...")
     A, chi, vr, MAP = lumping.pcca_plus(tProb, num_macrostates, flux_cutoff=flux_cutoff,
@@ -60,12 +51,7 @@ def run_pcca_plus(num_macrostates, assignments, tProb, output_dir, flux_cutoff=0
 
     MSMLib.apply_mapping_to_assignments(assignments, MAP)    
 
-    np.savetxt(ChiFn, chi)
-    np.savetxt(AFn, A)
-    np.savetxt(MacroMapFn, MAP,"%d")
-    msmbuilder.io.saveh(MacroAssignmentsFn, assignments)
-    logger.info('Saved output to: %s, %s, %s, %s', ChiFn, AFn, MacroMapFn, MacroAssignmentsFn)
-
+    return chi, A, MAP, assignments
 
 if __name__ == "__main__":
     parser = arglib.ArgumentParser(description="""
@@ -97,17 +83,38 @@ Output: MacroAssignments.h5, a new assignments HDF file, for the Macro MSM.""")
 
     tProb = scipy.io.mmread(args.tProb)
     
-    
     if args.do_minimization in ["False", "0"]:#workaround for arglib funniness?
         args.do_minimization = False
     else:
         args.do_minimization = True
     
     if args.algorithm == 'PCCA':
-        run_pcca(args.num_macrostates, assignments, args.tProb, args.output_dir)
+        MacroAssignmentsFn = os.path.join(args.output_dir, "MacroAssignments.h5")
+        MacroMapFn = os.path.join(args.output_dir, "MacroMapping.dat")
+        arglib.die_if_path_exists([MacroAssignmentsFn, MacroMapFn])
+        
+        MAP, assignments = run_pcca(args.num_macrostates, assignments, tProb)
+
+        np.savetxt(MacroMapFn, MAP, "%d")
+        msmbuilder.io.saveh(MacroAssignmentsFn, assignments)
+        logger.info("Saved output to: %s, %s", MacroAssignmentsFn, MacroMapFn)
+        
     elif args.algorithm == 'PCCA+':
-        run_pcca_plus(args.num_macrostates, assignments, tProb, args.output_dir,
-                      args.flux_cutoff, objective_function=args.objective_function,
-                      do_minimization=args.do_minimization)
+        MacroAssignmentsFn = os.path.join(args.output_dir, "MacroAssignments.h5")
+        MacroMapFn = os.path.join(args.output_dir, "MacroMapping.dat")
+        ChiFn = os.path.join(args.output_dir, 'Chi.dat')
+        AFn = os.path.join(args.output_dir, 'A.dat')
+        
+        arglib.die_if_path_exists([MacroAssignmentsFn, MacroMapFn, ChiFn, AFn])
+        
+        chi, A, MAP, assignments = run_pcca_plus(args.num_macrostates,
+            assignments, tProb, args.flux_cutoff, objective_function=args.objective_function,
+            do_minimization=args.do_minimization)
+                      
+        np.savetxt(ChiFn, chi)
+        np.savetxt(AFn, A)
+        np.savetxt(MacroMapFn, MAP,"%d")
+        msmbuilder.io.saveh(MacroAssignmentsFn, assignments)
+        logger.info('Saved output to: %s, %s, %s, %s', ChiFn, AFn, MacroMapFn, MacroAssignmentsFn)
     else:
         raise Exception()
