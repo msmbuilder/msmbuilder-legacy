@@ -202,21 +202,18 @@ def test_FindPaths():
     eq(fluxes, fluxes_ref)
 
 
-# I am not sure why, but PCCA (the script!) appears to be broken :( --TJL
-# will try to fix later... this test *should* work given a good reference
-
-#@skip
 class test_PCCA(WTempdir):
     
     def test(self):
         
         num_macro = 5
         
-        TC = get("tProb.mtx")
-        A  = get("Assignments.Fixed.h5")['Data']
+        TC = get("PCCA_ref/tProb.mtx")
+        A  = get("PCCA_ref/Assignments.Fixed.h5")['arr_0']
+        print A
         
         macro_map, macro_assign = PCCA.run_pcca(num_macro, A, TC)
-        r_macro_map = get("MacroMapping.dat")['Data']
+        r_macro_map = get("PCCA_ref/MacroMapping.dat")
 
         macro_map = macro_map.astype(np.int)
         r_macro_map = r_macro_map.astype(np.int)
@@ -228,10 +225,10 @@ class test_PCCA(WTempdir):
             j = np.where(macro_map == i)[0][0]
             permutation_mapping[i] = r_macro_map[j]
 
-        print permutation_mapping
-
         macro_map_permuted = permutation_mapping[macro_map]
-        MSMLib.ApplyMappingToAssignments(macro_assign, permutation_mapping)
+        MSMLib.apply_mapping_to_assignments(macro_assign, permutation_mapping)
+        
+        r_macro_assign = get("PCCA_ref/MacroAssignments.h5")['arr_0']
         
         eq(macro_map_permuted, r_macro_map)
         eq(macro_assign, r_macro_assign)

@@ -93,7 +93,7 @@ Output: MacroAssignments.h5, a new assignments HDF file, for the Macro MSM.""")
         MacroMapFn = os.path.join(args.output_dir, "MacroMapping.dat")
         arglib.die_if_path_exists([MacroAssignmentsFn, MacroMapFn])
         
-        MAP, assignments = run_pcca(args.num_macrostates, assignments, tProb, args.output_dir)
+        MAP, assignments = run_pcca(args.num_macrostates, assignments, tProb)
 
         np.savetxt(MacroMapFn, MAP, "%d")
         msmbuilder.io.saveh(MacroAssignmentsFn, assignments)
