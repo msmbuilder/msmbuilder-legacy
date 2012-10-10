@@ -106,6 +106,19 @@ def test_ergodic_trim():
     npt.assert_equal(mapping, np.array([0, 1, -1]))
 
 
+def test_trim_states():
+    
+    # run the (just tested) ergodic trim
+    counts = scipy.sparse.csr_matrix(np.matrix('2 1 0; 1 2 0; 0 0 1'))
+    trimmed, mapping = MSMLib.ergodic_trim(counts)
+    
+    # now try the segmented method
+    states_to_trim = MSMLib.ergodic_trim_indices(counts)
+    trimmed_counts = MSMLib.trim_states(states_to_trim, counts, assignments=None)
+    
+    npt.assert_equal(trimmed.todense(), trimmed_counts.todense())
+
+
 class test_build_msm(object):
     #(assignments, lag_time, n_states=None, symmetrize='MLE', sliding_window=True, trimming=True, get_populations=False)
     def setup(self):
