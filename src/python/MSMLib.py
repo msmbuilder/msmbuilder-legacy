@@ -599,6 +599,17 @@ def ergodic_trim(counts, assignments=None):
 
     """
 
+    # -------------------------------------------------------------------------
+    # TJL sez:
+    # This function could be simply replaced by the following code at a date
+    # in the not-so-distant future:
+    # 
+    # states_to_trim = ergodic_trim_indices(counts)
+    # trimmed_counts = trim_states(states_to_trim, counts, assignments=None)
+    # return trimmed_counts
+    #
+    # -------------------------------------------------------------------------
+
     NZ = np.array(counts.nonzero()).transpose()
 
     ConnectedComponents = tarjan(counts)
@@ -624,7 +635,82 @@ def ergodic_trim(counts, assignments=None):
         apply_mapping_to_assignments(assignments, Mapping)
 
     return (X, Mapping)
+    
+    
+def ergodic_trim_indices(counts):
+    """
+    Finds the indices of the largest strongly connected subgraph implied by
+    the transitions in `counts`.
+    
+    Parameters
+    ----------
+    counts : matrix
+        The MSM counts matrix
+        
+    Returns
+    -------
+    states_to_trim : ndarray, int
+        A list of the state indices that should be trimmed to obtain the 
+    
+    See Also
+    --------
+    trim_states : func
+    """
+    
+    ConnectedComponents = tarjan(counts)
+    PiSym = np.array(counts.sum(0)).flatten()
+    ComponentPops = np.array([sum(PiSym[np.array(x)]) for x in ConnectedComponents])
+    ComponentInd = np.argmax(ComponentPops)
 
+    logger.info("Selected component %d with population %f", ComponentInd, ComponentPops[ComponentInd] / ComponentPops.sum())
+
+    states_to_trim = np.unique(ConnectedComponents[ComponentInd])
+    
+    return states_to_trim
+    
+    
+def trim_states(states_to_trim, counts, assignments=None):
+    """
+    Performs the necessary operations to reduce an MSM to a subset of the
+    orignial states -- effectively trimming those states out.
+    
+    Parameters
+    ----------
+    states_to_trim : ndarray, int OR list of ints
+        A list of indices of the states to trim
+    counts : matrix
+        A counts matrix
+    assignments : ndarray, int (optional)
+        An assignments array
+    
+    Returns
+    -------
+    trimmed_counts : matrix
+        The trimmed counts matrix
+    trimmed_assignments : ndarray (if assignments are provided)
+        The assignements, with values for "trimmed" states set to "-1", which
+        is read as an empty value by MSMBuilder
+    """
+    
+    NZ = np.array(counts.nonzero()).transpose()
+    
+    mapping = np.zeros(counts.shape[0], dtype='int') - 1
+    for i, x in enumerate(states_to_trim):
+        mapping[x] = i
+
+    NZ[:, 0] = mapping[NZ[:, 0]]
+    NZ[:, 1] = mapping[NZ[:, 1]]
+
+    Ind = np.where(NZ.min(1) != -1)
+    trimmed_counts = scipy.sparse.csr_matrix((counts.data[Ind], NZ[Ind].transpose()))
+
+    if assignments is not None:
+        trimmed_assignments = assignments.copy()
+        apply_mapping_to_assignments(trimmed_assignments, Mapping) # nefarious in-place
+        return trimmed_counts, trimmed_assignments
+    else:
+        return trimmed_counts
+    
 
 def log_likelihood(count_matrix, transition_matrix):
     """log of the likelihood of an observed count matrix given a transition matrix
