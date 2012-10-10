@@ -211,6 +211,55 @@ class Project(object):
         "Load the a trajectory from disk"
         filename = self.traj_filename(trj_index)
         return Trajectory.load_trajectory_file(filename, Stride=stride)
+        
+    def load_frame(self, traj_index, frame_index):
+        """Load one or more specified frames.
+
+        Example
+        -------
+        >>> project = Project.load_from('ProjectInfo.yaml')
+        >>> foo = project.load_frame(1,10)
+        >>> bar = Trajectory.read_frame(TrajFilename=project.traj_filename(1),
+            WhichFrame=10)
+        >>> np.all(foo['XYZList'] == bar)
+        True
+
+        Parameters
+        ----------
+        traj_index : int, [int]
+            Index or indices of the trajectories to pull from
+        frame_index : int, [int]
+            Index or indices of the frames to pull from
+
+        Returns
+        -------
+        traj : msmbuilder.Trajectory
+            A trajectory object containing the requested frame(s).
+        """
+
+        if np.isscalar(traj_index) and np.isscalar(frame_index):
+            xyz = Trajectory.read_frame(TrajFilename=self.traj_filename(traj_index),
+                WhichFrame=frame_index)
+            xyzlist = np.array([xyz])
+        else:
+            traj_index = np.array(traj_index)
+            frame_index = np.array(frame_index)
+            if not (traj_index.ndim == 1 and np.all(traj_index.shape == frame_index.shape)):
+                raise ValueError('traj_index and frame_index must be 1D and have the same length')
+
+            xyzlist = []
+            for i,j in zip(traj_index, frame_index):
+                if j >= self.traj_lengths[i]:
+                    raise ValueError('traj %d too short (%d) to contain a frame %d' % (i, self.traj_lengths[i], j))
+                xyz = Trajectory.read_frame(TrajFilename=self.traj_filename(i),
+                    WhichFrame=j)
+                xyzlist.append(xyz)
+            xyzlist = np.array(xyzlist)
+
+        conf = self.load_conf()
+        conf['XYZList'] = xyzlist
+
+        return conf
 
     def load_conf(self):
         "Load the PDB associated with this project from disk"
