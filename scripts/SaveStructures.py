@@ -6,6 +6,7 @@ from msmbuilder import Project
 from msmbuilder import MSMLib
 from msmbuilder.clustering import concatenate_trajectories
 import logging
+logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%H:%M:%S", level=logging.INFO)
 logger = logging.getLogger(__name__)
 DEBUG = True
 

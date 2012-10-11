@@ -6,6 +6,7 @@ from msmbuilder.metrics import parsers as metric_parsers
 from pprint import pprint
 import warnings
 import logging
+logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%H:%M:%S", level=logging.INFO)
 logger = logging.getLogger('arglib')
 
 

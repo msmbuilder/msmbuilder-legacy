@@ -40,6 +40,7 @@ from collections import defaultdict
 from msmbuilder.utils import deprecated
 from msmbuilder import msm_analysis
 import logging
+logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%H:%M:%S", level=logging.INFO)
 logger = logging.getLogger('MSMLib')
 
 def estimate_rate_matrix(count_matrix, assignments):

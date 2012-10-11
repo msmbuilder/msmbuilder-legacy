@@ -55,9 +55,8 @@ import os
 import scipy.io
 import scipy.sparse
 import logging
-logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%H:%M:%S")
+logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%H:%M:%S", level=logging.INFO)
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 def getInds(c, stateInds, chunkSize, isSparse, updateSingleState=None):
     indices = []

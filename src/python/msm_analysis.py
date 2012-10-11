@@ -26,6 +26,7 @@ import warnings
 from msmbuilder import io
 from msmbuilder.utils import uneven_zip
 import logging
+logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%H:%M:%S", level=logging.INFO)
 logger = logging.getLogger('msm_analysis')
 
 

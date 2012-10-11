@@ -23,6 +23,7 @@ from msmbuilder import Trajectory
 from msmbuilder import io
 import logging
 from msmbuilder.utils import keynat
+logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%H:%M:%S", level=logging.INFO)
 logger = logging.getLogger('project')
 
 

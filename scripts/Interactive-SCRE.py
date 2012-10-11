@@ -10,6 +10,7 @@ import numpy as np
 import string
 import matplotlib
 import logging
+logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%H:%M:%S", level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def interactive_scre(assignments):
