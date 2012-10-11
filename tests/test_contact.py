@@ -1,9 +1,8 @@
 from itertools import product
 import numpy as np
-import numpy.testing as npt
-
-from msmbuilder.geometry import contact as _contactcalc
+from msmbuilder.testing import *
 from common import load_traj
+from msmbuilder.geometry import contact as _contactcalc
 
 class TestContactCalc():
     """Test the msmbuilder.geometry.contact module"""
@@ -28,11 +27,10 @@ class TestContactCalc():
         flipped_pairs = np.array(flipped_pairs)
         
         for i in xrange(self.n_frames):
-            npt.assert_array_equal(distances[i,flipped_pairs[:,0]], distances[i, flipped_pairs[:,1]])
-            npt.assert_array_equal(distances[i, same_atom], np.zeros_like(same_atom))
-        
+            eq(distances[i,flipped_pairs[:,0]], distances[i, flipped_pairs[:,1]])
+            eq(distances[i, same_atom], np.zeros_like(same_atom))
         
         # pair[1] is the distance from atom 0 to atom 1, which should be sqrt(3)
         # in the first frame (1,1,1) to (2,2,2)
-        npt.assert_array_equal(pairs[1], [0,1])
-        npt.assert_almost_equal(distances[0, 1], np.sqrt(3))
+        eq(pairs[1], np.array([0,1]))
+        eq(distances[0, 1], np.float32(np.sqrt(3)))

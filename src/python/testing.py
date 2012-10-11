@@ -1,21 +1,24 @@
 # methods to support testing
 import os
+import functools
 import numpy as np
 from numpy.testing import (assert_allclose, assert_almost_equal,
   assert_approx_equal, assert_array_almost_equal, assert_array_almost_equal_nulp,
   assert_array_equal, assert_array_less, assert_array_max_ulp, assert_equal,
   assert_raises, assert_string_equal, assert_warns)
-from nose.tools import ok_, eq_
+from nose.tools import ok_, eq_, raises
+from nose import SkipTest
 
 from pkg_resources import resource_filename
 
 __all__ = ['get', 'load', 'eq', 'assert_dict_equal', 'assert_spase_matrix_equal',
+           'expected_failure', 'skip',
            # stuff that was imported from numpy / nose too
           'ok_', 'eq_', 'assert_allclose', 'assert_almost_equal',
           'assert_approx_equal', 'assert_array_almost_equal',
           'assert_array_almost_equal_nulp', 'assert_array_equal',
           'assert_array_less', 'assert_array_max_ulp', 'assert_equal',
-          'assert_raises', 'assert_string_equal', 'assert_warns']
+          'assert_raises', 'assert_string_equal', 'assert_warns', 'raises']
 
 def get(name, just_filename=False):
     """
@@ -154,3 +157,27 @@ def assert_spase_matrix_equal(m1, m2, decimal=6):
     # even though its called assert_array_almost_equal, it will
     # work for scalars
     assert_array_almost_equal((m1 - m2).sum(), 0, decimal=decimal)
+
+# decorator to mark tests as expected failure
+def expected_failure(test):
+    @functools.wraps(test)
+    def inner(*args, **kwargs):
+        try:
+            test(*args, **kwargs)
+        except BaseException:
+            raise SkipTest
+        else:
+            raise AssertionError('Failure expected')
+    return inner
+
+# decorator to skip tests
+def skip(rason):
+    def wrap(test):
+        @functools.wraps(test)
+        def inner(*args, **kwargs):
+            raise SkipTest
+            print "After f(*args)"
+        return inner
+    return wrap
+
+
