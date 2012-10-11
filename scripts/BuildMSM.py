@@ -24,6 +24,7 @@ from msmbuilder import arglib
 import msmbuilder.io
 from msmbuilder import MSMLib
 import logging
+logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%H:%M:%S", level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def run(LagTime, assignments, Symmetrize='MLE', input_mapping="None", Prior=0.0, OutDir="./Data/"):
