@@ -7,6 +7,7 @@ import numpy as np
 from msmbuilder import msm_analysis
 from msmbuilder.utils import deprecated
 import logging
+logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%H:%M:%S", level=logging.INFO)
 logger = logging.getLogger('lumping')
 
 from numpy import dot, diag

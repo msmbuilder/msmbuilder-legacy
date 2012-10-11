@@ -22,6 +22,7 @@ from msmbuilder import io
 from msmbuilder.clustering import Hierarchical
 from msmbuilder import arglib
 import logging
+logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%H:%M:%S", level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 parser = arglib.ArgumentParser(description='Assign data using a hierarchical clustering')

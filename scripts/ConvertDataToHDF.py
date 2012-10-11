@@ -23,6 +23,7 @@ import os
 from msmbuilder.project import validators, ProjectBuilder, FahProjectBuilder
 from msmbuilder.arglib import ArgumentParser, die_if_path_exists
 import logging
+logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%H:%M:%S", level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 

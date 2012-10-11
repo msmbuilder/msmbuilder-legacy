@@ -31,6 +31,7 @@ from msmbuilder import xtc
 from msmbuilder import dcd
 
 import logging
+logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%H:%M:%S", level=logging.INFO)
 logger = logging.getLogger('Trajectory')
 
 MAXINT16 = np.iinfo(np.int16).max

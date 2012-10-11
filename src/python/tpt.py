@@ -34,6 +34,7 @@ from msmbuilder import msm_analysis
 from msmbuilder.utils import deprecated
 
 import logging
+logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%H:%M:%S", level=logging.INFO)
 logger = logging.getLogger('tpt')
 
 # turn on debugging printout

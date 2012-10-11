@@ -23,6 +23,7 @@ import numpy as np
 from msmbuilder import Conformation
 from msmbuilder import arglib
 import logging
+logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%H:%M:%S", level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def run(PDBfn, atomtype):

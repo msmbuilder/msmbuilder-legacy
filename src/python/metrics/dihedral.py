@@ -1,4 +1,5 @@
 import logging
+logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%H:%M:%S", level=logging.INFO)
 logger = logging.getLogger('metrics')
 import numpy as np
 from baseclasses import Vectorized, AbstractDistanceMetric

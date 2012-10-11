@@ -10,6 +10,7 @@ from msmbuilder import Trajectory
 from msmbuilder.arglib import die_if_path_exists
 from msmbuilder.utils import highlight
 import logging
+logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%H:%M:%S", level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def add_argument(group, *args, **kwargs):

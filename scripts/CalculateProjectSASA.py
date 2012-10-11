@@ -21,6 +21,7 @@ import numpy as np
 from msmbuilder import Trajectory, Project, arglib, io
 from msmbuilder.geometry import asa
 import logging
+logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%H:%M:%S", level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def run(project, atom_indices=None, traj_fn = 'all'):
