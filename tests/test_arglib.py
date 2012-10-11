@@ -1,7 +1,7 @@
 import sys, os
+from msmbuilder.testing import *
 from msmbuilder.arglib import ArgumentParser, add_argument
 
-from common import expected_failure, raises, eq_
 
 def test_iterator():
     from msmbuilder.arglib import _iter_both_cases
