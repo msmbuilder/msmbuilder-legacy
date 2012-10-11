@@ -10,8 +10,13 @@ from msmbuilder.assigning import assign_with_checkpoint
 from msmbuilder import metrics
 from msmbuilder import Project
 import logging
-logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%H:%M:%S", level=logging.INFO)
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+sh = logging.StreamHandler()
+formatter = logging.Formatter(fmt='%(asctime)s - %(message)s', datefmt="%H:%M:%S")
+sh.setFormatter(formatter)
+logger.addHandler(sh)
+logger.propagate = False
 
 parser = arglib.ArgumentParser(description="""
 Assign data that were not originally used in the clustering (because of

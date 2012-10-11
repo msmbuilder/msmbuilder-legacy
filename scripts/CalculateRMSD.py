@@ -22,8 +22,13 @@ from msmbuilder import Trajectory
 from msmbuilder.metrics import RMSD
 from msmbuilder import arglib
 import logging
-logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%H:%M:%S", level=logging.INFO)
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+sh = logging.StreamHandler()
+formatter = logging.Formatter(fmt='%(asctime)s - %(message)s', datefmt="%H:%M:%S")
+sh.setFormatter(formatter)
+logger.addHandler(sh)
+logger.propagate = False
 
 def run(pdb, traj, atom_indices):
 

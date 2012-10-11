@@ -34,9 +34,13 @@ from msmbuilder import Project
 from msmbuilder.utils import make_methods_pickable, keynat
 make_methods_pickable()
 import logging
-logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%H:%M:%S", level=logging.INFO)
 logger = logging.getLogger('FahProject')
-
+logger.setLevel(logging.INFO)
+sh = logging.StreamHandler()
+formatter = logging.Formatter(fmt='%(asctime)s - %(message)s', datefmt="%H:%M:%S")
+sh.setFormatter(formatter)
+logger.addHandler(sh)
+logger.propagate = False
 
 class FahProject(object):
     """

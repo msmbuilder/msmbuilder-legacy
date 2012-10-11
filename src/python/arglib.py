@@ -6,8 +6,13 @@ from msmbuilder.metrics import parsers as metric_parsers
 from pprint import pprint
 import warnings
 import logging
-logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%H:%M:%S", level=logging.INFO)
 logger = logging.getLogger('arglib')
+logger.setLevel(logging.INFO)
+sh = logging.StreamHandler()
+formatter = logging.Formatter(fmt='%(asctime)s - %(message)s', datefmt="%H:%M:%S")
+sh.setFormatter(formatter)
+logger.addHandler(sh)
+logger.propagate = False
 
 
 def _iter_both_cases(string):

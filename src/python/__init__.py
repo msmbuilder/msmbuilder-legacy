@@ -33,8 +33,6 @@ import glob
 __all__ = [os.path.basename(f)[:-3] for f in glob.glob(os.path.dirname(__file__) + "/*.py") if not f.endswith('__init__.py')]
 
 import logging
-__LOGGING_FORMAT = '%(asctime)s: %(levelname)s: %(message)s'
-logging.basicConfig(format=__LOGGING_FORMAT, level=logging.INFO, datefmt="%Y-%m-%d %H:%M:%S")
 
 import PDB
 from Trajectory import Trajectory

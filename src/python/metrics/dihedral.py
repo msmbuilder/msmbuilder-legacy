@@ -1,6 +1,11 @@
 import logging
-logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%H:%M:%S", level=logging.INFO)
 logger = logging.getLogger('metrics')
+logger.setLevel(logging.INFO)
+sh = logging.StreamHandler()
+formatter = logging.Formatter(fmt='%(asctime)s - %(message)s', datefmt="%H:%M:%S")
+sh.setFormatter(formatter)
+logger.addHandler(sh)
+logger.propagate = False
 import numpy as np
 from baseclasses import Vectorized, AbstractDistanceMetric
 from msmbuilder.geometry import dihedral as _dihedralcalc
