@@ -8,7 +8,6 @@ import scipy.io
 
 from msmbuilder import tpt
 from msmbuilder import io
-from common import reference_dir
 
 from msmbuilder.testing import get
 

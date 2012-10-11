@@ -8,13 +8,6 @@ from numpy.testing import dec
 import os
 import inspect
 
-def fixtures_dir():
-    #http://stackoverflow.com/questions/50499/in-python-how-do-i-get-the-path-and-name-of-the-file-that-is-currently-executin
-    return os.path.join(os.path.dirname(inspect.getfile(inspect.currentframe())), 'fixtures')
-
-def reference_dir():
-    return os.path.join(os.path.dirname(inspect.getfile(inspect.currentframe())), 'reference')
-
 def load_traj():
     "Load up a 3 frame, 4 atom trajectory for testing"
     
@@ -43,27 +36,3 @@ def load_traj():
     traj['XYZList'][2] = frame2
     
     return traj
-    
-    import functools
-    import nose
-
-def expected_failure(test):
-    @functools.wraps(test)
-    def inner(*args, **kwargs):
-        try:
-            test(*args, **kwargs)
-        except BaseException:
-            raise nose.SkipTest
-        else:
-            raise AssertionError('Failure expected')
-    return inner
-
-    
-def skip(rason):
-    def wrap(test):
-        @functools.wraps(test)
-        def inner(*args, **kwargs):
-            raise nose.SkipTest
-            print "After f(*args)"
-        return inner
-    return wrap

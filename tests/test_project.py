@@ -6,11 +6,9 @@ from msmbuilder.project import FahProjectBuilder
 from msmbuilder import Project
 
 import numpy.testing as npt
-from nose.tools import ok_, eq_
 import tempfile, shutil
-from common import reference_dir, skip
 
-from msmbuilder.testing import get
+from msmbuilder.testing import *
 
 def test_project_1():
     'ensure that the counting of errors works right'
@@ -27,7 +25,7 @@ def test_project_1():
     # since t1 should be skipped
     eq_(os.path.basename(proj.traj_filename(1)), 't2')
 
-@npt.raises(ValueError)
+@raises(ValueError)
 def test_project_2():
     'inconsistent lengths should be detected'
     records = {'conf_filename': None,

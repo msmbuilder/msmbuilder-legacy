@@ -29,8 +29,6 @@ import os
 import tarfile
 from msmbuilder.testing import *
 
-from common import skip
-
 from msmbuilder import MSMLib
 
 from msmbuilder.scripts import ConvertDataToHDF
