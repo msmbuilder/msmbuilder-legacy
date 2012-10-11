@@ -22,8 +22,13 @@ from msmbuilder import io
 from msmbuilder.clustering import Hierarchical
 from msmbuilder import arglib
 import logging
-logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%H:%M:%S", level=logging.INFO)
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+sh = logging.StreamHandler()
+formatter = logging.Formatter(fmt='%(asctime)s - %(message)s', datefmt="%H:%M:%S")
+sh.setFormatter(formatter)
+logger.addHandler(sh)
+logger.propagate = False
 
 parser = arglib.ArgumentParser(description='Assign data using a hierarchical clustering')
 parser.add_argument('hierarchical_clustering_zmatrix', default='./Data/Zmatrix.h5', 
