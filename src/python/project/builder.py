@@ -7,6 +7,7 @@ from msmbuilder.utils import keynat
 
 from project import Project
 from validators import ValidationError
+logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%H:%M:%S", level=logging.INFO)
 logger = logging.getLogger('project')
 
 

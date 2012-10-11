@@ -25,6 +25,7 @@ import networkx
 import sys
 import re
 import logging
+logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%H:%M:%S", level=logging.INFO)
 logger = logging.getLogger('plot_graph')
 
 def CreateNetwork(Matrix, EqPops, Directed=True, EdgeScale=2, PopCutoff=0.01, EdgeCutoff=0.1, ImageList=None, Labels=None):

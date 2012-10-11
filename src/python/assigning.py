@@ -5,6 +5,7 @@ import warnings
 from msmbuilder import io
 from msmbuilder import Trajectory
 import logging
+logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%H:%M:%S", level=logging.INFO)
 logger = logging.getLogger('assigning')
 
 def _setup_containers(project, assignments_fn, distances_fn):

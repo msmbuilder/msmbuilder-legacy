@@ -27,6 +27,7 @@ from msmbuilder import arglib
 from msmbuilder import msm_analysis
 
 import logging
+logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%H:%M:%S", level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
