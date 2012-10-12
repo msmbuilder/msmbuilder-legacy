@@ -7,13 +7,7 @@ from msmbuilder.utils import keynat
 
 from project import Project
 from validators import ValidationError
-logger = logging.getLogger('project')
-logger.setLevel(logging.INFO)
-sh = logging.StreamHandler()
-formatter = logging.Formatter(fmt='%(asctime)s - %(message)s', datefmt="%H:%M:%S")
-sh.setFormatter(formatter)
-logger.addHandler(sh)
-logger.propagate = False
+logger = logging.getLogger(__name__)
 
 class ProjectBuilder(object):
     def __init__(self, input_traj_dir, input_traj_ext, conf_filename, **kwargs):
