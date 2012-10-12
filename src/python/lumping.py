@@ -567,7 +567,6 @@ def PCCA(T, num_macro, tolerance=1E-5, flux_cutoff=None):
     Linear Algebra Appl., vol 315 pp 39-59, 2000.
 
     """
-    logger.info("in PCCA")
 
     n = T.shape[0]
     lam, vl = msm_analysis.get_eigenvectors(T, num_macro)

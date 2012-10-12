@@ -62,6 +62,7 @@ sh = logging.StreamHandler(stream=sys.stdout)
 formatter = logging.Formatter(fmt='%(asctime)s - %(message)s', datefmt="%H:%M:%S")
 sh.setFormatter(formatter)
 logger.addHandler(sh)
+logger.propagate = False
 
 def getInds(c, stateInds, chunkSize, isSparse, updateSingleState=None):
     indices = []
