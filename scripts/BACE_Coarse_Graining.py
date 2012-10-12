@@ -54,8 +54,14 @@ import numpy as np
 import os
 import scipy.io
 import scipy.sparse
+import sys
 import logging
 logger = logging.getLogger('msmbuilder.scripts.BACE')
+logger.setLevel(logging.INFO)
+sh = logging.StreamHandler(stream=sys.stdout)
+formatter = logging.Formatter(fmt='%(asctime)s - %(message)s', datefmt="%H:%M:%S")
+sh.setFormatter(formatter)
+logger.addHandler(sh)
 
 def getInds(c, stateInds, chunkSize, isSparse, updateSingleState=None):
     indices = []
