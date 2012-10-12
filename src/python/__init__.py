@@ -30,16 +30,16 @@ Copyright 2011 Stanford University
 # list of all the modules (files) that are part of msmbuilder
 import os
 import glob
+import sys
 __all__ = [os.path.basename(f)[:-3] for f in glob.glob(os.path.dirname(__file__) + "/*.py") if not f.endswith('__init__.py')]
 
 import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-sh = logging.StreamHandler()
+sh = logging.StreamHandler(stream=sys.stdout)
 formatter = logging.Formatter(fmt='%(asctime)s - %(message)s', datefmt="%H:%M:%S")
 sh.setFormatter(formatter)
 logger.addHandler(sh)
-logger.propagate = False
 
 import PDB
 from Trajectory import Trajectory
