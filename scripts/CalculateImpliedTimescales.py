@@ -27,14 +27,7 @@ from msmbuilder import arglib
 from msmbuilder import msm_analysis
 
 import logging
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-sh = logging.StreamHandler()
-formatter = logging.Formatter(fmt='%(asctime)s - %(message)s', datefmt="%H:%M:%S")
-sh.setFormatter(formatter)
-logger.addHandler(sh)
-logger.propagate = False
-
+logger = logging.getLogger('msmbuilder.scripts.CalculateImpliedTimescales')
 
 def run(MinLagtime, MaxLagtime, Interval, NumEigen, AssignmentsFn, symmetrize, nProc):    
     # Setup some model parameters

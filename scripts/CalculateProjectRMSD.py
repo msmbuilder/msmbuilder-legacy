@@ -26,14 +26,7 @@ from msmbuilder import io
 from msmbuilder import arglib
 
 import logging
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-sh = logging.StreamHandler()
-formatter = logging.Formatter(fmt='%(asctime)s - %(message)s', datefmt="%H:%M:%S")
-sh.setFormatter(formatter)
-logger.addHandler(sh)
-logger.propagate = False
-
+logger = logging.getLogger('msmbuilder.scripts.CalculateProjectRMSD')
 
 def run(project, pdb, atom_indices):    
     distances = -1 * np.ones((project.n_trajs, np.max(project.n_trajs)))

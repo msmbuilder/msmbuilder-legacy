@@ -10,13 +10,7 @@ from msmbuilder import Trajectory
 from msmbuilder.arglib import die_if_path_exists
 from msmbuilder.utils import highlight
 import logging
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-sh = logging.StreamHandler()
-formatter = logging.Formatter(fmt='%(asctime)s - %(message)s', datefmt="%H:%M:%S")
-sh.setFormatter(formatter)
-logger.addHandler(sh)
-logger.propagate = False
+logger = logging.getLogger('msmbuilder.scripts.Cluster')
 
 def add_argument(group, *args, **kwargs):
     if 'default' in kwargs:

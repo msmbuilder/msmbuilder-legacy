@@ -23,14 +23,7 @@ import os
 from msmbuilder.project import validators, ProjectBuilder, FahProjectBuilder
 from msmbuilder.arglib import ArgumentParser, die_if_path_exists
 import logging
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-sh = logging.StreamHandler()
-formatter = logging.Formatter(fmt='%(asctime)s - %(message)s', datefmt="%H:%M:%S")
-sh.setFormatter(formatter)
-logger.addHandler(sh)
-logger.propagate = False
-
+logger = logging.getLogger('msmbuilder.scripts.ConvertDataToHDF')
 
 def run(projectfn, PDBfn, InputDir, source, min_length, stride, rmsd_cutoff):
     

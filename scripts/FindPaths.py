@@ -28,13 +28,7 @@ from msmbuilder import tpt
 import msmbuilder.io 
 from msmbuilder import arglib
 import logging
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-sh = logging.StreamHandler()
-formatter = logging.Formatter(fmt='%(asctime)s - %(message)s', datefmt="%H:%M:%S")
-sh.setFormatter(formatter)
-logger.addHandler(sh)
-logger.propagate = False
+logger = logging.getLogger('msmbuilder.scripts.FindPaths')
 
 def run(tprob, A, B, n):
 
