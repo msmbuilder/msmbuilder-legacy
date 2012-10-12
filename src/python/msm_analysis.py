@@ -230,8 +230,11 @@ def get_implied_timescales_helper(args):
     
     try:
         from msmbuilder import MSMLib
-        t_matrix = MSMLib.build_msm(assignments, lag_time, symmetrize,
-                                    sliding_window, trimming)[1]
+        
+        counts = MSMLib.get_count_matrix_from_assignments(assignments, lag_time=lag_time, 
+                                                          sliding_window=sliding_window)
+        rev_counts, t_matrix, populations, mapping = MSMLib.build_msm(counts, symmetrize, trimming)
+
     except ValueError as e:
         logger.critical(e)
         sys.exit(1)
