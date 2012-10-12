@@ -24,6 +24,8 @@ from msmbuilder import arglib
 import msmbuilder.io
 from msmbuilder import MSMLib
 import logging
+
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 sh = logging.StreamHandler()
@@ -31,6 +33,7 @@ formatter = logging.Formatter(fmt='%(asctime)s - %(message)s', datefmt="%H:%M:%S
 sh.setFormatter(formatter)
 logger.addHandler(sh)
 logger.propagate = False
+
 
 def run(LagTime, assignments, Symmetrize='MLE', input_mapping="None", Prior=0.0, OutDir="./Data/"):
 
@@ -52,9 +55,9 @@ def run(LagTime, assignments, Symmetrize='MLE', input_mapping="None", Prior=0.0,
     n_states = np.max(assignments.flatten()) + 1
     n_assigns_before_trim = len( np.where( assignments.flatten() != -1 )[0] )
     
-    counts = get_count_matrix_from_assignments(assignments, lag_time=LagTime, sliding_window=True)
+    counts = MSMLib.get_count_matrix_from_assignments(assignments, lag_time=LagTime, sliding_window=True)
     
-    rev_counts, t_matrix, populations, mapping = MSMLib.build_msm(counts, symmetrize=Symmetrize, ergodic_trim=True)
+    rev_counts, t_matrix, populations, mapping = MSMLib.build_msm(counts, symmetrize=Symmetrize, ergodic_trimming=True)
 
     MSMLib.apply_mapping_to_assignments(assignments, mapping)
     n_assigns_after_trim = len( np.where( assignments.flatten() != -1 )[0] )

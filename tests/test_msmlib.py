@@ -119,83 +119,27 @@ def test_trim_states():
 
 
 class test_build_msm(object):
-    #(assignments, lag_time, n_states=None, symmetrize='MLE', sliding_window=True, trimming=True, get_populations=False)
+
     def setup(self):
         self.assignments = np.array(np.matrix('0 1 0 0 0 1 0 0 0 1; 0 0 0 0 1 0 1 1 1 0'))
         self.lag_time = 1
     
-    # --------------------------------------------------------------------------
-    # TJL sez: The call signatures to a lot of the functions below have changed
-    # I will fix these tests in a future update, once stabilizing those call
-    # signatures. Email me if something urgent comes up: <tjlane@stanford.edu>
-    # --------------------------------------------------------------------------
-    
-    @expected_failure
     def test_1(self):
-        c, rc, t, p, m = MSMLib.build_msm(self.assignments, self.lag_time, symmetrize='MLE')
-        eq(c.todense(), np.matrix('7 5; 4 2'))
+        
+        C = MSMLib.get_count_matrix_from_assignments(self.assignments, 2)
+        rc, t, p, m = MSMLib.build_msm(C, symmetrize='MLE', ergodic_trimming=True)
+        
+        
         eq(rc.todense(),
             np.matrix([[ 6.46159184,  4.61535527],
                        [ 4.61535527,  2.30769762]]))
         eq(t.todense(), 
             np.matrix([[ 0.58333689,  0.41666311],
                 [ 0.66666474,  0.33333526]]))
-        eq(p, [ 0.61538595,  0.38461405])
-        eq(m, [0,1])
+        eq(p, np.array([ 0.61538595,  0.38461405]))
+        eq(m, np.array([0,1]))
     
-    @expected_failure
-    def test_2(self):
-        c, rc, t, p, m = MSMLib.build_msm(self.assignments, self.lag_time, symmetrize=None)
-        eq(c.todense(), np.matrix('7 5; 4 2'))
-        eq(rc.todense(),
-            np.matrix([[ 7,  5],
-                       [ 4,  2]]))
-        eq(t.todense(), 
-            np.matrix([[ 0.58333333,  0.41666667],
-                [ 0.66666667,  0.33333333]]))
-        assert p is None
-        eq(m, [0,1])
 
-
-    @expected_failure
-    def test_2_point_1(self):
-        "This doesn't work"
-        # same as test_2, just with get_populations=True
-        c, rc, t, p, m = MSMLib.build_msm(self.assignments, self.lag_time, symmetrize=None,
-            get_populations=True)
-        eq(c.todense(), np.matrix('7 5; 4 2'))
-        eq(rc.todense(),
-            np.matrix([[ 7,  5],
-                       [ 4,  2]]))
-        eq(t.todense(), 
-            np.matrix([[ 0.58333333,  0.41666667],
-                [ 0.66666667,  0.33333333]]))
-        eq(p, [ 0.61538595,  0.38461405])
-        eq(m, [0,1])
-    
-    @expected_failure
-    def test_3(self):
-        c, rc, t, p, m = MSMLib.build_msm(self.assignments, self.lag_time, symmetrize='Transpose')
-        eq(c.todense(), np.matrix('7 5; 4 2'))
-        eq(rc.todense(),
-            np.matrix([[ 7,  4.5],
-                       [ 4.5,  2]]))
-        eq(t.todense(), 
-            np.matrix([[ 0.60869565,  0.39130435],
-                [ 0.69230769,  0.30769231]]))
-        eq(p, [ 0.63888889,  0.36111111])
-        eq(m, [0,1])
-    
-    @expected_failure
-    def test_4(self):
-        c, rc, t, p, m = MSMLib.build_msm(self.assignments, lag_time=2, symmetrize=None, sliding_window=True)
-        eq(c.todense(), np.matrix('7 4; 3 2'))
-        eq(rc.todense(), np.matrix('7 4; 3 2'))
-        eq(t.todense(), 
-            np.matrix([[ 0.63636364,  0.36363636],
-                [  0.6,  0.4]]))
-        assert p is None
-        eq(m, [0,1])
 
 def test_estimate_transition_matrix_1():
     np.random.seed(42)

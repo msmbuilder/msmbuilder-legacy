@@ -142,7 +142,7 @@ def estimate_transition_matrix(count_matrix):
     return tProb
 
 
-def build_msm(counts, symmetrize='MLE', ergodic_trim=True):
+def build_msm(counts, symmetrize='MLE', ergodic_trimming=True):
     """
     Estimates the transition probability matrix from the counts matrix.
     
@@ -173,7 +173,7 @@ def build_msm(counts, symmetrize='MLE', ergodic_trim=True):
     if symmetrize not in ['mle', 'transpose', 'none']:
         raise symmetrization_error
 
-    if ergodic_trim:
+    if ergodic_trimming:
         counts, mapping = ergodic_trim(counts)
     else:
         mapping = np.arange(counts.shape[0])
@@ -204,7 +204,8 @@ def build_msm(counts, symmetrize='MLE', ergodic_trim=True):
 
 
 def get_count_matrix_from_assignments(assignments, n_states=None, lag_time=1, sliding_window=True):
-    """Calculate count matrix from Assignments.
+    """
+    Calculate counts matrix from `assignments`.
 
     Parameters
     ----------

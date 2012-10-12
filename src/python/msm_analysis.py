@@ -240,7 +240,6 @@ def get_implied_timescales_helper(args):
         
         counts = MSMLib.get_count_matrix_from_assignments(assignments, lag_time=lag_time, 
                                                           sliding_window=sliding_window)
-
         rev_counts, t_matrix, populations, mapping = MSMLib.build_msm(counts, symmetrize, trimming)
 
     except ValueError as e:

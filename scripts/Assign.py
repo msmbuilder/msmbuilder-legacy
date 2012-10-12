@@ -16,7 +16,7 @@ sh = logging.StreamHandler()
 formatter = logging.Formatter(fmt='%(asctime)s - %(message)s', datefmt="%H:%M:%S")
 sh.setFormatter(formatter)
 logger.addHandler(sh)
-logger.propagate = False
+logger.propagate = True
 
 parser = arglib.ArgumentParser(description="""
 Assign data that were not originally used in the clustering (because of
