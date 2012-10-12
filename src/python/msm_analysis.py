@@ -26,14 +26,7 @@ import warnings
 from msmbuilder import io
 from msmbuilder.utils import uneven_zip
 import logging
-logger = logging.getLogger('msm_analysis')
-logger.setLevel(logging.INFO)
-sh = logging.StreamHandler()
-formatter = logging.Formatter(fmt='%(asctime)s - %(message)s', datefmt="%H:%M:%S")
-sh.setFormatter(formatter)
-logger.addHandler(sh)
-logger.propagate = False
-
+logger = logging.getLogger(__name__)
 
 # Set this value to true (msm_analysis.DisableErrorChecking=True) to ignore
 # Eigenvector calculation errors.  Useful if you need to process disconnected data.

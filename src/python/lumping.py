@@ -7,13 +7,7 @@ import numpy as np
 from msmbuilder import msm_analysis
 from msmbuilder.utils import deprecated
 import logging
-logger = logging.getLogger('lumping')
-logger.setLevel(logging.INFO)
-sh = logging.StreamHandler()
-formatter = logging.Formatter(fmt='%(asctime)s - %(message)s', datefmt="%H:%M:%S")
-sh.setFormatter(formatter)
-logger.addHandler(sh)
-logger.propagate = False
+logger = logging.getLogger(__name__)
 
 from numpy import dot, diag
 inv = np.linalg.inv
@@ -573,6 +567,7 @@ def PCCA(T, num_macro, tolerance=1E-5, flux_cutoff=None):
     Linear Algebra Appl., vol 315 pp 39-59, 2000.
 
     """
+    logger.info("in PCCA")
 
     n = T.shape[0]
     lam, vl = msm_analysis.get_eigenvectors(T, num_macro)
