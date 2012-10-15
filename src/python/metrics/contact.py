@@ -276,7 +276,7 @@ class AtomPairs(Vectorized, AbstractDistanceMetric):
             n, m = atom_pairs.shape
             if not m == 2:
                 raise ValueError()
-        except ValueError:
+        except ValueError, TypeError:
             raise ValueError('Atom pairs must be an n x 2 array of pairs of atoms')
         self.atom_pairs = np.int32(atom_pairs)
         
