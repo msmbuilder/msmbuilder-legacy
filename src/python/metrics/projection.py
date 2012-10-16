@@ -2,7 +2,7 @@ import abc
 import re
 import numpy as np
 import warnings
-from msmbuilder import Serializer
+from msmbuilder import io
 try: from msmbuilder import metric_LPRMSD as lprmsd # This is down here because metric_LPRMSD imports this file, and so it is a bad recursion issue. This should be fixed by combining LP's metric into this file...
 except: lprmsd = None
 from msmbuilder.metrics.baseclasses import AbstractDistanceMetric, Vectorized
@@ -14,7 +14,7 @@ class RedDimPNorm(Vectorized,AbstractDistanceMetric):
 
     class ProjectionObject:
         def __init__( self, proj_fn):
-            data_dict = Serializer.LoadFromHDF( proj_fn )
+            data_dict = io.loadh( proj_fn )
             self.vecs = np.array( data_dict['vecs'] )
             self.vals = np.array( data_dict['vals'].real.astype(float) ) # These should be real already but have 1E-16j attached to them
             dec_ind = np.argsort( self.vals )[::-1]
@@ -80,7 +80,8 @@ class RedDimPNorm(Vectorized,AbstractDistanceMetric):
 
             self.pca.reduce( num_vecs = self.num_vecs, expl_var = self.expl_var, abs_min = self.abs_min ) # this is going to throw and error if you use the mdp.Node object...
  
-        self.lprmsd = lprmsd.LPRMSD()
+        if lprmsd != None:
+            self.lprmsd = lprmsd.LPRMSD()
 
         if pdb_fn:
             self.align2pdb = self.lprmsd.prepare_trajectory( lprmsd.LPTraj.LoadFromPDB( pdb_fn ) )
