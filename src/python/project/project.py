@@ -86,7 +86,7 @@ class Project(object):
         self._conf_filename = records['conf_filename']
         self._traj_lengths = np.array(records['traj_lengths'])
         self._traj_paths = np.array(records['traj_paths'])
-        self._traj_converted_from = np.array(records['traj_converted_from'])
+        self._traj_converted_from = list(records['traj_converted_from'])
         self._traj_errors = np.array(records['traj_errors'])
         self._project_dir = os.path.abspath(project_dir)
 
@@ -207,7 +207,7 @@ class Project(object):
             # yaml doesn't like numpy types, so we have to sanitize them
             records['trajs'].append({'id': i,
                                     'path': str(traj_paths[i]),
-                                    'converted_from': self._traj_converted_from[i].tolist(),
+                                    'converted_from': list(self._traj_converted_from[i]),
                                     'length': int(self._traj_lengths[i]),
                                     'errors': self._traj_errors[i]})
 
