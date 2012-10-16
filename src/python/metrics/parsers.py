@@ -8,7 +8,8 @@ import itertools
 from pkg_resources import iter_entry_points
 from msmbuilder.metrics import (RMSD, Dihedral, BooleanContact,
                                 AtomPairs, ContinuousContact,
-                                AbstractDistanceMetric)
+                                AbstractDistanceMetric,
+                                RedDimPNorm)
 
 def add_argument(group, *args, **kwargs):
     if 'default' in kwargs:
@@ -43,7 +44,7 @@ def add_basic_metric_parsers(metric_subparser):
         default='AtomIndices.dat')
     metric_parser_list.append(rmsd)
 
-    dihedral = metrics_parsers.add_parser('dihedral',
+    dihedral = metric_subparser.add_parser('dihedral',
         description='''DIHEDRAL: For each frame in the simulation data, we extract the
         torsion angles for the class of angles that you request (phi/psi is recommended,
         but chi angles are available as well). Each frame is then reprented by a vector
@@ -57,7 +58,7 @@ def add_basic_metric_parsers(metric_subparser):
     add_argument(dihedral, '-p', dest='dihedral_p', default=2, help='p used for metric=minkowski (otherwise ignored)')
     add_argument(dihedral, '-m', dest='dihedral_metric', default='euclidean',
         help='which distance metric', choices=Dihedral.allowable_scipy_metrics)
-    parser.metric_parsers.append(dihedral)
+    metric_parser_list.append(dihedral)
 
     contact = metric_subparser.add_parser('contact',
         description='''CONTACT: For each frame in the simulation data, we extract the
@@ -80,7 +81,7 @@ def add_basic_metric_parsers(metric_subparser):
     add_argument(contact, '-f', dest='contact_cutoff_file', help='File containing residue specific cutoff distances (supercedes the scalar cutoff distance if present).',default=None)
     add_argument(contact, '-s', dest='contact_scheme', default='closest-heavy', help='contact scheme.',
         choices=['CA', 'closest', 'closest-heavy'])
-    parser.metric_parsers.append(contact)
+    metric_parser_list.append(contact)
 
     atompairs = metric_subparser.add_parser('atompairs',description='''ATOMPAIRS: For each frame, we
         represent the conformation as a vector of particular atom-atom distances. Then the distance
@@ -91,7 +92,7 @@ def add_basic_metric_parsers(metric_subparser):
     add_argument(atompairs, '-p', dest='atompairs_p', default=2, help='p used for metric=minkowski (otherwise ignored)')
     add_argument(atompairs, '-m', dest='atompairs_metric', default='cityblock',
         help='which distance metric', choices=AtomPairs.allowable_scipy_metrics)
-    parser.metric_parsers.append(atompairs)
+    metric_parser_list.append(atompairs)
 
     picklemetric = metric_subparser.add_parser('custom', description="""CUSTOM: Use a custom
         distance metric. This requires defining your metric and saving it to a file using
@@ -99,7 +100,7 @@ def add_basic_metric_parsers(metric_subparser):
         and requires significant knowledge of the source code's architecture to pull off.""")
     add_argument(picklemetric, '-i', dest='picklemetric_input', required=True,
         help="Path to pickle file for the metric")
-    parser.metric_parsers.append(picklemetric)
+    metric_parser_list.append(picklemetric)
     
     for add_parser in locate_metric_plugins('add_metric_parser'):
         plugin_metric_parser = add_parser(metrics_parsers, add_argument)

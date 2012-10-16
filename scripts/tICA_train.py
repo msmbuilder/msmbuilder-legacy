@@ -1,7 +1,7 @@
 #!/usr/bin/env python
  
 from msmbuilder import arglib, sshfs_tools, tICA
-from msmbuilder import Project, Serializer, Trajectory
+from msmbuilder import Project, Trajectory, io
 import numpy as np
 import os, sys, re
 import scipy
@@ -13,18 +13,18 @@ def run( project, stride, atom_indices, out_fn, dt, min_length, lag ):
     else: # If lag is zero, this is equivalent to regular PCA
         cov_mat_obj = tICA.CovarianceMatrix( lag=lag, procs=procs, normalize=False )
     
-    for i in xrange(project['NumTrajs']):
+    for i in xrange( project.n_trajs ):
         print "Working on trajectory %d" % i
 
-        if project['TrajLengths'][i] <= lag:
-            print "\tTrajectory is not long enough for this lag (%d vs %d)" % ( project['TrajLengths'][i], lag )
+        if project.traj_lengths[i] <= lag:
+            print "\tTrajectory is not long enough for this lag (%d vs %d)" % ( project.traj_lengths[i], lag )
             continue
 
-        if project['TrajLengths'][i] < min_length:
-            print "\tTrajectory is not longer than minlength (%d vs %d)" % ( project['TrajLengths'][i], min_length )
+        if project.traj_lengths[i] < min_length:
+            print "\tTrajectory is not longer than minlength (%d vs %d)" % ( project.traj_lengths[i], min_length )
             continue
 
-        traj = Trajectory.LoadFromLHDF( project.GetTrajFilename( i ), Stride=stride, AtomIndices=atom_indices )
+        traj = Trajectory.load_from_lhdf( project.traj_filename( i ), Stride=stride, AtomIndices=atom_indices )
         ptraj = prep_metric.prepare_trajectory( traj )
 
         n_cols = ptraj.shape[1]
@@ -44,13 +44,13 @@ def run( project, stride, atom_indices, out_fn, dt, min_length, lag ):
     
     if lag > 0:
         cov_mat, cov_mat_lag0 = cov_mat_obj.get_current_estimate()
-        vals, vecs = scipy.linalg.eigh( cov_mat, b=cov_mat_lag0 ) # Get the right eigenvectors of the covariance matrix. It's hermitian so left=right e-vectors
+        vals, vecs = scipy.linalg.eig( cov_mat, b=cov_mat_lag0 ) 
+        # Note that we can't use eigh because b is positive SEMI-definite, but it would need to be positive definite...
     else:
         cov_mat = cov_mat_obj.get_current_estimate()
         vals, vecs = scipy.linalg.eigh( cov_mat ) # Get the right eigenvectors of the covariance matrix. It's hermitian so left=right e-vectors
 
-    out_serializer = Serializer( {'vecs' : vecs, 'vals' : vals } ) # eigenvectors are in the columns
-    out_serializer.SaveToHDF( out_fn )
+    io.saveh( out_fn, vecs=vecs, vals=vals )
 
     print "Saved output to %s" % out_fn
 
@@ -75,7 +75,7 @@ if __name__ == '__main__':
     except: atom_indices = None
     stride = int( args.stride )
     dt = int( args.delta_time )
-    project = Project.LoadFromHDF( args.project )
+    project = Project.load_from( args.project )
     min_length = int( float( args.min_length ) ) # need to convert to float first because int can't convert a string that is '1E3' for example...wierd.
     lag = int( dt / stride )
 
