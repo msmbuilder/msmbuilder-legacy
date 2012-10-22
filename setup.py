@@ -21,6 +21,7 @@ metadata = {
     'install_requires': ['scipy', 'matplotlib', 'pyyaml',
                          'deap', 'fastcluster==1.1.6'],
     'platforms': ["Linux", "Mac OS X"],
+    'zip_safe': False,
     'description': "Python Code for Building Markov State Models",
     'long_description': """MSMBuilder (https://simtk.org/home/msmbuilder)
 is a library that provides tools for analyzing molecular dynamics

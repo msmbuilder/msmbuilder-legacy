@@ -220,7 +220,7 @@ class ProjectBuilder(object):
             traj = Trajectory.load_from_xtc(file_list, PDBFilename=self.conf_filename,
                         discard_overlapping_frames=True)
         elif self.input_traj_ext == '.dcd':
-            traj = Trajectory.load_from_xtc(file_list, PDBFilename=self.conf_filename)
+            traj = Trajectory.load_from_dcd(file_list, PDBFilename=self.conf_filename)
         else:
             raise ValueError()
         return traj

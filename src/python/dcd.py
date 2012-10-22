@@ -30,6 +30,7 @@ from ctypes import Structure, POINTER, c_float, c_double, CDLL, c_char_p, c_int
 from ctypes import c_void_p, byref
 from ctypes.util import find_library
 import imp
+import warnings
 
 # define handle to dcd library as global variable (but it should only be used within this module)
 _dcdlib = None
@@ -192,7 +193,12 @@ class DCDReader:
         self._nextframe += self._stepframe
 
         # create a "coords" numpy array for returning
-        coords = np.asfarray(np.array(xyzvec).reshape(self.natoms.value, 3))
+        with warnings.catch_warnings():
+            # supress the PEP3118 warning
+            # http://stackoverflow.com/questions/4964101/pep-3118-warning-when-using-ctypes-array-as-numpy-array
+            warnings.simplefilter("ignore")
+            coords = np.asfarray(np.array(xyzvec).reshape(self.natoms.value, 3))
+            
         if self._atomindices != None:
             coords = coords[self._atomindices, ]
         coords = coords * 0.1       # \AA -> nm
