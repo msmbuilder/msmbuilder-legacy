@@ -5,6 +5,37 @@ import re, sys, os
 import multiprocessing as mp
 from time import time
 import gc
+from scipy.weave import inline
+
+
+def correlate_C( lag ):
+
+    N0, N = data_vector.shape
+    correlate_mat = np.zeros( ( N, N ) )
+    code = \
+"""
+int i,j,k; 
+
+lag = (int) lag;
+
+for ( i = 0; i < N; i++ )
+{
+    for ( j = 0; j < N; j++ )
+    {
+        for ( k = 0; k < N0 - lag; k++ )
+        {
+            correlate_mat[ i * N + j ] += data_vector[ k * N + i ] * data_vector[ ( k + lag ) * N + j];
+        }
+    }
+}
+"""
+    inline( code, ['N', 'N0', 'lag', 'correlate_mat', 'data_vector'] )        
+
+    print correlate_mat
+    
+    return correlate_mat
+    
+    
 
 def np_dot_row( args ):
     row_ind = args[0]
@@ -100,30 +131,30 @@ class CovarianceMatrix:
 
         num_frames = data_vector.shape[0] - self.lag
         b=time()
-        Pool = mp.Pool( self.procs )
+#        Pool = mp.Pool( self.procs )
         #sol = [ np_dot_row( (i,self.lag) ) for i in xrange( self.size ) ]
         #debug for memory leak ^^^
 
-        result = Pool.map_async( np_dot_row, zip( range( self.size ), [self.lag]*self.size ) )
-        result.wait()
-        sol=result.get()
+#        result = Pool.map_async( np_dot_row, zip( range( self.size ), [self.lag]*self.size ) )
+#        result.wait()
+#        sol=result.get()
 
-        Pool.close()
-        Pool.join()
-        temp_mat = np.vstack( sol )
-
+#        Pool.close()
+#        Pool.join()
+#        temp_mat = np.vstack( sol )
+        temp_mat = correlate_C( self.lag )
         if self.normalize:
   
-            Pool = mp.Pool( self.procs )
+        #    Pool = mp.Pool( self.procs )
 
-            result_lag0 = Pool.map_async( np_dot_row, zip( range( self.size ), [0]*self.size ) )
-            result_lag0.wait()
-            sol=result_lag0.get()
+        #    result_lag0 = Pool.map_async( np_dot_row, zip( range( self.size ), [0]*self.size ) )
+        #    result_lag0.wait()
+        #    sol=result_lag0.get()
 
-            Pool.close()
-            Pool.join()
-            temp_mat_lag0 = np.vstack( sol )
-
+        #    Pool.close()
+        #    Pool.join()
+        #    temp_mat_lag0 = np.vstack( sol )
+            temp_mat_lag0 = correlate_C( 0 )
             self.corrs_lag0 += temp_mat_lag0
 
         c=time()
