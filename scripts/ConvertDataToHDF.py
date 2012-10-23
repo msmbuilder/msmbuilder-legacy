@@ -19,13 +19,14 @@
 
 import sys
 import os
+import numpy as np
 
 from msmbuilder.project import validators, ProjectBuilder, FahProjectBuilder
 from msmbuilder.arglib import ArgumentParser, die_if_path_exists
 import logging
 logger = logging.getLogger('msmbuilder.scripts.ConvertDataToHDF')
 
-def run(projectfn, PDBfn, InputDir, source, min_length, stride, rmsd_cutoff):
+def run(projectfn, PDBfn, InputDir, source, min_length, stride, rmsd_cutoff, atom_indices):
     
     # check if we are doing an update or a fresh run
     if os.path.exists(projectfn):
@@ -44,9 +45,11 @@ def run(projectfn, PDBfn, InputDir, source, min_length, stride, rmsd_cutoff):
     # hierarchy of FaH (RUN/CLONE/GEN/frame.xtc)
     if source.startswith('file'):
         itype = '.dcd' if 'dcd' in source else '.xtc'
-        pb = ProjectBuilder(InputDir, input_traj_ext=itype, conf_filename=PDBfn, stride=stride)
+        pb = ProjectBuilder(InputDir, input_traj_ext=itype, conf_filename=PDBfn,
+            stride=stride, atom_indices=atom_indices)
     elif source == 'fah':
-        pb = FahProjectBuilder(InputDir, input_traj_ext='.xtc', conf_filename=PDBfn, stride=stride)
+        pb = FahProjectBuilder(InputDir, input_traj_ext='.xtc', conf_filename=PDBfn,
+            stride=stride, atom_indices=atom_indices)
     else:
         raise ValueError("Invalid argument for source: %s" % source)
 
@@ -123,6 +126,13 @@ functionality.
         structure with and RMSD higher than the specified value (in nanometers,
         with respect to the input PDB file). Pass -1 to disable this feature''',
         default=-1, type=float)
+    parser.add_argument('index_file_of_atoms_to_retain', help='''Path to a flat text
+        file containing the indices of atoms to retain.
+        The numbering here is with respect to their order in the xtc or
+        dcd files. Note: This argument will select only a subset of the atoms
+        from your trajectory source files but will not touch the PDB file. Please
+        make sure the PDB file you supply also contains the correct number of atoms.''',
+        default='all')
     #parser.add_argument('parallel', help='''Run the conversion in parallel.
     #    multiprocessing launches multiple python interpreters to use all of your cores.
     #    dtm uses mpi, and requires python's "deap" module to be installed. To execute the
@@ -137,6 +147,14 @@ functionality.
         rmsd_cutoff = None
     else:
         logger.warning("Will discard any frame that is %f nm from the PDB conformation...", rmsd_cutoff)
+
+    # setting atom_indices to None means use all of the atoms in the rest of the
+    # code, but we can't use None as a default argument for argparse. So we'll
+    # use 'all' instead
+    if args.index_atoms_to_retain != 'all':
+        atom_indices = np.loadtxt(args.index_atoms_to_retain, dtype=np.int)
+    else:
+        atom_indices = None
     
     run(args.project, args.pdb, args.input_dir, args.source,
-        args.min_length, args.stride, rmsd_cutoff)
+        args.min_length, args.stride, rmsd_cutoff, atom_indices=atom_indices)

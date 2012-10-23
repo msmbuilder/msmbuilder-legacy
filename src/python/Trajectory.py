@@ -315,7 +315,7 @@ class Trajectory(ConformationBaseClass):
 
     @classmethod
     def load_from_xtc(cls, XTCFilenameList, PDBFilename=None, Conf=None, PreAllocate=True,
-                    JustInspect=False, discard_overlapping_frames=False):
+                    JustInspect=False, discard_overlapping_frames=False, atom_indices=None):
         """Create a Trajectory from a collection of XTC files
 
         Parameters
@@ -351,11 +351,15 @@ class Trajectory(ConformationBaseClass):
             raise Exception("ERROR: Need a conformation to construct a trajectory.")
 
         if not JustInspect:
+            n_atoms = A['XYZList'].shape[1]
+            
+            if atom_indices is not None and len(atom_indices) != n_atoms:
+                logger.critical('Number of atoms in PDB does not match number of atoms in atom_indices')
 
             A["XYZList"] = []
             num_redundant = 0
 
-            for i, c in enumerate(xtc.XTCReader(XTCFilenameList)):
+            for i, c in enumerate(xtc.XTCReader(XTCFilenameList, atomindices=atom_indices)):
                 # check to see if we have redundant frames as we load them up
                 if discard_overlapping_frames:
                     if i > 0:
@@ -383,7 +387,7 @@ class Trajectory(ConformationBaseClass):
         return(A)
 
     @classmethod
-    def load_from_dcd(cls, FilenameList, PDBFilename=None, Conf=None, PreAllocate=True, JustInspect=False):
+    def load_from_dcd(cls, FilenameList, PDBFilename=None, Conf=None, PreAllocate=True, JustInspect=False, atom_indices=None):
         """Create a Trajectory from a Filename."""
 
         if PDBFilename != None:
@@ -394,13 +398,16 @@ class Trajectory(ConformationBaseClass):
             raise Exception("ERROR: Need a conformation to construct a trajectory.")
 
         if not JustInspect:
+            if atom_indices is not None and A['XYZList'].shape[1] != len(atom_indices):
+                logger.critical('Number of atoms in PDB does not match number of atoms in atom_indices')
+                
             A["XYZList"] = []
-            for c in dcd.DCDReader(FilenameList):
+            for c in dcd.DCDReader(FilenameList, atomindices=atom_indices):
                 A["XYZList"].append(c.copy())
             A["XYZList"] = np.array(A["XYZList"])
         else:  # This is wasteful to read everything in just to get the length
             XYZ = []
-            for c in dcd.DCDReader(FilenameList):
+            for c in dcd.DCDReader(FilenameList, atomindices=atom_indices):
                 XYZ.append(c.copy())
             XYZ = np.array(XYZ)
             return(XYZ.shape)
@@ -667,25 +674,29 @@ class Trajectory(ConformationBaseClass):
             raise IOError("Incorrect file type--cannot get conformation %s" % TrajFilename)
 
     @classmethod
-    def load_trajectory_file(cls, Filename, JustInspect=False, Conf=None, Stride=1):
+    def load_trajectory_file(cls, Filename, JustInspect=False, Conf=None, Stride=1, atom_indices=None):
         """Loads a trajectory into memory, automatically deciding which methods to call based on filetype.  For XTC files, this method uses a pre-registered Conformation filename as a pdb."""
         extension = os.path.splitext(Filename)[1]
 
         if extension == '.h5':
-            return Trajectory.load_from_hdf(Filename, JustInspect=JustInspect, Stride=Stride)
+            return Trajectory.load_from_hdf(Filename, JustInspect=JustInspect,
+                Stride=Stride, AtomIndices=atom_indices)
 
         elif extension == '.xtc':
             if Conf == None:
                 raise Exception("Need to register a Conformation to use XTC Reader.")
-            return Trajectory.load_from_xtc(Filename, Conf=Conf, JustInspect=JustInspect)[::Stride]
+            return Trajectory.load_from_xtc(Filename, Conf=Conf, JustInspect=JustInspect,
+                atom_indices=atom_indices)[::Stride]
 
         elif extension == '.dcd':
             if Conf == None:
                 raise Exception("Need to register a Conformation to use DCD Reader.")
-            return Trajectory.load_from_dcd(Filename, Conf=Conf, JustInspect=JustInspect)[::Stride]
+            return Trajectory.load_from_dcd(Filename, Conf=Conf, JustInspect=JustInspect,
+                atom_indices=atom_indices)[::Stride]
 
         elif extension == '.lh5':
-            return Trajectory.load_from_lhdf(Filename, JustInspect=JustInspect, Stride=Stride)
+            return Trajectory.load_from_lhdf(Filename, JustInspect=JustInspect, Stride=Stride,
+                AtomIndices=atom_indices)
 
         elif extension == '.pdb':
             return Trajectory.load_from_pdb(Filename)[::Stride]

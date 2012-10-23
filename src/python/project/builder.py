@@ -49,6 +49,7 @@ class ProjectBuilder(object):
         self.output_traj_basename = kwargs.pop('output_traj_basename', 'trj')
         self.output_traj_dir = kwargs.pop('output_traj_dir', 'Trajectories')
         self.stride = kwargs.pop('stride', 1)
+        self.atom_indices = kwargs.pop('atom_indices', None)
 
         self._validators = []
         for e in kwargs.pop('validators', []):
@@ -218,9 +219,10 @@ class ProjectBuilder(object):
 
         if self.input_traj_ext == '.xtc':
             traj = Trajectory.load_from_xtc(file_list, PDBFilename=self.conf_filename,
-                        discard_overlapping_frames=True)
+                        discard_overlapping_frames=True, atom_indices=self.atom_indices)
         elif self.input_traj_ext == '.dcd':
-            traj = Trajectory.load_from_dcd(file_list, PDBFilename=self.conf_filename)
+            traj = Trajectory.load_from_dcd(file_list, PDBFilename=self.conf_filename,
+                atom_indices=self.atom_indices)
         else:
             raise ValueError()
         return traj
