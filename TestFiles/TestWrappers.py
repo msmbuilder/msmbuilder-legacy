@@ -116,12 +116,12 @@ class TestWrappers(unittest.TestCase):
         
         os.system(cmd)
         
-        tICA = Serializer.LoadFromHDF( 'tICAData.h5' )
+        tICA = io.loadh( 'tICAData.h5' )
 
-        r_tICA = Serializer.LoadFromHDF( tICADataFn )
+        r_tICA = io.loadh( tICADataFn )
 
-        numpy.testing.assert_array_almost_equal( tICA['vecs'], r_tICA['vecs'] )
-        numpy.testing.assert_array_almost_equal( tICA['vals'], r_tICA['vals'] )
+        npt.assert_array_almost_equal( tICA['vecs'], r_tICA['vecs'] )
+        npt.assert_array_almost_equal( tICA['vals'], r_tICA['vals'] )
 
     def test_c_Cluster(self):
         # We need to be sure to skip the stochastic k-mediods
