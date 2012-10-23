@@ -31,8 +31,6 @@ for ( i = 0; i < N; i++ )
 """
     inline( code, ['N', 'N0', 'lag', 'correlate_mat', 'data_vector'] )        
 
-    print correlate_mat
-    
     return correlate_mat
     
     

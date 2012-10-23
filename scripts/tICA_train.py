@@ -14,7 +14,7 @@ def run( project, stride, atom_indices, out_fn, dt, min_length, lag ):
         cov_mat_obj = tICA.CovarianceMatrix( lag=lag, procs=procs, normalize=False )
     
     for i in xrange( project.n_trajs ):
-        print "Working on trajectory %d" % i
+        print "Working on trajectory %d" % i 
 
         if project.traj_lengths[i] <= lag:
             print "\tTrajectory is not long enough for this lag (%d vs %d)" % ( project.traj_lengths[i], lag )
