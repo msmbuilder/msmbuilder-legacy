@@ -18,6 +18,9 @@ def test_traj_0():
     traj = Trajectory.load_from_lhdf(get('Trajectories/trj0.lh5', just_filename=True),
         Stride=stride, AtomIndices=aind)
 
+    # make sure we loaded the right number of atoms
+    assert traj['XYZList'].shape[1] == len(aind)
+
     for key in traj.keys():
         if key in ['SerializerFilename'] :
             continue
@@ -33,3 +36,7 @@ def test_traj_0():
 def test_traj_1():
     for i in range(20):
         test_traj_0()
+        
+        
+
+    
