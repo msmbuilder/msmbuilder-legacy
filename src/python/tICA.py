@@ -15,21 +15,26 @@ def correlate_C( lag ):
     code = \
 """
 int i,j,k; 
+float sum=0.;
 
 lag = (int) lag;
 
+#pragma omp parallel for private(sum,i,j)
 for ( i = 0; i < N; i++ )
 {
     for ( j = 0; j < N; j++ )
     {
+        sum=0.;
         for ( k = 0; k < N0 - lag; k++ )
-        {
-            correlate_mat[ i * N + j ] += data_vector[ k * N + i ] * data_vector[ ( k + lag ) * N + j];
+        {   
+            // correlate_mat[ i * N + j ] += data_vector[ k * N + i ] * data_vector[ ( k + lag ) * N + j];
+            sum += data_vector[ k * N + i ] * data_vector[ ( k + lag ) * N + j];
         }
+        correlate_mat[ i * N + j ] = sum;
     }
 }
 """
-    inline( code, ['N', 'N0', 'lag', 'correlate_mat', 'data_vector'] )        
+    inline( code, ['N', 'N0', 'lag', 'correlate_mat', 'data_vector'], headers=['"omp.h"'], extra_compile_args=[ '-fopenmp' ], libraries=['gomp'], verbose=2 )
 
     return correlate_mat
     
