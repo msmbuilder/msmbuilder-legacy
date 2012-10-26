@@ -11,9 +11,9 @@ logger = logging.getLogger( __name__ )
 def run( prep_metric, project, atom_indices, out_fn, dt, min_length, lag ):
 
     if lag > 0: # Then we're doing tICA
-        cov_mat_obj = tICA.CovarianceMatrix( lag=lag, procs=procs, normalize=True )
+        cov_mat_obj = tICA.CovarianceMatrix( lag=lag, normalize=True )
     else: # If lag is zero, this is equivalent to regular PCA
-        cov_mat_obj = tICA.CovarianceMatrix( lag=lag, procs=procs, normalize=False )
+        cov_mat_obj = tICA.CovarianceMatrix( lag=lag, normalize=False )
     
     for i in xrange( project.n_trajs ):
         logger.info( "Working on trajectory %d" % i )
@@ -50,7 +50,7 @@ def run( prep_metric, project, atom_indices, out_fn, dt, min_length, lag ):
         # Note that we can't use eigh because b is positive SEMI-definite, but it would need to be positive definite...
         
         if np.abs( vals.imag ).max() > 1E-8:
-            logger.warn( print "Non-real eigenvalues!!!! Something is probably wrong, but I will save everything anyway..." )
+            logger.warn( "Non-real eigenvalues!!!! Something is probably wrong, but I will save everything anyway..." )
         else:
             vals = vals.real
     
