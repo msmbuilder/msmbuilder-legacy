@@ -6,8 +6,10 @@ import multiprocessing as mp
 from time import time
 import gc
 from scipy.weave import inline
+import logging
 
-
+logger = logging.getLogger( __name__ )
+logger.setLevel( logging.DEBUG )
 def correlate_C( lag ):
 
     N0, N = data_vector.shape
@@ -37,8 +39,6 @@ for ( i = 0; i < N; i++ )
     inline( code, ['N', 'N0', 'lag', 'correlate_mat', 'data_vector'], headers=['"omp.h"'], extra_compile_args=[ '-fopenmp' ], libraries=['gomp'], verbose=2 )
 
     return correlate_mat
-    
-    
 
 def np_dot_row( args ):
     row_ind = args[0]
@@ -94,7 +94,7 @@ class CovarianceMatrix:
 
     def set_size( self, N ):
         if self.corrs !=None:
-            print "There is still a matrix stored! Not overwriting, use method start_over() to delete the old matrix."
+            logger.warn( "There is still a matrix stored! Not overwriting, use method start_over() to delete the old matrix." )
             return
         self.size = N
 
@@ -127,7 +127,7 @@ class CovarianceMatrix:
             raise Exception("Input vector is not the right size. axis=1 should be length %d. Vector has shape %s" %(self.size, str(data_vector.shape)) )
 
         if data_vector.shape[0] <= self.lag:
-            print "Data vector is too short (%d) for this lag (%d)" % (data_vector.shape[0],self.lag)
+            logger.warn( "Data vector is too short (%d) for this lag (%d)" % (data_vector.shape[0],self.lag) )
             return
 
         temp_mat = np.zeros( (self.size,self.size) )
@@ -173,7 +173,7 @@ class CovarianceMatrix:
         f=time()
 
         #print np.abs(self.corrs_lag0 - self.corrs_lag0.T).max()
-        print "Setup: %f, Corrs: %f, Finish: %f" %( b-a, c-b, f-c)
+        logger.debug( "Setup: %f, Corrs: %f, Finish: %f" %( b-a, c-b, f-c) )
 
     def get_current_estimate(self):
 
@@ -196,7 +196,7 @@ class CovarianceMatrix:
 
         if self.normalize:
 
-            print np.abs(self.corrs_lag0 - self.corrs_lag0.T).max()
+            logger.debug( 'Error in symmetry of covariance matrix is %f' % np.abs(self.corrs_lag0 - self.corrs_lag0.T).max() )
             temp_mat_lag0 = self.corrs_lag0 / float( self.total_frames ) - np.dot( tot_means, tot_means.T )
             return temp_mat, temp_mat_lag0
 
