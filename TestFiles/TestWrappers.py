@@ -111,17 +111,25 @@ class TestWrappers(unittest.TestCase):
         npt.assert_array_equal(AInd, r_AInd)
 
     def test_ba_tICA_train(self):
-        cmd = "tICA_train.py -P 1 -d 10 -p {project} -s {stride} dihedral -a phi/psi".format(project=ProjectFn, stride=Stride )
+        cmd = "tICA_train.py -d 10 -p {project} -o tICAData.h5 -s {stride} dihedral -a phi/psi".format(project=ProjectFn, stride=Stride )
         print cmd
         
         os.system(cmd)
         
         tICA = io.loadh( 'tICAData.h5' )
 
-        r_tICA = io.loadh( tICADataFn )
+        sorted_ind = np.argsort( tICA['vals'].real )
 
-        npt.assert_array_almost_equal( tICA['vecs'], r_tICA['vecs'] )
-        npt.assert_array_almost_equal( tICA['vals'], r_tICA['vals'] )
+        r_tICA = io.loadh( tICADataFn )
+    
+        r_sorted_ind = np.argsort( r_tICA['vals'].real )
+
+        npt.assert_array_almost_equal( r_tICA['vals'][ r_sorted_ind ], tICA['vals'][ sorted_ind ] )
+
+        for i in range( r_tICA['vecs'].shape[1] ):
+            if np.abs( r_tICA['vecs'][:,r_sorted_ind[i]] - tICA['vecs'][:,sorted_ind[i]] ).max() > 1E-6:
+                if np.abs( r_tICA['vecs'][:,r_sorted_ind[i]] + tICA['vecs'][:,sorted_ind[i]] ).max() > 1E-6:
+                    return False
 
     def test_c_Cluster(self):
         # We need to be sure to skip the stochastic k-mediods
