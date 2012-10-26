@@ -46,13 +46,20 @@ def run( project, stride, atom_indices, out_fn, dt, min_length, lag ):
         cov_mat, cov_mat_lag0 = cov_mat_obj.get_current_estimate()
         vals, vecs = scipy.linalg.eig( cov_mat, b=cov_mat_lag0 ) 
         # Note that we can't use eigh because b is positive SEMI-definite, but it would need to be positive definite...
-        vec_vars = np.array([ np.dot( np.dot( vec, cov_mat_lag0 ), vec ) for vec in vecs.T ]) # get the variances for each projection
-        vecs /= np.sqrt( vec_vars )
+        
+        if np.abs( vals.imag ).max() > 1E-8:
+            print "Non-real eigenvalues!!!! Something is probably wrong, but I will save everything anyway..."
+        else:
+            vals = vals.real
+    
+        vec_norms = np.array([ vec.dot( cov_mat ).dot( vec ) / val for vec,val in zip(vecs.T, vals) ]) # get the variances for each projection
+        vecs /= vec_norms 
+        io.saveh( out_fn, vecs=vecs, vals=vals, cov_mat=cov_mat, cov_mat_lag0=cov_mat_lag0 )
     else:
         cov_mat = cov_mat_obj.get_current_estimate()
         vals, vecs = scipy.linalg.eigh( cov_mat ) # Get the right eigenvectors of the covariance matrix. It's hermitian so left=right e-vectors
 
-    io.saveh( out_fn, vecs=vecs, vals=vals )
+        io.saveh( out_fn, vecs=vecs, vals=vals )
 
     print "Saved output to %s" % out_fn
 
