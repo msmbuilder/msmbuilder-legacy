@@ -149,7 +149,7 @@ def test_AssignHierarchical():
 
 class test_BuildMSM(WTempdir):
     def test(self):
-        BuildMSM.run(LagTime=1, assignments=get('Assignments.h5')['Data'], Symmetrize='MLE',
+        BuildMSM.run(LagTime=1, assignments=get('Assignments.h5')['arr_0'], Symmetrize='MLE',
             OutDir=self.td)
         
         eq(load(pjoin(self.td, 'tProb.mtx')), get('tProb.mtx'))
@@ -180,8 +180,8 @@ def test_DoTPT():
 
 
 def test_CalculateClusterRadii():
-    cr = CalculateClusterRadii.main(get("Assignments.h5")['Data'],
-                                    get("Assignments.h5.distances")['Data'])
+    cr = CalculateClusterRadii.main(get("Assignments.h5")['arr_0'],
+                                    get("Assignments.h5.distances")['arr_0'])
     cr_r = get("ClusterRadii.dat")
     eq(cr, cr_r)
 
