@@ -29,7 +29,9 @@ from msmbuilder import msm_analysis
 import logging
 logger = logging.getLogger('msmbuilder.scripts.CalculateImpliedTimescales')
 
-def run(MinLagtime, MaxLagtime, Interval, NumEigen, AssignmentsFn, symmetrize, nProc):    
+def run(MinLagtime, MaxLagtime, Interval, NumEigen, AssignmentsFn, trimming, 
+        symmetrize, nProc):
+        
     # Setup some model parameters
     try:
         Assignments = io.loadh(AssignmentsFn, 'arr_0')
@@ -48,8 +50,9 @@ def run(MinLagtime, MaxLagtime, Interval, NumEigen, AssignmentsFn, symmetrize, n
 
     # Get the implied timescales (eigenvalues)
     impTimes = msm_analysis.get_implied_timescales(AssignmentsFn, lagTimes,
-        n_implied_times=NumEigen, sliding_window=True, symmetrize=symmetrize,
-        n_procs=nProc)
+        n_implied_times=NumEigen, sliding_window=True, trimming=trimming, 
+        symmetrize=symmetrize, n_procs=nProc)
+        
     return impTimes
 
 
@@ -76,10 +79,12 @@ contains all the lag times.\n""")
         else try Transpose. It is strongly recommended you read the documentation
         surrounding this choice.""", default='MLE',
         choices=['MLE', 'Transpose', 'None'])
+    parser.add_argument('trim', help="""Whether or not to apply an ergodic trim.
+        If true, keeps only the largest observed ergodic subset of the data, if 
+        false, keeps everything. Default: True.""", default=True, type=bool)
     args = parser.parse_args()
     arglib.die_if_path_exists(args.output)
     
-
     LagTimes = args.lagtime.split(',')
     MinLagtime = int(LagTimes[0])
     MaxLagtime = int(LagTimes[1])
@@ -89,6 +94,6 @@ contains all the lag times.\n""")
         args.symmetrize = None
 
     impTimes = run(MinLagtime, MaxLagtime, args.interval, args.eigvals, args.assignments,
-        args.symmetrize, args.procs)
+        args.trim, args.symmetrize, args.procs)
     numpy.savetxt(args.output, impTimes)
     logger.info("Saved output to %s", args.output)
