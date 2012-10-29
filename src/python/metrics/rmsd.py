@@ -156,7 +156,7 @@ class RMSD(AbstractDistanceMetric):
         """
 
         if self.atomindices is not None:
-            return self.TheoData(trajectory['XYZList'][:, self.atomindices])
+            return self.TheoData(trajectory['XYZList'][:,self.atomindices])
         return self.TheoData(trajectory['XYZList'])
 
     def one_to_many(self, prepared_traj1, prepared_traj2, index1, indices2):
