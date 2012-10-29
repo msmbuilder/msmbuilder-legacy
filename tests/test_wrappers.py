@@ -161,7 +161,7 @@ class test_BuildMSM(WTempdir):
 def test_CalculateImpliedTimescales():
     impTimes = CalculateImpliedTimescales.run(MinLagtime=3, MaxLagtime=5,
         Interval=1, NumEigen=10, AssignmentsFn=get('Assignments.h5', just_filename=True),
-        symmetrize='Transpose', nProc=1)
+        trimming=True, symmetrize='Transpose', nProc=1)
     
     eq(impTimes, get('ImpliedTimescales.dat'))
 
