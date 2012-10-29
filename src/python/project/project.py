@@ -218,10 +218,11 @@ class Project(object):
 
         return filename_or_file
 
-    def load_traj(self, trj_index, stride=1):
+    def load_traj(self, trj_index, stride=1, atom_indices=None):
         "Load the a trajectory from disk"
         filename = self.traj_filename(trj_index)
-        return Trajectory.load_trajectory_file(filename, Stride=stride)
+        return Trajectory.load_trajectory_file(filename, Stride=stride, 
+                                               AtomIndices=atom_indices)
         
     def load_frame(self, traj_index, frame_index):
         """Load one or more specified frames.
