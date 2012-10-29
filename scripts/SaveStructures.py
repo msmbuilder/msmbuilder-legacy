@@ -10,7 +10,7 @@ logger = logging.getLogger('msmbuilder.scripts.SaveStructures')
 DEBUG = True
 
 
-def run(project, assignments, states, n_per_state, random=None):
+def run(project, assignments, states, n_per_state, random=None, replacement=True):
     """Extract random conformations from states
 
     Parameters
@@ -41,15 +41,18 @@ def run(project, assignments, states, n_per_state, random=None):
         trajs, frames = inv[s]
         if len(trajs) != len(frames):
             raise RuntimeError('inverse assignments corrupted?')
-        if len(trajs) < n_per_state:
-            raise ValueError("Asked for %d confs per state, but state %d only has %d", n_per_state, s, len(trajs))
 
-        # indices of the confs to select
-        # draw n_per_state random numbers between `0` and `len(trajs)` without replacement
-        r = random.permutation(len(trajs))[:n_per_state]
-        
-        # to draw with replacement, use
-        # r = random.randint(len(trajs), size=n_per_state)
+        if replacement:
+            if len(trajs) < n_per_state:
+                logger.error("Asked for %d confs per state, but state %d only has %d" % n_per_state, s, len(trajs))
+            # indices of the confs to select
+            r = random.randint(len(trajs), size=n_per_state)
+        else:
+            if len(trajs) < n_per_state:
+                raise ValueError("Asked for %d confs per state, but state %d only has %d" % n_per_state, s, len(trajs))
+            # draw n_per_state random numbers between `0` and `len(trajs)` without replacement
+            r = random.permutation(len(trajs))[:n_per_state]
+
 
         results.append(project.load_frame(trajs[r], frames[r]))
 
@@ -106,7 +109,9 @@ conformations), or in the same file.
     parser.add_argument('states', nargs='+', type=int,
         help='''Which states to sample from. Pass a list of integers, separated
         by whitespace. To specify ALL of the states, include the integer -1.''',
-        default=-1)
+        default=[-1])
+    # nargs=+ means the values will come out as type list, but this isn't
+    # naturally applied to the default, so we just put the default as [-1]
     parser.add_argument('format', choices=['pdb', 'xtc', 'lh5'],
         help='''Format for the outputted conformations. PDB is the standard
         plaintext protein databank format. XTC is the gromacs binary trajectory
@@ -123,6 +128,10 @@ conformations), or in the same file.
         microstate will be the `i+j*N`th frame in the trajectory file. The file
         will be namaed Confs.{ext}
         ''', default='sep')
+    parser.add_argument('replacement', type=bool, help='''Draw random stuctures from
+        those assigned to a state either with replacement or without. If you ask for k
+        structures from a state with < k assignments and are drawing with --replacement False,
+        you will get an error.''', default=True)
 
     parser.add_argument('output_dir', default='PDBs')
     args = parser.parse_args()
@@ -152,7 +161,7 @@ conformations), or in the same file.
     # extract the conformations using np.random for the randomness
     confs_by_state = run(project=project, assignments=assignments,
         states=states, n_per_state=args.conformations_per_state,
-        random=np.random)
+        random=np.random, replacement=args.replacement)
 
     # save the conformations to disk, in the requested style
     save(confs_by_state=confs_by_state, states=states, style=args.style,
