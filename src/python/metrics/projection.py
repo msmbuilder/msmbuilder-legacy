@@ -15,8 +15,18 @@ class RedDimPNorm(Vectorized,AbstractDistanceMetric):
     class ProjectionObject:
         def __init__( self, proj_fn):
             data_dict = io.loadh( proj_fn )
-            self.vecs = np.array( data_dict['vecs'] )
-            self.vals = np.array( data_dict['vals'].real.astype(float) ) # These should be real already but have 1E-16j attached to them
+
+            # We only want to keep the vectors and values that are not complex. This is usually all of them
+            # But for some reason when there are PC's in the PCA decomposition that have zero variance (i.e. \Sigma has some zero eigenvalues) 
+            # You get complex eigenvalues and eigenvectors. We also want to exclude vectors with eigenvalues greater than 1. I don't know where 
+            # These came from unfortunately... And this may indicate a larger issue with this method.
+            good_vecs = np.where( ( data_dict['vals'].imag == 0 ) 
+                                    & ( data_dict['vals'].real < 1 ) 
+                                    & ( np.abs( data_dict['vecs'].imag ).max(axis=0) == 0 ) )[0]
+            good_vecs = np.arange( data_dict['vals'].shape[0] )
+            self.vecs = np.array( data_dict['vecs'][:, good_vecs].real)
+            self.vals = np.array( data_dict['vals'][ good_vecs ].real.astype(float) ) # These should be real already but have 1E-16j attached to them
+
             dec_ind = np.argsort( self.vals )[::-1]
             
             self.vecs = np.array( self.vecs[:,dec_ind] )
@@ -41,7 +51,7 @@ class RedDimPNorm(Vectorized,AbstractDistanceMetric):
                 self.red_vals = self.vals[keep_ind]
             
             print "Kept %d out of %d total vectors" % ( self.red_vals.shape[0], self.vals.shape[0] )
- 
+            print self.red_vals
             return
 
         def execute( self, ptraj ):
