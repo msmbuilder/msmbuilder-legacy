@@ -3,8 +3,8 @@ include COPYING
 include README
 include RevisionHistory.txt
 graft src
-graft new_tests
+graft reference
+graft tests
 graft TUTORIAL/xtc
-graft TestFiles
 graft Docs
 graft Extras
