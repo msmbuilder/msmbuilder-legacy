@@ -19,81 +19,106 @@
 """Contains classes for dealing with conformations.
 """
 import numpy as np
-from msmbuilder import PDB
+from msmbuilder import pdb
+from msmbuilder.utils import deprecated
 
 class ConformationBaseClass(dict):
-    """Base class for Trajectory and Conformation classes.  Not for separate use."""
-    def __init__(self,DictLike=None):
-        """Initialize object.  Optionally include data from a dictionary object DictLike."""
-        super(ConformationBaseClass, self).__init__(DictLike)
+    """Base class for Trajectory and Conformation classes.  
+    Not for separate use."""
+    def __init__(self, dict_like=None):
+        """Initialize object.  Optionally include data from a dictionary 
+        object dict_like."""
+        super(ConformationBaseClass, self).__init__(dict_like)
         
-        KeysToForceCopy=["ChainID","AtomNames","ResidueNames","AtomID","ResidueID"]
-        for key in KeysToForceCopy:#Force copy to avoid owning same numpy memory.
-            self[key]=self[key].copy()
+        keys_to_force_copy = ["ChainID", "AtomNames", "ResidueNames", "AtomID",
+                              "ResidueID"]
+        for key in keys_to_force_copy: # To avoid overwriting something
+            self[key] = self[key].copy()
             
-        self["ResidueNames"]=self["ResidueNames"].copy().astype("S4")
-        self.UpdateIndexList()
+        self["ResidueNames"] = self["ResidueNames"].copy().astype("S4")
+        self.update_index_list()
 
-    def UpdateIndexList(self):
+    def update_index_list(self):
         """Construct a list of which atoms belong to which residues.
 
-        NOTE: these indices are NOT the same as the ResidueIDs--these indices take the value 0, 1, ..., (n-1)
+        NOTE: these indices are NOT the same as the ResidueIDs--these indices 
+            take the value 0, 1, ..., (n-1)
         where n is the number of residues.
         """
-        self["IndexList"]=[[] for i in range(self.GetNumberOfResidues())]
+        self["IndexList"] = [ [] for i in range(self.num_residues) ]
 
-        ZeroIndexResidueID=self.GetEnumeratedResidueID()
-        for i in range(self.GetNumberOfAtoms()):
-            self["IndexList"][ZeroIndexResidueID[i]].append(i)
+        zero_index_residue_id = self.get_enumerated_residue_id()
+        for i in range(self.num_atoms):
+            self["IndexList"][zero_index_residue_id[i]].append(i)
 
-    def GetNumberOfAtoms(self):
+    @property
+    def num_atoms(self):
         """Return the number of atoms in this object."""
         return len(self["AtomNames"])
-    
-    def GetNumberOfResidues(self):
+
+    @property
+    def num_residues(self):
         """Return the number of residues in this object."""
         return len(np.unique(self["ResidueID"]))
 
-    def GetEnumeratedAtomID(self):
-        """Returns an array of consecutive integers that enumerate over all atoms in the system.  STARTING WITH ZERO!"""
+    @deprecated()
+    def get_number_of_atoms(self):
+        """Return the number of atoms in this object."""
+        return self.num_atoms
+
+    @deprecated()
+    def get_number_of_residues(self):
+        """Return the number of residues in this object."""
+        return self.num_residues
+
+    def get_enumerated_atom_id(self):
+        """Returns an array of consecutive integers that enumerate over all 
+        atoms in the system.  STARTING WITH ZERO!"""
         return np.arange(len(self["AtomID"]))
 
-    def GetEnumeratedResidueID(self):
-        """Returns an array of NONUNIQUE consecutive integers that enumerate over all Residues in the system.  STARTING WITH ZERO!
+    def get_enumerated_residue_id(self):
+        """Returns an array of NONUNIQUE consecutive integers that enumerate 
+        over all Residues in the system.  STARTING WITH ZERO!
 
-        Note: This will return something like [0,0,0,1,1,1,2,2,2]--the first 3 atoms belong to residue 0, the next 3 belong to 1, etc.
+        Note: This will return something like [0,0,0,1,1,1,2,2,2]--the first 3 
+        atoms belong to residue 0, the next 3 belong to 1, etc.
         """
-        UniquePDBID=np.unique(self["ResidueID"])
-        D=dict([[x,i] for i,x in enumerate(UniquePDBID)])
+        unique_residue_ids = np.unique(self["ResidueID"])
+        residue_id_dict = dict([ [x,i] for i,x in 
+                                enumerate(unique_residue_ids)])
         
-        X=np.zeros(len(self["ResidueID"]),'int')
-        for i in xrange(self.GetNumberOfAtoms()):
-            X[i]=D[self["ResidueID"][i]]
-        return X
+        residue_ids = np.zeros(len(self["ResidueID"]), 'int')
+        for i in xrange(self.num_atoms):
+            residue_ids[i] = residue_id_dict[self["ResidueID"][i]]
+        return residue_ids
 
-    def restrict_atom_indices(self,AtomIndices):
-        for key in ["AtomID","ChainID","ResidueID","AtomNames","ResidueNames"]:
-            self[key]=self[key][AtomIndices]
+    def restrict_atom_indices(self, atom_indices):
+        for key in ["AtomID", "ChainID", "ResidueID", "AtomNames",
+                    "ResidueNames"]:
+            self[key] = self[key][atom_indices]
 
-        self.UpdateIndexList()
+        self.update_index_list()
 
 class Conformation(ConformationBaseClass):
-    """A single biomolecule conformation.  Use classmethod load_from_pdb to create an instance of this class from a PDB filename"""    
-    def __init__(self,S):
-        """Initializes object from a dictionary-like object S."""
-        ConformationBaseClass.__init__(self,S)
-        self["XYZ"]=S["XYZ"].copy()
+    """A single biomolecule conformation.  Use classmethod load_from_pdb to 
+    create an instance of this class from a PDB filename"""    
+    def __init__(self, dict_like):
+        """Initializes object from a dictionary-like object (dict_like)."""
+        ConformationBaseClass.__init__(self, dict_like)
+        self["XYZ"] = dict_like["XYZ"].copy()
 
-    def restrict_atom_indices(self,AtomIndices):
-        ConformationBaseClass.restrict_atom_indices(self,AtomIndices)
-        self["XYZ"]=self["XYZ"][AtomIndices]
+    def restrict_atom_indices(self, atom_indices):
+        ConformationBaseClass.restrict_atom_indices(self, atom_indices)
+        self["XYZ"] = self["XYZ"][atom_indices]
         
-    def save_to_pdb(self,Filename):
+    def save_to_pdb(self, filename):
         """Write conformation as a PDB file."""
-        PDB.WritePDBConformation(Filename,self["AtomID"], self["AtomNames"],self["ResidueNames"],self["ResidueID"],self["XYZ"],self["ChainID"])
+        pdb.write_pdb_conformation(filename, self["AtomID"], self["AtomNames"],
+                                   self["ResidueNames"], self["ResidueID"],
+                                   self["XYZ"], self["ChainID"])
         
     @classmethod
-    def load_from_pdb(cls,Filename):       
+    def load_from_pdb(cls, filename):       
         """Create a conformation from a PDB File."""
-        return(cls(PDB.LoadPDB(Filename)))
+        return cls(pdb.load_pdb(filename))
 

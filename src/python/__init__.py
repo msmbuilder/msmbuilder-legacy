@@ -42,7 +42,7 @@ sh.setFormatter(formatter)
 logger.addHandler(sh)
 logger.propagate = False
 
-import PDB
+import pdb
 from Trajectory import Trajectory
 from Conformation import Conformation
 from project import Project

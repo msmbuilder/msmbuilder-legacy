@@ -221,8 +221,8 @@ class Project(object):
     def load_traj(self, trj_index, stride=1, atom_indices=None):
         "Load the a trajectory from disk"
         filename = self.traj_filename(trj_index)
-        return Trajectory.load_trajectory_file(filename, Stride=stride, 
-                                               AtomIndices=atom_indices)
+        return Trajectory.load_trajectory_file(filename, stride=stride, 
+                                               atom_indices=atom_indices)
         
     def load_frame(self, traj_index, frame_index):
         """Load one or more specified frames.
@@ -231,8 +231,8 @@ class Project(object):
         -------
         >>> project = Project.load_from('ProjectInfo.yaml')
         >>> foo = project.load_frame(1,10)
-        >>> bar = Trajectory.read_frame(TrajFilename=project.traj_filename(1),
-            WhichFrame=10)
+        >>> bar = Trajectory.read_frame(traj_filename=project.traj_filename(1),
+            which_frame=10)
         >>> np.all(foo['XYZList'] == bar)
         True
 
@@ -250,8 +250,8 @@ class Project(object):
         """
 
         if np.isscalar(traj_index) and np.isscalar(frame_index):
-            xyz = Trajectory.read_frame(TrajFilename=self.traj_filename(traj_index),
-                WhichFrame=frame_index)
+            xyz = Trajectory.read_frame(traj_filename=self.traj_filename(traj_index),
+                                        which_frame=frame_index)
             xyzlist = np.array([xyz])
         else:
             traj_index = np.array(traj_index)
@@ -263,8 +263,8 @@ class Project(object):
             for i,j in zip(traj_index, frame_index):
                 if j >= self.traj_lengths[i]:
                     raise ValueError('traj %d too short (%d) to contain a frame %d' % (i, self.traj_lengths[i], j))
-                xyz = Trajectory.read_frame(TrajFilename=self.traj_filename(i),
-                    WhichFrame=j)
+                xyz = Trajectory.read_frame(traj_filename=self.traj_filename(i),
+                                            which_frame=j)
                 xyzlist.append(xyz)
             xyzlist = np.array(xyzlist)
 
@@ -310,7 +310,9 @@ class Project(object):
         n_atoms = np.zeros(self.n_trajs)
         conf = self.load_conf()
         for i in xrange(self.n_trajs):
-            shape = Trajectory.load_trajectory_file(self.traj_filename(i), JustInspect=True, Conf=conf)
+            shape = Trajectory.load_trajectory_file(self.traj_filename(i), 
+                                                    just_inspect=True, 
+                                                    conf=conf)
             lengths[i] = shape[0]
             n_atoms[i] = shape[1]
         return lengths, n_atoms

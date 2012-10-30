@@ -24,7 +24,7 @@ import os
 import tables
 import numpy as np
 
-from msmbuilder import PDB
+from msmbuilder import pdb
 from msmbuilder import io
 from msmbuilder.Conformation import ConformationBaseClass, Conformation
 from msmbuilder import xtc
@@ -38,37 +38,48 @@ MAXINT32 = np.iinfo(np.int32).max
 DEFAULT_PRECISION = 1000
 
 
-def _convert_to_lossy_integers(X, precision):
-    """Implementation of the lossy compression used in Gromacs XTC using the pytables library.  Convert 32 bit floats into 16 bit integers.  These conversion functions have been optimized for memory use.  Further memory reduction would require an in-place astype() operation, which one could create using ctypes."""
-    if np.max(X) * float(precision) < MAXINT16 and np.min(X) * float(precision) > -MAXINT16:
-        X *= float(precision)
-        Rounded = X.astype("int16")
-        X /= float(precision)
+def _convert_to_lossy_integers(data, precision=DEFAULT_PRECISION):
+    """Implementation of the lossy compression used in Gromacs XTC using the 
+    pytables library.  Convert 32 bit floats into 16 bit integers.  These 
+    conversion functions have been optimized for memory use.  Further memory 
+    reduction would require an in-place astype() operation, which one could 
+    create using ctypes."""
+    if (np.max(data)*float(precision) < MAXINT16 and 
+        np.min(data)*float(precision) > -MAXINT16):
+
+        data *= float(precision) 
+        rounded_data = data.astype("int16")
+        data /= float(precision) 
     else:
-        X *= float(precision)
-        Rounded = X.astype("int32")
-        X /= float(precision)
-        logger.error("Data range too large for int16: try removing center of mass motion, check for 'blowing up, or just use .h5 or .xtc format.'")
-    return(Rounded)
+        data *= float(precision)
+        rounded_data = data.astype("int32")
+        data /= float(precision)
+        logger.error("Data range too large for int16: try removing center of " 
+                     "mass motion, check for 'blowing up, or just use .h5 or " 
+                     ".xtc format.'")
+    return rounded_data
 
 
-def _convert_from_lossy_integers(X, precision):
-    """Implementation of the lossy compression used in Gromacs XTC using the pytables library.  Convert 16 bit integers into 32 bit floats."""
-    X2 = X.astype("float32")
-    X2 /= float(precision)
-    return(X2)
+def _convert_from_lossy_integers(data, precision=DEFAULT_PRECISION):
+    """Implementation of the lossy compression used in Gromacs XTC using the 
+    pytables library.  Convert 16 bit integers into 32 bit floats."""
+    data_copy = data.astype("float32")
+    data_copy /= float(precision)
+    return data_copy
 
 
 class Trajectory(ConformationBaseClass):
     """This is the representation of a sequence of  conformations.
 
     Notes:
-    Use classmethod load_from_pdb to create an instance of this class from a PDB filename.
+    Use classmethod load_from_pdb to create an instance of this class from a 
+    PDB filename.
     The Trajectory is a dictionary-like object.
-    The dictionary key 'XYZList' contains a numpy array of XYZ coordinates, stored such that
+    The dictionary key 'XYZList' contains a numpy array of XYZ coordinates, 
+    stored such that:
     X[i,j,k] gives Frame i, Atom j, Coordinate k.
     """
-    def __init__(self, S):
+    def __init__(self, conf):
         """Create a Trajectory from a single conformation.
 
         Leaves the XYZList key as an empty list for easy appending.
@@ -89,10 +100,10 @@ class Trajectory(ConformationBaseClass):
         load_from_lhdf
         """
 
-        ConformationBaseClass.__init__(self, S)
+        ConformationBaseClass.__init__(self, conf)
         self["XYZList"] = []
-        if "XYZList" in S:
-            self["XYZList"] = S["XYZList"].copy()
+        if "XYZList" in conf:
+            self["XYZList"] = conf["XYZList"].copy()
 
     def subsample(self, stride):
         """Keep only the frames at some interval
@@ -120,56 +131,71 @@ class Trajectory(ConformationBaseClass):
         """
         if stride == 1:
             return
+
         self["XYZList"] = self["XYZList"][::stride].copy()
 
     def __getitem__(self, key):
-        if isinstance(key, int) or isinstance(key, slice) or isinstance(key, np.ndarray):
+        if (isinstance(key, int) or isinstance(key, slice) or 
+            isinstance(key, np.ndarray)):
+
             if isinstance(key, int):
                 key = [key]
+
             newtraj = copy.copy(self)
             newtraj['XYZList'] = self['XYZList'][key]
+
             return newtraj
+
         return super(Trajectory, self).__getitem__(key)
 
     def __len__(self):
         return len(self['XYZList'])
 
     def __add__(self, other):
+        """Addition means concatenation of two trajectory instances"""
         # Check type of other
         if not isinstance(other, Trajectory):
             raise TypeError('You can only add two Trajectory instances')
-        Sum = copy.deepcopy(self)
+        concatenated_trajs = copy.deepcopy(self)
         # Simply copy the XYZList in here if the Trajectory is Empty.
         if 'XYZList' not in self and 'XYZList' not in other:
             pass
         elif 'XYZList' not in self:
-            Sum['XYZList'] = copy.deepcopy(other['XYZList'])
+            concatenated_trajs['XYZList'] = copy.deepcopy(other['XYZList'])
         elif 'XYZList' not in other:
-            Sum['XYZList'] = copy.deepcopy(self['XYZList'])
+            concatenated_trajs['XYZList'] = copy.deepcopy(self['XYZList'])
         else:
-            if not self['XYZList'].shape[1] == other['XYZList'].shape[1]:
-                raise TypeError('The two trajectories don\'t have the same number of atoms')
-            Sum['XYZList'] = np.vstack((self['XYZList'], other['XYZList']))
-        return Sum
+            if self['XYZList'].shape[1] != other['XYZList'].shape[1]:
+                raise TypeError("The two trajectories don\'t have the same " 
+                                "number of atoms")
+            concatenated_trajs['XYZList'] = np.vstack((self['XYZList'], 
+                                                       other['XYZList']))
+
+        return concatenated_trajs
 
     def __iadd__(self, other):
-        # Check type of other
-        if not isinstance(other, Trajectory):
-            raise TypeError('You can only add two Trajectory instances')
-        # Simply copy the XYZList in here if the Trajectory is Empty.
-        if 'XYZList' not in self:
-            self['XYZList'] = copy.deepcopy(other['XYZList'])
-        else:
-            # Check number of atoms.
-            if not self['XYZList'].shape[1] == other['XYZList'].shape[1]:
-                raise TypeError('The two trajectories don\'t have the same number of atoms')
-            self['XYZList'] = np.vstack((self['XYZList'], other['XYZList']))
-        return self
+        """Addition means concatenation of two trajectory instances"""
+        # NOTE: CRS thinks this should just use __add__ like so:
+        return self + other
 
-    def restrict_atom_indices(self, AtomIndices):
-        ConformationBaseClass.restrict_atom_indices(self, AtomIndices)
+        ## Check type of other
+        #if not isinstance(other, Trajectory):
+        #    raise TypeError('You can only add two Trajectory instances')
+        ## Simply copy the XYZList in here if the Trajectory is Empty.
+        #if 'XYZList' not in self:
+        #    self['XYZList'] = copy.deepcopy(other['XYZList'])
+        #else:
+        #    # Check number of atoms.
+        #    if not self['XYZList'].shape[1] == other['XYZList'].shape[1]:
+        #        raise TypeError('The two trajectories don\'t have the same ' 
+        #                         'number of atoms')
+        #    self['XYZList'] = np.vstack((self['XYZList'], other['XYZList']))
+        #return self
 
-        self['XYZList'] = copy.copy(self['XYZList'][:, AtomIndices])
+    def restrict_atom_indices(self, atom_indices):
+        ConformationBaseClass.restrict_atom_indices(self, atom_indices)
+
+        self['XYZList'] = copy.copy(self['XYZList'][:, atom_indices])
 
     def save_to_lhdf(self, filename, precision=DEFAULT_PRECISION):
         """Save a Trajectory instance to a Lossy HDF File.
@@ -180,18 +206,24 @@ class Trajectory(ConformationBaseClass):
 
         Parameters
         ----------
-        Filename: str
+        filename: str
             location to save to
-        Precision : float, optional
+        precision : float, optional
             Precision to save xyzlist
         """
-        self.pop('IndexList')
+        # This doesn't get saved it's just regenerated every time the 
+        # trajectory is loaded
+        index_list = self.pop('IndexList') 
         
         xyzlist = self.pop('XYZList')
         rounded = _convert_to_lossy_integers(xyzlist, precision)
         self['XYZList'] = rounded
+
         io.saveh(filename, **self)
+
+        # Return the instance to what it was before the save:
         self['XYZList'] = xyzlist
+        self['IndexList'] = index_list 
         
     def save_to_xtc(self, filename, precision=DEFAULT_PRECISION):
         """Dump the coordinates to XTC
@@ -206,11 +238,14 @@ class Trajectory(ConformationBaseClass):
  
         if os.path.exists(filename):
             raise IOError("%s already exists" % filename)
-        XTCFile=xtc.XTCWriter(filename)
-        for i in range(len(self["XYZList"])):
-            XTCFile.write(self["XYZList"][i], 1, i, np.eye(3, 3, dtype='float32'), precision)
 
-    def save_to_pdb(self, Filename):
+        xtc_file = xtc.XTCWriter(filename)
+
+        for i in range(len(self["XYZList"])):
+            xtc_file.write(self["XYZList"][i], 1, i, \
+                            np.eye(3, 3, dtype='float32'), precision)
+
+    def save_to_pdb(self, filename):
         """Dump the coordinates to PDB
 
         Parameters
@@ -220,14 +255,17 @@ class Trajectory(ConformationBaseClass):
 
         Notes
         -----
-        Don't use this for a very big trajectory. PDB is plaintext and takes a lot
-        of memory
+        Don't use this for a very big trajectory. 
+        PDB is plaintext and takes a lot of memory
         """
 
         for i in range(len(self["XYZList"])):
-            PDB.WritePDBConformation(Filename, self["AtomID"], self["AtomNames"], self["ResidueNames"], self["ResidueID"], self["XYZList"][i], self["ChainID"])
+            pdb.write_pdb_conformation(filename, self["AtomID"], 
+                                       self["AtomNames"], self["ResidueNames"],
+                                       self["ResidueID"], self["XYZList"][i],
+                                       self["ChainID"])
 
-    def save_to_xyz(self, Filename):
+    def save_to_xyz(self, filename):
         """Dump the coordinates to XYZ format
 
         Parameters
@@ -237,24 +275,28 @@ class Trajectory(ConformationBaseClass):
 
         Notes
         -----
-        TODO: What exactly is the XYZ format? (RTM 6/27)
+        TODO: What exactly is the XYZ format? (RTM 6/27) 
+            CRS: I think tinker uses it?
         """
 
-        Answer = []
-        Title = 'From MSMBuilder save_to_xyz funktion'
+        output_lines = []
+        title = 'From MSMBuilder save_to_xyz function'
         for i in range(len(self["XYZList"])):
             xyz = self["XYZList"][i]
-            na = xyz.shape[0]
-            Answer.append('%i' % na)
-            Answer.append(Title)
+            num_atoms = xyz.shape[0]
+            output_lines.append('%i' % num_atoms)
+            output_lines.append(title)
             for j in range(xyz.shape[0]):
-                Answer.append("%-5s% 12.6f% 12.6f% 12.6f" % (self["AtomNames"][j], xyz[j, 0], xyz[j, 1], xyz[j, 2]))
-        for i in range(len(Answer)):
-            Answer[i] += "\n"
-        with open(Filename, 'w') as f:
-            f.writelines(Answer)
+                output_lines.append("%-5s% 12.6f% 12.6f% 12.6f\n" % 
+                                    (self["AtomNames"][j], xyz[j, 0], 
+                                     xyz[j, 1], xyz[j, 2]))
+                # The above line seems to me to have an extra % 
+                # for no reason: "%-5s%<-here" 
 
-    def save(self, Filename, precision=DEFAULT_PRECISION):
+        with open(filename, 'w') as f:
+            f.writelines(output_lines)
+
+    def save(self, filename, precision=DEFAULT_PRECISION):
         """Dump the coordinates to disk in format auto-detected by filename
 
         Parameters
@@ -267,263 +309,291 @@ class Trajectory(ConformationBaseClass):
         Formats supported are h5, xtc, pdb, lh5 and xyz
         """
 
-        extension = os.path.splitext(Filename)[1]
+        extension = os.path.splitext(filename)[1]
 
         if extension == '.h5':
-            self.save_to_hdf(Filename)
+            self.save_to_hdf(filename)
         elif extension == '.xtc':
-            self.save_to_xtc(Filename)
+            self.save_to_xtc(filename)
         elif extension == '.pdb':
-            self.save_to_pdb(Filename)
+            self.save_to_pdb(filename)
         elif extension == '.lh5':
-            self.save_to_lhdf(Filename, precision=precision)
+            self.save_to_lhdf(filename, precision=precision)
         elif extension == '.xyz':
-            self.save_to_xyz(Filename)
+            self.save_to_xyz(filename)
         else:
-            raise IOError("File: %s. I don't understand the extension '%s'" % (Filename, extension))
+            raise IOError("File: %s. I don't understand the extension '%s'" %  
+                            (filename, extension) )
 
-    def AppendPDB(self, Filename):
-        """Add on to a pdb file
+    def append_pdb(self, filename):
+        """Add a pdb file to self.
 
         Parameters
         ----------
-        Filename: str
-            location to save to
-
+        filename: str
+            location to find a single conformation to append
+    
         """
-        try:
-            self["XYZList"] = self["XYZList"].tolist()
-        except:
-            pass
-        C1 = Conformation.load_from_pdb(Filename)
-        Temp = C1["XYZ"]
-        if len(Temp) != len(self["XYZList"][0]):
-            raise NameError("Tried to add wrong number of coordinates.")
-        else:
-            self["XYZList"].append(Temp)
+
+        self += Trajectory.load_from_pdb(filename)
 
     @classmethod
-    def load_from_pdb(cls, Filename):
+    def load_from_pdb(cls, filename):
         """Create a Trajectory from a PDB Filename
 
         Parameters
         ----------
-        Filename: str
+        filename: str
             location to load from
         """
-        return(Trajectory(PDB.LoadPDB(Filename, AllFrames=True)))
+        return Trajectory(pdb.load_pdb(filename, all_frames=True)) 
 
     @classmethod
-    def load_from_xtc(cls, XTCFilenameList, PDBFilename=None, Conf=None, PreAllocate=True,
-                    JustInspect=False, discard_overlapping_frames=False):
+    def load_from_xtc(cls, xtc_filename_list, pdb_filename=None, conf=None,
+                      just_inspect=False, discard_overlapping_frames=False):
         """Create a Trajectory from a collection of XTC files
 
         Parameters
         ----------
-        XTCFilenameList: list
+        xtc_filename_list: list
             list of files to load from
-        PDBFilename: str, optional
-            XTC format doesnt have the connectivity information, which needs to be
-            supplied. You can either supply it by giving a path to the PDB file (here)
-            or by suppling a Conf or Traj object containing the right connectivity
-            (next arg)
-        Conf: Conformation, optional
-            A conformation (actually passing another trajectory will work) that has
-            the right atom labeling
-        PreAlloc: bool, optional
-            This doesnt do anything
-        JustInspect: bool, optional
+        pdb_filename: str, optional
+            XTC format doesnt have the connectivity information, which needs 
+            to be supplied. You can either supply it by giving a path to the 
+            PDB file (here) or by supplying a Conf or Traj object containing 
+            the right connectivity (next arg)
+        conf: Conformation, optional
+            A conformation (actually passing another trajectory will work) that
+            has the right atom labeling
+        just_inspect: bool, optional
             Dont actually load, just return dimensions
-        discard_overallping_frames: bool, optional
-            Check for redundant frames and discard them. (RTM 6/27 should this be default True?)
+        discard_overlapping_frames: bool, optional
+            Check for redundant frames and discard them. 
+            (RTM 6/27 should this be default True?)
 
         Returns
         -------
-        Trajectory: Trajectory
-            Trajectory loaded from disk. OR, if you supplied `just_inspect`=True,
-            then just the shape
+        trajectory: Trajectory
+            Trajectory loaded from disk if just_inspect=False
+
+        shape: tuple
+            shape of the trajectory if just_inspect=True
         """
-        if PDBFilename != None:
-            A = Trajectory.load_from_pdb(PDBFilename)
-        elif Conf != None:
-            A = Trajectory(Conf)
+        
+        # temp_traj is the to be trajectory object, but each key is added in 
+        # steps, so it is not complete until the very end
+        if pdb_filename != None:
+            temp_traj = Trajectory.load_from_pdb(pdb_filename)
+        elif conf != None:
+            temp_traj = Trajectory(conf)
         else:
-            raise Exception("ERROR: Need a conformation to construct a trajectory.")
+            raise Exception("ERROR: Need a conformation to construct a " 
+                            "trajectory.")
 
-        if not JustInspect:
+        if not just_inspect:
 
-            A["XYZList"] = []
+            temp_traj["XYZList"] = []
             num_redundant = 0
 
-            for i, c in enumerate(xtc.XTCReader(XTCFilenameList)):
+            for i, c in enumerate(xtc.XTCReader(xtc_filename_list)):
                 # check to see if we have redundant frames as we load them up
                 if discard_overlapping_frames:
                     if i > 0:
-                        if np.sum(np.abs(c.coords - A["XYZList"][-1])) < 10. ** -8:
+                        if (np.sum(np.abs(c.coords - temp_traj["XYZList"][-1]))
+                            < 10.**-8):
                             num_redundant += 1
-                    A["XYZList"].append(np.array(c.coords).copy())
+                    temp_traj["XYZList"].append(np.array(c.coords).copy())
 
                 else:
-                    A["XYZList"].append(np.array(c.coords).copy())
+                    temp_traj["XYZList"].append(np.array(c.coords).copy())
 
-            A["XYZList"] = np.array(A["XYZList"])
+            temp_traj["XYZList"] = np.array(temp_traj["XYZList"])
             if num_redundant != 0:
-                logger.warning("Found and discarded %d redunant snapshots in loaded traj", num_redundant)
-
-        # in inspection mode
-        else:
+                logger.warning("Found and discarded %d redundant snapshots in" 
+                               " loaded traj", num_redundant)
+        else: # just_inspect is True, so return the shape of the data
             i = 0
-            for c in xtc.XTCReader(XTCFilenameList):
+            for c in xtc.XTCReader(xtc_filename_list):
                 if i == 0:
-                    ConfShape = np.shape(c.coords)
+                    conf_shape = np.shape(c.coords)
                 i += 1
-            Shape = np.array((i, ConfShape[0], ConfShape[1]))
-            return(Shape)
+                # This loop assumes that all of the XTC's are the SAME. This 
+                # is true for F@h datasets, so I suppose it's alright. But to 
+                # be general we should check every XTC, I think
+            shape = np.array((i, conf_shape[0], conf_shape[1]))
+            return shape
 
-        return(A)
+        return temp_traj
 
     @classmethod
-    def load_from_dcd(cls, FilenameList, PDBFilename=None, Conf=None, PreAllocate=True, JustInspect=False):
+    def load_from_dcd(cls, filename_list, pdb_filename=None, conf=None, 
+                      just_inspect=False):
         """Create a Trajectory from a Filename."""
 
-        if PDBFilename != None:
-            A = Trajectory.load_from_pdb(PDBFilename)
-        elif Conf != None:
-            A = Trajectory(Conf)
+        # temp_traj is the to be trajectory object, but each key is added in 
+        # steps, so it is not complete until the very end
+
+        if pdb_filename != None:
+            temp_traj = Trajectory.load_from_pdb(pdb_filename)
+        elif conf != None:
+            temp_traj = Trajectory(conf)
         else:
-            raise Exception("ERROR: Need a conformation to construct a trajectory.")
+            raise Exception("ERROR: Need a conformation to construct a "
+                            "trajectory.")
 
-        if not JustInspect:
-            A["XYZList"] = []
-            for c in dcd.DCDReader(FilenameList):
-                A["XYZList"].append(c.copy())
-            A["XYZList"] = np.array(A["XYZList"])
+        if not just_inspect:
+            temp_traj["XYZList"] = []
+            for c in dcd.DCDReader(filename_list):
+                temp_traj["XYZList"].append(c.copy())
+            temp_traj["XYZList"] = np.array(temp_traj["XYZList"])
         else:  # This is wasteful to read everything in just to get the length
-            XYZ = []
-            for c in dcd.DCDReader(FilenameList):
-                XYZ.append(c.copy())
-            XYZ = np.array(XYZ)
-            return(XYZ.shape)
+            xyz = []
+            for c in dcd.DCDReader(filename_list):
+                xyz.append(c.copy())
+            xyz = np.array(xyz)
+            return xyz.shape
 
-        return(A)
+        return temp_traj
 
     @classmethod
-    def load_from_trr(cls, TRRFilenameList, PDBFilename=None, Conf=None, PreAllocate=True, JustInspect=False):
-        """Create a Trajectory with title Title from a Filename."""
-        if PDBFilename != None:
-            A = Trajectory.load_from_pdb(PDBFilename)
-        elif Conf != None:
-            A = Trajectory(Conf)
+    def load_from_trr(cls, trr_filename_list, pdb_filename=None, conf=None, 
+                      just_inspect=False):
+        """Load a trajectory from a single or many .trr files."""
+        # temp_traj is the to be trajectory object, but each key is added in 
+        # steps, so it is not complete until the very end
+        if pdb_filename != None:
+            temp_traj = Trajectory.load_from_pdb(pdb_filename)
+        elif conf != None:
+            temp_traj = Trajectory(conf)
         else:
-            raise Exception("ERROR: Need a conformation to construct a trajectory.")
-        if not JustInspect:
-            A["XYZList"] = []
-            A["Velocities"] = []
-            A["Forces"] = []
-            for c in xtc.TRRReader(TRRFilenameList):
-                A["XYZList"].append(np.array(c.coords).copy())
-                A["Velocities"].append(np.array(c.velocities).copy())
-                A["Forces"].append(np.array(c.forces).copy())
-            A["XYZList"] = np.array(A["XYZList"])
-            A["Velocities"] = np.array(A["Velocities"])
-            A["Forces"] = np.array(A["Forces"])
+            raise Exception("ERROR: Need a conformation to construct a "
+                            "trajectory.")
+        if not just_inspect:
+            temp_traj["XYZList"] = []
+            temp_traj["Velocities"] = [] # Do we care about these? (and Forces)
+            temp_traj["Forces"] = []
+            for c in xtc.TRRReader(trr_filename_list):
+                temp_traj["XYZList"].append(np.array(c.coords).copy())
+                temp_traj["Velocities"].append(np.array(c.velocities).copy())
+                temp_traj["Forces"].append(np.array(c.forces).copy())
+            temp_traj["XYZList"] = np.array(temp_traj["XYZList"])
+            temp_traj["Velocities"] = np.array(temp_traj["Velocities"])
+            temp_traj["Forces"] = np.array(temp_traj["Forces"])
         else:
             i = 0
-            for c in xtc.TRRReader(TRRFilenameList):
+            for c in xtc.TRRReader(trr_filename_list):
                 if i == 0:
-                    ConfShape = np.shape(c.coords)
+                    conf_shape = np.shape(c.coords)
                 i += 1
-            Shape = np.array((i, ConfShape[0], ConfShape[1]))
-            return(Shape)
-        return(A)
+            shape = np.array((i, conf_shape[0], conf_shape[1]))
+            return shape
+        return temp_traj
 
     @classmethod
-    def load_from_pdbList(cls, Filenames):
-        """Create a Trajectory with title Title from a Filename."""
-        A = Trajectory.load_from_pdb(Filenames[0])
-        for f in Filenames[1:]:
-            A.AppendPDB(f)
-        A["XYZList"] = np.array(A["XYZList"])
-        return(A)
+    def load_from_pdb_list(cls, filenames):
+        """Load a trajectory from one or more PDB files"""
+        # temp_traj is the to be trajectory object, but each key is added in 
+        # steps, so it is not complete until the very end
+        temp_traj = Trajectory.load_from_pdb(filenames[0])
+        for f in filenames[1:]:
+            temp_traj.append_pdb(f) # AHA! This is what uses that function.
+        temp_traj["XYZList"] = np.array(temp_traj["XYZList"])
+        return temp_traj
 
     @classmethod
-    def enum_chunks_from_hdf(cls, TrajFilename, Stride=None, AtomIndices=None, ChunkSize=50000):
+    def enum_chunks_from_hdf(cls, traj_filename, stride=None, 
+                             atom_indices=None, chunk_size=50000):
         """
         Function to read trajectory files which have been saved as HDF.
 
-        This function is an iterable, so should be used like:
+        This function is iterable, so should be used like:
 
         from msmbuilder import Trajectory
-        for trajectory_chunk in Trajectory.enum_chunks_from_hdf(
-            ... # Do something with each chunk. The chunk looks like a regular Trajectory instance
+        for trajectory_chunk in Trajectory.enum_chunks_from_hdf(filename):
+            ... # Do something with each chunk. 
+                # The chunk looks like a regular Trajectory instance
 
         Inputs:
-        - TrajFilename: Filename to find the trajectory
-        - Stride [None]: Integer number of frames to subsample the trajectory
-        - AtomIndices [None]: np.ndarray of atom indices to read in (0-indexed)
-        - ChunkSize [100000]: Integer number of frames to read in a chunk
-            NOTE: ChunkSize will change in order to be a multiple of the input Stride
-                This is necessary in order to make sure the Stride and chunks line up
+        - traj_filename: Filename to find the trajectory
+        - stride [None]: Integer number of frames to subsample the trajectory
+        - atom_indices [None]: np.ndarray of atom indices to read in 
+            (0-indexed)
+        - chunk_size [100000]: Integer number of frames to read in a chunk
+            NOTE: chunk_size will change in order to be a multiple of the input                   stride. This is necessary in order to make sure the Stride 
+                  and chunks line up
 
         Outputs:
-        - Nothing. This is an iterable function, so it yields Trajectory instances
+        - Nothing. This is an iterable function, so it yields Trajectory 
+            instances
         """
-        RestrictAtoms = False
-        if AtomIndices != None:
-            RestrictAtoms = True
-        if Stride != None:
-            while ChunkSize % Stride != 0:  # Need to do this in order to make sure we stride correctly.
-                                            # since we read in chunks, and then we need the strides
-                                            # to line up
-                ChunkSize -= 1
+        restrict_atoms = False
+        if atom_indices != None:
+            restrict_atoms = True
+        if stride != None:
+            while (chunk_size % stride) != 0:# Need to do this in order to make 
+                                             # sure we stride correctly.
+                                             # since we read in chunks, and 
+                                             # then we need the strides
+                                             # to line up
+                chunk_size -= 1
 
-        A={}
-        F=tables.File(TrajFilename,'r')
+        temp_traj = {}
+        file_obj = tables.File(traj_filename,'r')
         # load all the data other than XYZList
 
-        if RestrictAtoms:
-            A['AtomID'] = np.array(F.root.AtomID[AtomIndices], dtype=np.int32)
-            A['AtomNames'] = np.array(F.root.AtomNames[AtomIndices])
-            A['ChainID'] = np.array(F.root.ChainID[AtomIndices])
-            A['ResidueID'] = np.array(F.root.ResidueID[AtomIndices], dtype=np.int32)
-            A['ResidueNames'] = np.array(F.root.ResidueNames[AtomIndices])
+        if restrict_atoms:
+            temp_traj['AtomID'] = np.array(file_obj.root.AtomID[atom_indices], 
+                                           dtype=np.int32)
+            temp_traj['AtomNames'] = np.array(file_obj.\
+                                              root.AtomNames[atom_indices])
+            temp_traj['ChainID'] = np.array(file_obj.\
+                                            root.ChainID[atom_indices])
+            temp_traj['ResidueID'] = np.array(file_obj.\
+                                              root.ResidueID[atom_indices],
+                                              dtype=np.int32)
+            temp_traj['ResidueNames'] = np.array(file_obj.root.\
+                                                 ResidueNames[atom_indices])
+            # The above line continuations look messy, but I don't see any 
+            # other way to do it, other than go above 80 chars. What do 
+            # people think?
 
-            # IndexList is a VLArray, so we need to read the whole list with node.read() (same as node[:]) and then loop through each
-                # row (residue) and remove the atom indices that are not wanted
-            #A['IndexList'] = [ [ i for i in row if (i in AtomIndices) ] for row in F.root.IndexList[:] ]
-            
         else:
-            A['AtomID'] = np.array( F.root.AtomID[:], dtype=np.int32 )
-            A['AtomNames'] = np.array( F.root.AtomNames[:] )
-            A['ChainID'] = np.array( F.root.ChainID[:])
-            A['ResidueID'] = np.array( F.root.ResidueID[:], dtype=np.int32 )
-            A['ResidueNames'] = np.array( F.root.ResidueNames[:] )
+            temp_traj['AtomID'] = np.array(file_obj.root.AtomID[:], 
+                                           dtype=np.int32)
+            temp_traj['AtomNames'] = np.array(file_obj.root.AtomNames[:])
+            temp_traj['ChainID'] = np.array(file_obj.root.ChainID[:])
+            temp_traj['ResidueID'] = np.array(file_obj.root.ResidueID[:], 
+                                              dtype=np.int32)
+            temp_traj['ResidueNames'] = np.array(file_obj.root.ResidueNames[:])
             
-            #A['IndexList'] = F.root.IndexList[:]
-
-        #A['SerializerFilename'] = os.path.abspath(TrajFilename)
+        # IndexList will be generated when the Trajectory object is 
+        # instantiated
 
         # Loaded everything except XYZList
 
-        Shape = F.root.XYZList.shape
-        begin_range_list = np.arange(0, Shape[0], ChunkSize)
-        end_range_list = np.concatenate((begin_range_list[1:], [Shape[0]]))
+        shape = file_obj.root.XYZList.shape
+        begin_range_list = np.arange(0, shape[0], chunk_size)
+        end_range_list = np.concatenate((begin_range_list[1:], [shape[0]]))
 
         for r0, r1 in zip(begin_range_list, end_range_list):
-
-            if RestrictAtoms:
-                A['XYZList'] = np.array(F.root.XYZList[r0: r1: Stride, AtomIndices])
+            if restrict_atoms:
+                temp_traj['XYZList'] = np.array(file_obj.\
+                                                root.XYZList[r0:r1:stride, 
+                                                             atom_indices])
             else:
-                A['XYZList'] = np.array(F.root.XYZList[r0: r1: Stride])
+                temp_traj['XYZList'] = np.array(file_obj.\
+                                                root.XYZList[r0:r1:stride])
 
-            yield cls(A)
+            yield cls(temp_traj)
 
-        F.close()
+        file_obj.close()
 
         return
 
     @classmethod
-    def enum_chunks_from_lhdf(cls, TrajFilename, precision=DEFAULT_PRECISION, Stride=None, AtomIndices=None, ChunkSize=50000):
+    def enum_chunks_from_lhdf(cls, traj_filename, precision=DEFAULT_PRECISION, 
+                              stride=None, atom_indices=None, 
+                              chunk_size=50000):
         """
         Method to read trajectory files which have been saved as LHDF.
         Note that this method simply calls the enum_chunks_from_hdf method.
@@ -531,216 +601,257 @@ class Trajectory(ConformationBaseClass):
         This function is an iterable, so should be used like:
 
         from msmbuilder import Trajectory
-        for trajectory_chunk in Trajectory.enum_chunks_from_lhdf(
-            ... # Do something with each chunk. The chunk looks like a regular Trajectory instance
+        for trajectory_chunk in Trajectory.enum_chunks_from_lhdf(filename):
+            ... # Do something with each chunk. The chunk looks like a 
+                # regular Trajectory instance
 
         Inputs:
-        - TrajFilename: Filename to find the trajectory
+        - traj_filename: Filename to find the trajectory
         - precision [1000]: precision used when saving as lossy integers
-        - Stride [None]: Integer number of frames to subsample the trajectory
-        - AtomIndices [None]: np.ndarray of atom indices to read in (0-indexed)
-        - ChunkSize [100000]: Integer number of frames to read in a chunk
-            NOTE: ChunkSize will change in order to be a multiple of the input Stride
-                This is necessary in order to make sure the Stride and chunks line up
+        - stride [None]: Integer number of frames to subsample the trajectory
+        - atom_indices [None]: np.ndarray of atom indices to read in (0-indexed)
+        - chunk_size [100000]: Integer number of frames to read in a chunk
+            NOTE: ChunkSize will change in order to be a multiple of the input 
+                  stride. This is necessary in order to make sure the Stride 
+                  and chunks line up
 
         Outputs:
-        - Nothing. This is an iterable function, so it yields Trajectory instances
+        - Nothing. This is an iterable function, so it yields Trajectory 
+            instances
         """
-        for A in cls.enum_chunks_from_hdf(TrajFilename, Stride, AtomIndices, ChunkSize):
-            A['XYZList'] = _convert_from_lossy_integers(A['XYZList'], precision)
-            yield A
+        for temp_traj in cls.enum_chunks_from_hdf(traj_filename, stride, 
+                                                  atom_indices, chunk_size):
+
+            temp_traj['XYZList'] = _convert_from_lossy_integers(
+                                                  temp_traj['XYZList'],
+                                                  precision)
+
+            yield temp_traj
 
         return
 
     @classmethod
-    def load_from_hdf(cls, TrajFilename, JustInspect=False, Stride=None, AtomIndices=None, ChunkSize=50000):
+    def load_from_hdf(cls, traj_filename, just_inspect=False, stride=None, 
+                      atom_indices=None, chunk_size=50000):
         """
         Method to load a trajectory which was saved as HDF
 
         Inputs:
-        - TrajFilename: Filename to find the trajectory
-        - JustInspect [False]: If True, then the method returns the shape of the
-            XYZList stored on disk
-        - Stride [None]: Integer number of frames to subsample the trajectory
-        - AtomIndices [None]: np.ndarray of atom indices to read in (0-indexed)
-        - ChunkSize [100000]: Integer number of frames to read in a chunk
-            NOTE: ChunkSize will change in order to be a multiple of the input Stride
-                This is necessary in order to make sure the Stride and chunks line up
+        - traj_filename: Filename to find the trajectory
+        - just_inspect [False]: If True, then the method returns the shape of 
+            the XYZList stored on disk
+        - stride [None]: Integer number of frames to subsample the trajectory
+        - atom_indices [None]: np.ndarray of atom indices to read in (0-indexed)
+        - chunk_size [100000]: Integer number of frames to read in a chunk
+            NOTE: ChunkSize will change in order to be a multiple of the input 
+                  stride. This is necessary in order to make sure the Stride 
+                  and chunks line up
 
         Outputs:
-        - A: Trajectory instance read from disk
+        - trajectory: Trajectory instance read from disk
         """
-        if not JustInspect:
-            chunk_list = list(cls.enum_chunks_from_hdf(TrajFilename, Stride=Stride, AtomIndices=AtomIndices, ChunkSize=ChunkSize))
-            A = chunk_list[0]
-            A['XYZList'] = np.concatenate([t['XYZList'] for t in chunk_list])
-            return A
+        if not just_inspect:
+            chunk_list = list(cls.enum_chunks_from_hdf(
+                                                     traj_filename,
+                                                     stride=stride,
+                                                     atom_indices=atom_indices,
+                                                     chunk_size=chunk_size))
+            temp_traj = chunk_list[0]
+            temp_traj['XYZList'] = np.concatenate([t['XYZList'] 
+                                                   for t in chunk_list])
+            return temp_traj
 
         else:
-            F1 = tables.File(TrajFilename)
-            Shape = F1.root.XYZList.shape
-            F1.close()
-            return(Shape)
+            file_obj = tables.File(traj_filename)
+            shape = file_obj.root.XYZList.shape
+            file_obj.close()
+            return shape
 
     @classmethod
-    def load_from_lhdf(cls, TrajFilename, JustInspect=False, precision=DEFAULT_PRECISION, Stride=None, AtomIndices=None, ChunkSize=50000):
+    def load_from_lhdf(cls, traj_filename, just_inspect=False, 
+                       precision=DEFAULT_PRECISION, stride=None, 
+                       atom_indices=None, chunk_size=50000):
         """
         Method to load a trajectory which was saved as LHDF
 
         Inputs:
-        - TrajFilename: Filename to find the trajectory
-        - JustInspect [False]: If True, then the method returns the shape of the
-            XYZList stored on disk
-        - Stride [None]: Integer number of frames to subsample the trajectory
+        - traj_filename: Filename to find the trajectory
+        - just_inspect [False]: If True, then the method returns the shape of 
+            the XYZList stored on disk
+        - stride [None]: Integer number of frames to subsample the trajectory
         - precision [1000]: precision used when saving as lossy integers
         - AtomIndices [None]: np.ndarray of atom indices to read in (0-indexed)
         - ChunkSize [100000]: Integer number of frames to read in a chunk
-            NOTE: ChunkSize will change in order to be a multiple of the input Stride
-                This is necessary in order to make sure the Stride and chunks line up
+            NOTE: ChunkSize will change in order to be a multiple of the input
+                  stride. This is necessary in order to make sure the Stride 
+                  and chunks line up
 
         Outputs:
-        - A: Trajectory instance read from disk
+        - trajectory: Trajectory instance read from disk
         """
-        if not JustInspect:
-            A = cls.load_from_hdf(TrajFilename, Stride=Stride, AtomIndices=AtomIndices)
-            A['XYZList'] = _convert_from_lossy_integers(A['XYZList'], precision)
-            return A
+        if not just_inspect:
+            temp_traj = cls.load_from_hdf( traj_filename, stride=stride, 
+                                           atom_indices=atom_indices)
+            temp_traj['XYZList'] = _convert_from_lossy_integers(
+                                           temp_traj['XYZList'], precision)
+            return temp_traj
 
         else:
-            F1 = tables.File(TrajFilename)
-            Shape = F1.root.XYZList.shape
-            F1.close()
-            return(Shape)
+            file_obj = tables.File(traj_filename)
+            shape = file_obj.root.XYZList.shape
+            file_obj.close()
+            return shape
 
     @classmethod
-    def read_xtc_frame(cls, TrajFilename, WhichFrame):
-        """Read a single frame from XTC trajectory file without loading file into memory."""
+    def read_xtc_frame(cls, traj_filename, which_frame):
+        """Read a single frame from XTC trajectory file without loading the 
+        entire file into memory."""
         i = 0
-        for c in xtc.XTCReader(TrajFilename):
-            if i == WhichFrame:
-                return(np.array(c.coords))
+        for c in xtc.XTCReader(traj_filename):
+            if i == which_frame:
+                return np.array(c.coords)
             i += 1
-        raise Exception("Frame %d not found in file %s; last frame found was %d" % (WhichFrame, TrajFilename, i))
+        raise Exception("Frame %d not found in file %s; last frame found was "\
+                        "%d" % (WhichFrame, TrajFilename, i))
 
     @classmethod
-    def read_dcd_frame(cls, TrajFilename, WhichFrame):
-        """Read a single frame from DCD trajectory without loading file into memory."""
-        reader = dcd.DCDReader(TrajFilename, firstframe=WhichFrame, lastframe=WhichFrame)
+    def read_dcd_frame(cls, traj_filename, which_frame):
+        """Read a single frame from DCD trajectory without loading the entire
+        file into memory."""
+        reader = dcd.DCDReader(traj_filename, firstframe=which_frame, 
+                               lastframe=which_frame)
         xyz = None
         for c in reader:
             xyz = c.copy()
         if xyz == None:
-            raise Exception("Frame %s not found in file %s." % (WhichFrame, TrajFilename))
-
+            raise Exception("Frame %s not found in file %s." % (WhichFrame, 
+                                                                TrajFilename))
         return xyz
 
     @classmethod
-    def read_hdf_frame(cls, TrajFilename, WhichFrame):
-        """Read a single frame from HDF5 trajectory file without loading file into memory."""
-        F1 = tables.File(TrajFilename)
-        XYZ = F1.root.XYZList[WhichFrame]
-        F1.close()
-        return(XYZ)
+    def read_hdf_frame(cls, traj_filename, which_frame):
+        """Read a single frame from HDF5 trajectory file without loading the 
+        entire file into memory."""
+        file_obj = tables.File(traj_filename)
+        xyz = file_obj.root.XYZList[which_frame]
+        file_obj.close()
+        return xyz
 
     @classmethod
-    def read_lhdf_frame(cls, TrajFilename, WhichFrame, precision=DEFAULT_PRECISION):
-        """Read a single frame from Lossy LHDF5 trajectory file without loading file into memory."""
-        F1 = tables.File(TrajFilename)
-        XYZ = F1.root.XYZList[WhichFrame]
-        F1.close()
-        XYZ = _convert_from_lossy_integers(XYZ, precision)
-        return(XYZ)
+    def read_lhdf_frame(cls, traj_filename, which_frame, \
+                        precision=DEFAULT_PRECISION):
+        """Read a single frame from Lossy LHDF5 trajectory file without loading 
+        entire file into memory."""
+        xyz = cls.read_hdf_frame(traj_filename, which_frame)
+        xyz = _convert_from_lossy_integers(xyz, precision)
+        return xyz
 
     @classmethod
-    def read_frame(cls, TrajFilename, WhichFrame, Conf=None):
-        extension = os.path.splitext(TrajFilename)[1]
+    def read_frame(cls, traj_filename, which_frame, conf=None):
+        extension = os.path.splitext(traj_filename)[1]
 
         if extension == '.xtc':
-            return(Trajectory.read_xtc_frame(TrajFilename, WhichFrame))
+            return Trajectory.read_xtc_frame(traj_filename, which_frame)
         elif extension == '.h5':
-            return(Trajectory.read_hdf_frame(TrajFilename, WhichFrame))
+            return Trajectory.read_hdf_frame(traj_filename, which_frame)
         elif extension == '.lh5':
-            return(Trajectory.read_lhdf_frame(TrajFilename, WhichFrame))
+            return Trajectory.read_lhdf_frame(traj_filename, which_frame)
         elif extension == '.dcd':
-            return(Trajectory.read_dcd_frame(TrajFilename, WhichFrame))
+            return Trajectory.read_dcd_frame(traj_filename, which_frame)
         else:
-            raise IOError("Incorrect file type--cannot get conformation %s" % TrajFilename)
+            raise IOError("Incorrect file type--cannot get conformation %s" % 
+                           traj_filename)
 
     @classmethod
-    def load_trajectory_file(cls, Filename, JustInspect=False, Conf=None, 
-                             Stride=1, AtomIndices=None):
-        """Loads a trajectory into memory, automatically deciding which methods to call based on filetype.  For XTC files, this method uses a pre-registered Conformation filename as a pdb."""
+    def load_trajectory_file(cls, filename, just_inspect=False, conf=None, 
+                             stride=1, atom_indices=None):
+        """Loads a trajectory into memory, automatically deciding which methods
+        to call based on filetype.  For XTC files, this method uses a 
+        pre-registered Conformation filename as a pdb."""
         
-        extension = os.path.splitext(Filename)[1]
+        extension = os.path.splitext(filename)[1]
         
         # check to see if we're supposed to load only a subset of the atoms
-        if AtomIndices != None:
+        if atom_indices != None:
             if (extension == '.lh5') or (extension == '.h5'):
                 pass # we deal with this below
             else:
                 raise NotImplementedError('AtomIndices kwarg option only'
                                           'available for .lh5 & .h5 format')
             
-
         # if we're not going to load a subset of the atoms, then proceed 
-        if extension == '.h5':
-            return Trajectory.load_from_hdf(Filename, JustInspect=JustInspect, Stride=Stride, AtomIndices=AtomIndices)
 
         elif extension == '.xtc':
-            if Conf == None:
-                raise Exception("Need to register a Conformation to use XTC Reader.")
-            return Trajectory.load_from_xtc(Filename, Conf=Conf, JustInspect=JustInspect)[::Stride]
+            if conf == None:
+                raise Exception("Need to register a Conformation to use XTC "
+                                "Reader.")
+            return Trajectory.load_from_xtc(filename, conf=conf, 
+                                           just_inspect=just_inspect)[::stride]
 
         elif extension == '.dcd':
-            if Conf == None:
-                raise Exception("Need to register a Conformation to use DCD Reader.")
-            return Trajectory.load_from_dcd(Filename, Conf=Conf, JustInspect=JustInspect)[::Stride]
+            if conf == None:
+                raise Exception("Need to register a Conformation to use DCD "
+                                "Reader.")
+            return Trajectory.load_from_dcd(filename, conf=conf, 
+                                           just_inspect=just_inspect)[::stride]
+
+        if extension == '.h5':
+            return Trajectory.load_from_hdf(filename, 
+                                            just_inspect=just_inspect,
+                                            stride=stride, 
+                                            atom_indices=atom_indices)
 
         elif extension == '.lh5':
-            return Trajectory.load_from_lhdf(Filename, JustInspect=JustInspect, Stride=Stride, AtomIndices=AtomIndices)
+            return Trajectory.load_from_lhdf(filename, 
+                                             just_inspect=just_inspect, 
+                                             stride=stride, 
+                                             atom_indices=atom_indices)
 
         elif extension == '.pdb':
-            return Trajectory.load_from_pdb(Filename)[::Stride]
+            return Trajectory.load_from_pdb(filename)[::stride]
 
         else:
-            raise IOError("File: %s. I don't understand the extension '%s'" % (Filename, extension))
+            raise IOError("File: %s. I don't understand the extension '%s'" % 
+                          (filename, extension))
 
     @classmethod
-    def append_frames_to_file(cls, filename, XYZList, precision=DEFAULT_PRECISION,
-                           discard_overlapping_frames=False):
+    def append_frames_to_file(cls, filename, xyz_list, 
+                              precision=DEFAULT_PRECISION, 
+                              discard_overlapping_frames=False):
         """Append an array of XYZ data to an existing .h5 or .lh5 file.
         """
 
         extension = os.path.splitext(filename)[1]
 
         if extension in [".h5", ".lh5"]:
-            File = tables.File(filename, "a")
+            file_obj = tables.File(filename, "a")
         else:
             raise Exception("File must be .h5 or .lh5")
 
-        if not File.root.XYZList.shape[1:] == XYZList.shape[1:]:
-            raise Exception("Error: data cannot be appended to trajectory due to incorrect shape.")
+        if not file_obj.root.XYZList.shape[1:] == xyz_list.shape[1:]:
+            raise Exception("Error: data cannot be appended to trajectory " 
+                            "due to incorrect shape.")
 
         if extension == ".h5":
-            z = XYZList
+            to_add = xyz_list
         elif extension == ".lh5":
-            z = _convert_to_lossy_integers(XYZList, precision)
+            to_add = _convert_to_lossy_integers(xyz_list, precision)
 
         # right now this only checks for the last written frame
         if discard_overlapping_frames:
-            while (File.root.XYZList[-1, :, :] == z[0, :, :]).all():
-                z = z[1:, :, :]
+            while (file_obj.root.XYZList[-1, :, :] == to_add[0, :, :]).all():
+                to_add = to_add[1:, :, :]
 
-        File.root.XYZList.append(z)
+        file_obj.root.XYZList.append(to_add)
 
-        File.flush()
-        File.close()
+        file_obj.flush()
+        file_obj.close()
 
     @classmethod
     def _reduce_redundant_snapshots(cls, trajectory):
-        """ Takes a trajectory object, and removes data from the 'XYZList' entry
-            that are duplicated snapshots. Does this by checking if two contiguous
-            snapshots are binary equivalent.
+        """ Takes a trajectory object, and removes data from the 'XYZList' 
+        entry that are duplicated snapshots. Does this by checking if two 
+        contiguous snapshots are binary equivalent.
         """
 
         not_done = True
@@ -753,13 +864,16 @@ class Trajectory(ConformationBaseClass):
             if i == trajectory["XYZList"].shape[0] - 1:
                 break
 
-            if (trajectory["XYZList"][i, :, :] == trajectory["XYZList"][i + 1, :, :]).all():
-                trajectory = trajectory[:i] + trajectory[i + 1:]
+            if (trajectory["XYZList"][i, :, :] == 
+                trajectory["XYZList"][i+1, :, :]).all():
+
+                trajectory = trajectory[:i] + trajectory[i+1:]
                 n += 1
             else:
                 i += 1
 
         if n != 0:
-            logger.warning("Found and eliminated %d redundant snapshots in trajectory", n)
+            logger.warning("Found and eliminated %d redundant snapshots " 
+                           "in trajectory", n)
 
         return trajectory

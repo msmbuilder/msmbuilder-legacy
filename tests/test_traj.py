@@ -15,8 +15,9 @@ def test_traj_0():
 
     r_traj['XYZList'] = r_traj['XYZList'][ ::stride ]
 
-    traj = Trajectory.load_from_lhdf(get('Trajectories/trj0.lh5', just_filename=True),
-        Stride=stride, AtomIndices=aind)
+    traj = Trajectory.load_from_lhdf(get('Trajectories/trj0.lh5', 
+                                         just_filename=True),
+                                     stride=stride, atom_indices=aind)
 
     # make sure we loaded the right number of atoms
     assert traj['XYZList'].shape[1] == len(aind)

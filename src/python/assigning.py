@@ -162,7 +162,7 @@ def assign_with_checkpoint(metric, project, generators, assignments_path,
         # array to put each batch of data
         start_index = 0
         
-        for tchunk in Trajectory.enum_chunks_from_lhdf(project.traj_filename(i), ChunkSize=chunk_size):
+        for tchunk in Trajectory.enum_chunks_from_lhdf(project.traj_filename(i),                                                       chunk_size=chunk_size):
             
             # support for atom indexing on the trajectories we're trying to assign
             # might be good to have the atom indices stored in the generators and

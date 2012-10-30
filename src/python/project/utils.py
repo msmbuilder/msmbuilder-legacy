@@ -40,13 +40,15 @@ def get_project_object( traj_directory, conf_filename, out_filename=None ):
     """
 
     traj_paths = sorted( os.listdir( traj_directory ), key=keynat ) # relative to the traj_directory
-    traj_paths = [ os.path.join( traj_directory, filename ) for filename in traj_paths ] # relative to current directory
+    traj_paths = [ os.path.join( traj_directory, filename ) for 
+                   filename in traj_paths ] # relative to current directory
 
     traj_lengths = []
 
     for traj_filename in traj_paths: # Get the length of each trajectory
-        logger.info( traj_filename )
-        traj_lengths.append( Trajectory.load_from_lhdf( traj_filename, JustInspect=True )[0] ) 
+        logger.info(traj_filename)
+        traj_lengths.append(Trajectory.load_from_lhdf(traj_filename, 
+                                                      just_inspect=True )[0]) 
         # With JustInspect=True this just returns the shape of the XYZList
 
     project = Project({'conf_filename': conf_filename,
