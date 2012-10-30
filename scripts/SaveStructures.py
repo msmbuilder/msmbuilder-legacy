@@ -44,12 +44,12 @@ def run(project, assignments, states, n_per_state, random=None, replacement=True
 
         if replacement:
             if len(trajs) < n_per_state:
-                logger.error("Asked for %d confs per state, but state %d only has %d" % n_per_state, s, len(trajs))
+                logger.error("Asked for %d confs per state, but state %d only has %d" % (n_per_state, s, len(trajs)))
             # indices of the confs to select
             r = random.randint(len(trajs), size=n_per_state)
         else:
             if len(trajs) < n_per_state:
-                raise ValueError("Asked for %d confs per state, but state %d only has %d" % n_per_state, s, len(trajs))
+                raise ValueError("Asked for %d confs per state, but state %d only has %d" % (n_per_state, s, len(trajs)))
             # draw n_per_state random numbers between `0` and `len(trajs)` without replacement
             r = random.permutation(len(trajs))[:n_per_state]
 
