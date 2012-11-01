@@ -908,6 +908,157 @@ def permute_mat(A, permutation):
     return permuted_A
 
 
+class reversible_MLE_estimator():
+    def __init__(self,counts):
+        """Construct class to manipulate and optimize reversible likelihoods
+        
+        Parameters
+        ----------
+        counts : sparse matrix of transition counts
+                
+        Notes
+        -----
+        This object can be used to find the maximum likelihood reversible
+        count matrix.  See Docs/notes/reversible_mle.pdf for details
+        on the math used during these calculations.
+        
+        """
+
+        c = counts.asformat("csr").asfptype()
+        c.eliminate_zeros()
+        self.Ni = np.array(c.sum(1)).flatten()
+        self.sym_counts = c + c.transpose()
+
+        self.i,self.j = self.sym_counts.nonzero()
+        self.sym_counts.data[self.i<self.j] = 0.
+        self.sym_counts.eliminate_zeros()
+        self.i,self.j = self.sym_counts.nonzero()
+        self.counts = c
+        
+        self.stencil = self.sym_counts.copy()
+        self.stencil.data[:] = 1.
+
+        
+        self.diag_indices = np.where(self.i==self.j)[0]
+
+    def log_vector_to_matrix(self,log_vector):
+        """Construct sparse matrix from vector of parameters.
+        
+        Parameters
+        ----------
+        log_vector : np array containing log of nonzero matrix entries
+        
+        """
+        x = self.sym_counts.copy()
+        x.data[:] = np.exp(log_vector)
+        x.data[self.diag_indices] /= 2.
+        x = x + x.transpose()
+        return x
+
+    def flatten_matrix(self,C):
+        """Construct sparse matrix from vector of parameters.
+        
+        Parameters
+        ----------
+        log_vector : np array 
+            array containing log of nonzero matrix entries
+
+        Returns
+        -------
+        K : csr_matrix
+        
+        """        
+        C = self.stencil.multiply(C)
+        C = C + self.stencil
+        data = C.data - 1.
+        return data
+
+    def matrix_to_log_vector(self,C):
+        """Construct vector of parameters from sparse matrix
+        
+        Parameters
+        ----------
+        C : sparse CSR matrix
+            C must be symmetric.
+        
+        """        
+        data = self.flatten_matrix(C)
+        return np.log(data)
+
+    def log_likelihood(self,log_vector):
+        """Calculate log likelihood of log_vector given the observed counts
+        
+        Parameters
+        ----------
+        log_vector : np array
+            log_vector contains the log of all nonzero matrix entries
+
+        Notes
+        -----
+        The counts used are those input during construction of this class.
+        
+        """
+        s_data = self.sym_counts.data
+
+        f = (log_vector*s_data).sum()
+        f -= 0.5*(s_data[self.diag_indices]*log_vector[self.diag_indices]).sum()
+        r = self.log_vector_to_matrix(log_vector)
+        
+        q = np.array(r.sum(0)).flatten()        
+        f -= np.log(q).dot(self.Ni)
+        
+        return f
+
+    def dlog_likelihood(self,log_vector):
+        """Log likelihood gradient at log_vector given the observed counts
+        
+        Parameters
+        ----------
+        log_vector : np array
+            log_vector contains the log of all nonzero matrix entries
+
+        Returns
+        -------
+        grad : np array
+            grad is the derivative of log likelihood with respect to 
+            log_vector            
+
+        Notes
+        -----
+        The counts used are those input during construction of this class.
+        
+        """
+        grad = 0.0*log_vector
+        grad += self.sym_counts.data
+        grad[self.diag_indices] -= 0.5*self.sym_counts.data[self.diag_indices]
+        
+        r = self.log_vector_to_matrix(log_vector)        
+        q = np.array(r.sum(0)).flatten()        
+        v = self.Ni / q
+        
+        D = scipy.sparse.dia_matrix((v,0),shape=r.shape)
+        grad -= self.flatten_matrix(D.dot(r) + r.dot(D))
+        grad += self.flatten_matrix(D.multiply(r))
+                
+        return grad
+
+    def optimize(self):
+        """Maximize the log_likelihood to find the MLE reversible counts.
+        
+        Notes
+        -----
+        This algorithm uses the symmetrized counts as an initial guess.
+        
+        """
+        log_vector = 0.0*np.log(self.sym_counts.data)
+        f = lambda x: -1*self.log_likelihood(x)
+        df = lambda x: -1*self.dlog_likelihood(x)
+        ans = scipy.optimize.fmin_l_bfgs_b(f,log_vector,df,disp=1,factr=0.001,m=26)[0]
+        # m = 26 gave optimal speed for one test case.
+        return ans
+
+
+
 ######################################################################
 #  ALIASES FOR DEPRECATED FUNCTION NAMES
 #  THESE FUNCTIONS WERE ADDED FOR VERSION 2.6 AND
