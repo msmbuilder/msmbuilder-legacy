@@ -255,3 +255,31 @@ texinfo_documents = [
 
 # How to display URL addresses: 'footnote', 'no', or 'inline'.
 #texinfo_show_urls = 'footnote'
+
+# MOCK MODULES FOR READ-THE-DOCS
+#http://read-the-docs.readthedocs.org/en/latest/faq.html
+
+import sys
+class Mock(object):
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def __call__(self, *args, **kwargs):
+        return Mock()
+
+    @classmethod
+    def __getattr__(cls, name):
+        if name in ('__file__', '__path__'):
+            return '/dev/null'
+        elif name[0] == name[0].upper():
+            return type(name, (), {})
+        else:
+            return Mock()
+
+MOCK_MODULES = ['argparse', 'numpy', 'scipy', 'tables', 'deap', 'fastcluster',
+                'networkx', 'scipy.sparse', 'numpy.ctypeslib', 'scipy.cluster',
+                'scipy.cluster.hierarchy', 'scipy.spatial', 'scipy.spatial.distance',
+                'scipy.linalg', 'scipy.optimize', 'scipy.sparse.linalg', 'scipy.io',
+                'scipy.weave', 'numpy.ma', 'matplotlib', 'matplotlib.pyplot']
+for mod_name in MOCK_MODULES:
+    sys.modules[mod_name] = Mock()
