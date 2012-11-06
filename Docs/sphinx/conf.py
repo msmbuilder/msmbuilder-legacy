@@ -55,15 +55,15 @@ numpydoc_show_class_members = False # this doesn't work that well
 
 
 # General information about the project.
-project = u'msmbuilder'
-copyright = u'2012, Kyle'
+project = u'MSMBuilder'
+copyright = u'2012, MSMBuilder Team'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 #
 # The short X.Y version.
-version = '2.6.dev'
+version = '2.6'
 # The full version, including alpha/beta/rc tags.
 release = '2.6.dev'
 
@@ -179,7 +179,7 @@ html_static_path = ['_static']
 #html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'msmbuilderdoc'
+htmlhelp_basename = 'MSMBuilderdoc'
 
 
 # -- Options for LaTeX output --------------------------------------------------
@@ -198,8 +198,8 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'msmbuilder.tex', u'msmbuilder Documentation',
-   u'Kyle', 'manual'),
+  ('index', 'MSMBuilder.tex', u'MSMBuilder Documentation',
+   u'MSMBuilder Team', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -228,8 +228,8 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'msmbuilder', u'msmbuilder Documentation',
-     [u'Kyle'], 1)
+    ('index', 'MSMBuilder', u'MSMBuilder Documentation',
+     [u'MSMBuilder Team'], 1)
 ]
 
 # If true, show URL addresses after external links.
@@ -242,8 +242,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'msmbuilder', u'msmbuilder Documentation',
-   u'Kyle', 'msmbuilder', 'One line description of project.',
+  ('index', 'MSMBuilder', u'MSMBuilder Documentation',
+   u'MSMBuilder Team', 'MSMBuilder', 'One line description of project.',
    'Miscellaneous'),
 ]
 
