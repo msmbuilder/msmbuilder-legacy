@@ -65,8 +65,9 @@ class test_ConvertDataToHDF(WTempdir):
     def test(self):
         # extract xtcs to a temp dir
         xtc_fn = get('XTC.tgz', just_filename=True)
-        with tarfile.open(xtc_fn, mode='r:gz') as fh:
-            fh.extractall(self.td)
+        fh = tarfile.open(xtc_fn, mode='r:gz')
+        fh.extractall(self.td)
+        fh.close()
     
         outfn = pjoin(self.td, 'ProjectInfo.yaml')
         # mode to that directory
