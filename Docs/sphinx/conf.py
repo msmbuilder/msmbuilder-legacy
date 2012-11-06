@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
-# MSMBuilder documentation build configuration file, created by
-# sphinx-quickstart on Mon Jun 25 14:20:11 2012.
+# msmbuilder documentation build configuration file, created by
+# sphinx-quickstart on Mon Nov  5 15:08:06 2012.
 #
 # This file is execfile()d with the current directory set to its containing dir.
 #
@@ -25,23 +25,9 @@ import sys, os
 
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.todo', 'sphinx.ext.coverage',
-              'sphinx.ext.pngmath', 'sphinx.ext.viewcode',
-              'numpydoc', 'sphinx.ext.autosummary', 'sphinx.ext.coverage',
-              'sphinx.ext.intersphinx']
-
-# Add any paths that contain templates here, relative to this directory.
-#templates_path = ['_templates']
-# Custom sidebar templates, maps document names to template names.
-#html_sidebars = {
-#    'index': 'indexsidebar.html'
-#}
-
-# Additional templates that should be rendered to pages, maps page names to
-# template names.
-#html_additional_pages = {
-#    'index': 'indexcontent.html',
-#}
+extensions = ['sphinx.ext.autodoc','sphinx.ext.mathjax', 'sphinx.ext.viewcode',
+             'numpydoc', 'sphinx.ext.autosummary', 'sphinx.ext.coverage',
+             'sphinx.ext.intersphinx']
 
 intersphinx_mapping = {
     'http://docs.python.org/': None,
@@ -50,11 +36,9 @@ intersphinx_mapping = {
     'http://matplotlib.sourceforge.net/' : None,
 }
 
-# autosummary
-#autoclass_content = 'both' # just put an extra 
-autosummary_generate = True
-numpydoc_show_class_members = False # this doesn't work that well
 
+# Add any paths that contain templates here, relative to this directory.
+templates_path = ['_templates']
 
 # The suffix of source filenames.
 source_suffix = '.rst'
@@ -64,6 +48,11 @@ source_suffix = '.rst'
 
 # The master toctree document.
 master_doc = 'index'
+
+#autoclass_content = 'both' # just put an extra 
+autosummary_generate = True
+numpydoc_show_class_members = False # this doesn't work that well
+
 
 # General information about the project.
 project = u'MSMBuilder'
@@ -122,7 +111,7 @@ html_theme = 'default'
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
-html_theme_options = {'rightsidebar': True}
+#html_theme_options = {}
 
 # Add any paths that contain custom themes here, relative to this directory.
 #html_theme_path = []
@@ -132,11 +121,11 @@ html_theme_options = {'rightsidebar': True}
 #html_title = None
 
 # A shorter title for the navigation bar.  Default is the same as html_title.
-#html_short_title = 'MSMBuilder'
+#html_short_title = None
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-html_logo = '_static/msmbuilder_200.png'
+#html_logo = None
 
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
@@ -150,7 +139,7 @@ html_static_path = ['_static']
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
-html_last_updated_fmt = '%b %d, %Y'
+#html_last_updated_fmt = '%b %d, %Y'
 
 # If true, SmartyPants will be used to convert quotes and dashes to
 # typographically correct entities.
@@ -239,7 +228,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'msmbuilder', u'MSMBuilder Documentation',
+    ('index', 'MSMBuilder', u'MSMBuilder Documentation',
      [u'MSMBuilder Team'], 1)
 ]
 
@@ -266,7 +255,6 @@ texinfo_documents = [
 
 # How to display URL addresses: 'footnote', 'no', or 'inline'.
 #texinfo_show_urls = 'footnote'
-
 
 # MOCK MODULES FOR READ-THE-DOCS
 #http://read-the-docs.readthedocs.org/en/latest/faq.html

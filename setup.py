@@ -99,7 +99,8 @@ if os.environ.get('READTHEDOCS', None) == 'True' and __name__ == '__main__':
     write_version_py()
     
     metadata['name'] = 'msmbuilder'
-    metadata['packages'] = ['msmbuilder', 'msmbuilder.scripts', 'msmbuilder.geometry', 'msmbuilder.metrics']
+    metadata['packages'] = ['msmbuilder', 'msmbuilder.scripts', 'msmbuilder.project',
+                            'msmbuilder.geometry', 'msmbuilder.metrics']
     metadata['scripts'] = [e for e in glob('scripts/*.py') if not e.endswith('__.py')]
 
     # dirty, dirty trick to install "mock" packages
