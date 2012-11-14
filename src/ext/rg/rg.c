@@ -40,7 +40,7 @@ void rg(const float *xyzlist, int traj_length, int num_atoms, double* results) {
             z = *(frame + j * 3 + 2);
             I += ((x-meanx)*(x-meanx) + (y-meany)*(y-meany) + (z-meanz)*(z-meanz));
         }
-        I /= (3.0 * num_atoms);
+        I /= (num_atoms);
         
         //printf("I: %f", I);
         *results_ptr = sqrt(I);
