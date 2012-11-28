@@ -303,7 +303,7 @@ class TRRReader:
         else:
             self._filenames = filenames[:]#Want to copy the list so as not to destroy it.
 
-        print(self._filenames)
+        #print(self._filenames)
         self.natoms = number_of_atoms_trr(self._filenames[0])
         self._allcoords = np.empty([self.natoms,3],dtype='single',order='C')
         if self._atomindices != None:
@@ -337,7 +337,7 @@ class TRRReader:
             if self._lastframe != None and self._frame >= self._lastframe:
                 raise StopIteration
             result = _xdrlib.read_trr(self.xdr, self.natoms, byref(self._step), byref(self._time),byref(self._Lambda), self._box, self._allcoords,self._allvelocities,self._allforces)
-            print(result)
+            #print(result)
             if result == _EXDROK:
                 self._frame += 1
             elif result == _EXDRENDOFFILE or result== 4:#HACK by KAB--no idea why 4 is getting returned
