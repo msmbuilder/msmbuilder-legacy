@@ -1,108 +1,131 @@
-import sys
+import  os
+from os.path import join as pjoin
 from setuptools import setup
-from distutils.unixccompiler import UnixCCompiler
 from distutils.extension import Extension
 from distutils.command.build_ext import build_ext
 import subprocess
-from subprocess import CalledProcessError
-import glob
-import IPython as ip
+import numpy
 
-# make the clean command always run first
-sys.argv.insert(1, 'clean')
-sys.argv.insert(2, 'build')
+def find_in_path(name, path):
+    "Find a file in a search path"
+    #adapted fom http://code.activestate.com/recipes/52224-find-a-file-given-a-search-path/
+    for dir in path.split(os.pathsep):
+        binpath = pjoin(dir, name)
+        if os.path.exists(binpath):
+            return os.path.abspath(binpath)
+    return None
 
-# now rebuild the swig wrapper
-# this is done because the python swigging always seems to want to name
-# everything swig_wrap.cpp
-subprocess.Popen('swig -c++ -python -o gpurmsd/swGPURMSD.cpp gpurmsd/swig.i', shell=True)
 
-# python distutils doesn't have NVCC by default. This is a total hack.
-# what we're going to 
+def locate_cuda():
+    """Locate the CUDA environment on the system
 
-class MyExtension(Extension):
-    """subclass extension to add the kwarg 'glob_extra_link_args'
-    which will get evaluated by glob right before the extension gets compiled
-    and let the swig shared object get linked against the cuda kernel
+    Returns a dict with keys 'home', 'nvcc', 'include', and 'lib64'
+    and values giving the absolute path to each directory.
+
+    Starts by looking for the CUDAHOME env variable. If not found, everything
+    is based on finding 'nvcc' in the PATH.
     """
-    def __init__(self, *args, **kwargs):
-        self.glob_extra_link_args = kwargs.pop('glob_extra_link_args', [])
-        Extension.__init__(self, *args, **kwargs)
 
-class NVCC(UnixCCompiler):
-    src_extensions = ['.cu']
-    executables = {'preprocessor' : None,
-                   'compiler'     : ["nvcc"],
-                   'compiler_so'  : ["nvcc"],
-                   'compiler_cxx' : ["nvcc"],
-                   'linker_so'    : ["echo"], # TURN OFF NVCC LINKING
-                   'linker_exe'   : ["gcc"],
-                   'archiver'     : ["ar", "-cr"],
-                   'ranlib'       : None,
-               }
-    def __init__(self):
-        # Check to ensure that nvcc can be located
-        try:
-            subprocess.check_output('nvcc --help', shell=True)
-        except CalledProcessError:
-            print >> sys.stderr, 'Could not find nvcc, the nvidia cuda compiler'
-            sys.exit(1)
-        UnixCCompiler.__init__(self)
-        
-kernel = Extension('RMSD',
-                   sources=['gpurmsd/RMSD.cu'],
-                   extra_compile_args=['-arch=sm_20', '--ptxas-options=-v', '-c', '--compiler-options', "'-fPIC'"],
-                   include_dirs=['/usr/local/cuda/include'],                   
-                   )
-swig_wrapper = MyExtension('gpurmsd._swGPURMSD',
-                         sources=['gpurmsd/swGPURMSD.cpp'],
-                         swig_opts=['-c++'],
-                         library_dirs=['/usr/local/cuda/lib64'],
-                         libraries=['cudart'],
-                         # extra bit of magic so that we link this
-                         # against the kernels -o file
-                         glob_extra_link_args=['build/*/gpurmsd/RMSD.o'])
+    # first check if the CUDAHOME env variable is in use
+    if 'CUDAHOME' in os.environ:
+        home = os.environ['CUDAHOME']
+        nvcc = pjoin(home, 'bin', 'nvcc')
+    else:
+        # otherwise, search the PATH for NVCC
+        nvcc = find_in_path('nvcc', os.environ['PATH'])
+        if nvcc is None:
+            raise EnvironmentError('The nvcc binary could not be '
+                'located in your $PATH. Either add it to your path, or set $CUDAHOME')
+        home = os.path.dirname(os.path.dirname(nvcc))
 
+    cudaconfig = {'home':home, 'nvcc':nvcc,
+                  'include': pjoin(home, 'include'),
+                  'lib64': pjoin(home, 'lib64')}
+    for k, v in cudaconfig.iteritems():
+        if not os.path.exists(v):
+            raise EnvironmentError('The CUDA %s path could not be located in %s' % (k, v))
+
+    return cudaconfig
+CUDA = locate_cuda()
+
+def customize_compiler_for_nvcc(self):
+    """inject deep into distutils to customize how the dispatch
+    to gcc/nvcc works.
+
+    If you subclass UnixCCompiler, it's not trivial to get your subclass
+    injected in, and still have the right customizations (i.e.
+    distutils.sysconfig.customize_compiler) run on it. So instead of going
+    the OO route, I have this. Note, it's kindof like a wierd functional
+    subclassing going on."""
+
+    # tell the compiler it can processes .cu
+    self.src_extensions.append('.cu')
+
+    # save references to the default compiler_so and _comple methods
+    default_compiler_so = self.compiler_so
+    super = self._compile
+
+    # now redefine the _compile method. This gets executed for each
+    # object but distutils doesn't have the ability to change compilers
+    # based on source extension: we add it.
+    def _compile(obj, src, ext, cc_args, extra_postargs, pp_opts):
+        if os.path.splitext(src)[1] == '.cu':
+            # use the cuda for .cu files
+            self.set_executable('compiler_so', CUDA['nvcc'])
+            # use only a subset of the extra_postargs, which are 1-1 translated
+            # from the extra_compile_args in the Extension class
+            postargs = extra_postargs['nvcc']
+        else:
+            postargs = extra_postargs['gcc']
+
+        super(obj, src, ext, cc_args, postargs, pp_opts)
+        # reset the default compiler_so, which we might have changed for cuda
+        self.compiler_so = default_compiler_so
+
+    # inject our redefined _compile method into the class
+    self._compile = _compile
+
+
+# run the customize_compiler
 class custom_build_ext(build_ext):
     def build_extensions(self):
-        # we're going to need to switch between compilers, so lets save both
-        self.default_compiler = self.compiler
-        self.nvcc = NVCC()
+        customize_compiler_for_nvcc(self.compiler)
         build_ext.build_extensions(self)
 
-    def build_extension(self, *args, **kwargs):
-        extension = args[0]
-        # switch the compiler based on which thing we're compiling
-        # if any of the sources end with .cu, use nvcc
-        if any([e.endswith('.cu') for e in extension.sources]):
-            # note that we've DISABLED the linking (by setting the linker to be "echo")
-            # in the nvcc compiler
-            self.compiler = self.nvcc
-        else:
-            self.compiler = self.default_compiler
+# Obtain the numpy include directory.  This logic works across numpy versions.
+try:
+    numpy_include = numpy.get_include()
+except AttributeError:
+    numpy_include = numpy.get_numpy_include()
 
-        # evaluate the glob pattern and add it to the link line
-        # note, this suceeding with a glob pattern like build/temp*/gpurmsd/RMSD.o
-        # depends on the fact that this extension is built after the extension
-        # which creates that .o file
-        if hasattr(extension, 'glob_extra_link_args'):
-            for pattern in extension.glob_extra_link_args:
-                unglobbed = glob.glob(pattern)
-                if len(unglobbed) == 0:
-                    raise RuntimeError("glob_extra_link_args didn't match any files")
-                self.compiler.linker_so += unglobbed
-        
-        # call superclass
-        build_ext.build_extension(self, *args, **kwargs)
+# check for swig
+if find_in_path('swig', os.environ['PATH']):
+    subprocess.check_call('swig -python -c++ -o gpurmsd/swGPURMSD.cpp gpurmsd/swig.i', shell=True)
+else:
+    raise EnvironmentError('the swig executable was not found in your PATH')
+
+
+ext = Extension('gpurmsd._swGPURMSD',
+             sources=['gpurmsd/swGPURMSD.cpp', 'gpurmsd/RMSD.cu'],
+             library_dirs=[CUDA['lib64']],
+             libraries=['cudart'],
+             runtime_library_dirs=[CUDA['lib64']],
+             # this syntax is specific to this build system
+             # we're only going to use certain compiler args with nvcc and not with gcc
+             # the implementation of this trick is in customize_compiler() below
+             extra_compile_args={'gcc': [],
+                                 'nvcc': ['-arch=sm_20', '--ptxas-options=-v', '-c', '--compiler-options', "'-fPIC'"]},
+             include_dirs = [numpy_include, CUDA['include'], 'src'])
+
 
 setup(name='msmbuilder.metrics.gpurmsd',
-      author='Yutong Zhao',
+      author='Yutong Zhao, Robert McGibbon',
       description='MSMBuilder Plugin for GPU Accelerated RMSD calculation',
       version='0.2',
       packages = ['gpurmsd'],
-      ext_modules=[kernel, swig_wrapper],
+      ext_modules=[ext],
       cmdclass={'build_ext': custom_build_ext},
-      
+
       # this is the critical section that registers the plugin with msmbuilder
       # by telling it where to find the classes and functions required.
       entry_points="""
