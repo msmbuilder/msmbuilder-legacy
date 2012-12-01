@@ -938,10 +938,11 @@ def calculate_fraction_visits(tprob, waypoint, source, sink, return_cond_Q=False
     b = np.append( B[:,-1].flatten(), [0.0]*(len(Bsink_indices)-1) + [1.0] )
     cond_Q = b * Q[waypoint]
     
+    epsilon = 1e-6 # some numerical give, hard-coded
     assert cond_Q.shape == (N,)
-    assert np.all( cond_Q <= 1.0 )
-    assert np.all( cond_Q >= 0.0 )
-    assert np.all( cond_Q <= Q[perm] )
+    assert np.all( cond_Q <= 1.0 + epsilon )
+    assert np.all( cond_Q >= 0.0 - epsilon )
+    assert np.all( cond_Q <= Q[perm] + epsilon )
     
     # finally, calculate the fraction of paths h_C(A,B) (eq. 7 in [1])
     fraction_paths = np.sum( T[-3,:] * cond_Q ) / np.sum( T[-3,:] * Q[perm] )
