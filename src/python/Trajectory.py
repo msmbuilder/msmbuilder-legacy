@@ -185,14 +185,36 @@ class Trajectory(ConformationBaseClass):
         Precision : float, optional
             Precision to save xyzlist
         """
-        self.pop('IndexList')
+        indexlist = self.pop('IndexList', None)
         
         xyzlist = self.pop('XYZList')
         rounded = _convert_to_lossy_integers(xyzlist, precision)
         self['XYZList'] = rounded
         io.saveh(filename, **self)
+
         self['XYZList'] = xyzlist
+        self['IndexList'] = indexlist
+
+
+    def save_to_hdf(self, filename):
+        """Save a Trajectory instance to a HDF File.
+
+        First, remove the XYZList key because it should be written using the
+        special CArray operation.  This file format is roughly equivalent to
+        an XTC and should comparable file sizes but with better IO performance.
+
+        Parameters
+        ----------
+        Filename: str
+            location to save to
+        Precision : float, optional
+            Precision to save xyzlist
+        """
+        indexlist = self.pop('IndexList', None)
+        io.saveh(filename, **self)
+        self['IndexList'] = indexlist
         
+
     def save_to_xtc(self, filename, precision=DEFAULT_PRECISION):
         """Dump the coordinates to XTC
 
