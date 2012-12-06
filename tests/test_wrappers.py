@@ -30,6 +30,7 @@ import tarfile
 from msmbuilder.testing import *
 
 from msmbuilder import MSMLib
+from msmbuilder import Trajectory
 
 from msmbuilder.scripts import ConvertDataToHDF
 from msmbuilder.scripts import CreateAtomIndices
@@ -233,6 +234,35 @@ class test_PCCA(WTempdir):
         eq(macro_assign, r_macro_assign)
 
 
+class test_SaveStructures(WTempdir):
+    def test(self):
+        from msmbuilder.scripts.SaveStructures import run, save
+
+        project = get('ProjectInfo.yaml')
+        assignments = get('Assignments.h5')['arr_0']
+        which_states = [0, 1, 2]
+        list_of_trajs = run(project, assignments, which_states, n_per_state=2,
+            random=np.random.RandomState(42), replacement=True)
+
+        assert isinstance(list_of_trajs, list)
+        assert isinstance(list_of_trajs[0], Trajectory)
+        eq(len(list_of_trajs), len(which_states))
+        for t in list_of_trajs:
+            eq(len(t), 2)
+
+        print list_of_trajs[0].keys()
+        # sep, tps, one
+        save(list_of_trajs, which_states, style='sep', format='lh5', outdir=self.td)
+        save(list_of_trajs, which_states, style='tps', format='lh5', outdir=self.td)
+        save(list_of_trajs, which_states, style='one', format='lh5', outdir=self.td)
+
+        names = ['State0-0.lh5', 'State0-1.lh5', 'State0.lh5', 'State1-0.lh5',
+                'State1-1.lh5', 'State1.lh5', 'State2-0.lh5', 'State2-1.lh5',
+                'State2.lh5']
+
+        for name in names:
+            t = Trajectory.load_trajectory_file(pjoin(self.td, name))
+            eq(t, get('save_structures/' + name))
 
 
- 
+
