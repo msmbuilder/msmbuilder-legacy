@@ -46,11 +46,13 @@ if __name__ == "__main__":
     parser = arglib.ArgumentParser(description="""
     Calculates the mean first passage times (MFPTs) to one or all states.
     Returns: MFPTs_X.dat or PairwiseMFPTs.dat, where X is the state ID.
+    
+    Note: PairwiseMFPTs.dat is written if state=-1.  Otherwise, MFPTs_X.dat
+    is written.
     """)
 
     parser.add_argument('tProb')
-    parser.add_argument('state', help='''Vector of states in the
-        starting/reactants/unfolded ensemble.''', default="-1")
+    parser.add_argument('state', help='''ID of state to which we calculate MFPT.  If state=-1, then calculate all pairwise MFPTs.''', default="-1",type=int)
     parser.add_argument('output_dir', default='.')
     args = parser.parse_args()
 
