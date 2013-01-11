@@ -733,7 +733,7 @@ def calculate_all_to_all_mfpt(tprob, populations=None):
         logger.warning('calculate_all_to_all_mfpt does not support sparse linear algebra')
 
     if populations is None:
-        eigens = msm_analysis.get_eigenvectors(tprob, 5)
+        eigens = msm_analysis.get_eigenvectors(tprob, 1)
         if np.count_nonzero(np.imag(eigens[1][:,0])) != 0:
             raise ValueError('First eigenvector has imaginary parts')
         populations = np.real(eigens[1][:,0])
