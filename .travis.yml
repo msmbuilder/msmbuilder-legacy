@@ -1,0 +1,17 @@
+language: python
+python:
+  - 2.7
+virtualenv:
+  system_site_packages: true
+before_install:
+  - pip install nose --use-mirrors -qq
+  - sudo apt-get install -qq libhdf5-serial-dev
+  - pip install numexpr --use-mirrors -qq
+  - pip install cython --use-mirrors -qq
+  - pip install tables --use-mirrors -qq
+  - sudo apt-get install -qq python-numpy python-scipy python-matplotlib
+  - sudo apt-get install -qq swig
+install:
+  - python setup.py install --no-openmp
+script:
+  - nosetests
