@@ -64,11 +64,10 @@ if __name__ == "__main__":
     else:
         base_filename = "MFPTs_%d.dat" % state
 
-    output_list = [base_filename]
-    output_flist = [os.path.join(args.output_dir, f) for f in output_list]
-    arglib.die_if_path_exists(output_flist)
+    output_filename = os.path.join(args.output_dir, base_filename)
+    arglib.die_if_path_exists(output_filename)
 
     MFPTs = run(T, state)
 
-    np.savetxt(output_flist[0], MFPTs)
-    logger.info("Saved output to %s", ', '.join(output_flist))
+    np.savetxt(output_filename, MFPTs)
+    logger.info("Saved output to %s" % output_filename)
