@@ -107,6 +107,8 @@ def get_eigenvectors(t_matrix, n_eigs, epsilon=.001, dense_cutoff=50, right=Fals
         raise Exception("You cannot calculate %d Eigenvectors from a %d x %d matrix" % (n_eigs, n, n))
     if n < dense_cutoff and scipy.sparse.issparse(t_matrix):
         t_matrix = t_matrix.toarray()
+    elif n_eigs == n:
+        raise Exception("ARPACK cannot calculate %d Eigenvectors from a %d x %d matrix.  Try calculating %d or fewer eigenvectors or using a dense solver." % (n_eigs, n, n, n - 1))
 
     # if we want the left eigenvectors, take the transpose
     if not right:
