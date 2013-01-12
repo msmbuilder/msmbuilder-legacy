@@ -19,7 +19,6 @@
 
 import numpy as np
 
-from msmbuilder import io
 from msmbuilder import arglib
 from msmbuilder import msm_analysis
 
@@ -29,17 +28,6 @@ logger = logging.getLogger('msmbuilder.scripts.CalculateImpliedTimescales')
 
 def run(MinLagtime, MaxLagtime, Interval, NumEigen, AssignmentsFn, trimming,
         symmetrize, nProc):
-    # Setup some model parameters
-    try:
-        Assignments = io.loadh(AssignmentsFn, 'arr_0')
-    except KeyError:
-        Assignments = io.loadh(AssignmentsFn, 'Data')
-
-    NumStates = max(Assignments.flatten()) + 1
-    if NumStates <= NumEigen - 1:
-        NumEigen = NumStates - 2
-        logger.warning("Number of requested eigenvalues exceeds the rank of the transition matrix! Defaulting to the maximum possible number of eigenvalues.")
-    del Assignments
 
     logger.info("Getting %d eigenvalues (timescales) for each lagtime...", NumEigen)
     lagTimes = range(MinLagtime, MaxLagtime + 1, Interval)
