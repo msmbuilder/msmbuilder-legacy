@@ -104,11 +104,15 @@ def get_eigenvectors(t_matrix, n_eigs, epsilon=.001, dense_cutoff=50, right=Fals
     check_dimensions(t_matrix)
     n = t_matrix.shape[0]
     if n_eigs > n:
-        raise Exception("You cannot calculate %d Eigenvectors from a %d x %d matrix" % (n_eigs, n, n))
+        logger.warning("You cannot calculate %d Eigenvectors from a %d x %d matrix." % (n_eigs, n, n))
+        n_eigs = n
+        logger.warning("Instead, calculating %d Eigenvectors." % n_eigs)
     if n < dense_cutoff and scipy.sparse.issparse(t_matrix):
         t_matrix = t_matrix.toarray()
-    elif n_eigs == n:
-        raise Exception("ARPACK cannot calculate %d Eigenvectors from a %d x %d matrix.  Try calculating %d or fewer eigenvectors or using a dense solver." % (n_eigs, n, n, n - 1))
+    elif n_eigs >= n - 1:
+        logger.warning("ARPACK cannot calculate %d Eigenvectors from a %d x %d matrix." % (n_eigs, n, n))
+        n_eigs = n - 2
+        logger.warning("Instead, calculating %d Eigenvectors." % n_eigs)
 
     # if we want the left eigenvectors, take the transpose
     if not right:
@@ -168,7 +172,6 @@ def get_implied_timescales(assignments_fn, lag_times, n_implied_times=100, slidi
 
     """
     pool = multiprocessing.Pool(processes=n_procs)
-    n = len(lag_times)
 
     # subtle bug possibility; uneven_zip will let strings be iterable, whicj
     # we dont want
@@ -178,14 +181,15 @@ def get_implied_timescales(assignments_fn, lag_times, n_implied_times=100, slidi
     lags = result.get(999999)
 
     # reformat
-    formatedLags = np.zeros((n * n_implied_times, 2))
-    i = 0
-    for arr in lags:
-        formatedLags[i: i + n_implied_times, 0] = np.real(arr[0])
-        formatedLags[i: i + n_implied_times, 1] = np.real(arr[1])
-        i += n_implied_times
+    formatted_lags = []
+    for i,(lag_time_array,implied_timescale_array) in enumerate(lags):
+        for j,lag_time in enumerate(lag_time_array):
+            implied_timescale = implied_timescale_array[j]
+            formatted_lags.append([lag_time,implied_timescale])
 
-    return formatedLags
+    formatted_lags = np.array(formatted_lags)
+
+    return formatted_lags
 
 
 def get_implied_timescales_helper(args):
@@ -221,8 +225,7 @@ def get_implied_timescales_helper(args):
     --------
     MSMLib.build_msm
     get_eigenvectors
-    """
-    
+    """    
     assignments_fn, lag_time, n_implied_times, sliding_window, trimming, symmetrize = args
     
     try:
@@ -244,15 +247,14 @@ def get_implied_timescales_helper(args):
     #TJL: set Epsilon high, should not raise err here
     n_eigenvectors = n_implied_times + 1
     e_values = get_eigenvectors(t_matrix, n_eigenvectors, epsilon=1)[0]
+    
+    # Correct for possible change in n_eigenvectors from trimming
+    n_eigenvectors = len(e_values)
+    n_implied_times = n_eigenvectors - 1
 
     # make sure to leave off equilibrium distribution
     lag_times = lag_time * np.ones((n_implied_times))
     imp_times = -lag_times / np.log(e_values[1: n_eigenvectors])
-
-    # save intermediate result in case of failure
-    # res = np.zeros((n_implied_times, 2))
-    # res[:,0] = lag_times
-    # res[:,1] = np.real(imp_times)
 
     return (lag_times, imp_times)
 
