@@ -54,8 +54,9 @@ contains all the lag times.\n""")
         timescales data file (use .dat extension)""", default='ImpliedTimescales.dat')
     parser.add_argument('procs', help='''Number of concurrent processes
         (cores) to use''', default=1, type=int)
-    parser.add_argument('eigvals', help="""'Number of eigenvalues
-        (implied timescales) to retrieve at each lag time""", default=10, type=int)
+    parser.add_argument('eigvals', help="""Number of slowest implied timescales to
+        retrieve at each lag time. Note: an n-state model will have n-1
+        implied timescales.""", default=10, type=int)
     parser.add_argument('interval', help="""Number of times (intervals)
         to calculate lagtimes for""", default=20, type=int)
     parser.add_argument('symmetrize', help="""Method by which to estimate a
