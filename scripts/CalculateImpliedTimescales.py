@@ -19,7 +19,6 @@
 
 import numpy as np
 
-from msmbuilder import io
 from msmbuilder import arglib
 from msmbuilder import msm_analysis
 
@@ -29,17 +28,6 @@ logger = logging.getLogger('msmbuilder.scripts.CalculateImpliedTimescales')
 
 def run(MinLagtime, MaxLagtime, Interval, NumEigen, AssignmentsFn, trimming,
         symmetrize, nProc):
-    # Setup some model parameters
-    try:
-        Assignments = io.loadh(AssignmentsFn, 'arr_0')
-    except KeyError:
-        Assignments = io.loadh(AssignmentsFn, 'Data')
-
-    NumStates = max(Assignments.flatten()) + 1
-    if NumStates <= NumEigen - 1:
-        NumEigen = NumStates - 2
-        logger.warning("Number of requested eigenvalues exceeds the rank of the transition matrix! Defaulting to the maximum possible number of eigenvalues.")
-    del Assignments
 
     logger.info("Getting %d eigenvalues (timescales) for each lagtime...", NumEigen)
     lagTimes = range(MinLagtime, MaxLagtime + 1, Interval)
@@ -66,8 +54,9 @@ contains all the lag times.\n""")
         timescales data file (use .dat extension)""", default='ImpliedTimescales.dat')
     parser.add_argument('procs', help='''Number of concurrent processes
         (cores) to use''', default=1, type=int)
-    parser.add_argument('eigvals', help="""'Number of eigenvalues
-        (implied timescales) to retrieve at each lag time""", default=10, type=int)
+    parser.add_argument('eigvals', help="""Number of slowest implied timescales to
+        retrieve at each lag time. Note: an n-state model will have n-1
+        implied timescales.""", default=10, type=int)
     parser.add_argument('interval', help="""Number of times (intervals)
         to calculate lagtimes for""", default=20, type=int)
     parser.add_argument('symmetrize', help="""Method by which to estimate a
