@@ -40,7 +40,7 @@ from msmbuilder.scripts import AssignHierarchical
 from msmbuilder.scripts import BuildMSM
 from msmbuilder.scripts import CalculateImpliedTimescales
 from msmbuilder.scripts import PCCA
-from msmbuilder.scripts import DoTPT
+from msmbuilder.scripts import CalculateTPT
 from msmbuilder.scripts import FindPaths
 from msmbuilder.scripts import CalculateClusterRadii
 from msmbuilder.scripts import CalculateMFPTs
@@ -175,11 +175,11 @@ def test_CalculateMFPTs(mfpt_state=70):
     mfpt0 = get(pjoin("transition_path_theory_reference","mfpt.h5"))['Data']    
     eq(mfpt, mfpt0)
 
-def test_DoTPT():
+def test_CalculateTPT():
     T = get("tProb.mtx")
     sources = [0] # chosen arb. for ref. by TJL
     sinks = [70]  # chosen arb. for ref. by TJL
-    script_out = DoTPT.run(T, sources, sinks)
+    script_out = CalculateTPT.run(T, sources, sinks)
     committors_ref = get( pjoin("transition_path_theory_reference", 
                           "committors.h5"))['Data']
     net_flux_ref = get( pjoin("transition_path_theory_reference", 
