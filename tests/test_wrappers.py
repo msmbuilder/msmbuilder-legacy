@@ -27,10 +27,10 @@ import tempfile
 import shutil
 import os
 import tarfile
-from msmbuilder.testing import *
 
 from msmbuilder import MSMLib
 from msmbuilder import Trajectory
+from msmbuilder.testing import get,eq,load
 
 from msmbuilder.scripts import ConvertDataToHDF
 from msmbuilder.scripts import CreateAtomIndices
@@ -43,10 +43,12 @@ from msmbuilder.scripts import PCCA
 from msmbuilder.scripts import DoTPT
 from msmbuilder.scripts import FindPaths
 from msmbuilder.scripts import CalculateClusterRadii
+from msmbuilder.scripts import CalculateMFPTs
 
 # are we keeping these?
 from msmbuilder.scripts import CalculateRMSD
-from msmbuilder.scripts import CalculateProjectRMSD
+#from msmbuilder.scripts import CalculateProjectRMSD deprecated in 2.7
+from msmbuilder.scripts import CalculateProjectDistance
 
 
 def pjoin(*args):
@@ -167,6 +169,11 @@ def test_CalculateImpliedTimescales():
     
     eq(impTimes, get('ImpliedTimescales.dat'))
 
+
+def test_CalculateMFPTs(mfpt_state=70):
+    mfpt = CalculateMFPTs.run(get('tProb.mtx'),mfpt_state)
+    mfpt0 = get(pjoin("transition_path_theory_reference","mfpt.h5"))['Data']    
+    eq(mfpt, mfpt0)
 
 def test_DoTPT():
     T = get("tProb.mtx")
