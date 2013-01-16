@@ -31,7 +31,6 @@ logger = logging.getLogger(__name__)
 # Set this value to true (msm_analysis.DisableErrorChecking=True) to ignore
 # Eigenvector calculation errors.  Useful if you need to process disconnected data.
 DisableErrorChecking = False
-MinimumAllowedNumEig = 5
 
 eig = scipy.linalg.eig
 
@@ -111,7 +110,7 @@ def get_eigenvectors(t_matrix, n_eigs, epsilon=.001, dense_cutoff=50, right=Fals
         logger.warning("Instead, calculating %d Eigenvectors." % n_eigs)
     if n < dense_cutoff and scipy.sparse.issparse(t_matrix):
         t_matrix = t_matrix.toarray()
-    elif n_eigs >= n - 1:
+    elif n_eigs >= n - 1  and scipy.sparse.issparse(t_matrix):
         logger.warning("ARPACK cannot calculate %d Eigenvectors from a %d x %d matrix." % (n_eigs, n, n))
         n_eigs = n - 2
         logger.warning("Instead, calculating %d Eigenvectors." % n_eigs)
@@ -121,7 +120,7 @@ def get_eigenvectors(t_matrix, n_eigs, epsilon=.001, dense_cutoff=50, right=Fals
         t_matrix = t_matrix.transpose()
 
     if scipy.sparse.issparse(t_matrix):
-        values, vectors = sparse_eigen(t_matrix.tocsr(), max(n_eigs, MinimumAllowedNumEig), which="LR", maxiter=100000)
+        values, vectors = sparse_eigen(t_matrix.tocsr(), n_eigs, which="LR", maxiter=100000)
     else:
         values, vectors = eig(t_matrix)
 
