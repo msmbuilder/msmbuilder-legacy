@@ -110,7 +110,7 @@ def get_eigenvectors(t_matrix, n_eigs, epsilon=.001, dense_cutoff=50, right=Fals
         logger.warning("Instead, calculating %d Eigenvectors." % n_eigs)
     if n < dense_cutoff and scipy.sparse.issparse(t_matrix):
         t_matrix = t_matrix.toarray()
-    elif n_eigs >= n - 1:
+    elif n_eigs >= n - 1  and scipy.sparse.issparse(t_matrix):
         logger.warning("ARPACK cannot calculate %d Eigenvectors from a %d x %d matrix." % (n_eigs, n, n))
         n_eigs = n - 2
         logger.warning("Instead, calculating %d Eigenvectors." % n_eigs)
