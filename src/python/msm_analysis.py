@@ -600,28 +600,28 @@ def msm_acf(tprob, observable, timepoints, num_modes=10):
 
     Notes
     -----
-    Use statsmodels.tsa.stattools.acf to calculate an ACF from a raw 
+    Use statsmodels.tsa.stattools.acf to calculate an ACF from a raw
     observable such as an RMSD trace.
     """
 
     eigenvalues, eigenvectors = get_eigenvectors(tprob, num_modes + 1)
     num_modes = len(eigenvalues) - 1
 
-    populations = eigenvectors[:,0]
-    D = np.diag(populations**-1.)
+    populations = eigenvectors[:, 0]
+    D = np.diag(populations ** -1.)
 
     # discard the stationary eigenmode
     eigenvalues = np.real(eigenvalues[1:])
     eigenvectors = np.real(eigenvectors[:, 1:])
     right_eigenvectors = D.dot(eigenvectors)
-        
+
     eigenvector_normalizer = np.diag(right_eigenvectors.T.dot(eigenvectors))
     eigenvectors /= eigenvector_normalizer
-    
+
     V = eigenvectors.T.dot(observable)
-    
+
     acf = np.array([(eigenvalues ** t).dot(V) for t in timepoints])
-    
+
     acf /= acf[0]
 
     return acf
