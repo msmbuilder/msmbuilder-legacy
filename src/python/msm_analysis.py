@@ -31,7 +31,6 @@ logger = logging.getLogger(__name__)
 # Set this value to true (msm_analysis.DisableErrorChecking=True) to ignore
 # Eigenvector calculation errors.  Useful if you need to process disconnected data.
 DisableErrorChecking = False
-MinimumAllowedNumEig = 5
 
 eig = scipy.linalg.eig
 
@@ -121,7 +120,7 @@ def get_eigenvectors(t_matrix, n_eigs, epsilon=.001, dense_cutoff=50, right=Fals
         t_matrix = t_matrix.transpose()
 
     if scipy.sparse.issparse(t_matrix):
-        values, vectors = sparse_eigen(t_matrix.tocsr(), max(n_eigs, MinimumAllowedNumEig), which="LR", maxiter=100000)
+        values, vectors = sparse_eigen(t_matrix.tocsr(), n_eigs, which="LR", maxiter=100000)
     else:
         values, vectors = eig(t_matrix)
 
