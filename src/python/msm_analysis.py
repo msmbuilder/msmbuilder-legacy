@@ -600,29 +600,25 @@ def msm_acf(tprob, observable, timepoints, num_modes=10):
         The autocorrelation function.
     """
 
-    if num_modes > tprob.shape[0] - 2:
-        logger.warning('Number of eigenmodes requsted larger than'
-                        ' is possible given rank of tprob. Using'
-                        ' as many eigenmodes as possible.')
-        num_modes = tprob.shape[0] - 3
+    eigenvalues, eigenvectors = get_eigenvectors(tprob, num_modes + 1, right=False)
+    num_modes = len(eigenvalues) - 1
 
-    eigenvalues, eigenvectors = GetEigenvectors_Right(tprob, num_modes + 1)
+    populations = eigenvectors[:,0]
+    D = np.diag(populations**-1.)
 
     # discard the stationary eigenmode
     eigenvalues = np.real(eigenvalues[1:])
     eigenvectors = np.real(eigenvectors[:, 1:])
-
-    timescales = - 1.0 / np.log(eigenvalues)
-
-    amplitudes = np.zeros(num_modes)
-    for mode in range(num_modes):
-        amplitudes[mode] = np.dot(observable, eigenvectors[:, mode])
-
-    weight = amplitudes * amplitudes
-    sum_weight = np.sum(weight)
-    acf = np.zeros(timepoints)
-    for t in range(0, N):
-        acf[t] = np.dot(weight, np.power(eigenvalues, t)) / sum_weight
+    right_eigenvectors = D.dot(eigenvectors)
+        
+    eigenvector_normalizer = np.diag(right_eigenvectors.T.dot(eigenvectors))
+    eigenvectors /= eigenvector_normalizer
+    
+    V = eigenvectors.T.dot(observable)
+    
+    acf = np.array([(eigenvalues ** t).dot(V) for t in timepoints])
+    
+    acf /= acf[0]
 
     return acf
 
