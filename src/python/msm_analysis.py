@@ -586,8 +586,8 @@ def msm_acf(tprob, observable, timepoints, num_modes=10):
         Transition probability matrix
     observable : ndarray, float
         Vector representing the observable value for each state
-    timepoints : int
-        The number of timepoints to calculate the decay for, in units of lag
+    timepoints : ndarray, int
+        The timepoints at which to calculate the decay, in units of lag
         times.
     num_modes : int (num_modes)
         The number of eigenmodes to employ. More modes, more accurate,
@@ -597,9 +597,14 @@ def msm_acf(tprob, observable, timepoints, num_modes=10):
     -------
     acf : ndarray, float
         The autocorrelation function.
+
+    Notes
+    -----
+    Use statsmodels.tsa.stattools.acf to calculate an ACF from a raw 
+    observable such as an RMSD trace.
     """
 
-    eigenvalues, eigenvectors = get_eigenvectors(tprob, num_modes + 1, right=False)
+    eigenvalues, eigenvectors = get_eigenvectors(tprob, num_modes + 1)
     num_modes = len(eigenvalues) - 1
 
     populations = eigenvectors[:,0]
