@@ -16,8 +16,7 @@ class test_msm_acf():
         self.T = MSMLib.estimate_transition_matrix(self.C)
         self.state_traj = np.array(msm_analysis.sample(self.T, 0, self.num_steps))
 
-    def test_1(self):
-        observable_by_state = np.eye(2)[0]
+    def compare_observable_to_statsmodels(self, observable_by_state):
         acf_msm = msm_analysis.msm_acf(self.T, observable_by_state, self.times)
         observable_traj = observable_by_state[self.state_traj]
         acf, errs = statsmodels.tsa.stattools.acf(observable_traj, nlags=self.max_lag - 1, fft=True, alpha=self.alpha)
@@ -25,13 +24,11 @@ class test_msm_acf():
         min_acf, max_acf = errs.T
         np.testing.assert_((acf_msm <= max_acf + self.epsilon).all())
         np.testing.assert_((min_acf <= acf_msm + self.epsilon).all())
+
+    def test_1(self):
+        observable_by_state = np.eye(2)[0]
+        self.compare_observable_to_statsmodels(observable_by_state)
 
     def test_2(self):
         observable_by_state = np.array([0.25, 0.75])
-        acf_msm = msm_analysis.msm_acf(self.T, observable_by_state, self.times)
-        observable_traj = observable_by_state[self.state_traj]
-        acf, errs = statsmodels.tsa.stattools.acf(observable_traj, nlags=self.max_lag - 1, fft=True, alpha=self.alpha)
-
-        min_acf, max_acf = errs.T
-        np.testing.assert_((acf_msm <= max_acf + self.epsilon).all())
-        np.testing.assert_((min_acf <= acf_msm + self.epsilon).all())
+        self.compare_observable_to_statsmodels(observable_by_state)
