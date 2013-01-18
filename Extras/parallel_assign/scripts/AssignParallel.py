@@ -4,6 +4,7 @@ import numpy as np
 import logging
 import IPython as ip
 from IPython import parallel
+from IPython.parallel.error import RemoteError
 
 from msmbuilder import arglib
 from msmbuilder import metrics
@@ -27,7 +28,7 @@ def setup_logger(console_stream=sys.stdout):
 
 def main(args, metric, logger):
     
-    project = Project.load_from_hdf(args.project)
+    project = Project.load_from(args.project)
     if not os.path.exists(args.generators):
         raise IOError('Could not open generators')
     generators = os.path.abspath(args.generators)
@@ -80,7 +81,13 @@ def main(args, metric, logger):
             # we know these are done, so don't worry about blocking
             async = client.get_result(msg_id)
             
-            assignments, distances, chunk = async.result[0]
+            try:
+                assignments, distances, chunk = async.result[0]
+            except RemoteError as e:
+                print 'Remote Error:'
+                e.print_traceback()
+                raise
+                
             vtraj_id = local.save(f_assignments, f_distances, assignments, distances, chunk)
             
             log_status(logger, len(pending), n_jobs, vtraj_id, async)
@@ -128,7 +135,7 @@ def log_status(logger, n_pending, n_jobs, job_id, async_result):
 
 
 def setup_parser():
-    parser = argparse.ArgumentParser("""
+    parser = arglib.ArgumentParser("""
 Assign data that were not originally used in the clustering (because of
 striding) to the microstates. This is applicable to all medoid-based clustering
 algorithms, which includes all those implemented by Cluster.py except the

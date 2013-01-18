@@ -25,7 +25,7 @@ from msmbuilder.tpt import calculate_committors, calculate_net_fluxes
 
 from msmbuilder import arglib
 import logging
-logger = logging.getLogger('msmbuilder.scripts.DoTPT')
+logger = logging.getLogger('msmbuilder.scripts.CalculateTPT')
 
 def run(TC, Uv, Fv):
 

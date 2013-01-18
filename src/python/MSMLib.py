@@ -613,7 +613,8 @@ def ergodic_trim_indices(counts):
 
     logger.info("Selected component %d with population %f", ComponentInd, ComponentPops[ComponentInd] / ComponentPops.sum())
 
-    states_to_trim = np.unique(ConnectedComponents[ComponentInd])
+    states_to_keep = np.unique(ConnectedComponents[ComponentInd])
+    states_to_trim = np.setdiff1d(np.arange(counts.shape[0]), states_to_keep)
     
     return states_to_trim
     
@@ -641,24 +642,38 @@ def trim_states(states_to_trim, counts, assignments=None):
         is read as an empty value by MSMBuilder
     """
     
-    NZ = np.array(counts.nonzero()).transpose()
+    # Trim the counts matrix by simply deleting the appropriate rows & columns.
+    # Switching to lil format makes it easy to delete rows directly --
+    # maybe not most efficient, but easy to understand (and shouldn't be
+    # a bottleneck)
     
-    mapping = np.zeros(counts.shape[0], dtype='int') - 1
-    for i, x in enumerate(states_to_trim):
-        mapping[x] = i
-
-    NZ[:, 0] = mapping[NZ[:, 0]]
-    NZ[:, 1] = mapping[NZ[:, 1]]
-
-    Ind = np.where(NZ.min(1) != -1)
-    trimmed_counts = scipy.sparse.csr_matrix((counts.data[Ind], NZ[Ind].transpose()))
-
+    counts = counts.tolil()
+    ndel = len(states_to_trim)
+    
+    # delete rows
+    counts.rows = np.delete(counts.rows, states_to_trim)
+    counts.data = np.delete(counts.data, states_to_trim)
+    counts._shape = (counts._shape[0] - ndel, counts._shape[1])
+    
+    # delete cols
+    counts = counts.T
+    counts.rows = np.delete(counts.rows, states_to_trim)
+    counts.data = np.delete(counts.data, states_to_trim)
+    counts._shape = (counts._shape[0] - ndel, counts._shape[1])
+    counts = counts.T
+    
     if assignments is not None:
+        
+        mapping = np.arange( counts.shape[0] )
+        mapping[states_to_trim] = -1
+        renumber_states(mapping) # renumbers into contiguous order, in-place
+        
         trimmed_assignments = assignments.copy()
-        apply_mapping_to_assignments(trimmed_assignments, Mapping) # nefarious in-place
-        return trimmed_counts, trimmed_assignments
+        apply_mapping_to_assignments(trimmed_assignments, mapping) # in-place
+        return counts, trimmed_assignments
+        
     else:
-        return trimmed_counts
+        return counts
     
 
 def log_likelihood(count_matrix, transition_matrix):
