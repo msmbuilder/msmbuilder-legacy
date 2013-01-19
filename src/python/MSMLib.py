@@ -174,7 +174,7 @@ def build_msm(counts, symmetrize='MLE', ergodic_trimming=True):
 
     # Apply a symmetrization scheme
     if symmetrize == 'mle':
-        rev_counts = mle_reversible_count_matrix(counts, prior=0.0)
+        rev_counts = mle_reversible_count_matrix(counts)
     elif symmetrize == 'transpose':
         rev_counts = 0.5*(counts + counts.transpose())
     elif symmetrize == 'none':
@@ -720,7 +720,7 @@ def log_likelihood(count_matrix, transition_matrix):
             * np.asarray(count_matrix[row, col]))
 
 
-def mle_reversible_count_matrix(count_matrix, prior=0.0, initial_guess=None):
+def __mle_reversible_count_matrix_lutz__(count_matrix, prior=0.0, initial_guess=None):
     """Calculates the maximum-likelihood symmetric count matrix for a givnen observed count matrix.
 
     This function uses a Newton conjugate-gradient algorithm to maximize the likelihood
@@ -784,7 +784,7 @@ def mle_reversible_count_matrix(count_matrix, prior=0.0, initial_guess=None):
     # current implementation only for sparse matrices
     # if given a dense matrix, sparsify it, and turn the result back to a dense array
     if not scipy.sparse.isspmatrix(C):
-        return mle_reversible_count_matrix(scipy.sparse.csr_matrix(C), prior=prior, initial_guess=initial_guess).toarray()
+        return __mle_reversible_count_matrix_lutz__(scipy.sparse.csr_matrix(C), prior=prior, initial_guess=initial_guess).toarray()
 
     N = C.shape[0]
     if not C.shape[1] == N:
@@ -922,39 +922,79 @@ def permute_mat(A, permutation):
     
     return permuted_A
 
+def mle_reversible_count_matrix(count_matrix):
+    """Maximum likelihood estimate for a reversible count matrix
+    
+    Parameters
+    ----------
+    counts : sparse matrix of transition counts (raw, not symmetrized)
+            
+    Notes
+    -----
+    This object can be used to find the maximum likelihood reversible
+    count matrix.  See Docs/notes/mle_notes.pdf for details
+    on the math used during these calculations.
+    
+    """
+    mle = __Reversible_MLE_Estimator__(count_matrix)
+    return mle.optimize()
 
-class reversible_MLE_estimator():
+class __Reversible_MLE_Estimator__():
     def __init__(self,counts):
-        """Construct class to manipulate and optimize reversible likelihoods
+        """Construct class to maximize likelihood of reversible count matrix.
         
         Parameters
         ----------
-        counts : sparse matrix of transition counts
+        counts : sparse matrix of transition counts (raw, not symmetrized)
                 
         Notes
         -----
         This object can be used to find the maximum likelihood reversible
-        count matrix.  See Docs/notes/reversible_mle.pdf for details
+        count matrix.  See Docs/notes/mle_notes.pdf for details
         on the math used during these calculations.
+
+        Also, this class is hidden because you are better off using the helper
+        function
         
         """
 
         c = counts.asformat("csr").asfptype()
         c.eliminate_zeros()
-        self.Ni = np.array(c.sum(1)).flatten()
-        self.sym_counts = c + c.transpose()
-
-        self.i,self.j = self.sym_counts.nonzero()
-        self.sym_counts.data[self.i<self.j] = 0.
-        self.sym_counts.eliminate_zeros()
-        self.i,self.j = self.sym_counts.nonzero()
         self.counts = c
+        self.Ni = np.array(c.sum(1)).flatten()
+
+        self.sym_counts = c + c.transpose()        
+        self.full_i,self.full_j = self.sym_counts.nonzero()
+        self.full_upper_ind = np.where(self.full_i < self.full_j)[0]
+        self.full_lower_ind = np.where(self.full_i >= self.full_j)[0]
+
+        self.temporary_sym_counts = self.sym_counts.copy()  # This will be used to calculate the log likelihood.  Avoids repeated copying of sparse matrices.
         
-        self.stencil = self.sym_counts.copy()
+        self.partial_counts = self.sym_counts.copy()
+        self.partial_counts.data[self.full_upper_ind] = 0.
+        self.partial_counts.eliminate_zeros()
+        self.partial_i,self.partial_j = self.partial_counts.nonzero()
+        self.partial_diag_indices = np.where(self.partial_i==self.partial_j)[0]
+        
+        self.construct_upper_mapping()
+                
+        self.stencil = self.partial_counts.copy()
         self.stencil.data[:] = 1.
 
         
-        self.diag_indices = np.where(self.i==self.j)[0]
+        self.full_diag_indices = np.where(self.full_i==self.full_j)[0]
+
+    def construct_upper_mapping(self):
+        partial_ij_to_data = {}
+        for k, i in enumerate(self.partial_i):
+            j = self.partial_j[k]
+            partial_ij_to_data[i,j] = k
+        
+        self.partial_upper_mapping = np.zeros(len(self.full_upper_ind),'int')
+        for k0, k in enumerate(self.full_upper_ind):
+            i0, j0 = self.full_i[k], self.full_j[k]
+            k1 = partial_ij_to_data[j0,i0]
+            self.partial_upper_mapping[k0] = k1                
 
     def log_vector_to_matrix(self,log_vector):
         """Construct sparse matrix from vector of parameters.
@@ -964,24 +1004,23 @@ class reversible_MLE_estimator():
         log_vector : np array containing log of nonzero matrix entries
         
         """
-        x = self.sym_counts.copy()
-        x.data[:] = np.exp(log_vector)
-        x.data[self.diag_indices] /= 2.
-        x = x + x.transpose()
+        x = self.temporary_sym_counts
+        x.data[self.full_lower_ind] = np.exp(log_vector)
+        x.data[self.full_upper_ind] = np.exp(log_vector)[self.partial_upper_mapping]
         return x
 
     def flatten_matrix(self,C):
-        """Construct sparse matrix from vector of parameters.
+        """Extract lower triangle from an arbitrary sparse CSR matrix.
         
         Parameters
         ----------
-        log_vector : np array 
-            array containing log of nonzero matrix entries
+        C : sparse CSR matrix of counts
+            
 
         Returns
         -------
-        K : csr_matrix
-        
+        data : The nonzero entries on the lower triangle        
+
         """        
         C = self.stencil.multiply(C)
         C = C + self.stencil
@@ -1011,12 +1050,13 @@ class reversible_MLE_estimator():
         Notes
         -----
         The counts used are those input during construction of this class.
+        This calculation is based on Eqn. 4 in the Docs/notes/mle_notes.pdf
         
         """
-        s_data = self.sym_counts.data
 
-        f = (log_vector*s_data).sum()
-        f -= 0.5*(s_data[self.diag_indices]*log_vector[self.diag_indices]).sum()
+        f = (log_vector*self.partial_counts.data).sum()
+        f -= (log_vector*self.partial_counts.data)[self.partial_diag_indices].sum() * 0.5
+
         r = self.log_vector_to_matrix(log_vector)
         
         q = np.array(r.sum(0)).flatten()        
@@ -1035,19 +1075,20 @@ class reversible_MLE_estimator():
         Returns
         -------
         grad : np array
-            grad is the derivative of log likelihood with respect to 
+            grad is the derivative of the log likelihood with respect to 
             log_vector            
 
         Notes
         -----
         The counts used are those input during construction of this class.
+        This calculation is based on Eqn. 5 in the Docs/notes/mle_notes.pdf
         
         """
-        grad = 0.0*log_vector
-        grad += self.sym_counts.data
-        grad[self.diag_indices] -= 0.5*self.sym_counts.data[self.diag_indices]
+        grad = 0.0 * log_vector
+        grad += self.partial_counts.data
+        grad[self.partial_diag_indices] -= 0.5*self.partial_counts.data[self.partial_diag_indices]
         
-        r = self.log_vector_to_matrix(log_vector)        
+        r = self.log_vector_to_matrix(log_vector)
         q = np.array(r.sum(0)).flatten()        
         v = self.Ni / q
         
@@ -1059,18 +1100,24 @@ class reversible_MLE_estimator():
 
     def optimize(self):
         """Maximize the log_likelihood to find the MLE reversible counts.
+
+        Returns
+        -------
+        X : sparse csr matrix
+            Returns the MLE reversible (symmetric) counts matrix
         
         Notes
         -----
         This algorithm uses the symmetrized counts as an initial guess.
         
         """
-        log_vector = 0.0*np.log(self.sym_counts.data)
-        f = lambda x: -1*self.log_likelihood(x)
-        df = lambda x: -1*self.dlog_likelihood(x)
-        ans = scipy.optimize.fmin_l_bfgs_b(f,log_vector,df,disp=1,factr=0.001,m=26)[0]
-        # m = 26 gave optimal speed for one test case.
-        return ans
+        log_vector = 1.0*np.log(self.partial_counts.data)
+        f = lambda x: -1 * self.log_likelihood(x)
+        df = lambda x: -1 * self.dlog_likelihood(x)
+        ans = scipy.optimize.fmin_l_bfgs_b(f,log_vector,df,disp=0,factr=0.001,m=26)[0]
+        X = self.log_vector_to_matrix(ans)
+        X *= (self.counts.sum() / X.sum())
+        return X
 
 
 
