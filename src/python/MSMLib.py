@@ -935,7 +935,13 @@ def mle_reversible_count_matrix(count_matrix):
 
     Parameters
     ----------
-    counts : sparse matrix of transition counts (raw, not symmetrized)
+    counts : scipy.sparse.csr_matrix
+        sparse matrix of transition counts (raw, not symmetrized)
+
+    Returns
+    -------
+    X : scipy.sparse.csr_matrix
+        Returns the MLE reversible (symmetric) counts matrix
 
     Notes
     -----
@@ -1046,7 +1052,8 @@ class __Reversible_MLE_Estimator__():
 
         Returns
         -------
-        data : The nonzero entries on the lower triangle (including diagonal)
+        data : np.ndarray
+            The nonzero entries on the lower triangle (including diagonal)
 
         """
         C = self.stencil.multiply(C)
@@ -1064,8 +1071,9 @@ class __Reversible_MLE_Estimator__():
 
         Returns
         -------
-        data : The log of all nonzero entries on the lower triangle
-            (including diagonal)
+        data : np.ndarray
+            The log of all nonzero entries on the lower triangle
+            (including diagonal).
 
 
         """
@@ -1077,7 +1085,7 @@ class __Reversible_MLE_Estimator__():
 
         Parameters
         ----------
-        log_vector : np array
+        log_vector : np.ndarray
             log_vector contains the log of all nonzero matrix entries
 
         Notes
@@ -1102,12 +1110,12 @@ class __Reversible_MLE_Estimator__():
 
         Parameters
         ----------
-        log_vector : np array
+        log_vector : np.ndarray
             log_vector contains the log of all nonzero matrix entries
 
         Returns
         -------
-        grad : np array
+        grad : np.ndarray
             grad is the derivative of the log likelihood with respect to
             log_vector
 
@@ -1136,7 +1144,7 @@ class __Reversible_MLE_Estimator__():
 
         Returns
         -------
-        X : sparse csr matrix
+        X : scipy.sparse.csr_matrix
             Returns the MLE reversible (symmetric) counts matrix
 
         Notes
