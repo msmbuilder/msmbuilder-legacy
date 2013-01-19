@@ -17,7 +17,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-import sys, os
+import os
 import numpy as np
 import scipy.io
 from msmbuilder import arglib
@@ -26,7 +26,7 @@ from msmbuilder import MSMLib
 import logging
 logger = logging.getLogger('msmbuilder.scripts.BuildMSM')
 
-def run(LagTime, assignments, Symmetrize='MLE', input_mapping="None", Prior=0.0, OutDir="./Data/"):
+def run(LagTime, assignments, Symmetrize='MLE', input_mapping="None", OutDir="./Data/"):
 
     # set the filenames for output
     FnTProb = os.path.join(OutDir, "tProb.mtx")
@@ -43,7 +43,6 @@ def run(LagTime, assignments, Symmetrize='MLE', input_mapping="None", Prior=0.0,
     if input_mapping != "None":
         MSMLib.apply_mapping_to_assignments(assignments, input_mapping)
 
-    n_states = np.max(assignments.flatten()) + 1
     n_assigns_before_trim = len( np.where( assignments.flatten() != -1 )[0] )
     
     counts = MSMLib.get_count_matrix_from_assignments(assignments, lag_time=LagTime, sliding_window=True)
@@ -94,9 +93,6 @@ Assignments.Fixed.h5, tCounts.UnSym.mtx""")
         number of snapshots. EG, if you have snapshots every 200ps, and set the
         lagtime=50, you'll get a model with a lagtime of 10ns)''', type=int)
     parser.add_argument('mapping', help='''Mapping, EG from microstates to macrostates. If given, this mapping will be applied to the specified assignments before creating an MSM.''', default="None")
-    parser.add_argument('prior', help='''Strength of Symmetric Prior.
-        This prior mitigates the effect of sinks when estimating a reversible
-        counts matrix (MLE Estimator).''', default=0.0, type=float)
     parser.add_argument('output_dir')
     args = parser.parse_args()
     
@@ -108,5 +104,4 @@ Assignments.Fixed.h5, tCounts.UnSym.mtx""")
     if args.mapping != "None":
         args.mapping = np.array(np.loadtxt(args.mapping), dtype=int)
 
-    run(args.lagtime, assignments, args.symmetrize, args.mapping, args.prior,
-        args.output_dir)
+    run(args.lagtime, assignments, args.symmetrize, args.mapping, args.output_dir)
