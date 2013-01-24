@@ -1,6 +1,9 @@
-"Methods to get internal coordinates"
+"""Methods to calculate internal coordinates from the cartesian coordinates
+
+This code is new and should be considered __unstable__
+"""
+
 import numpy as np
-import IPython as ip
 import scipy.linalg
 from itertools import combinations, ifilter
 import logging
@@ -17,7 +20,7 @@ import networkx as nx
 # http://pubs.rsc.org/en/Content/ArticleLanding/2008/DT/b801115j
 COVALENT_RADII = {'C': 0.0762, 'N': 0.0706, 'O': 0.0661, 'H': 0.031,
                   'S': 0.105}
-logger = logging.getLogger('geometry.internal')
+logger = logging.getLogger(__name__)
 
 __all__ = ['get_redundant_internal_coordinates',
            'get_nonredundant_internal_coordinates', 'get_connectivity',
@@ -34,6 +37,9 @@ __all__ = ['get_redundant_internal_coordinates',
 def get_redundant_internal_coordinates(trajectory, **kwargs):
     """Compute internal coordinates from the cartesian coordinates
     
+    This extracts all of the bond lengths, bond angles and dihedral angles
+    from every frame in a trajectory.
+
     Parameters
     ----------
     trajectory : msmbuilder.Trajectory
@@ -446,9 +452,7 @@ def get_dihedral_derivs(xyz, idihedrals):
     n_atoms, n_dihedrals = xyz.shape[0], len(idihedrals)
 
     derivatives = np.zeros((n_dihedrals, n_atoms, 3))
-    vector1 = np.array([1, -1, 1]) / np.sqrt(3)
-    vector2 = np.array([-1, 1, 1]) / np.sqrt(3)
-    
+
     for d, (m, o, p, n) in enumerate(idihedrals):
         u_prime = (xyz[m] - xyz[o])
         w_prime = (xyz[p] - xyz[o])
@@ -473,28 +477,3 @@ def get_dihedral_derivs(xyz, idihedrals):
         derivatives[d, p, :] = term2 - term3 + term4
     
     return derivatives
-
-
-
-if __name__ == '__main__':
-    from msmbuilder import Trajectory
-    h = 1e-4
-    conf1 = Trajectory.load_trajectory_file('Tutorial/native.pdb')
-    # conf2 = Trajectory.load_trajectory_file('Tutorial/native.pdb')
-    # conf2['XYZList'][0, 0, 0] += h
-    # 
-    # internal1 = get_redundant_internal_coordinates(conf1)[0]
-    # internal2 = get_redundant_internal_coordinates(conf2)[0]
-    # 
-    # fd = (internal2 - internal1) / h
-    # 
-    # # n_internal_coords, n_atoms, n_dims 
-    # b1 = get_wilson_B(conf1)[:, 0, 0]
-    # 
-    # 
-    # 
-    # ip.embed()
-    # print fd - b1
-
-    get_nonredundant_internal_coordinates(conf1, conf1)
-    
