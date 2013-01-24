@@ -622,7 +622,7 @@ def msm_acf(tprob, observable, timepoints, num_modes=10):
 
     acf = np.array([(eigenvalues ** t).dot(V) for t in timepoints])
 
-    acf /= acf[0]
+    acf /= (eigenvalues ** 0.).dot(V)  # Divide by the ACF at time zero.
 
     return acf
 
