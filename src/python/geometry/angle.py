@@ -30,7 +30,8 @@ def __bond_angles(xyzlist, angle_indices):
             u_norm = np.linalg.norm(u_prime)
             v_norm = np.linalg.norm(v_prime)
                         
-            angles[i,j] = np.arccos(np.dot(u_prime, v_prime) / (u_norm * v_norm))
+            angles[i, j] = np.arccos(np.dot(u_prime, v_prime) /
+                (u_norm * v_norm))
     
     return angles
     
@@ -119,16 +120,3 @@ def bond_angles(xyzlist, angle_indices):
     # declares sqrt and acos
     
     return angles
-    
-if __name__ == '__main__':
-    from msmbuilder import Trajectory
-    import itertools
-    import numpy.testing as npt
-    
-    conf = Trajectory.load_trajectory_file('Tutorial/native.pdb')
-    n_atoms = conf['XYZList'].shape[1]
-    angle_indices = np.array(list(itertools.combinations(range(n_atoms), 3)))
-
-    a1 = bond_angles(conf['XYZList'], angle_indices)
-    a2 = __bond_angles(conf['XYZList'], angle_indices)
-    npt.assert_array_almost_equal(a1, a2)
