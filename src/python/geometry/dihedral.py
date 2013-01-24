@@ -64,7 +64,10 @@ def compute_dihedrals(trajectory_or_conformation, indices, degrees=True):
     Returns: a num_frames x num_quartets array of dihedral angles
     '''
     try:
-        xyzlist = trajectory_or_conformation['XYZList']
+        if isinstance(trajectory_or_conformation, np.ndarray):
+            xyzlist = trajectory_or_conformation
+        else:
+            xyzlist = trajectory_or_conformation['XYZList']
     except KeyError:
         xyz = trajectory_or_conformation['XYZ']
         num_atoms, num_dims = xyz.shape
