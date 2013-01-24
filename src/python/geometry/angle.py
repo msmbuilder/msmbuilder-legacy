@@ -2,6 +2,7 @@ import numpy as np
 import scipy.weave
 import warnings
 
+# reference implementation
 def __bond_angles(xyzlist, angle_indices):
     """Compute the bond angles for each frame in xyzlist
     
@@ -34,6 +35,7 @@ def __bond_angles(xyzlist, angle_indices):
     return angles
     
 
+# multithreaded implementation
 def bond_angles(xyzlist, angle_indices):
     """Compute the bond angles for each frame in xyzlist
     
@@ -90,16 +92,16 @@ def bond_angles(xyzlist, angle_indices):
     for (i = 0; i < n_frames; i++) {
         for (j = 0; j < n_angles; j++) {
             m = angle_indices[j*3 + 0];
-            o = angle_indices[j*3 + 1];
-            n = angle_indices[j*3 + 2];
+            n = angle_indices[j*3 + 1];
+            o = angle_indices[j*3 + 2];
             
-            up_x = xyzlist[i*n_atoms*3 + m*3 + 0] - xyzlist[i*n_atoms*3 + o*3 + 0];
-            up_y = xyzlist[i*n_atoms*3 + m*3 + 1] - xyzlist[i*n_atoms*3 + o*3 + 1];
-            up_z = xyzlist[i*n_atoms*3 + m*3 + 2] - xyzlist[i*n_atoms*3 + o*3 + 2];
+            up_x = xyzlist[i*n_atoms*3 + m*3 + 0] - xyzlist[i*n_atoms*3 + n*3 + 0];
+            up_y = xyzlist[i*n_atoms*3 + m*3 + 1] - xyzlist[i*n_atoms*3 + n*3 + 1];
+            up_z = xyzlist[i*n_atoms*3 + m*3 + 2] - xyzlist[i*n_atoms*3 + n*3 + 2];
 
-            vp_x = xyzlist[i*n_atoms*3 + n*3 + 0] - xyzlist[i*n_atoms*3 + o*3 + 0];
-            vp_y = xyzlist[i*n_atoms*3 + n*3 + 1] - xyzlist[i*n_atoms*3 + o*3 + 1];
-            vp_z = xyzlist[i*n_atoms*3 + n*3 + 2] - xyzlist[i*n_atoms*3 + o*3 + 2];
+            vp_x = xyzlist[i*n_atoms*3 + o*3 + 0] - xyzlist[i*n_atoms*3 + n*3 + 0];
+            vp_y = xyzlist[i*n_atoms*3 + o*3 + 1] - xyzlist[i*n_atoms*3 + n*3 + 1];
+            vp_z = xyzlist[i*n_atoms*3 + o*3 + 2] - xyzlist[i*n_atoms*3 + n*3 + 2];
             
             norm_u = sqrt(up_x*up_x + up_y*up_y + up_z*up_z);
             norm_v = sqrt(vp_x*vp_x + vp_y*vp_y + vp_z*vp_z);
@@ -110,7 +112,9 @@ def bond_angles(xyzlist, angle_indices):
     Py_END_ALLOW_THREADS
     """, ["xyzlist", "angle_indices", "angles", "n_frames",
           "n_angles", "n_atoms"],
-         extra_compile_args = ["-O3", "-fopenmp"])
+         extra_compile_args = ["-O3", "-fopenmp"],  
+         extra_link_args=['-lgomp'],
+         compiler='gcc')
     # note that weave by default includes math.h in the generated cpp file, which
     # declares sqrt and acos
     
