@@ -29,12 +29,11 @@ def __bond_angles(xyzlist, angle_indices):
             v_prime = xyzlist[i, n, :] - xyzlist[i, o, :]
             u_norm = np.linalg.norm(u_prime)
             v_norm = np.linalg.norm(v_prime)
-                        
+
             angles[i, j] = np.arccos(np.dot(u_prime, v_prime) /
                 (u_norm * v_norm))
-    
+
     return angles
-    
 
 # multithreaded implementation
 def bond_angles(xyzlist, angle_indices):
@@ -118,5 +117,6 @@ def bond_angles(xyzlist, angle_indices):
          compiler='gcc')
     # note that weave by default includes math.h in the generated cpp file, which
     # declares sqrt and acos
-    
+
     return angles
+
