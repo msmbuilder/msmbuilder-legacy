@@ -145,7 +145,8 @@ class CovarianceMatrix:
 #        Pool.close()
 #        Pool.join()
 #        temp_mat = np.vstack( sol )
-        temp_mat = correlate_C( self.lag )
+        #temp_mat = correlate_C( self.lag )
+        temp_mat = data_vector[:-self.lag].T.dot(data_vector[self.lag:]) # Outer product
         if self.normalize:
   
         #    Pool = mp.Pool( self.procs )
@@ -157,7 +158,8 @@ class CovarianceMatrix:
         #    Pool.close()
         #    Pool.join()
         #    temp_mat_lag0 = np.vstack( sol )
-            temp_mat_lag0 = correlate_C( 0 )
+            #temp_mat_lag0 = correlate_C( 0 )
+            temp_mat_lag0 = data_vector.T.dot(data_vector)
             self.corrs_lag0 += temp_mat_lag0
 
         c=time()
