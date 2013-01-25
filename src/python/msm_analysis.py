@@ -620,7 +620,7 @@ def msm_acf(tprob, observable, timepoints, num_modes=10):
     eigenvector_normalizer = np.diag(right_eigenvectors.T.dot(eigenvectors))
     eigenvectors /= eigenvector_normalizer
 
-    S = eigenvectors.T.dot(observable)  # Project observable onto eigenvectors
+    S = eigenvectors.T.dot(observable)  # Project observable onto left eigenvectors
 
     acf = np.array([(eigenvalues ** t).dot(S**2) for t in timepoints])
 
