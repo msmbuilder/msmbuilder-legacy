@@ -19,7 +19,7 @@ metadata = {
     'url': 'https://simtk.org/home/msmbuilder',
     'download_url': 'https://simtk.org/home/msmbuilder',
     'install_requires': ['scipy', 'matplotlib', 'pyyaml',
-                         'deap', 'fastcluster',"statsmodels"
+                         'deap', 'fastcluster','statsmodels',
                          'patsy', 'pandas'],
     'platforms': ["Linux", "Mac OS X"],
     'zip_safe': False,
