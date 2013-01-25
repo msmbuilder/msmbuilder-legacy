@@ -602,8 +602,8 @@ def msm_acf(tprob, observable, timepoints, num_modes=10):
     -----
     Use statsmodels.tsa.stattools.acf if you want to calculate an ACF from a
     raw observable such as an RMSD trace.
-    
-    See Docs/ACF/acf.pdf for a derivation of this calculation.  
+
+    See Docs/ACF/acf.pdf for a derivation of this calculation.
     """
 
     eigenvalues, eigenvectors = get_eigenvectors(tprob, num_modes + 1)
