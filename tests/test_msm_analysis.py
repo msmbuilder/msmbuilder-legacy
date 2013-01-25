@@ -8,7 +8,7 @@ class test_msm_acf():
         self.epsilon = 1E-7
         self.alpha = 0.001  # Confidence for uncertainty estimate
         # Testing is stochastic; we expect errors 0.1 % of the time.
-        self.max_lag = 10
+        self.max_lag = 100
         self.times = np.arange(self.max_lag)
         self.num_steps = 1000000
 
