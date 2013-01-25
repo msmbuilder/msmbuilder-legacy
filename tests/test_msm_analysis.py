@@ -10,9 +10,9 @@ class test_msm_acf():
         # Testing is stochastic; we expect errors 0.1 % of the time.
         self.max_lag = 100
         self.times = np.arange(self.max_lag)
-        self.num_steps = 1000000
+        self.num_steps = 100000
 
-        self.C = np.array([[100, 2], [2, 10]])
+        self.C = np.array([[500, 2], [2, 50]])
         self.T = MSMLib.estimate_transition_matrix(self.C)
         self.state_traj = np.array(msm_analysis.sample(self.T, 0, self.num_steps))
 
