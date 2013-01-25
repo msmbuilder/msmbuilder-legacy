@@ -1,0 +1,42 @@
+\documentclass[12pt]{article}
+\bibliographystyle{plain}
+
+\usepackage[sc]{mathpazo}
+\usepackage[utf8]{inputenc}
+
+\let\[\equation
+\let\]\endequation
+
+\begin{document}
+
+This document sketches out the calculation of autocorrelation functions.  
+
+
+First, suppose we have calculate the left eigenvectors and eigenvalues:
+
+$$T^T \phi_i = \lambda \phi_i$$
+
+Suppose that $\pi$ is the equilibrium population.  Then, we can normalize the eigenvectors such that:
+
+$$\phi_i^T \pi^{-1} \phi_j = \delta_{ij}$$
+
+Above, we denote $\pi^{-1}$ to be a diagonal matrix with elements $\pi_i^{-1}$.
+
+The autocorrelation function of the observable $f_i$ can be denoted:
+
+$$E(f(z_t) f(z_0)) = \sum_{i,j} f_i P(z_0 = i) f_j P(z_t = j | z_0 = i) = \sum_{i,j} f_i  f_j \pi_i T_{ij} = $$
+
+We know that
+
+$$T_{ab} = \sum_k \lambda_k (\psi_k)_a (\phi_k)_b = \sum_k \lambda_k (\pi_a)^{-1} (\phi_k)_a (\phi_k)_b$$
+
+Thus,
+
+$$E(f(z_t) f(z_0)) = \sum_{i,j,k} f_i f_j \lambda_k (\phi_k)_i (\phi_k)_j = \sum_k \lambda_k s_k^2$$
+
+Where 
+
+$$s_k = \sum_i f_i (\phi_k)_i$$
+
+
+\end{document}
