@@ -123,10 +123,9 @@ You can also check for common programming errors with the following tools:
 .. note::
 
    For two very well documented and more detailed guides on development
-   workflow, please pay a visit to the `Scipy Development Workflow
-   <http://docs.scipy.org/doc/numpy/dev/gitwash/development_workflow.html>
+   workflow, please pay a visit to the `Scipy Development Workflow <http://docs.scipy.org/doc/numpy/dev/gitwash/development_workflow.html>`_
    and the `Astropy Workflow for Developers <http://astropy.readthedocs.org/en/latest/development/workflow/development_workflow.html>`_
-   sections.
+   pages.
 
 .. _coding-guidelines:
 
