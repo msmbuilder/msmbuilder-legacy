@@ -11,8 +11,12 @@ before_install:
   - pip install tables --use-mirrors -qq
   - sudo apt-get install -qq python-numpy python-scipy python-matplotlib
   - sudo apt-get install -qq swig
-  - pip install ./
+  - pip install pyyaml --use-mirrors -qq
+  - pip install patsy --use-mirrors -qq
+  - pip install fastcluster --use-mirrors -qq
+  - pip install statsmodels --use-mirrors -qq
+  - pip install ./ -qq
 install:
   - python setup.py install
 script:
-  - nosetests
+  - nosetests -vv
