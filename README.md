@@ -1,11 +1,12 @@
 Usage
 -----
-See Tutorial.pdf for complete installation and usage instructions.
+See `Tutorial.pdf` for complete installation and usage instructions.
 
 To install MSMBuilder:
 
-python setup.py build
-python setup.py install
+```
+$ python setup.py install
+```
 
 Web Based Documentation
 -----------------------
