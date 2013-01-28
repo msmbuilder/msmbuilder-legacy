@@ -1,3 +1,7 @@
+## MSMBuilder: Extensible software for building Markov State Models for Biomolecular Conformational Dynamics
+
+[![Build Status](https://travis-ci.org/SimTk/msmbuilder.png)](https://travis-ci.org/SimTk/msmbuilder)
+
 Usage
 -----
 See `Tutorial.pdf` for complete installation and usage instructions.
