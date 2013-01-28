@@ -8,7 +8,7 @@ The project is hosted on http://github.com/SimTk/msmbuilder
 Submitting a bug report
 -----------------------
 If you experience issues using this package, do not hesitate to submit an issue
-to the [bug tracker](https://github.com/SimTk/msmbuilder/issues). You're also
+to the `bug tracker <https://github.com/SimTk/msmbuilder/issues>`_. You're also
 invited to post feature requests or links to pull requests.
 
 Retrieving the latest code
@@ -78,7 +78,7 @@ repository <http://github.com/SimTk/msmbuilder/>`__ on GitHub:
 
 Finally, go to the web page of the your fork of the msmbuilder repo,
 and click 'Pull request' to send your changes to the maintainers for review.
-request. This will send an email to the committers.
+request. This will send an email to the maintainers.
 
 (If any of the above seems like magic to you, then look up the
 `Git documentation <http://git-scm.com/documentation>`_ on the web.)
@@ -115,7 +115,7 @@ You can also check for common programming errors with the following tools:
       
 .. note::
 
-  The current state of the scikit-learn code base is not compliant with
+  The current state of the msmbuilder code base is not compliant with
   all of those guidelines, but we expect that enforcing those constraints
   on all new contributions will get the overall code base quality in the
   right direction.
@@ -124,10 +124,11 @@ You can also check for common programming errors with the following tools:
 
    For two very well documented and more detailed guides on development
    workflow, please pay a visit to the `Scipy Development Workflow
-   <http://docs.scipy.org/doc/numpy/dev/gitwash/development_workflow.html>`_ -
+   <http://docs.scipy.org/doc/numpy/dev/gitwash/development_workflow.html>
    and the `Astropy Workflow for Developers <http://astropy.readthedocs.org/en/latest/development/workflow/development_workflow.html>`_
    sections.
 
+.. _coding-guidelines:
 
 Coding guidelines
 =================
@@ -158,7 +159,7 @@ In addition, we add the following guidelines:
      longer explicitly referenced, but most important, it prevents
      using a static analysis tool like `pyflakes
      <http://www.divmod.org/trac/wiki/DivmodPyflakes>`_ to automatically
-     find bugs in scikit-learn.
+     find bugs.
 
    * Use the `numpy docstring standard
      <https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt>`_
@@ -168,12 +169,10 @@ In addition, we add the following guidelines:
 A good example of code that we like can be found `here <https://svn.enthought.com/enthought/browser/sandbox/docs/coding_standard.py>`_.
 
 Building the docs
------------------
-You need to make sure numpydoc is installed.::
+=================
+
+To build the documentation on your local machine, you need to first ensure that the numpydoc package is installed. The documentation itself can be built with a 
+``make`` command from within the ``Docs/sphinx`` directory::
 
   $ easy_install numpydoc
-
-Then you can make the docs with the supplied makefile::
-
-  $ make html 
-
+  $ make html
