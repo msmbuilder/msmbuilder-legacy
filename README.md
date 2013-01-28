@@ -16,11 +16,11 @@ $ python setup.py install
 
 See the tutorial for more information, including required hardware specs. and dependencies.
 
-Web Based Documentation
+Documentation
 -----------------------
 Are you curious about how the MSMBuilder internals work, or would you like to  use the MSMBuilder libraries in your own project?
 
-Check out the web based documentation of the libraries at [msmbuilder.readthedocs.org](http://msmbuilder.readthedocs.org/en/latest/index.html)
+In addition to `Tutorial.pdf`, check out the web based documentation of the libraries at [msmbuilder.readthedocs.org](http://msmbuilder.readthedocs.org/en/latest/index.html)
 
 Contributing
 ------------
