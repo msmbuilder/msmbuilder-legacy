@@ -14,7 +14,7 @@ before_install:
   - pip install pyyaml --use-mirrors -qq
   - pip install patsy --use-mirrors -qq
   - pip install fastcluster --use-mirrors -qq
-  - pip install statsmodels --use-mirrors -qq
+  - pip install statsmodels --use-mirrors
   - pip install ./ -qq
 install:
   - python setup.py install
