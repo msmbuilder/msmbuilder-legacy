@@ -26,14 +26,14 @@ from msmbuilder import MSMLib
 import logging
 logger = logging.getLogger('msmbuilder.scripts.BuildMSM')
 
-def run(LagTime, assignments, Symmetrize='MLE', input_mapping="None", OutDir="./Data/"):
+def run(lagtime, assignments, symmetrize='MLE', input_mapping="None", out_dir="./Data/"):
 
     # set the filenames for output
-    FnTProb = os.path.join(OutDir, "tProb.mtx")
-    FnTCounts = os.path.join(OutDir, "tCounts.mtx")
-    FnMap = os.path.join(OutDir, "Mapping.dat")
-    FnAss = os.path.join(OutDir, "Assignments.Fixed.h5")
-    FnPops = os.path.join(OutDir, "Populations.dat")
+    FnTProb = os.path.join(out_dir, "tProb.mtx")
+    FnTCounts = os.path.join(out_dir, "tCounts.mtx")
+    FnMap = os.path.join(out_dir, "Mapping.dat")
+    FnAss = os.path.join(out_dir, "Assignments.Fixed.h5")
+    FnPops = os.path.join(out_dir, "Populations.dat")
     
     # make sure none are taken
     outputlist = [FnTProb, FnTCounts, FnMap, FnAss, FnPops]
@@ -45,9 +45,9 @@ def run(LagTime, assignments, Symmetrize='MLE', input_mapping="None", OutDir="./
 
     n_assigns_before_trim = len( np.where( assignments.flatten() != -1 )[0] )
     
-    counts = MSMLib.get_count_matrix_from_assignments(assignments, lag_time=LagTime, sliding_window=True)
+    counts = MSMLib.get_count_matrix_from_assignments(assignments, lag_time=lagtime, sliding_window=True)
     
-    rev_counts, t_matrix, populations, mapping = MSMLib.build_msm(counts, symmetrize=Symmetrize, ergodic_trimming=True)
+    rev_counts, t_matrix, populations, mapping = MSMLib.build_msm(counts, symmetrize=symmetrize, ergodic_trimming=True)
 
     MSMLib.apply_mapping_to_assignments(assignments, mapping)
     n_assigns_after_trim = len( np.where( assignments.flatten() != -1 )[0] )
