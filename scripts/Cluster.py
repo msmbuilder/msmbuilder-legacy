@@ -152,6 +152,7 @@ def cluster(metric, trajs, args, **kwargs):
     elif args.alg == 'hierarchical':
         zmatrix_fn = kwargs['zmatrix_fn']
         clusterer = clustering.Hierarchical(metric, trajs, method=args.hierarchical_method)
+        zmatrix_fn = os.path.join(args.output_dir, 'ZMatrix.h5')
         clusterer.save_to_disk(zmatrix_fn)
         logger.info('ZMatrix saved to %s. Use AssignHierarchical.py to assign the data', zmatrix_fn)
     else:
