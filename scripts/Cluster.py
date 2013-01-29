@@ -107,7 +107,6 @@ for metric_parser in parser.metric_parsers: # arglib stores the metric subparser
     hier = subparser.add_parser('hierarchical')
     add_argument(hier, '-m', default='ward', help='method. default=ward',
         choices=['single', 'complete', 'average', 'weighted', 'centroid', 'median', 'ward'], dest='hierarchical_method')
-    add_argument(hier, '-o', dest='hierarchical_save_zmatrix', help='Save Z-matrix to disk', default='Data/Zmatrix.h5')
 
 def load_trajectories(projectfn, stride, atom_indices):
     project = Project.load_from(projectfn)
