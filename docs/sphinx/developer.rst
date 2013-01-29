@@ -171,7 +171,7 @@ Building the docs
 =================
 
 To build the documentation on your local machine, you need to first ensure that the numpydoc package is installed. The documentation itself can be built with a 
-``make`` command from within the ``Docs/sphinx`` directory::
+``make`` command from within the ``docs/sphinx`` directory::
 
   $ easy_install numpydoc
   $ make html
