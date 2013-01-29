@@ -40,12 +40,12 @@ parser.add_argument(dest='stride', help='Subsample by striding',
     default=1, type=int)
 parser.add_argument('output_dir', help='''Output directory to save clustering data.
     This will include:
-    - Assignments.h5 (If clustering is hierarchical or stride=1)
+    (1) Assignments.h5 (If clustering is hierarchical or stride=1):
         Contains the state assignments
-    - Assignments.h5.dist (If clustering is hierarchical or stride=1)
+    (2) Assignments.h5.dist (If clustering is hierarchical or stride=1):
         Contains the distance to the generator according to the distance
         metric that was employed
-    - Gens.lh5 
+    (3) Gens.lh5: 
         Trajectory object representing the generators for each state''')
 
 ################################################################################
@@ -125,7 +125,7 @@ def load_trajectories(projectfn, stride, atom_indices):
     return list_of_trajs
 
     
-def cluster(metric, trajs, args):
+def cluster(metric, trajs, args, **kwargs):
     if args.alg == 'kcenters':
         clusterer = clustering.KCenters(metric, trajs, k=args.kcenters_num_clusters,
             distance_cutoff=args.kcenters_distance_cutoff, seed=args.kcenters_seed)
@@ -150,8 +150,8 @@ def cluster(metric, trajs, args):
             local_swap=args.sclarans_local_swap,
             parallel=args.sclarans_parallel)
     elif args.alg == 'hierarchical':
+        zmatrix_fn = kwargs['zmatrix_fn']
         clusterer = clustering.Hierarchical(metric, trajs, method=args.hierarchical_method)
-        zmatrix_fn = os.path.join(args.output_dir, 'ZMatrix.h5')
         clusterer.save_to_disk(zmatrix_fn)
         logger.info('ZMatrix saved to %s. Use AssignHierarchical.py to assign the data', zmatrix_fn)
     else:
@@ -159,19 +159,8 @@ def cluster(metric, trajs, args):
     
     return clusterer
     
-
-def check_paths(args):
-    if args.alg == 'hierarchical':
-        die_if_path_exists(os.path.join(args.output_dir, 'ZMatrix.h5'))
-    else:
-        die_if_path_exists(os.path.join(args.output_dir, 'Gens.lh5'))
-        if args.stride == 1:
-            die_if_path_exists(os.path.join(args.output_dir, 'Assignments.h5'))
-            die_if_path_exists(os.path.join(args.output_dir, 'Assignments.h5.dist'))
-
     
 def main(args, metric):
-    check_paths(args)
     
     if args.alg == 'sclarans' and args.stride != 1:
         logger.error("""You don't want to use a stride with sclarans. The whole point of
@@ -190,16 +179,28 @@ could stride a little at the begining, but its not recommended.""")
         logger.info('RMSD metric - loading only the atom indices required')
     else:
         atom_indices = None
-        
+
+    # In case the clustering / algorithm needs extra arguments, use
+    # this dictionary
+    extra_kwargs = {}
+
+    # Check to be sure we won't overwrite any data 
+    if args.alg == 'hierarchical':
+        zmatrix_fn = os.path.join(args.output_dir, 'ZMatrix.h5')
+        die_if_path_exists(zmatrix_fn)
+        extra_kwargs['zmatrix_fn'] = zmatrix_fn
+    else:
+        generators_fn = os.path.join(args.output_dir, 'Gens.lh5') 
+        die_if_path_exists(generators_fn)
+        if args.stride == 1:
+            assignments_fn = os.path.join(args.output_dir, 'Assignments.h5') 
+            distances_fn = os.path.join(args.output_dir, 'Assignments.h5.dist')
+            die_if_path_exists([assignments_fn, distances_fn])
         
     trajs = load_trajectories(args.project, args.stride, atom_indices)
     logger.info('Loaded %d trajs', len(trajs))
 
-    clusterer = cluster(metric, trajs, args)
-    
-    generators_fn = os.path.join(args.output_dir, 'Gens.lh5') # NOTE: these are hardcoded in two spots...
-    assignments_fn = os.path.join(args.output_dir, 'Assignments.h5') # Robert will yell at me...
-    distances_fn = os.path.join(args.output_dir, 'Assignments.h5.dist')
+    clusterer = cluster(metric, trajs, args, **extra_kwargs)
 
     if not isinstance(clusterer, clustering.Hierarchical):
         generators = clusterer.get_generators_as_traj()
