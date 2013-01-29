@@ -42,7 +42,7 @@ parser.add_argument('output_dir', help='''Output directory to save clustering da
     This will include:
     (1) Assignments.h5 (If clustering is hierarchical or stride=1):
         Contains the state assignments
-    (2) Assignments.h5.dist (If clustering is hierarchical or stride=1):
+    (2) Assignments.h5.distances (If clustering is hierarchical or stride=1):
         Contains the distance to the generator according to the distance
         metric that was employed
     (3) Gens.lh5: 
@@ -159,7 +159,7 @@ def cluster(metric, trajs, args, **kwargs):
     
     return clusterer
     
-    
+
 def main(args, metric):
     
     if args.alg == 'sclarans' and args.stride != 1:
@@ -201,7 +201,7 @@ could stride a little at the begining, but its not recommended.""")
     logger.info('Loaded %d trajs', len(trajs))
 
     clusterer = cluster(metric, trajs, args, **extra_kwargs)
-
+    
     if not isinstance(clusterer, clustering.Hierarchical):
         generators = clusterer.get_generators_as_traj()
         logger.info('Saving %s', generators_fn)
