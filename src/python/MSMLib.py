@@ -945,7 +945,7 @@ def mle_reversible_count_matrix(count_matrix):
 
     Notes
     -----
-    This object can be used to find the maximum likelihood reversible
+    This function can be used to find the maximum likelihood reversible
     count matrix.  See Docs/notes/mle_notes.pdf for details
     on the math used during these calculations.
 
@@ -983,9 +983,9 @@ class __Reversible_MLE_Estimator__():
 
         # sym_counts is a sparse matrix with the symmetrized counts--e.g. the "full" symmetric matrix.  sym_i and sym_j are the nonzero indices of sym_counts
         self.sym_counts = c + c.transpose()
-        self.sym_i, self.sym_j = self.sym_counts.nonzero()
-        self.sym_upper_ind = np.where(self.sym_i < self.sym_j)[0]
-        self.sym_lower_ind = np.where(self.sym_i >= self.sym_j)[0]
+        self.sym_row_indices, self.sym_col_indices = self.sym_counts.nonzero()
+        self.sym_upper_ind = np.where(self.sym_row_indices < self.sym_col_indices)[0]
+        self.sym_lower_ind = np.where(self.sym_row_indices >= self.sym_col_indices)[0]
 
         self.temporary_sym_counts = self.sym_counts.copy()  # This will be used to calculate the log likelihood.  Avoids repeated copying of sparse matrices.
 
@@ -993,15 +993,15 @@ class __Reversible_MLE_Estimator__():
         self.partial_counts = self.sym_counts.copy()
         self.partial_counts.data[self.sym_upper_ind] = 0.
         self.partial_counts.eliminate_zeros()
-        self.partial_i, self.partial_j = self.partial_counts.nonzero()
-        self.partial_diag_indices = np.where(self.partial_i == self.partial_j)[0]
+        self.partial_row_indices, self.partial_col_indices = self.partial_counts.nonzero()
+        self.partial_diag_indices = np.where(self.partial_row_indices == self.partial_col_indices)[0]
 
         self.construct_upper_mapping()
 
         self.stencil = self.partial_counts.copy()
         self.stencil.data[:] = 1.
 
-        self.sym_diag_indices = np.where(self.sym_i == self.sym_j)[0]
+        self.sym_diag_indices = np.where(self.sym_row_indices == self.sym_col_indices)[0]
 
     def construct_upper_mapping(self):
         """Construct a mapping (self.partial_upper_mapping) that maps
@@ -1018,13 +1018,13 @@ class __Reversible_MLE_Estimator__():
 
         """
         partial_ij_to_data = {}
-        for k, i in enumerate(self.partial_i):
-            j = self.partial_j[k]
+        for k, i in enumerate(self.partial_row_indices):
+            j = self.partial_col_indices[k]
             partial_ij_to_data[i, j] = k
 
         self.partial_upper_mapping = np.zeros(len(self.sym_upper_ind), 'int')
         for k0, k in enumerate(self.sym_upper_ind):
-            i0, j0 = self.sym_i[k], self.sym_j[k]
+            i0, j0 = self.sym_row_indices[k], self.sym_col_indices[k]
             k1 = partial_ij_to_data[j0, i0]
             self.partial_upper_mapping[k0] = k1
 
