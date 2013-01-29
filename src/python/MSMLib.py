@@ -1161,7 +1161,7 @@ class __Reversible_MLE_Estimator__():
         X = self.log_vector_to_matrix(parms)
         X *= (self.counts.sum() / X.sum())
         final_log_likelihood *= -1
-        logger.info("BFGS likelihood maximization terminated after %d function calls.  Initial and final log likelihoods: %f, %f." % 
+        logger.info("BFGS likelihood maximization terminated after %d function calls.  Initial and final log likelihoods: %f, %f." %
                     (info_dict["funcalls"], initial_log_likelihood, final_log_likelihood))
         if info_dict["warnflag"] != 0:
             logger.warn("Abnormal termination of BFGS likelihood maximization.  Error code %d" % info_dict["warnflag"])
