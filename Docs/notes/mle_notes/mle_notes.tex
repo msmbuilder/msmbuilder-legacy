@@ -19,7 +19,9 @@ f = \sum_{ij} C_{ij} \log T_{ij}
 
 
 
-Let $T_{ij} = \frac{X_{ij}}{\sum_j X_{ij}}$, $X_{ij} = \frac{1}{Z} \exp(u_{ij})$, $q_i = \sum_j \exp(u_{ij})$
+Let $T_{ij} = \frac{X_{ij}}{\sum_j X_{ij}}$, $X_{ij} =  \exp(u_{ij})$, $q_i = \sum_j \exp(u_{ij})$
+
+Here, $u_{ij}$ is the log-space representation of $X_{ij}$.  It follows that $T_{ij} = \exp(u_{ij}) \frac{1}{q_i}$, so $\log(T_{ij}) = u_{ij} - \log(q_{i})$
 
 \[f = \sum_{ij} C_{ij} u_{ij} - \sum_{ij} C_{ij} \log q_i\]
 

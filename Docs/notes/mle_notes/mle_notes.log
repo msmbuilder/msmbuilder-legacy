@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=pdflatex 2012.8.28)  19 JAN 2013 00:44
+This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=pdflatex 2012.8.28)  29 JAN 2013 15:31
 entering extended mode
  %&-line parsing enabled.
 **mle_notes.tex
@@ -290,26 +290,26 @@ LaTeX Font Info:    Try loading font information for OT1+zplm on input line 14.
 File: ot1zplm.fd 2002/09/08 Fontinst v1.914 font definitions for OT1/zplm.
 ) [1
 
-{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}] (./mle_notes.aux) ) 
+{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}] [2] (./mle_notes.aux) ) 
 Here is how much of TeX's memory you used:
  587 strings out of 495061
  6397 string characters out of 1182621
- 54167 words of memory out of 3000000
+ 55167 words of memory out of 3000000
  3784 multiletter control sequences out of 15000+50000
  18970 words of font info for 55 fonts, out of 3000000 for 9000
  28 hyphenation exceptions out of 8191
- 23i,4n,19p,257b,107s stack positions out of 5000i,500n,10000p,200000b,50000s
-{/usr/s
-hare/texmf-texlive/fonts/enc/dvips/base/8r.enc}</usr/share/texmf-texlive/fonts/
-type1/public/amsfonts/cm/cmmi10.pfb></usr/share/texmf-texlive/fonts/type1/publi
-c/amsfonts/cm/cmr10.pfb></usr/share/texmf-texlive/fonts/type1/public/amsfonts/c
-m/cmsy10.pfb></usr/share/texmf-texlive/fonts/type1/public/mathpazo/fplmr.pfb></
-usr/share/texmf-texlive/fonts/type1/public/mathpazo/fplmri.pfb></usr/share/texm
-f-texlive/fonts/type1/urw/palatino/uplr8a.pfb></usr/share/texmf-texlive/fonts/t
-ype1/urw/palatino/uplri8a.pfb>
-Output written on mle_notes.pdf (1 page, 62054 bytes).
+ 23i,5n,19p,257b,107s stack positions out of 5000i,500n,10000p,200000b,50000s
+{/u
+sr/share/texmf-texlive/fonts/enc/dvips/base/8r.enc}</usr/share/texmf-texlive/fo
+nts/type1/public/amsfonts/cm/cmmi10.pfb></usr/share/texmf-texlive/fonts/type1/p
+ublic/amsfonts/cm/cmr10.pfb></usr/share/texmf-texlive/fonts/type1/public/amsfon
+ts/cm/cmsy10.pfb></usr/share/texmf-texlive/fonts/type1/public/mathpazo/fplmr.pf
+b></usr/share/texmf-texlive/fonts/type1/public/mathpazo/fplmri.pfb></usr/share/
+texmf-texlive/fonts/type1/urw/palatino/uplr8a.pfb></usr/share/texmf-texlive/fon
+ts/type1/urw/palatino/uplri8a.pfb>
+Output written on mle_notes.pdf (2 pages, 63250 bytes).
 PDF statistics:
- 35 PDF objects out of 1000 (max. 8388607)
+ 38 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 500000)
  1 words of extra memory for PDF output out of 10000 (max. 10000000)
 
