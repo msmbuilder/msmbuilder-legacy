@@ -979,7 +979,7 @@ class __Reversible_MLE_Estimator__():
         c = counts.asformat("csr").asfptype()
         c.eliminate_zeros()
         self.counts = c
-        self.Ni = np.array(c.sum(1)).flatten()
+        self.row_sums = np.array(c.sum(1)).flatten()
 
         # sym_counts is a sparse matrix with the symmetrized counts--e.g. the "full" symmetric matrix.  sym_i and sym_j are the nonzero indices of sym_counts
         self.sym_counts = c + c.transpose()
@@ -1101,7 +1101,7 @@ class __Reversible_MLE_Estimator__():
         r = self.log_vector_to_matrix(log_vector)
 
         q = np.array(r.sum(0)).flatten()
-        f -= np.log(q).dot(self.Ni)
+        f -= np.log(q).dot(self.row_sums)
 
         return f
 
@@ -1129,13 +1129,13 @@ class __Reversible_MLE_Estimator__():
         grad += self.partial_counts.data
         grad[self.partial_diag_indices] -= 0.5 * self.partial_counts.data[self.partial_diag_indices]
 
-        r = self.log_vector_to_matrix(log_vector)
-        q = np.array(r.sum(0)).flatten()
-        v = self.Ni / q
+        current_count_matrix = self.log_vector_to_matrix(log_vector)
+        current_row_sums = np.array(current_count_matrix.sum(1)).flatten()
+        v = self.row_sums / current_row_sums
 
-        D = scipy.sparse.dia_matrix((v, 0), shape=r.shape)
-        grad -= self.flatten_matrix(D.dot(r) + r.dot(D))
-        grad += self.flatten_matrix(D.multiply(r))
+        D = scipy.sparse.dia_matrix((v, 0), shape=current_count_matrix.shape)
+        grad -= self.flatten_matrix(D.dot(current_count_matrix) + current_count_matrix.dot(D))
+        grad += self.flatten_matrix(D.multiply(current_count_matrix))
 
         return grad
 
