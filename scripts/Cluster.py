@@ -36,13 +36,13 @@ parser = arglib.ArgumentParser(description='''
     ''' + highlight('''MAKE LIBERAL USE OF THE -h OPTION. The help text changes significantly 
     depending on which level in the options tree you are currently in''', color='green', bold=True),get_metric=True)
 parser.add_argument('project')
-parser.add_argument( dest='stride', help='Subsample by striding',
+parser.add_argument(dest='stride', help='Subsample by striding',
     default=1, type=int)
 parser.add_argument('output_dir', help='''Output directory to save clustering data.
     This will include:
     - Assignments.h5 (If clustering is hierarchical or stride=1)
         Contains the state assignments
-    - Assignemnts.h5.dist (If clustering is hierarchical or stride=1)
+    - Assignments.h5.dist (If clustering is hierarchical or stride=1)
         Contains the distance to the generator according to the distance
         metric that was employed
     - Gens.lh5 
