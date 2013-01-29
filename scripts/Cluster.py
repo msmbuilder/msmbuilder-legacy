@@ -38,17 +38,15 @@ parser = arglib.ArgumentParser(description='''
 parser.add_argument('project')
 parser.add_argument( dest='stride', help='Subsample by striding',
     default=1, type=int)
-parser.add_argument( dest='assignments', help='''Output assignments file
-    (will be used if stride is 1 and you're not using hierarchical)''',
-    default='Data/Assignments.h5')
-parser.add_argument( dest='distances', help='''Output assignments distances file.
-    Will be used if stride is 1 and you're not using hierarchical.
-    (distance from each data point to its cluster center according to your selected
-    distance metric). Note that for hierarchical clustering methods, this file will
-    not be produced.''', default='Data/Assignments.h5.distances')
-parser.add_argument( dest='generators', help='''Output trajectory file containing
-    the structures of each of the cluster centers. Note that for hierarchical clustering
-    methods, this file will not be produced.''', default='Data/Gens.lh5')
+parser.add_argument('output_dir', help='''Output directory to save clustering data.
+    This will include:
+    - Assignments.h5 (If clustering is hierarchical or stride=1)
+        Contains the state assignments
+    - Assignemnts.h5.dist (If clustering is hierarchical or stride=1)
+        Contains the distance to the generator according to the distance
+        metric that was employed
+    - Gens.lh5 
+        Trajectory object representing the generators for each state''')
 
 ################################################################################
 
@@ -154,8 +152,9 @@ def cluster(metric, trajs, args):
             parallel=args.sclarans_parallel)
     elif args.alg == 'hierarchical':
         clusterer = clustering.Hierarchical(metric, trajs, method=args.hierarchical_method)
-        clusterer.save_to_disk(args.hierarchical_save_zmatrix)
-        logger.info('ZMatrix saved to %s. Use AssignHierarchical.py to assign the data', args.hierarchical_save_zmatrix)
+        zmatrix_fn = os.path.join(args.output_dir, 'ZMatrix.h5')
+        clusterer.save_to_disk(zmatrix_fn)
+        logger.info('ZMatrix saved to %s. Use AssignHierarchical.py to assign the data', zmatrix_fn)
     else:
         raise ValueError('!')
     
@@ -164,12 +163,12 @@ def cluster(metric, trajs, args):
 
 def check_paths(args):
     if args.alg == 'hierarchical':
-        die_if_path_exists(args.hierarchical_save_zmatrix)
+        die_if_path_exists(os.path.join(args.output_dir, 'ZMatrix.h5'))
     else:
-        die_if_path_exists(args.generators)
+        die_if_path_exists(os.path.join(args.output_dir, 'Gens.lh5'))
         if args.stride == 1:
-            die_if_path_exists(args.assignments)
-            die_if_path_exists(args.distances)
+            die_if_path_exists(os.path.join(args.output_dir, 'Assignments.h5'))
+            die_if_path_exists(os.path.join(args.output_dir, 'Assignments.h5.dist'))
 
     
 def main(args, metric):
@@ -199,18 +198,22 @@ could stride a little at the begining, but its not recommended.""")
 
     clusterer = cluster(metric, trajs, args)
     
+    generators_fn = os.path.join(args.output_dir, 'Gens.lh5') # NOTE: these are hardcoded in two spots...
+    assignments_fn = os.path.join(args.output_dir, 'Assignments.h5') # Robert will yell at me...
+    distances_fn = os.path.join(args.output_dir, 'Assignments.h5.dist')
+
     if not isinstance(clusterer, clustering.Hierarchical):
         generators = clusterer.get_generators_as_traj()
-        logger.info('Saving %s', args.generators)
-        generators.save_to_lhdf(args.generators)
+        logger.info('Saving %s', generators_fn)
+        generators.save_to_lhdf(generators_fn)
         if args.stride == 1:
             assignments = clusterer.get_assignments()
             distances = clusterer.get_distances()
             
-            logger.info('Since stride=1, Saving %s', args.assignments)
-            logger.info('Since stride=1, Saving %s', args.distances)
-            io.saveh(args.assignments, assignments)
-            io.saveh(args.distances, distances)
+            logger.info('Since stride=1, Saving %s', assignments_fn)
+            logger.info('Since stride=1, Saving %s', distances_fn)
+            io.saveh(assignments_fn, assignments)
+            io.saveh(distances_fn, distances)
 
 if __name__ == '__main__':
     args, metric = parser.parse_args()
