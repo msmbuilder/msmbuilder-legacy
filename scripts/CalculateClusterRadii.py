@@ -50,7 +50,7 @@ def main(assignments, distances):
     # don't count the minus one state, since it indicates the absense of
     # an assignments
     if -1 in states:
-        states = states.remove(-1)
+        states.remove(-1)
     n_states = len(states)
     
     radii = np.nan * np.ones(n_states)    
