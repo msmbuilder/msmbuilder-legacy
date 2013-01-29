@@ -1043,7 +1043,7 @@ class __Reversible_MLE_Estimator__():
         x.data[self.sym_upper_ind] = np.exp(log_vector)[self.partial_upper_mapping]
         return x
 
-    def flatten_matrix(self, C):
+    def flatten_matrix(self, counts):
         """Extract lower triangle from an arbitrary sparse CSR matrix.
 
         Parameters
@@ -1056,12 +1056,12 @@ class __Reversible_MLE_Estimator__():
             The nonzero entries on the lower triangle (including diagonal)
 
         """
-        C = self.stencil.multiply(C)
-        C = C + self.stencil
-        data = C.data - 1.
+        counts = self.stencil.multiply(counts)
+        counts = counts + self.stencil
+        data = counts.data - 1.
         return data
 
-    def matrix_to_log_vector(self, C):
+    def matrix_to_log_vector(self, counts):
         """Construct vector of parameters from sparse matrix
 
         Parameters
@@ -1077,7 +1077,7 @@ class __Reversible_MLE_Estimator__():
 
 
         """
-        data = self.flatten_matrix(C)
+        data = self.flatten_matrix(counts)
         return np.log(data)
 
     def log_likelihood(self, log_vector):
