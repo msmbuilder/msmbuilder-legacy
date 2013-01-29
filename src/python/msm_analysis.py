@@ -228,6 +228,7 @@ def get_implied_timescales_helper(args):
     get_eigenvectors
     """
     assignments_fn, lag_time, n_implied_times, sliding_window, trimming, symmetrize = args
+    logger.info("Calculating implied timescales at lagtime %d" % lag_time)
 
     try:
         assignments = io.loadh(assignments_fn, 'arr_0')

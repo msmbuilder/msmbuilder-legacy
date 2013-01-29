@@ -153,8 +153,8 @@ def test_AssignHierarchical():
 
 class test_BuildMSM(WTempdir):
     def test(self):
-        BuildMSM.run(LagTime=1, assignments=get('Assignments.h5')['arr_0'], Symmetrize='MLE',
-            OutDir=self.td)
+        BuildMSM.run(lagtime=1, assignments=get('Assignments.h5')['arr_0'], symmetrize='MLE',
+            out_dir=self.td)
 
         eq(load(pjoin(self.td, 'tProb.mtx')), get('tProb.mtx'))
         eq(load(pjoin(self.td, 'tCounts.mtx')), get('tCounts.mtx'))
