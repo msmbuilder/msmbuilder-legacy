@@ -1155,10 +1155,14 @@ class __Reversible_MLE_Estimator__():
         log_vector = 1.0 * np.log(self.partial_counts.data)
         f = lambda x: -1 * self.log_likelihood(x)
         df = lambda x: -1 * self.dlog_likelihood(x)
-        ans = scipy.optimize.fmin_l_bfgs_b(
-            f, log_vector, df, disp=0, factr=0.001, m=26)[0]  # m is the number of variable metric correcitons.  m=26 seems to give ~15% speedup
-        X = self.log_vector_to_matrix(ans)
+        initial_obj = f(log_vector)
+        parms, final_obj, info_dict = scipy.optimize.fmin_l_bfgs_b(
+            f, log_vector, df, disp=0, factr=0.001, m=26)  # m is the number of variable metric correcitons.  m=26 seems to give ~15% speedup
+        X = self.log_vector_to_matrix(parms)
         X *= (self.counts.sum() / X.sum())
+        logger.info("BFGS likelihood maximization terminated after %d function calls.  Initial and final log likelihoods: %f, %f." % (info_dict["funcalls"], initial_obj, final_obj))
+        if info_dict["warn_flag"] != 0:
+            logger.warn("Abnormal termination of BFGS likelihood maximization.  Error code %d" % info_dict["warn_flag"])
         return X
 
 
