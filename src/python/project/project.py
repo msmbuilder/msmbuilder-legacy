@@ -62,7 +62,6 @@ class Project(object):
             np.all(self._traj_errors == other._traj_errors)
             # np.all(self._traj_converted_from == other._traj_converted_from)
                                 
-
     def __init__(self, records, validate=False, project_dir='.'):
         """Create a project from a  set of records
 
