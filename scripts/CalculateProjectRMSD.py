@@ -24,6 +24,7 @@ from msmbuilder import Project
 from msmbuilder import Trajectory
 from msmbuilder import io
 from msmbuilder import arglib
+import warnings
 
 import logging
 logger = logging.getLogger('msmbuilder.scripts.CalculateProjectRMSD')
