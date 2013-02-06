@@ -1,205 +1,181 @@
 
-from scipy import signal
 import numpy as np
 import re, sys, os
-import multiprocessing as mp
 from time import time
-import gc
-from scipy.weave import inline
 import logging
 
-logger = logging.getLogger( __name__ )
-logger.setLevel( logging.DEBUG )
-def correlate_C( lag ):
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
-    N0, N = data_vector.shape
-    correlate_mat = np.zeros( ( N, N ) )
-    code = \
-"""
-int i,j,k; 
-float sum=0.;
+class CovarianceMatrix(object):
+    """
+    CovarianceMatrix is a class for calculating covariance matrices. It can be
+    used to calculate both the time-lag correlation matrix and covariance
+    matrix. The advantage it has is that you can calculate the matrix for a 
+    large dataset by "training" pieces of the dataset at a time. 
 
-lag = (int) lag;
+    Notes
+    -----
 
-#pragma omp parallel for private(sum,i,j)
-for ( i = 0; i < N; i++ )
-{
-    for ( j = 0; j < N; j++ )
-    {
-        sum=0.;
-        for ( k = 0; k < N0 - lag; k++ )
-        {   
-            // correlate_mat[ i * N + j ] += data_vector[ k * N + i ] * data_vector[ ( k + lag ) * N + j];
-            sum += data_vector[ k * N + i ] * data_vector[ ( k + lag ) * N + j];
-        }
-        correlate_mat[ i * N + j ] = sum;
-    }
-}
-"""
-    inline( code, ['N', 'N0', 'lag', 'correlate_mat', 'data_vector'], headers=['"omp.h"'], extra_compile_args=[ '-fopenmp' ], libraries=['gomp'], verbose=2 )
+    It can be shown that the time-lag correlation matrix is the same as:
 
-    return correlate_mat
+    C = E[Outer(X[t], X[t+lag])] - Outer(E[X[t]], E[X[t+lag]])
 
-def np_dot_row( args ):
-    row_ind = args[0]
-    lag = args[1]
-    sol = []
+    Because of this it is possible to calculate running sums corresponding 
+    to variables A, B, D:
 
-    if lag == 0:
-        a = data_vector[:,row_ind].reshape( (-1,1) )
-        sol = (a * data_vector ).sum(axis=0)
-    else:
-        a = data_vector[:-lag,row_ind].reshape( (-1,1) )
-        sol = (a * data_vector[lag:]).sum(axis=0)
+    A = E[X[t]]
+    B = E[X[t+lag]]
+    D = E[Outer(X[t], X[t+lag])]
 
-    del a
-    return sol
+    Then at the end we can calculate C:
 
-def np_correlate_row( args ):
-    row_ind = args[0]
-    lag = args[1]
-    sol = []
+    C = D - Outer(A, B)
 
-    if lag == 0:
-        a = data_vector[:,row_ind]
-        for j in xrange( data_vector.shape[1] ):
-            sol.append( np.correlate( a, data_vector[:,j],mode='valid' )[0] )
-    else:
-        a = data_vector[:-lag,row_ind]
-        for j in xrange( data_vector.shape[1] ):
-            sol.append( np.correlate( a, data_vector[lag:,j], mode='valid' )[0] ) 
-    del a
-    return sol
+    Finally we can get a symmetrized C' from our estimate of C, for
+    example by adding the transpose:
 
-class CovarianceMatrix:
+    C' = (C + C^T) / 2
+     
+    """
+    def __init__(self, lag, procs=1, calc_cov_mat=True, size=None):
+        """
+        Create an empty CovarianceMatrix object.
 
-    def __init__( self, lag=0, procs=1, normalize=False ):
+        To add data to the object, use the train method.
 
+        Parameters
+        ----------
+        lag: int
+            The lag to use in calculating the time-lag correlation
+            matrix. If zero, then only the covariance matrix is
+            calculated
+        procs: int, optional
+            number of processors to use when training.
+        normalize: bool, optional
+            if lag > 0, then will also calculate the covariance matrix
+        size: int, optional
+            the size is the number of coordinates for the vector
+            representation of the protein. If None, then the first
+            trained vector will be used to initialize it.
+        
+        """
+        
         self.corrs = None
-        self.left_sum = None
-        self.right_sum = None
-        self.tot_sum = None
+        self.sum_t = None
+        self.sum_t_dt = None
+        # The above containers hold a running sum that is used to 
+        # calculate the time-lag correlation matrix as well as the
+        # covariance matrix
 
-        self.coors_lag0 = None        
-        self.normalize = normalize
+        self.coors_lag0 = None  # needed for calculating the covariance
+                                # matrix       
+        self.sum_all = None
 
-        self.trained_frames=0
-        self.total_frames = 0
-
-        self.lag=int(lag)
-
-        self.size=None
-
-        self.procs=procs
-
-    def set_size( self, N ):
-        if self.corrs !=None:
-            logger.warn( "There is still a matrix stored! Not overwriting, use method start_over() to delete the old matrix." )
-            return
-        self.size = N
-
-        self.corrs = np.zeros( (N,N) )
-        self.left_sum = np.zeros( N )
-        self.right_sum = np.zeros( N )
-        self.tot_sum = np.zeros( N )
-
-        if self.normalize:
-            self.corrs_lag0 = np.zeros( (N, N) )
-
-    def start_over( self ):
         self.trained_frames = 0
         self.total_frames = 0
+        # Track how many frames we've trained
 
-        self.corrs = None
-        self.left_sum = None
-        self.right_sum = None
-        self.tot_sum = None
-#        self.sq_tot_sum = None
+        self.lag=int(lag)
+        if self.lag < 0:
+            raise Exception("lag must be non-negative.")
+        elif self.lag == 0:  # If we have lag=0 then we don't need to
+                             # calculate the covariance matrix twice
+            self.calc_cov_mat = False
+        else:
+            self.calc_cov_mat = calc_cov_mat
 
-        self.corrs_lag0 = None
+        self.size = size
+        if not self.size is None:
+            self.set_size(size)
+            
+        self.procs=procs
+        # Currently not-used...
 
-    def train( self, data_vector_orig ):
-        global data_vector
-        a=time()
-        data_vector = data_vector_orig.copy()
-        #data_vector /= data_vector.std(axis=0)
+    def set_size(self, N):
+        """
+        Set the size of the matrix.
+
+        Parameters
+        ----------
+        N : int
+            The size of the square matrix will be (N, N)
+
+        """
+
+        self.size = N
+
+        self.corrs = np.zeros((N,N), dtype=float)
+        self.sum_t = np.zeros(N, dtype=float)
+        self.sum_t_dt = np.zeros(N, dtype=float)
+        self.sum_all = np.zeros(N, dtype=float)
+
+        if self.calc_cov_mat:
+            self.corrs_lag0 = np.zeros((N, N), dtype=float)
+
+    def train(self, data_vector):
+        a=time()  # For debugging we are tracking the time each step takes
+
+        if self.size is None:  
+        # then we haven't started yet, so set up the containers
+            self.set_size(data_vector.shape[1])
+
         if data_vector.shape[1] != self.size:
-            raise Exception("Input vector is not the right size. axis=1 should be length %d. Vector has shape %s" %(self.size, str(data_vector.shape)) )
+            raise Exception("Input vector is not the right size. axis=1 should "
+                            "be length %d. Vector has shape %s" %
+                            (self.size, str(data_vector.shape)))
 
         if data_vector.shape[0] <= self.lag:
-            logger.warn( "Data vector is too short (%d) for this lag (%d)" % (data_vector.shape[0],self.lag) )
+            logger.warn("Data vector is too short (%d) "
+                        "for this lag (%d)", data_vector.shape[0],self.lag)
             return
 
-        temp_mat = np.zeros( (self.size,self.size) )
-
-        num_frames = data_vector.shape[0] - self.lag
         b=time()
-#        Pool = mp.Pool( self.procs )
-        #sol = [ np_dot_row( (i,self.lag) ) for i in xrange( self.size ) ]
-        #debug for memory leak ^^^
 
-#        result = Pool.map_async( np_dot_row, zip( range( self.size ), [self.lag]*self.size ) )
-#        result.wait()
-#        sol=result.get()
+        if self.lag != 0:
+            self.corrs += data_vector[:-self.lag].T.dot(data_vector[self.lag:])
+            self.sum_t += data_vector[:-self.lag].sum(axis=0)
+            self.sum_t_dt += data_vector[self.lag:].sum(axis=0)
+        else:
+            self.corrs += data_vector.T.dot(data_vector)
+            self.sum_t += data_vector.sum(axis=0)
+            self.sum_t_dt += self.sum_t
 
-#        Pool.close()
-#        Pool.join()
-#        temp_mat = np.vstack( sol )
-        #temp_mat = correlate_C( self.lag )
-        temp_mat = data_vector[:-self.lag].T.dot(data_vector[self.lag:]) # Outer product
-        if self.normalize:
-  
-        #    Pool = mp.Pool( self.procs )
+        if self.calc_cov_mat:
+            self.corrs_lag0 += data_vector.T.dot(data_vector)
+            self.sum_all += data_vector.sum(axis=0)
+            self.total_frames += data_vector.shape[0]
 
-        #    result_lag0 = Pool.map_async( np_dot_row, zip( range( self.size ), [0]*self.size ) )
-        #    result_lag0.wait()
-        #    sol=result_lag0.get()
-
-        #    Pool.close()
-        #    Pool.join()
-        #    temp_mat_lag0 = np.vstack( sol )
-            #temp_mat_lag0 = correlate_C( 0 )
-            temp_mat_lag0 = data_vector.T.dot(data_vector)
-            self.corrs_lag0 += temp_mat_lag0
+        self.trained_frames += data_vector.shape[0] - self.lag  
+        # this accounts for us having finite trajectories, so we really are 
+        #  only calculating expectation values over N - \Delta t total samples
 
         c=time()
 
-        self.corrs += temp_mat
-        self.left_sum += data_vector[: -self.lag].sum(axis=0)
-        self.right_sum += data_vector[ self.lag :].sum(axis=0)
-        self.tot_sum += data_vector.sum(axis=0)
-        # self.sq_tot_sum += (data_vector * data_vector).sum(axis=0)
-        
-        self.trained_frames += num_frames
-        self.total_frames += data_vector.shape[0]
-        f=time()
-
-        #print np.abs(self.corrs_lag0 - self.corrs_lag0.T).max()
-        logger.debug( "Setup: %f, Corrs: %f, Finish: %f" %( b-a, c-b, f-c) )
+        logger.debug("Setup: %f, Corrs: %f" %(b-a, c-b))
+        # Probably should just get rid of this..
 
     def get_current_estimate(self):
+        """Calculate the current estimate of the time-lag correlation
+        matrix and the covariance matrix (if asked for).
 
-        tot_means = ( self.tot_sum / float( self.total_frames ) ).reshape( (-1,1) )
- 
-        tot_means_mat = np.dot( tot_means, tot_means.T ) * self.trained_frames
+        Currently, this is done by symmetrizing the sample time-lag
+        correlation matrix, which can cause problems!
+        
+        """
+        
+        time_lag_corr = (self.corrs) / float(self.trained_frames)
 
-        left_sum = self.left_sum.reshape( (-1,1) )
-        right_sum = self.right_sum.reshape( (-1,1) )
+        outer_expectations = np.outer(self.sum_t, self.sum_t_dt) / float(self.trained_frames) ** 2
 
-        tot_mean_left_sum = np.dot( tot_means, left_sum.T )
-        tot_mean_right_sum = np.dot( tot_means, right_sum.T )
+        current_estimate = time_lag_corr - outer_expectations
+        current_estimate += current_estimate.T  # symmetrize the matrix
+        current_estimate /= 2.
 
+        if self.calc_cov_mat:
+            cov_mat = self.corrs_lag0 / float(self.total_frames) -  \
+                np.outer(self.sum_all, self.sum_all) / float(self.total_frames) ** 2
 
+            return current_estimate, cov_mat
 
-        temp_mat = self.corrs - tot_mean_left_sum - tot_mean_right_sum + tot_means_mat
-        temp_mat /= self.total_frames
-
-        temp_mat = (temp_mat+temp_mat.T)/2.
-
-        if self.normalize:
-
-            logger.debug( 'Error in symmetry of covariance matrix is %f' % np.abs(self.corrs_lag0 - self.corrs_lag0.T).max() )
-            temp_mat_lag0 = self.corrs_lag0 / float( self.total_frames ) - np.dot( tot_means, tot_means.T )
-            return temp_mat, temp_mat_lag0
-
-        return temp_mat
+        return current_estimate

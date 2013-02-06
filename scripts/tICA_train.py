@@ -11,9 +11,9 @@ logger = logging.getLogger( __name__ )
 def run( prep_metric, project, atom_indices, out_fn, dt, min_length, lag ):
 
     if lag > 0: # Then we're doing tICA
-        cov_mat_obj = tICA.CovarianceMatrix( lag=lag, normalize=True )
+        cov_mat_obj = tICA.CovarianceMatrix( lag=lag, calc_cov_mat=True )
     else: # If lag is zero, this is equivalent to regular PCA
-        cov_mat_obj = tICA.CovarianceMatrix( lag=lag, normalize=False )
+        cov_mat_obj = tICA.CovarianceMatrix( lag=lag, calc_cov_mat=False )
     
     for i in xrange( project.n_trajs ):
         logger.info( "Working on trajectory %d" % i )
@@ -31,17 +31,8 @@ def run( prep_metric, project, atom_indices, out_fn, dt, min_length, lag ):
 
         n_cols = ptraj.shape[1]
 
-        if cov_mat_obj.size == None:
-            cov_mat_obj.set_size( n_cols )
-    
         cov_mat_obj.train(ptraj)
 
-        if ( not (i+1) % 10 ):
-            logger.debug( "Remounting..." )
-            sshfs_tools.remount()
-    
-    sshfs_tools.remount()
-    
     logger.info( "Diagonalizing the covariance matrix" )
     
     if lag > 0:
