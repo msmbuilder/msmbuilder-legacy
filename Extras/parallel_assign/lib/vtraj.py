@@ -96,7 +96,7 @@ class VTraj(object):
         last_frame = 0
         
         for trj_i, start, stop in self.chunks:
-            f = tables.File(self.project.GetTrajFilename(trj_i))
+            f = tables.File(self.project.traj_filename(trj_i))
             frames = _convert_from_lossy_integers(f.root.XYZList[start:stop], 1000)
             
             xyzlist[last_frame:last_frame + len(frames), :, :] = frames

@@ -10,10 +10,10 @@ import numpy as np
 import string
 import matplotlib
 import logging
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('msmbuilder.scripts.Interactive-SCRE')
 
 def interactive_scre(assignments):
-    Counts = MSMLib.GetCountMatrixFromAssignments(assignments,LagTime = 1)
+    Counts = MSMLib.get_count_matrix_from_assignments(assignments, lag_time=1)
     CountsAfterTrimming,Mapping = MSMLib.ErgodicTrim(Counts)
     MSMLib.ApplyMappingToAssignments(assignments,Mapping)
     ReversibleCounts = MSMLib.EstimateReversibleCountMatrix(CountsAfterTrimming)
@@ -68,7 +68,7 @@ def scre_iteration(assignments,K0,lagtime_list,M,X,populations):
     for LagTime in lagtime_list:
         logger.info("Estimating rates at lagtime %d", LagTime)
         K=K0.copy() * float(LagTime)
-        C0=MSMLib.GetCountMatrixFromAssignments(assignments,LagTime=LagTime).toarray()
+        C0=MSMLib.get_count_matrix_from_assignments(assignments, lag_time=LagTime).toarray()
         Counts=C0.sum(1)
         Counts/=LagTime     
         X2=SCRE.MaximizeRateLikelihood(X,M,populations,C0,K)

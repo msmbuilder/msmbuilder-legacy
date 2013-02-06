@@ -22,7 +22,7 @@ from msmbuilder import Trajectory
 from msmbuilder.metrics import RMSD
 from msmbuilder import arglib
 import logging
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('msmbuilder.scripts.CalculateRMSD')
 
 def run(pdb, traj, atom_indices):
 

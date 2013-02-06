@@ -31,7 +31,7 @@ from msmbuilder import xtc
 from msmbuilder import dcd
 
 import logging
-logger = logging.getLogger('Trajectory')
+logger = logging.getLogger(__name__)
 
 MAXINT16 = np.iinfo(np.int16).max
 MAXINT32 = np.iinfo(np.int32).max
@@ -185,14 +185,36 @@ class Trajectory(ConformationBaseClass):
         Precision : float, optional
             Precision to save xyzlist
         """
-        self.pop('IndexList')
+        indexlist = self.pop('IndexList', None)
         
         xyzlist = self.pop('XYZList')
         rounded = _convert_to_lossy_integers(xyzlist, precision)
         self['XYZList'] = rounded
         io.saveh(filename, **self)
+
         self['XYZList'] = xyzlist
+        self['IndexList'] = indexlist
+
+
+    def save_to_hdf(self, filename):
+        """Save a Trajectory instance to a HDF File.
+
+        First, remove the XYZList key because it should be written using the
+        special CArray operation.  This file format is roughly equivalent to
+        an XTC and should comparable file sizes but with better IO performance.
+
+        Parameters
+        ----------
+        Filename: str
+            location to save to
+        Precision : float, optional
+            Precision to save xyzlist
+        """
+        indexlist = self.pop('IndexList', None)
+        io.saveh(filename, **self)
+        self['IndexList'] = indexlist
         
+
     def save_to_xtc(self, filename, precision=DEFAULT_PRECISION):
         """Dump the coordinates to XTC
 
@@ -667,12 +689,24 @@ class Trajectory(ConformationBaseClass):
             raise IOError("Incorrect file type--cannot get conformation %s" % TrajFilename)
 
     @classmethod
-    def load_trajectory_file(cls, Filename, JustInspect=False, Conf=None, Stride=1):
+    def load_trajectory_file(cls, Filename, JustInspect=False, Conf=None, 
+                             Stride=1, AtomIndices=None):
         """Loads a trajectory into memory, automatically deciding which methods to call based on filetype.  For XTC files, this method uses a pre-registered Conformation filename as a pdb."""
+        
         extension = os.path.splitext(Filename)[1]
+        
+        # check to see if we're supposed to load only a subset of the atoms
+        if AtomIndices != None:
+            if (extension == '.lh5') or (extension == '.h5'):
+                pass # we deal with this below
+            else:
+                raise NotImplementedError('AtomIndices kwarg option only'
+                                          'available for .lh5 & .h5 format')
+            
 
+        # if we're not going to load a subset of the atoms, then proceed 
         if extension == '.h5':
-            return Trajectory.load_from_hdf(Filename, JustInspect=JustInspect, Stride=Stride)
+            return Trajectory.load_from_hdf(Filename, JustInspect=JustInspect, Stride=Stride, AtomIndices=AtomIndices)
 
         elif extension == '.xtc':
             if Conf == None:
@@ -685,7 +719,7 @@ class Trajectory(ConformationBaseClass):
             return Trajectory.load_from_dcd(Filename, Conf=Conf, JustInspect=JustInspect)[::Stride]
 
         elif extension == '.lh5':
-            return Trajectory.load_from_lhdf(Filename, JustInspect=JustInspect, Stride=Stride)
+            return Trajectory.load_from_lhdf(Filename, JustInspect=JustInspect, Stride=Stride, AtomIndices=AtomIndices)
 
         elif extension == '.pdb':
             return Trajectory.load_from_pdb(Filename)[::Stride]

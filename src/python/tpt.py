@@ -34,16 +34,15 @@ from msmbuilder import msm_analysis
 from msmbuilder.utils import deprecated
 
 import logging
-logger = logging.getLogger('tpt')
+logger = logging.getLogger(__name__)
 
 # turn on debugging printout
 # logger.setLogLevel(logging.DEBUG)
 
-
-
 ###############################################################################
 # Typechecking/Utility Functions
 #
+
 
 def _ensure_iterable(arg):
     if not hasattr(arg, '__iter__'):
@@ -52,6 +51,7 @@ def _ensure_iterable(arg):
                      " converted it to: %s" % str(arg))
     assert hasattr(arg, '__iter__')
     return arg
+
 
 def _check_sources_sinks(sources, sinks):
     sources = _ensure_iterable(sources)
@@ -134,7 +134,7 @@ def find_top_paths(sources, sinks, tprob, num_paths=10, node_wipe=False, net_flu
     while not done:
 
         # First find the highest flux pathway
-        (path, (b1,b2), flux) = _backtrack(sinks, b, pi, net_flux)
+        (path, (b1, b2), flux) = _backtrack(sinks, b, pi, net_flux)
 
         # Add each result to a Paths, Bottlenecks, Fluxes list
         if flux == 0:
@@ -232,13 +232,13 @@ def Dijkstra(sources, sinks, net_flux):
 
         # relax
         for v in G[1][np.where(G[0] == w)]:
-            if b[v] < min(b[w], net_flux[w,v]):
-                b[v] = min(b[w], net_flux[w,v])
+            if b[v] < min(b[w], net_flux[w, v]):
+                b[v] = min(b[w], net_flux[w, v])
                 pi[v] = w
 
         Q = sorted(Q, key=lambda v: b[v])
 
-    logger.info("Searched %s nodes", len(U)+len(sinks))
+    logger.info("Searched %s nodes", len(U) + len(sinks))
 
     return pi, b
 
@@ -290,15 +290,15 @@ def _back_relax(s, b, pi, NFlux):
 
         b[s] = 0                                 # set the cost to zero
         for j in G[0][np.where(G[1] == s)]:    # for each upstream node
-            if b[s] < min(b[j], NFlux[j,s]):   # if that node has a lower cost
-                b[s] = min(b[j], NFlux[j,s])   # then set the cost to that node
+            if b[s] < min(b[j], NFlux[j, s]):   # if that node has a lower cost
+                b[s] = min(b[j], NFlux[j, s])   # then set the cost to that node
                 pi[s] = j                        # and the source comes from there
 
     # if there are no nodes connected to this one, then we need to go one
     # level up and work there first
     else:
         for sprime in G[1][np.where(G[0] == s)]:
-            NFlux[s,sprime] = 0
+            NFlux[s, sprime] = 0
             b, pi, NFlux = _back_relax(sprime, b, pi, NFlux)
 
     return b, pi, NFlux
@@ -342,12 +342,12 @@ def _backtrack(B, b, pi, NFlux):
     bestflux = 0
     for Bnode in B:
         path = [Bnode]
-        NotDone=True
+        NotDone = True
         while NotDone:
             if pi[path[-1]] == -1:
                 break
             else:
-                path.append( pi[path[-1]] )
+                path.append(pi[path[-1]])
         path.reverse()
 
         bottleneck, Flux = find_path_bottleneck(path, NFlux)
@@ -398,7 +398,7 @@ def find_path_bottleneck(path, net_flux):
     if scipy.sparse.issparse(net_flux):
         net_flux = net_flux.tolil()
 
-    flux = 100000. # initialize as large value
+    flux = 100000.  # initialize as large value
 
     for i in range(len(path) - 1):
         if net_flux[path[i], path[i + 1]] < flux:
@@ -447,10 +447,10 @@ def calculate_fluxes(sources, sinks, tprob, populations=None, committors=None):
 
     # check if we got the populations
     if populations is None:
-        eigens = msm_analysis.get_eigenvectors(tprob, 5)
-        if np.count_nonzero(np.imag(eigens[1][:,0])) != 0:
+        eigens = msm_analysis.get_eigenvectors(tprob, 1)
+        if np.count_nonzero(np.imag(eigens[1][:, 0])) != 0:
             raise ValueError('First eigenvector has imaginary components')
-        populations = np.real(eigens[1][:,0])
+        populations = np.real(eigens[1][:, 0])
 
     # check if we got the committors
     if committors is None:
@@ -467,9 +467,9 @@ def calculate_fluxes(sources, sinks, tprob, populations=None, committors=None):
         X[(np.arange(n), np.arange(n))] = populations * (1.0 - committors)
         Y[(np.arange(n), np.arange(n))] = committors
     else:
-        X = scipy.sparse.lil_matrix((n,n))
-        Y = scipy.sparse.lil_matrix((n,n))
-        X.setdiag( populations * (1.0 - committors))
+        X = scipy.sparse.lil_matrix((n, n))
+        Y = scipy.sparse.lil_matrix((n, n))
+        X.setdiag(populations * (1.0 - committors))
         Y.setdiag(committors)
 
     if dense:
@@ -575,7 +575,7 @@ def calculate_ensemble_mfpt(sources, sinks, tprob, lag_time):
     X = calculate_mfpt(sinks, tprob, lag_time)
     times = np.zeros(len(sources))
     for i in range(len(sources)):
-        times[i] = X[ sources[i] ]
+        times[i] = X[sources[i]]
 
     return np.average(times), np.std(times)
 
@@ -618,7 +618,7 @@ def calculate_avg_TP_time(sources, sinks, tprob, lag_time):
         T = tprob.tolil()
         P = scipy.sparse.lil_matrix((n, n))
     else:
-        p = np.zeros((n, n))
+        P = np.zeros((n, n))
 
     for u in sources:
         for i in range(n):
@@ -631,14 +631,15 @@ def calculate_avg_TP_time(sources, sinks, tprob, lag_time):
 
     for i in sources:
         N = T[i, :].sum()
-        T[i,:] = T[i, :]/N
+        T[i, :] = T[i, :] / N
 
     X = calculate_mfpt(sinks, tprob, lag_time)
     TP = P * X.T
     TPtimes = []
 
     for time in TP:
-        if time != 0: TPtimes.append(time)
+        if time != 0:
+            TPtimes.append(time)
 
     return np.average(TPtimes), np.std(TPtimes)
 
@@ -677,11 +678,11 @@ def calculate_mfpt(sinks, tprob, lag_time=1.):
         tprob = tprob.tolil()
 
     for state in sinks:
-        tprob[state,:] = 0.0
-        tprob[state,state] = 2.0
+        tprob[state, :] = 0.0
+        tprob[state, state] = 2.0
 
     if scipy.sparse.isspmatrix(tprob):
-        tprob = tprob - scipy.sparse.eye(n,n)
+        tprob = tprob - scipy.sparse.eye(n, n)
         tprob = tprob.tocsr()
     else:
         tprob = tprob - np.eye(n)
@@ -727,16 +728,16 @@ def calculate_all_to_all_mfpt(tprob, populations=None):
     """
 
     msm_analysis.check_transition(tprob)
-    
+
     if scipy.sparse.issparse(tprob):
         tprob = tprob.toarray()
         logger.warning('calculate_all_to_all_mfpt does not support sparse linear algebra')
 
     if populations is None:
-        eigens = msm_analysis.get_eigenvectors(tprob, 5)
-        if np.count_nonzero(np.imag(eigens[1][:,0])) != 0:
+        eigens = msm_analysis.get_eigenvectors(tprob, 1)
+        if np.count_nonzero(np.imag(eigens[1][:, 0])) != 0:
             raise ValueError('First eigenvector has imaginary parts')
-        populations = np.real(eigens[1][:,0])
+        populations = np.real(eigens[1][:, 0])
 
     # ensure that tprob is a transition matrix
     msm_analysis.check_transition(tprob)
@@ -744,7 +745,7 @@ def calculate_all_to_all_mfpt(tprob, populations=None):
     if tprob.shape[0] != num_states:
         raise ValueError("Shape of tprob and populations vector don't match")
 
-    eye = np.transpose( np.matrix(np.ones(num_states)) )
+    eye = np.transpose(np.matrix(np.ones(num_states)))
     limiting_matrix = eye * populations
     #z = scipy.linalg.inv(scipy.sparse.eye(num_states, num_states) - (tprob - limiting_matrix))
     z = scipy.linalg.inv(np.eye(num_states) - (tprob - limiting_matrix))
@@ -796,14 +797,14 @@ def calculate_committors(sources, sinks, tprob):
         T = T.tolil()
 
     for a in sources:
-        T[a,:] = 0.0 #np.zeros(n)
-        T[:,a] = 0.0
-        T[a,a] = 1.0
+        T[a, :] = 0.0  # np.zeros(n)
+        T[:, a] = 0.0
+        T[a, a] = 1.0
 
     for b in sinks:
-        T[b,:] = 0.0 # np.zeros(n)
-        T[:,b] = 0.0
-        T[b,b] = 1.0
+        T[b, :] = 0.0  # np.zeros(n)
+        T[:, b] = 0.0
+        T[b, b] = 1.0
 
     IdB = np.zeros(n)
     IdB[sinks] = 1.0
@@ -814,16 +815,16 @@ def calculate_committors(sources, sinks, tprob):
         RHS = tprob * IdB
 
     RHS[sources] = 0.0
-    RHS[sinks]   = 1.0
+    RHS[sinks] = 1.0
 
     # solve for the committors
     if dense == False:
         Q = scipy.sparse.linalg.spsolve(T.tocsr(), RHS)
     else:
         Q = np.linalg.solve(T, RHS)
-        
-    assert np.all( Q <= 1.0 )
-    assert np.all( Q >= 0.0 )
+
+    assert np.all(Q <= 1.0)
+    assert np.all(Q >= 0.0)
 
     return Q
 
@@ -836,30 +837,30 @@ def calculate_committors(sources, sinks, tprob):
 
 def calculate_fraction_visits(tprob, waypoint, source, sink, return_cond_Q=False):
     """
-    Calculate the fraction of times a walker on `tprob` going from `sources` 
+    Calculate the fraction of times a walker on `tprob` going from `sources`
     to `sinks` will travel through the set of states `waypoints` en route.
-   
+
     Computes the conditional committors q^{ABC^+} and uses them to find the
-    fraction of paths mentioned above. The conditional committors can be 
-    
+    fraction of paths mentioned above. The conditional committors can be
+
     Note that in the notation of Dickson et. al. this computes h_c(A,B), with
         sources   = A
         sinks     = B
         waypoint  = C
-        
+
     Parameters
     ----------
     tprob : matrix
-        The transition probability matrix        
+        The transition probability matrix
     waypoint : int
         The index of the intermediate state
     sources : nd_array, int or int
-        The indices of the source state(s)    
+        The indices of the source state(s)
     sinks : nd_array, int or int
-        The indices of the sink state(s)    
+        The indices of the sink state(s)
     return_cond_Q : bool
         Whether or not to return the conditional committors
-    
+
     Returns
     -------
     fraction_paths : float
@@ -867,7 +868,7 @@ def calculate_fraction_visits(tprob, waypoint, source, sink, return_cond_Q=False
         by `waypoints` on its way.
     cond_Q : nd_array, float (optional)
         Optionally returned (`return_cond_Q`)
-        
+
     See Also
     --------
     calculate_hub_score : function
@@ -887,10 +888,9 @@ def calculate_fraction_visits(tprob, waypoint, source, sink, return_cond_Q=False
     ..[1] Dickson & Brooks (2012), J. Chem. Theory Comput.,
           Article ASAP DOI: 10.1021/ct300537s
     """
-     
+
     # do some typechecking - we need to be sure that the lumped sources are in
     # the second to last row, and the lumped sinks are in the last row
-
     # check `tprob`
     msm_analysis.check_transition(tprob)
     if type(tprob) != np.ndarray:
@@ -899,8 +899,8 @@ def calculate_fraction_visits(tprob, waypoint, source, sink, return_cond_Q=False
         except AttributeError as e:
             raise TypeError('Argument `tprob` must be convertable to a dense'
                             'numpy array. \n%s' % e)
-       
-    # typecheck 
+
+    # typecheck
     for data in [source, sink, waypoint]:
         if type(data) == int:
             pass
@@ -909,13 +909,13 @@ def calculate_fraction_visits(tprob, waypoint, source, sink, return_cond_Q=False
                 data = data[0]
         else:
             raise TypeError('Arguments source/sink/waypoint must be an int')
-    
+
     if (source == waypoint) or (sink == waypoint) or (sink == source):
         raise ValueError('source, sink, waypoint must all be disjoint!')
 
     N = tprob.shape[0]
     Q = calculate_committors([source], [sink], tprob)
-    
+
     # permute the transition matrix into cannonical form - send waypoint the the
     # last row, and source + sink to the end after that
     Bsink_indices = [source, sink, waypoint]
@@ -923,34 +923,35 @@ def calculate_fraction_visits(tprob, waypoint, source, sink, return_cond_Q=False
     perm = np.delete(perm, Bsink_indices)
     perm = np.append(perm, Bsink_indices)
     T = MSMLib.permute_mat(tprob, perm)
-    
+
     # extract P, R
     n = N - len(Bsink_indices)
-    P = T[:n,:n]
-    R = T[:n,n:]
-    
-    # calculate the conditional committors ( B = N*R ), B[i,j] is the prob 
-    # state i ends in j, where j runs over the source + sink + waypoint 
+    P = T[:n, :n]
+    R = T[:n, n:]
+
+    # calculate the conditional committors ( B = N*R ), B[i,j] is the prob
+    # state i ends in j, where j runs over the source + sink + waypoint
     # (waypoint is position -1)
-    B = np.dot( np.linalg.inv( np.eye(n) - P ), R )
-    
+    B = np.dot(np.linalg.inv(np.eye(n) - P), R)
+
     # add probs for the sinks, waypoint / b[i] is P( i --> {C & not A, B} )
-    b = np.append( B[:,-1].flatten(), [0.0]*(len(Bsink_indices)-1) + [1.0] )
+    b = np.append(B[:, -1].flatten(), [0.0] * (len(Bsink_indices) - 1) + [1.0])
     cond_Q = b * Q[waypoint]
-    
+
+    epsilon = 1e-6  # some numerical give, hard-coded
     assert cond_Q.shape == (N,)
-    assert np.all( cond_Q <= 1.0 )
-    assert np.all( cond_Q >= 0.0 )
-    assert np.all( cond_Q <= Q[perm] )
-    
+    assert np.all(cond_Q <= 1.0 + epsilon)
+    assert np.all(cond_Q >= 0.0 - epsilon)
+    assert np.all(cond_Q <= Q[perm] + epsilon)
+
     # finally, calculate the fraction of paths h_C(A,B) (eq. 7 in [1])
-    fraction_paths = np.sum( T[-3,:] * cond_Q ) / np.sum( T[-3,:] * Q[perm] )
-    
+    fraction_paths = np.sum(T[-3, :] * cond_Q) / np.sum(T[-3, :] * Q[perm])
+
     assert fraction_paths <= 1.0
     assert fraction_paths >= 0.0
-    
+
     if return_cond_Q:
-        cond_Q = cond_Q[ np.argsort(perm) ] # put back in orig. order
+        cond_Q = cond_Q[np.argsort(perm)]  # put back in orig. order
         return fraction_paths, cond_Q
     else:
         return fraction_paths
@@ -998,9 +999,9 @@ def calculate_hub_score(tprob, waypoint):
     ..[1] Dickson & Brooks (2012), J. Chem. Theory Comput.,
         Article ASAP DOI: 10.1021/ct300537s
     """
-    
+
     msm_analysis.check_transition(tprob)
-    
+
     # typecheck
     if type(waypoint) != int:
         if hasattr(waypoint, '__len__'):
@@ -1021,7 +1022,7 @@ def calculate_hub_score(tprob, waypoint):
     for s1 in states_to_include:
         for s2 in states_to_include:
             if (s1 != s2) and (s1 != waypoint) and (s2 != waypoint):
-                Hc += calculate_fraction_visits(tprob, waypoint, 
+                Hc += calculate_fraction_visits(tprob, waypoint,
                                                 s1, s2, return_cond_Q=False)
 
     Hc /= ((N - 1) * (N - 2))
@@ -1068,7 +1069,7 @@ def calculate_all_hub_scores(tprob):
     ..[1] Dickson & Brooks (2012), J. Chem. Theory Comput.,
         Article ASAP DOI: 10.1021/ct300537s
     """
-    
+
     N = tprob.shape[0]
     states = range(N)
 
@@ -1076,10 +1077,10 @@ def calculate_all_hub_scores(tprob):
     Hc_array = np.zeros(N)
 
     # loop over each state and compute it's hub score
-    for i,waypoint in enumerate(states):
+    for i, waypoint in enumerate(states):
 
         Hc = 0.0
-        
+
         # now loop over all combinations of sources/sinks and average
         for s1 in states:
             if waypoint != s1:
@@ -1087,7 +1088,7 @@ def calculate_all_hub_scores(tprob):
                     if s1 != s2:
                         if waypoint != s2:
                             Hc += calculate_fraction_visits(tprob, waypoint, s1, s2)
-        
+
         # store the hub score in an array
         Hc_array[i] = Hc / ((N - 1) * (N - 2))
 
@@ -1104,9 +1105,11 @@ def calculate_all_hub_scores(tprob):
 def GetBCommittorsEqn(U, F, T0, EquilibriumPopulations):
     pass
 
+
 @deprecated(calculate_committors, '2.7')
 def GetFCommittorsEqn(A, B, T0, dense=False):
     pass
+
 
 # TJL: We don't need a "get backwards committors", since they are just
 # 1 minus the forward committors
@@ -1114,27 +1117,33 @@ def GetFCommittorsEqn(A, B, T0, dense=False):
 def GetBCommittors(U, F, T0, EquilibriumPopulations, X0=None, Dense=False):
     pass
 
+
 @deprecated(calculate_mfpt, '2.7')
 def MFPT():
     pass
 
+
 @deprecated(calculate_committors, '2.7')
 def GetFCommittors():
     pass
+
 
 @deprecated(calculate_fluxes, '2.7')
 def GetFlux():
     print "WARNING: The call signature for the new function has changed."
     pass
 
+
 @deprecated(calculate_net_fluxes, '2.7')
 def GetNetFlux():
     print "WARNING: The call signature for the new function has changed."
     pass
 
+
 @deprecated(calculate_avg_TP_time, '2.7')
 def CalcAvgTPTime():
     pass
+
 
 @deprecated(calculate_ensemble_mfpt, '2.7')
 def CalcAvgFoldingTime():

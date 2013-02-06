@@ -8,10 +8,11 @@ from msmbuilder import clustering
 from msmbuilder import Project
 from msmbuilder import io
 from msmbuilder import Trajectory
+from msmbuilder import metrics
 from msmbuilder.arglib import die_if_path_exists
 from msmbuilder.utils import highlight
 import logging
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('msmbuilder.scripts.Cluster')
 
 def add_argument(group, *args, **kwargs):
     if 'default' in kwargs:
@@ -111,14 +112,18 @@ for metric_parser in parser.metric_parser_list: # arglib stores the metric subpa
         choices=['single', 'complete', 'average', 'weighted', 'centroid', 'median', 'ward'], dest='hierarchical_method')
     add_argument(hier, '-o', dest='hierarchical_save_zmatrix', help='Save Z-matrix to disk', default='Data/Zmatrix.h5')
 
-def load_trajectories(projectfn, stride):
+def load_trajectories(projectfn, stride, atom_indices):
     project = Project.load_from(projectfn)
 
     list_of_trajs = []
     for i in xrange(project.n_trajs):
         # note, LoadTraj is only using the fast strided loading for
         # HDF5 formatted trajs
-        traj = project.load_traj(i, stride=stride)
+        traj = project.load_traj(i, stride=stride, atom_indices=atom_indices)
+        
+        if atom_indices != None:
+            assert len(atom_indices) == traj['XYZList'].shape[1]
+        
         list_of_trajs.append(traj)
 
     return list_of_trajs
@@ -177,8 +182,20 @@ sclarans is to use a shrink multiple to accomplish the same purpose, but in para
 stochastic subsampling. If you cant fit all your frames into  memory at the same time, maybe you
 could stride a little at the begining, but its not recommended.""")
         sys.exit(1)
-    
-    trajs = load_trajectories(args.project, args.stride)
+        
+    # if we have a metric that explicitly operates on a subset of indices,
+    # then we provide the option to only load those indices into memory
+    # WARNING: I also do something a bit dirty, and inject `None` for the
+    # RMSD.atomindices to get the metric to not splice
+    if isinstance(metric, metrics.RMSD):
+        atom_indices = metric.atomindices
+        metric.atomindices = None # probably bad...
+        logger.info('RMSD metric - loading only the atom indices required')
+    else:
+        atom_indices = None
+        
+        
+    trajs = load_trajectories(args.project, args.stride, atom_indices)
     logger.info('Loaded %d trajs', len(trajs))
 
     clusterer = cluster(metric, trajs, args)

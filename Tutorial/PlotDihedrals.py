@@ -19,21 +19,19 @@
 """Creates Ramachandran plot from raw dipeptide data and macroscopic MSM."""
 from pylab import *
 from numpy import loadtxt
-from msmbuilder import Serializer
 from matplotlib import *
 from matplotlib.pyplot import *
 import sys
+import msmbuilder.io
 
 print("Usage: python PlotDihedrals.py Filename")
 print("Filename should be the location of your Macrostate assignments file.")
 Filename=sys.argv[1]
 
-show()
-
 #Load assigment, phi, and psi data.
-Ass=Serializer.LoadData(Filename)
-phi=Serializer.LoadData("./Phi.h5")
-psi=Serializer.LoadData("./Psi.h5")
+Ass=msmbuilder.io.loadh(Filename, "arr_0")
+phi=msmbuilder.io.loadh("./Phi.h5", "Data")
+psi=msmbuilder.io.loadh("./Psi.h5", "Data")
 
 NumStates=Ass.max()+1
 
@@ -50,14 +48,15 @@ w=lambda x: where(Ass==x)
 LabelList=[",",".",'o',"<","s","*","h","+","D"]
 ColorList=["b","g","r","c","m","y","k"]
 def PlotIthState(i,Separate=False):
-	if Separate==True:
-		figure()
-	plot(phi[w(i)],psi[w(i)],"x",label="State %d"%i)
-	axis([-180,180,-180,180])
+    if Separate==True:
+        figure()
+    plot(phi[w(i)],psi[w(i)],"x",label="State %d"%i)
+    axis([-180,180,-180,180])
+    print i, w(i)[0].shape
 
 for i in range(NumStates):
-	print(i)
-	PlotIthState(i)
+    print(i)
+    PlotIthState(i)
 
 title("Alanine Dipeptide Macrostates")
 xlabel(r"$\phi$")

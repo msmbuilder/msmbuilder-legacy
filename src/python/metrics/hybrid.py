@@ -1,6 +1,6 @@
 import numpy as np
 import logging
-logger = logging.getLogger('metrics')
+logger = logging.getLogger(__name__)
 from baseclasses import AbstractDistanceMetric
 
 

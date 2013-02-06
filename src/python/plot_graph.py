@@ -25,7 +25,7 @@ import networkx
 import sys
 import re
 import logging
-logger = logging.getLogger('plot_graph')
+logger = logging.getLogger(__name__)
 
 def CreateNetwork(Matrix, EqPops, Directed=True, EdgeScale=2, PopCutoff=0.01, EdgeCutoff=0.1, ImageList=None, Labels=None):
     """Creates a NetworkX graph (or DiGraph) object.

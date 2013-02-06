@@ -17,9 +17,9 @@ class test_assign():
         self.metric = metrics.Dihedral()
         self.pdb_fn = os.path.join(fixtures_dir(), 'native.pdb')
         self.trj_fn = os.path.join(fixtures_dir(), 'trj0.lh5')
-        self.project = Project({'NumTrajs': 1, 'TrajLengths': [501], 'TrajFileBaseName': 'trj', 'TrajFileType': '.lh5',
-                           'ConfFilename': self.pdb_fn,
-                           'TrajFilePath': fixtures_dir()})
+        self.project = Project({'traj_lengths': [501], 'traj_paths': [self.trj_fn],
+                           'conf_filename': self.pdb_fn, 'traj_converted_from': [None],
+                           'traj_errors': [None]})
         self.vtraj = partition(self.project, chunk_size=501)[0]
 
     def test_0(self):
@@ -42,7 +42,6 @@ class test_assign():
         a,d,vtraj = assign(vtraj, self.pdb_fn, self.metric)
 
         # these are the right RMSD distances
-        #correct_d = np. array([ 0.07839765,  0.07229914,  0.1135717 ,  0.14044274,  0.1121752 , 0.10593121,  0.08611701,  0.08802523,  0.08841465,  0.08553738], dtype=np.float32)
         correct_d = np.array([ 0.26932446,  0.53129266,  0.64795935,  1.56435365,  1.05962805,
                                0.60572095,  0.47062515,  0.5758602 ,  0.24565975,  0.69161412], dtype=np.float32)
         npt.assert_array_almost_equal(d, correct_d)

@@ -23,8 +23,7 @@ import os
 from msmbuilder.project import validators, ProjectBuilder, FahProjectBuilder
 from msmbuilder.arglib import ArgumentParser, die_if_path_exists
 import logging
-logger = logging.getLogger(__name__)
-
+logger = logging.getLogger('msmbuilder.scripts.ConvertDataToHDF')
 
 def run(projectfn, PDBfn, InputDir, source, min_length, stride, rmsd_cutoff):
     
@@ -35,7 +34,7 @@ def run(projectfn, PDBfn, InputDir, source, min_length, stride, rmsd_cutoff):
     else:
         update = False
     
-    logger.info("Looking for %s stype data in %s", source, InputDir)
+    logger.info("Looking for %s style data in %s", source, InputDir)
     if update:
         raise NotImplementedError("Ack! Update mode is not yet ready yet.")
     

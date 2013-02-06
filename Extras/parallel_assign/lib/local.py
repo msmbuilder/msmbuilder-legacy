@@ -3,7 +3,7 @@ import numpy as np
 import tables
 
 from parallel_assign.vtraj import VTraj
-from msmbuilder import Serializer
+from msmbuilder import io
 
 def partition(project, chunk_size):
     """Partition the frames in a project into a list of virtual trajectories
@@ -14,41 +14,40 @@ def partition(project, chunk_size):
     vtrajs : list
         list of VTrajs
     """
-    traj_lengths = project['TrajLengths']
     
-    if not all(int(e) == e for e in traj_lengths):
+    if not all(int(e) == e for e in project.traj_lengths):
         raise ValueError('must me ints')
-    if not all(e > 0 for e in traj_lengths):
+    if not all(e > 0 for e in project.traj_lengths):
         raise ValueError('must be >0')
     
     def generate():
         "generator for the sections"
         last = VTraj(project)
-        for i in xrange(0, len(traj_lengths)):
+        for i in xrange(0, project.n_trajs):
             end = 0
             if len(last) != 0:
                 end = chunk_size - len(last)
-                if  end < traj_lengths[i]:
+                if  end < project.traj_lengths[i]:
                     last.append((i, 0, end))
                     yield last
                     last = VTraj(project)
                 else:
-                    end = traj_lengths[i]
+                    end = project.traj_lengths[i]
                     last.append((i, 0, end))
                     
-            for j in xrange(end, traj_lengths[i], chunk_size):
-                if j + chunk_size <= traj_lengths[i]:
+            for j in xrange(end, project.traj_lengths[i], chunk_size):
+                if j + chunk_size <= project.traj_lengths[i]:
                     yield VTraj(project, (i, j, j + chunk_size))
                     last = VTraj(project)
                 else:
-                    last.append((i, j, traj_lengths[i]))
+                    last.append((i, j, project.traj_lengths[i]))
                 
         if len(last) > 0:
             yield last
             
     all_vtrajs = list(generate())
     
-    if sum(len(vt) for vt in all_vtrajs) != np.sum(project['TrajLengths']):
+    if sum(len(vt) for vt in all_vtrajs) != np.sum(project.traj_lengths):
         raise ValueError('Chunking error. Lengths dont match')
         
     return all_vtrajs
@@ -86,21 +85,20 @@ def setup_containers(outputdir, project, all_vtrajs):
     assignments_fn = os.path.join(outputdir, 'Assignments.h5')
     distances_fn = os.path.join(outputdir, 'Assignments.h5.distances')
     
-    n_trajs = project['NumTrajs']
-    max_n_frames = np.max(project['TrajLengths'])
+    n_trajs = project.n_trajs
+    max_n_frames = np.max(project.traj_lengths)
     n_vtrajs = len(all_vtrajs)
-    hashes = [c.hash() for c in all_vtrajs]
+    hashes = np.array([c.hash() for c in all_vtrajs])
     
     minus_ones = -1 * np.ones((n_trajs, max_n_frames))
     
     def save_container(filename, dtype):
-        s = Serializer({'Data': np.array(minus_ones, dtype=dtype),
-                        'completed_vtrajs': np.zeros((n_vtrajs), dtype=np.bool),
-                        'hashes': hashes})
-        s.save_to_hdf(filename)
+        io.saveh(filename, arr_0=np.array(minus_ones, dtype=dtype),
+            completed_vtrajs=np.zeros((n_vtrajs), dtype=np.bool),
+            hashes=hashes)
     
     def check_container(filename):
-        ondisk = Serializer.load_from_hdf(filename)
+        ondisk = io.loadh(filename, deferred=False)
         if n_vtrajs != len(ondisk['hashes']):
             raise ValueError('You asked for {} vtrajs, but your checkpoint \
 file has {}'.format(n_vtrajs, len(ondisk['hashes'])))
@@ -151,8 +149,8 @@ def save(f_assignments, f_distances, assignments, distances, vtraj):
     for trj_i, start, stop in vtraj:
         end = ptr + stop - start
             
-        f_assignments.root.Data[trj_i, start:stop] = assignments[ptr:end]
-        f_distances.root.Data[trj_i, start:stop] = distances[ptr:end]           
+        f_assignments.root.arr_0[trj_i, start:stop] = assignments[ptr:end]
+        f_distances.root.arr_0[trj_i, start:stop] = distances[ptr:end]           
         ptr = end
     
     vtraj_i = np.where(f_assignments.root.hashes[:] == vtraj.hash())[0]

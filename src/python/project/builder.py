@@ -7,8 +7,7 @@ from msmbuilder.utils import keynat
 
 from project import Project
 from validators import ValidationError
-logger = logging.getLogger('project')
-
+logger = logging.getLogger(__name__)
 
 class ProjectBuilder(object):
     def __init__(self, input_traj_dir, input_traj_ext, conf_filename, **kwargs):
@@ -221,7 +220,7 @@ class ProjectBuilder(object):
             traj = Trajectory.load_from_xtc(file_list, PDBFilename=self.conf_filename,
                         discard_overlapping_frames=True)
         elif self.input_traj_ext == '.dcd':
-            traj = Trajectory.load_from_xtc(file_list, PDBFilename=self.conf_filename)
+            traj = Trajectory.load_from_dcd(file_list, PDBFilename=self.conf_filename)
         else:
             raise ValueError()
         return traj

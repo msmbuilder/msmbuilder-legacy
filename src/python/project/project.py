@@ -23,8 +23,7 @@ from msmbuilder import Trajectory
 from msmbuilder import io
 import logging
 from msmbuilder.utils import keynat
-logger = logging.getLogger('project')
-
+logger = logging.getLogger(__name__)
 
 class Project(object):
     @property
@@ -41,7 +40,18 @@ class Project(object):
     def traj_lengths(self):
         """Length of each of the trajectories, in frames"""
         return self._traj_lengths[self._valid_traj_indices]
-
+        
+    def __eq__(self, other):
+        '''Is this project equal to another'''
+        if not isinstance(other, Project):
+            return False
+        return os.path.basename(self._conf_filename) == os.path.basename(other._conf_filename) and \
+            np.all(self._traj_lengths == other._traj_lengths) and \
+            np.all(np.array([os.path.basename(e) for e in self._traj_paths])
+                == np.array([os.path.basename(e) for e in other._traj_paths])) and \
+            np.all(self._traj_errors == other._traj_errors)
+            # np.all(self._traj_converted_from == other._traj_converted_from)
+                                
     def __init__(self, records, validate=False, project_dir='.'):
         """Create a project from a  set of records
 
@@ -75,7 +85,7 @@ class Project(object):
         self._conf_filename = records['conf_filename']
         self._traj_lengths = np.array(records['traj_lengths'])
         self._traj_paths = np.array(records['traj_paths'])
-        self._traj_converted_from = np.array(records['traj_converted_from'])
+        self._traj_converted_from = list(records['traj_converted_from'])
         self._traj_errors = np.array(records['traj_errors'])
         self._project_dir = os.path.abspath(project_dir)
 
@@ -148,7 +158,7 @@ class Project(object):
             records = {'conf_filename': str(ondisk['ConfFilename'][0]),
                        'traj_lengths': ondisk['TrajLengths'],
                        'traj_paths': [],
-                       'traj_converted_from': [None] * n_trajs,
+                       'traj_converted_from': [ [None] ] * n_trajs,
                        'traj_errors': [None] * n_trajs}
 
             for i in xrange(n_trajs):
@@ -160,7 +170,7 @@ class Project(object):
             raise ValueError('Sorry, I can only open files in .yaml'
                              ' or .h5 format: %s' % filename)
 
-        return cls(records, validate=True, project_dir=rootdir)
+        return cls(records, validate=False, project_dir=rootdir)
 
     def save(self, filename_or_file):
         if isinstance(filename_or_file, basestring):
@@ -196,7 +206,7 @@ class Project(object):
             # yaml doesn't like numpy types, so we have to sanitize them
             records['trajs'].append({'id': i,
                                     'path': str(traj_paths[i]),
-                                    'converted_from': self._traj_converted_from[i].tolist(),
+                                    'converted_from': list(self._traj_converted_from[i]),
                                     'length': int(self._traj_lengths[i]),
                                     'errors': self._traj_errors[i]})
 
@@ -207,10 +217,60 @@ class Project(object):
 
         return filename_or_file
 
-    def load_traj(self, trj_index, stride=1):
+    def load_traj(self, trj_index, stride=1, atom_indices=None):
         "Load the a trajectory from disk"
         filename = self.traj_filename(trj_index)
-        return Trajectory.load_trajectory_file(filename, Stride=stride)
+        return Trajectory.load_trajectory_file(filename, Stride=stride, 
+                                               AtomIndices=atom_indices)
+        
+    def load_frame(self, traj_index, frame_index):
+        """Load one or more specified frames.
+
+        Example
+        -------
+        >>> project = Project.load_from('ProjectInfo.yaml')
+        >>> foo = project.load_frame(1,10)
+        >>> bar = Trajectory.read_frame(TrajFilename=project.traj_filename(1),
+            WhichFrame=10)
+        >>> np.all(foo['XYZList'] == bar)
+        True
+
+        Parameters
+        ----------
+        traj_index : int, [int]
+            Index or indices of the trajectories to pull from
+        frame_index : int, [int]
+            Index or indices of the frames to pull from
+
+        Returns
+        -------
+        traj : msmbuilder.Trajectory
+            A trajectory object containing the requested frame(s).
+        """
+
+        if np.isscalar(traj_index) and np.isscalar(frame_index):
+            xyz = Trajectory.read_frame(TrajFilename=self.traj_filename(traj_index),
+                WhichFrame=frame_index)
+            xyzlist = np.array([xyz])
+        else:
+            traj_index = np.array(traj_index)
+            frame_index = np.array(frame_index)
+            if not (traj_index.ndim == 1 and np.all(traj_index.shape == frame_index.shape)):
+                raise ValueError('traj_index and frame_index must be 1D and have the same length')
+
+            xyzlist = []
+            for i,j in zip(traj_index, frame_index):
+                if j >= self.traj_lengths[i]:
+                    raise ValueError('traj %d too short (%d) to contain a frame %d' % (i, self.traj_lengths[i], j))
+                xyz = Trajectory.read_frame(TrajFilename=self.traj_filename(i),
+                    WhichFrame=j)
+                xyzlist.append(xyz)
+            xyzlist = np.array(xyzlist)
+
+        conf = self.load_conf()
+        conf['XYZList'] = xyzlist
+
+        return conf
 
     def load_conf(self):
         "Load the PDB associated with this project from disk"

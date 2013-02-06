@@ -54,10 +54,15 @@ import numpy as np
 import os
 import scipy.io
 import scipy.sparse
+import sys
 import logging
-logging.basicConfig(format="%(message)s")
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('msmbuilder.scripts.BACE')
 logger.setLevel(logging.INFO)
+sh = logging.StreamHandler(stream=sys.stdout)
+formatter = logging.Formatter(fmt='%(asctime)s - %(message)s', datefmt="%H:%M:%S")
+sh.setFormatter(formatter)
+logger.addHandler(sh)
+logger.propagate = False
 
 def getInds(c, stateInds, chunkSize, isSparse, updateSingleState=None):
     indices = []
@@ -369,8 +374,8 @@ if __name__ == '__main__':
 The algorithm works by iteratively merging states until the final desired number of states (the nMacro parameter) is reached.
 
 Description output (put into directory specified with outDir): 
-    bayesFactors.dat = the Bayes factors (cost) for each merging of two states
-    mapX.dat = the mapping from the original state numbering to X coarse-grained states'''
+    bayesFactors.dat = the Bayes factors (cost) for each merging of two states. The first column is the number of macrostates (M) and the second column is the Bayes factor (cost) for coarse-graining from M+1 states to M states.
+    mapX.dat = the mapping from the original state numbering to X coarse-grained states.'''
 
 , formatter_class=argparse.RawDescriptionHelpFormatter)
     add_argument(parser, '-c', dest='tCountFn', help='Path to transition count matrix file (sparse and dense formats accepted).', required=True)

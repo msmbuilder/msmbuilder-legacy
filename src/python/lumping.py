@@ -7,7 +7,7 @@ import numpy as np
 from msmbuilder import msm_analysis
 from msmbuilder.utils import deprecated
 import logging
-logger = logging.getLogger('lumping')
+logger = logging.getLogger(__name__)
 
 from numpy import dot, diag
 inv = np.linalg.inv
