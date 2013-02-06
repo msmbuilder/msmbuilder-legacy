@@ -34,8 +34,7 @@ from msmbuilder.project import Project
 from msmbuilder.utils import make_methods_pickable, keynat
 make_methods_pickable()
 import logging
-logger = logging.getLogger('FahProject')
-
+logger = logging.getLogger(__name__)
 
 class FahProject(object):
     """

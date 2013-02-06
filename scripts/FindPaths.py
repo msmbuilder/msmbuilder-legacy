@@ -28,7 +28,7 @@ from msmbuilder import tpt
 import msmbuilder.io 
 from msmbuilder import arglib
 import logging
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('msmbuilder.scripts.FindPaths')
 
 def run(tprob, A, B, n):
 

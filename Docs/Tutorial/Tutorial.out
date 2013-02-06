@@ -30,7 +30,7 @@
 \BOOKMARK [3][-]{subsubsection.4.3.9}{CalculateClusterRadii.py}{subsection.4.3}
 \BOOKMARK [3][-]{subsubsection.4.3.10}{CalculateRMSD.py}{subsection.4.3}
 \BOOKMARK [3][-]{subsubsection.4.3.11}{CalculateProjectRMSD.py}{subsection.4.3}
-\BOOKMARK [3][-]{subsubsection.4.3.12}{DoTPT.py}{subsection.4.3}
+\BOOKMARK [3][-]{subsubsection.4.3.12}{CalculateTPT.py}{subsection.4.3}
 \BOOKMARK [3][-]{subsubsection.4.3.13}{SavePDBs.py}{subsection.4.3}
 \BOOKMARK [3][-]{subsubsection.4.3.14}{PCCA.py}{subsection.4.3}
 \BOOKMARK [1][-]{section.5}{Frequently Asked Questions}{}

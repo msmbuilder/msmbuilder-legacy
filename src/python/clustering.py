@@ -23,7 +23,7 @@ except:
     pass
 
 import logging
-logger = logging.getLogger('clustering')
+logger = logging.getLogger(__name__)
 
 #####################################################################
 #                                                                   #

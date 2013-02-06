@@ -23,7 +23,7 @@ import numpy as np
 from msmbuilder import Conformation
 from msmbuilder import arglib
 import logging
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('msmbuilder.scripts.CreateAtomIndices')
 
 def run(PDBfn, atomtype):
   
@@ -149,8 +149,11 @@ if __name__ == "__main__":
     One of four options: (1) minimal (CA, CB, C, N, O, recommended), (2) heavy,
     (3) alpha (carbons), or (4) all.  Use "all" in cases where protein
     nomenclature may be inapproprate, although you may want to define your own
-    indices in such situations.''', choices=['minimal', 'heavy', 'alpha', 'all'],
-    default='minimal')
+    indices in such situations.  Note that "heavy" keeps all heavy atoms that
+    are not symmetry equivalent.  By symmetry equivalent, we mean atoms
+    identical under an exchange of labels.  For example, heavy will exclude
+    the two pairs of equivalent carbons (CD, CE) in a PHE ring.''', 
+    choices=['minimal', 'heavy', 'alpha', 'all'], default='minimal')
   args = parser.parse_args()
   arglib.die_if_path_exists(args.output)
 

@@ -22,7 +22,7 @@ import numpy as np
 from msmbuilder import io
 from msmbuilder import arglib
 import logging
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('msmbuilder.scripts.TrimAssignments')
 
 def run(assignments, distances, cutoff):
     number = np.count_nonzero(distances > cutoff)

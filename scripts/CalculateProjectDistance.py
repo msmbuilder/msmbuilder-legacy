@@ -25,7 +25,7 @@ from msmbuilder import io
 from msmbuilder import arglib
 
 import logging
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('msmbuilder.scripts.CalculateProjectDistance')
 
 def run(project, pdb, metric, traj_fn = None):    
 

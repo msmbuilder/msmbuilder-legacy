@@ -50,7 +50,7 @@ def assign(vtraj, gens_fn, metric):
     global CONF
     
     if not PREPARED:
-        load_gens(gens_fn, vtraj.project['ConfFilename'], metric)
+        load_gens(gens_fn, vtraj.project.conf_filename, metric)
 
     traj = vtraj.load(CONF)
     

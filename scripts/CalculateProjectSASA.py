@@ -21,7 +21,7 @@ import numpy as np
 from msmbuilder import Trajectory, Project, arglib, io
 from msmbuilder.geometry import asa
 import logging
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('msmbuilder.scripts.CalculateProjectSASA')
 
 def run(project, atom_indices=None, traj_fn = 'all'):
 

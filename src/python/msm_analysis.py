@@ -26,15 +26,15 @@ import warnings
 from msmbuilder import io
 from msmbuilder.utils import uneven_zip
 import logging
-logger = logging.getLogger('msm_analysis')
-
+logger = logging.getLogger(__name__)
 
 # Set this value to true (msm_analysis.DisableErrorChecking=True) to ignore
 # Eigenvector calculation errors.  Useful if you need to process disconnected data.
 DisableErrorChecking = False
-MinimumAllowedNumEig = 5
 
 eig = scipy.linalg.eig
+
+
 def import_sparse_eig():
     """try to import scipy sparse methods correctly, accounting for different
     namespaces in different version"""
@@ -105,16 +105,22 @@ def get_eigenvectors(t_matrix, n_eigs, epsilon=.001, dense_cutoff=50, right=Fals
     check_dimensions(t_matrix)
     n = t_matrix.shape[0]
     if n_eigs > n:
-        raise Exception("You cannot calculate %d Eigenvectors from a %d x %d matrix" % (n_eigs, n, n))
+        logger.warning("You cannot calculate %d Eigenvectors from a %d x %d matrix." % (n_eigs, n, n))
+        n_eigs = n
+        logger.warning("Instead, calculating %d Eigenvectors." % n_eigs)
     if n < dense_cutoff and scipy.sparse.issparse(t_matrix):
         t_matrix = t_matrix.toarray()
+    elif n_eigs >= n - 1  and scipy.sparse.issparse(t_matrix):
+        logger.warning("ARPACK cannot calculate %d Eigenvectors from a %d x %d matrix." % (n_eigs, n, n))
+        n_eigs = n - 2
+        logger.warning("Instead, calculating %d Eigenvectors." % n_eigs)
 
     # if we want the left eigenvectors, take the transpose
     if not right:
         t_matrix = t_matrix.transpose()
 
     if scipy.sparse.issparse(t_matrix):
-        values, vectors = sparse_eigen(t_matrix.tocsr(), max(n_eigs, MinimumAllowedNumEig), which="LR", maxiter=100000)
+        values, vectors = sparse_eigen(t_matrix.tocsr(), n_eigs, which="LR", maxiter=100000)
     else:
         values, vectors = eig(t_matrix)
 
@@ -167,7 +173,6 @@ def get_implied_timescales(assignments_fn, lag_times, n_implied_times=100, slidi
 
     """
     pool = multiprocessing.Pool(processes=n_procs)
-    n = len(lag_times)
 
     # subtle bug possibility; uneven_zip will let strings be iterable, whicj
     # we dont want
@@ -177,14 +182,15 @@ def get_implied_timescales(assignments_fn, lag_times, n_implied_times=100, slidi
     lags = result.get(999999)
 
     # reformat
-    formatedLags = np.zeros((n * n_implied_times, 2))
-    i = 0
-    for arr in lags:
-        formatedLags[i: i + n_implied_times, 0] = np.real(arr[0])
-        formatedLags[i: i + n_implied_times, 1] = np.real(arr[1])
-        i += n_implied_times
+    formatted_lags = []
+    for i, (lag_time_array, implied_timescale_array) in enumerate(lags):
+        for j, lag_time in enumerate(lag_time_array):
+            implied_timescale = implied_timescale_array[j]
+            formatted_lags.append([lag_time, implied_timescale])
 
-    return formatedLags
+    formatted_lags = np.array(formatted_lags)
+
+    return formatted_lags
 
 
 def get_implied_timescales_helper(args):
@@ -221,18 +227,21 @@ def get_implied_timescales_helper(args):
     MSMLib.build_msm
     get_eigenvectors
     """
-    
     assignments_fn, lag_time, n_implied_times, sliding_window, trimming, symmetrize = args
-    
+    logger.info("Calculating implied timescales at lagtime %d" % lag_time)
+
     try:
         assignments = io.loadh(assignments_fn, 'arr_0')
     except KeyError:
         assignments = io.loadh(assignments_fn, 'Data')
-    
+
     try:
         from msmbuilder import MSMLib
-        t_matrix = MSMLib.build_msm(assignments, lag_time, symmetrize,
-                                    sliding_window, trimming)[1]
+
+        counts = MSMLib.get_count_matrix_from_assignments(assignments, lag_time=lag_time,
+                                                          sliding_window=sliding_window)
+        rev_counts, t_matrix, populations, mapping = MSMLib.build_msm(counts, symmetrize, trimming)
+
     except ValueError as e:
         logger.critical(e)
         sys.exit(1)
@@ -241,14 +250,13 @@ def get_implied_timescales_helper(args):
     n_eigenvectors = n_implied_times + 1
     e_values = get_eigenvectors(t_matrix, n_eigenvectors, epsilon=1)[0]
 
+    # Correct for possible change in n_eigenvectors from trimming
+    n_eigenvectors = len(e_values)
+    n_implied_times = n_eigenvectors - 1
+
     # make sure to leave off equilibrium distribution
     lag_times = lag_time * np.ones((n_implied_times))
     imp_times = -lag_times / np.log(e_values[1: n_eigenvectors])
-
-    # save intermediate result in case of failure
-    # res = np.zeros((n_implied_times, 2))
-    # res[:,0] = lag_times
-    # res[:,1] = np.real(imp_times)
 
     return (lag_times, imp_times)
 
@@ -491,7 +499,7 @@ def propagate_model(transition_matrix, n_steps, initial_populations, observable_
     return X, obslist
 
 
-def calc_expectation_timeseries(tprob, observable, init_pop=None, timepoints=10**6, n_modes=100, lagtime=15.0):
+def calc_expectation_timeseries(tprob, observable, init_pop=None, timepoints=10 ** 6, n_modes=100, lagtime=15.0):
     """
     Calculates the expectation value over time <A(t)> for some `observable`
     in an MSM. Does this by eigenvalue decomposition, according to the eq
@@ -541,7 +549,7 @@ def calc_expectation_timeseries(tprob, observable, init_pop=None, timepoints=10*
     np.savetxt('calculated_populations.dat', pi)
     psi_R = np.zeros(psi_L.shape)
     for i in range(n_modes):
-        psi_L[:, i] /= np.sqrt( np.sum( np.square( psi_L[:, i] ) / pi ) )
+        psi_L[:, i] /= np.sqrt(np.sum(np.square(psi_L[:, i]) / pi))
         psi_R[:, i] = psi_L[:, i] / pi
 
     if lagtime:
@@ -566,9 +574,65 @@ def calc_expectation_timeseries(tprob, observable, init_pop=None, timepoints=10*
     return timeseries
 
 
+def msm_acf(tprob, observable, timepoints, num_modes=10):
+    """
+    Calculate an autocorrelation function from an MSM.
+
+    Rapid calculation of the autocorrelation of an MSM is
+    performed via an eigenmode decomposition.
+
+    Parameters
+    ----------
+    tprob : matrix
+        Transition probability matrix
+    observable : ndarray, float
+        Vector representing the observable value for each state
+    timepoints : ndarray, int
+        The timepoints at which to calculate the decay, in units of lag
+        times.
+    num_modes : int (num_modes)
+        The number of eigenmodes to employ. More modes, more accurate,
+        but slower.
+
+    Returns
+    -------
+    acf : ndarray, float
+        The autocorrelation function.
+
+    Notes
+    -----
+    Use statsmodels.tsa.stattools.acf if you want to calculate an ACF from a
+    raw observable such as an RMSD trace.
+
+    See Docs/ACF/acf.pdf for a derivation of this calculation.
+    """
+
+    eigenvalues, eigenvectors = get_eigenvectors(tprob, num_modes + 1)
+    num_modes = len(eigenvalues) - 1
+
+    populations = eigenvectors[:, 0]
+    D = np.diag(populations ** -1.)
+
+    # discard the stationary eigenmode
+    eigenvalues = np.real(eigenvalues[1:])
+    eigenvectors = np.real(eigenvectors[:, 1:])
+    right_eigenvectors = D.dot(eigenvectors)
+
+    eigenvector_normalizer = np.diag(right_eigenvectors.T.dot(eigenvectors))
+    eigenvectors /= eigenvector_normalizer
+
+    S = eigenvectors.T.dot(observable)  # Project observable onto left eigenvectors
+
+    acf = np.array([(eigenvalues ** t).dot(S**2) for t in timepoints])
+
+    acf /= (eigenvalues ** 0.).dot(S**2)  # Divide by the ACF at time zero.
+
+    return acf
+
 # ======================================================== #
 # SOME UTILITY FUNCTIONS FOR CHECKING TRANSITION MATRICES
 # ======================================================== #
+
 
 def flatten(*args):
     """Return a generator for a flattened form of all arguments"""
@@ -668,5 +732,5 @@ def check_dimensions(*args):
         another
     """
 
-    if are_all_dimensions_same(*args)==False:
+    if are_all_dimensions_same(*args) == False:
         raise RuntimeError("All dimensions are not the same")
