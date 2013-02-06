@@ -34,6 +34,7 @@ from msmbuilder.testing import get, eq, load
 
 from msmbuilder.scripts import ConvertDataToHDF
 from msmbuilder.scripts import CreateAtomIndices
+from msmbuilder.scripts import tICA_train
 from msmbuilder.scripts import Cluster
 from msmbuilder.scripts import Assign
 from msmbuilder.scripts import AssignHierarchical
@@ -87,6 +88,34 @@ class test_ConvertDataToHDF(WTempdir):
 
         eq(load(outfn), get('ProjectInfo.yaml'))
 
+
+class test_tICA_train(WTempdir):
+    def test():
+
+        prep_metric = metrics.Dihedral(angles='phi/psi')
+        project = get('ProjectInfo.yaml')
+
+        tICA_train.run(prep_metric, project, delta_time=10, atom_indices=None,
+                       output='tICAtest.h5', min_length=0, stride=1)
+
+        ref_tICA = get('tICA_phipsi_t10.h5')
+    
+        ref_vals = ref_tICA['vals']
+        ref_vecs = ref_tICA['vecs']
+        ref_inds = np.argsort(ref_vals)
+        ref_vals = ref_vals[ref_inds]
+        ref_vecs = ref_vecs[:, ref_inds]
+
+        test_tICA = get('tICAtest.h5')
+
+        test_vals = test_tICA['vals']
+        test_vecs = test_tICA['vecs']
+        test_inds = np.argsort(test_vals)
+        test_vals = test_vals[test_inds]
+        test_vecs = test_vecs[:, test_inds]
+
+        eq(test_vals, ref_vals)
+        eq(test_vecs, test_vals)
 
 def test_CreateAtomIndices():
     indices = CreateAtomIndices.run(get('native.pdb', just_filename=True),
