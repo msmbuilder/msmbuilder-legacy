@@ -195,7 +195,7 @@ could stride a little at the begining, but its not recommended.""")
         die_if_path_exists(generators_fn)
         if args.stride == 1:
             assignments_fn = os.path.join(args.output_dir, 'Assignments.h5') 
-            distances_fn = os.path.join(args.output_dir, 'Assignments.h5.dist')
+            distances_fn = os.path.join(args.output_dir, 'Assignments.h5.distances')
             die_if_path_exists([assignments_fn, distances_fn])
         
     trajs = load_trajectories(args.project, args.stride, atom_indices)
