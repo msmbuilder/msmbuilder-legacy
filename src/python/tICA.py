@@ -52,7 +52,8 @@ class CovarianceMatrix(object):
             calculated
         procs: int, optional
             number of processors to use when training.
-        normalize: bool, optional
+            CURRENTLY NOT IMPLEMENTED
+        calc_cov_mat: bool, optional
             if lag > 0, then will also calculate the covariance matrix
         size: int, optional
             the size is the number of coordinates for the vector
