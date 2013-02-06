@@ -101,9 +101,7 @@ class test_Cluster_kcenters(WTempdir):
     def test(self):
         args, metric = Cluster.parser.parse_args([
             '-p', get('ProjectInfo.yaml', just_filename=True),
-            '-a', pjoin(self.td, 'Assignments.h5'),
-            '-d', pjoin(self.td, 'Assignments.h5.distances'),
-            '-g', pjoin(self.td, 'Gens.lh5'),
+            '-o', self.td,
             'rmsd', '-a', get('AtomIndices.dat', just_filename=True),
             'kcenters', '-k', '100'], print_banner=False)
         Cluster.main(args, metric)
@@ -121,9 +119,9 @@ class test_Cluster_hierarchical(WTempdir):
         args, metric = Cluster.parser.parse_args([
             '-p', get('ProjectInfo.yaml', just_filename=True),
             '-s', '10',
-            '-g', pjoin(self.td, 'Gens.lh5'),
+            '-o', self.td,
             'rmsd', '-a', get('AtomIndices.dat', just_filename=True),
-            'hierarchical', '-o', pjoin(self.td, 'ZMatrix.h5')],
+            'hierarchical'],
             print_banner=False)
         Cluster.main(args, metric)
 
