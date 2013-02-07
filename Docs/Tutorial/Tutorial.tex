@@ -10,7 +10,7 @@
 {MSMBuilder 2.5 Tutorial
 }
 
-\author{Kyle Beauchamp \and TJ Lane \and Greg Bowman \and  Robert McGibbon \and Vijay Pande}
+\author{Kyle Beauchamp \and TJ Lane \and Greg Bowman \and  Robert McGibbon \and Christian Schwantes \and Vijay Pande}
 
 \begin{document}
 
@@ -108,11 +108,8 @@ Finally, in this tutorial we assume that you have installed pymol for viewing co
 
 \subsubsection{Move to tutorial directory, prepare trajectories}
 \begin{verbatim}
-cd $PREFIX/share/msmbuilder_tutorial 
-tar -xvf XTC.tar
+cd msmbuilder_tutorial 
 \end{verbatim}
-
-Here, $PREFIX$ is the base directory of your msmbuilder installation.
 
 \subsubsection{Create an MSMBuilder Project}
 \begin{verbatim}
@@ -252,7 +249,7 @@ Because macrostate models typically have a handful of states, it is easy for hum
 is to save randomly selected conformations from each state, then view them in Pymol (or VMD):
 
 \begin{verbatim}
-SavePDBs.py -s -1 -a Macro4/MacroAssignments.h5  -c 
+SaveStructures.py -s -1 -f pdb -S sep -a Macro4/MacroAssignments.h5
 pymol PDBs/State0-0.pdb PDBs/State1-0.pdb PDBs/State2-0.pdb PDBs/State3-0.pdb
 \end{verbatim}
 
