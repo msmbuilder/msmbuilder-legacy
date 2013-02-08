@@ -21,6 +21,7 @@ install:
     - sudo apt-get install -qq python-matplotlib
     - sudo apt-get install -qq swig
     - sudo apt-get install -qq python-yaml
+    - sudo apt-get install python-pandas
     - sudo easy_install patsy
     - sudo easy_install fastcluster
     - sudo easy_install statsmodels
