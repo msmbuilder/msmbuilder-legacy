@@ -3,7 +3,7 @@
 # which itself was adapted from M. Brett's .yaml file for nipy: 
 # https://github.com/nipy/nipy/blob/master/.travis.yml
 #
-# We pretend to be erlang because we can't use the python support in
+# We pretend to be C because we can't use the python support in
 # travis-ci; it uses virtualenvs, they do not have numpy, scipy, matplotlib,
 # and it is impractical to build them
 language: c
@@ -22,7 +22,7 @@ install:
     - sudo apt-get install -qq swig
     - sudo apt-get install -qq python-yaml
 
-    - sudo add-apt-repository ppa:pythonxy/pythonxy-devel && sudo apt-get update
+    - sudo add-apt-repository --yes ppa:pythonxy/pythonxy-devel && sudo apt-get update
     - sudo apt-get install python-pandas
     - sudo apt-get install python-statsmodels
     - sudo easy_install fastcluster
