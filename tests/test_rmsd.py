@@ -7,8 +7,6 @@ from unittest import skipIf
 from msmbuilder import metrics
 from common import load_traj
 
-
-@skipIf(os.environ.get("TRAVIS", None) == 'true', "This SSE3 C code doesn't run correctly on travis-ci.org?")
 class TestRMSD():
     "Test the msmbuilder.metrics.RMSD module"
     
@@ -31,14 +29,15 @@ class TestRMSD():
             assert isinstance(ptraj, metrics.RMSD.TheoData)
             ptraj.CheckCentered()
     
-    
+    @skipIf(os.environ.get("TRAVIS", None) == 'true', "This SSE3 C code doesn't run correctly on travis-ci.org?")    
     def test_one_to_all(self):
         for rmsd in [metrics.RMSD(), metrics.RMSD(omp_parallel=False)]:
             ptraj = rmsd.prepare_trajectory(self.traj)
             d0 = rmsd.one_to_all(ptraj, ptraj, 0)
         
             npt.assert_array_almost_equal(d0, self.target)
-    
+
+    @skipIf(os.environ.get("TRAVIS", None) == 'true', "This SSE3 C code doesn't run correctly on travis-ci.org?")
     def test_one_to_many(self):
         for rmsd in [metrics.RMSD(), metrics.RMSD(omp_parallel=False)]:
             ptraj = rmsd.prepare_trajectory(self.traj)
@@ -46,6 +45,7 @@ class TestRMSD():
                 di = rmsd.one_to_many(ptraj, ptraj, 0, [i])
                 npt.assert_approx_equal(self.target[i], di)
     
+    @skipIf(os.environ.get("TRAVIS", None) == 'true', "This SSE3 C code doesn't run correctly on travis-ci.org?")
     def test_all_pairwise(self):
         sys.stderr = open('/dev/null')
         for rmsd in [metrics.RMSD(), metrics.RMSD(omp_parallel=False)]:
