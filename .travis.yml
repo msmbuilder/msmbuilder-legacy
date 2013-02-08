@@ -10,19 +10,19 @@ language: c
 install:
     - sudo apt-get update
     - sudo apt-get install -qq libhdf5-serial-dev
-    - sudo apt-get install python-dev
-    - sudo apt-get install python-numpy
-    - sudo apt-get install python-scipy
-    - sudo apt-get install python-setuptools
-    - sudo apt-get install python-nose
-    - sudo apt-get install cython
-    - sudo apt-get install python-numexpr
-    - sudo apt-get install python-tables
-    - sudo apt-get install python-matplotlib
-    - sudo apt-get install swig
-    - sudo apt-get install python-yaml
-    - sudo easy_install patsy --use-mirrors
-    - sudo easy_install fastcluster --use-mirrors
+    - sudo apt-get install -qq python-dev
+    - sudo apt-get install -qq python-numpy
+    - sudo apt-get install -qq python-scipy
+    - sudo apt-get install -qq python-setuptools
+    - sudo apt-get install -qq python-nose
+    - sudo apt-get install -qq cython
+    - sudo apt-get install -qq python-numexpr
+    - sudo apt-get install -qq python-tables
+    - sudo apt-get install -qq python-matplotlib
+    - sudo apt-get install -qq swig
+    - sudo apt-get install -qq python-yaml
+    - sudo easy_install patsy
+    - sudo easy_install fastcluster
 script:
     - sudo python setup.py install
     - nosetests -vv
