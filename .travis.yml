@@ -21,7 +21,9 @@ install:
     - sudo apt-get install -qq python-matplotlib
     - sudo apt-get install -qq swig
     - sudo apt-get install -qq python-yaml
-
+    
+# install later versions of pandas and statsmodels from the pythonXY PPA
+# which is recommended by https://github.com/pydata/pandas/blob/master/doc/source/install.rst
     - sudo add-apt-repository --yes ppa:pythonxy/pythonxy-devel && sudo apt-get update
     - sudo apt-get install python-pandas
     - sudo apt-get install python-statsmodels
