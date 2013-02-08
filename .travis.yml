@@ -23,6 +23,7 @@ install:
     - sudo apt-get install -qq python-yaml
     - sudo easy_install patsy
     - sudo easy_install fastcluster
+    - sudo easy_install statsmodels
 script:
     - sudo python setup.py install
     - nosetests -vv
