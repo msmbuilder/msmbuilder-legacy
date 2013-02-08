@@ -66,7 +66,7 @@ class WTempdir(object):
     def teardown(self):
         shutil.rmtree(self.td)
 
-
+@skipIf(os.environ.get('TRAVIS', None) == 'true', "This test uses RMSD, which doesn't work on travis-ci?")
 class test_ConvertDataToHDF(WTempdir):
     def test(self):
         # extract xtcs to a temp dir
