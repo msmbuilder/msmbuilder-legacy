@@ -27,6 +27,7 @@ import tempfile
 import shutil
 import os
 import tarfile
+from unittest import skipIf
 
 from msmbuilder import MSMLib
 from msmbuilder import Trajectory
@@ -65,7 +66,7 @@ class WTempdir(object):
     def teardown(self):
         shutil.rmtree(self.td)
 
-
+@skipIf(os.environ.get('TRAVIS', None) == 'true', "This test uses RMSD, which doesn't work on travis-ci?")
 class test_ConvertDataToHDF(WTempdir):
     def test(self):
         # extract xtcs to a temp dir
@@ -94,6 +95,7 @@ def test_CreateAtomIndices():
     eq(indices, get('AtomIndices.dat'))
 
 
+@skipIf(os.environ.get('TRAVIS', None) == 'true', "This test uses RMSD, which doesn't work on travis-ci?")
 class test_Cluster_kcenters(WTempdir):
     # this one tests kcenters
     def test(self):
@@ -113,7 +115,7 @@ class test_Cluster_kcenters(WTempdir):
         eq(load(pjoin(self.td, 'Gens.lh5')),
            get('Gens.lh5'))
 
-
+@skipIf(os.environ.get('TRAVIS', None) == 'true', "This test uses RMSD, which doesn't work on travis-ci?")
 class test_Cluster_hierarchical(WTempdir):
     def test(self):
         args, metric = Cluster.parser.parse_args([
@@ -128,6 +130,7 @@ class test_Cluster_hierarchical(WTempdir):
         eq(load(pjoin(self.td, 'ZMatrix.h5')), get('ZMatrix.h5'))
 
 
+@skipIf(os.environ.get('TRAVIS', None) == 'true', "This test uses RMSD, which doesn't work on travis-ci?")
 class test_Assign(WTempdir):
     def test(self):
         args, metric = Assign.parser.parse_args([
