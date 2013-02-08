@@ -42,7 +42,7 @@ parser.add_argument('output_dir', help='''Output directory to save clustering da
     This will include:
     (1) Assignments.h5 (If clustering is hierarchical or stride=1):
         Contains the state assignments
-    (2) Assignments.h5.dist (If clustering is hierarchical or stride=1):
+    (2) Assignments.h5.distances (If clustering is hierarchical or stride=1):
         Contains the distance to the generator according to the distance
         metric that was employed
     (3) Gens.lh5: 
