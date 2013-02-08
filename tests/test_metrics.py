@@ -223,7 +223,7 @@ class test_cdist():
         testing = fast_cdist(self.Xb1, self.Xb2, metric='jaccard')
         eq(reference, testing)
     
-    @expected_failure
+    @skip('canberra is not working')
     def test_canberra(self):
         reference = cdist(self.Xd1, self.Xd2, metric='canberra')
         testing = fast_cdist(self.Xd1, self.Xd2, metric='canberra')
