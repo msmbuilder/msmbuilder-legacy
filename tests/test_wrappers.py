@@ -95,6 +95,7 @@ def test_CreateAtomIndices():
     eq(indices, get('AtomIndices.dat'))
 
 
+@skipIf(os.environ.get('TRAVIS', None) == 'true', "This test uses RMSD, which doesn't work on travis-ci?")
 class test_Cluster_kcenters(WTempdir):
     # this one tests kcenters
     def test(self):
@@ -114,7 +115,7 @@ class test_Cluster_kcenters(WTempdir):
         eq(load(pjoin(self.td, 'Gens.lh5')),
            get('Gens.lh5'))
 
-@skipIf(os.environ.get('TRAVIS', None) == 'true', "????")
+@skipIf(os.environ.get('TRAVIS', None) == 'true', "This test uses RMSD, which doesn't work on travis-ci?")
 class test_Cluster_hierarchical(WTempdir):
     def test(self):
         args, metric = Cluster.parser.parse_args([
