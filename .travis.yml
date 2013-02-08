@@ -1,22 +1,28 @@
-language: python
-python:
-  - 2.7
-virtualenv:
-  system_site_packages: true
-before_install:
-  - pip install nose --use-mirrors -qq
-  - sudo apt-get install -qq libhdf5-serial-dev
-  - pip install numexpr --use-mirrors -qq
-  - pip install cython --use-mirrors -qq
-  - pip install tables --use-mirrors -qq
-  - sudo apt-get install -qq python-numpy python-scipy python-matplotlib
-  - sudo apt-get install -qq swig
-  - pip install pyyaml --use-mirrors -qq
-  - pip install patsy --use-mirrors -qq
-  - pip install fastcluster --use-mirrors -qq
-  - pip install ./ -qq
+# Adapted from statsmodel's .yaml file
+# https://github.com/statsmodels/statsmodels/blob/master/.travis.yml
+# which itself was adapted from M. Brett's .yaml file for nipy: 
+# https://github.com/nipy/nipy/blob/master/.travis.yml
+#
+# We pretend to be erlang because we can't use the python support in
+# travis-ci; it uses virtualenvs, they do not have numpy, scipy, matplotlib,
+# and it is impractical to build them
+language: erlang
 install:
-  - python setup.py install
+    - sudo apt-get update
+    - sudo apt-get install -qq libhdf5-serial-dev
+    - sudo apt-get install python-dev
+    - sudo apt-get install python-numpy
+    - sudo apt-get install python-scipy
+    - sudo apt-get install python-setuptools
+    - sudo apt-get install python-nose
+    - sudo apt-get install cython
+    - sudo apt-get install python-numexpr
+    - sudo apt-get install python-tables
+    - sudo apt-get install python-matplotlib
+    - sudo apt-get install swig
+    - sudo apt-get install python-yaml
+    - sudo easy_install patsy --use-mirrors
+    - sudo easy_install fastcluster --use-mirrors
 script:
-  - nosetests -vv
-
+    - sudo python setup.py install
+    - nosetests -vv
