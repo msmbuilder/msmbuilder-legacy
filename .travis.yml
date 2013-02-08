@@ -21,10 +21,11 @@ install:
     - sudo apt-get install -qq python-matplotlib
     - sudo apt-get install -qq swig
     - sudo apt-get install -qq python-yaml
-    - sudo easy_install patsy
-    - sudo easy_install -U pandas
+
+    - sudo add-apt-repository ppa:pythonxy/pythonxy-devel && sudo apt-get update
+    - sudo apt-get install python-pandas
+    - sudo apt-get install python-statsmodels
     - sudo easy_install fastcluster
-    - sudo easy_install statsmodels
 script:
     - sudo python setup.py install
     - nosetests -vv
