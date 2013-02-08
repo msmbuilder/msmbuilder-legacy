@@ -27,6 +27,7 @@ import tempfile
 import shutil
 import os
 import tarfile
+from unittest import skipIf
 
 from msmbuilder import MSMLib
 from msmbuilder import Trajectory
@@ -128,6 +129,7 @@ class test_Cluster_hierarchical(WTempdir):
         eq(load(pjoin(self.td, 'ZMatrix.h5')), get('ZMatrix.h5'))
 
 
+@skipIf(os.environ.get('TRAVIS', None) == 'true', "This test uses RMSD, which doesn't work on travis-ci?")
 class test_Assign(WTempdir):
     def test(self):
         args, metric = Assign.parser.parse_args([
