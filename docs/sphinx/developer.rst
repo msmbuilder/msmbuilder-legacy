@@ -76,7 +76,7 @@ repository <http://github.com/SimTk/msmbuilder/>`__ on GitHub:
 
         $ git push -u origin my-feature
 
-Finally, go to the web page of the your fork of the msmbuilder repo,
+Finally, go to the web page of your fork of the msmbuilder repo,
 and click 'Pull request' to send your changes to the maintainers for review.
 request. This will send an email to the maintainers.
 
