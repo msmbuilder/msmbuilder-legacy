@@ -1,4 +1,3 @@
-from scipy import signal
 import numpy as np
 import re
 import copy_reg
@@ -7,17 +6,7 @@ import warnings
 import functools
 import collections
 from itertools import ifilterfalse
-from heapq import nsmallest
-from operator import itemgetter
 warnings.simplefilter('always')
-
-def fft_acf(data):
-    '''Return the autocorrelation of a 1D array using the fft
-    Note: the result is normalized'''
-    data = data - np.mean(data)
-    result = signal.fftconvolve(data, data[::-1])
-    result = result[result.size / 2:] 
-    return result / result[0]
 
 def uneven_zip(*args):
     '''Zip the arguments together like the builtin function, except that
