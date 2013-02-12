@@ -1,29 +1,6 @@
 Container Classes: :class:`Serializer`, :class:`Conformation`, :class:`Trajectory`
 ===================================================================================
 
-Serializer
-----------
-.. currentmodule:: msmbuilder.Serializer
-
-.. autoclass:: Serializer
-  :show-inheritance:
-  
-  .. autosummary::
-      :toctree: generated/
-
-      Serializer.__init__
-      Serializer.save_data
-      Serializer.load_data
-      Serializer.check_if_file_exists
-      Serializer.load_csr_matrix
-      Serializer.load_from_hdf
-      Serializer.save_to_hdf
-      Serializer.save_e_array
-      Serializer.save_c_array
-      Serializer.save_csr_matrix
-      Serializer.load_csr_matrix
-
-
 Trajectory
 ----------
 .. currentmodule:: msmbuilder.Trajectory
