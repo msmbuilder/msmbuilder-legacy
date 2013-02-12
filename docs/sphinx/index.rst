@@ -25,7 +25,6 @@ Contents:
    utils
    project
    fahproject
-
    developer
    
 Indices and tables
