@@ -40,7 +40,7 @@ of the License, or (at your option) any later version.
 --------------------------------------------------------------------------------
 
 Please cite:
-GR Bowman. Improved coarse-graining of Markov state models via explicit consideration of statistical uncertainty. J Chem Phys 2012.
+GR Bowman. Improved coarse-graining of Markov state models via explicit consideration of statistical uncertainty. J Chem Phys 2012;137;134111.
 
 Currently available as arXiv:1201.3867 2012.
 
@@ -380,7 +380,7 @@ Description output (put into directory specified with outDir):
 , formatter_class=argparse.RawDescriptionHelpFormatter)
     add_argument(parser, '-c', dest='tCountFn', help='Path to transition count matrix file (sparse and dense formats accepted).', required=True)
     add_argument(parser, '-n', dest='nMacro', help='Minimum number of macrostates to make.', default=2, type=int)
-    add_argument(parser, '-p', dest='nProc', help='Number of processors to use (if None, the code will use all the available processors on your machine).', default=None, type=int, required=False)
+    add_argument(parser, '-p', dest='nProc', help='Number of processors to use.', default=1, type=int, required=False)
     add_argument(parser, '-f', dest='forceDense', help='If true, will force transition matrix into a dense format. Using the dense format is faster if you have enough memory.', default=False, type=bool, required=False, nargs='?', const=True)
     add_argument(parser, '-o', dest='outDir', help='Path to save output to.', default="Output_BACE", required=False)
     args = parser.parse_args()
