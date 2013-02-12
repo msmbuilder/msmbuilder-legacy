@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=pdflatex 2012.8.28)  7 FEB 2013 13:20
+This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=pdflatex 2012.8.28)  12 FEB 2013 13:43
 entering extended mode
  %&-line parsing enabled.
 **Tutorial.tex
@@ -620,10 +620,10 @@ LaTeX Font Warning: Some font shapes were not available, defaults substituted.
 
  ) 
 Here is how much of TeX's memory you used:
- 4839 strings out of 495061
- 69029 string characters out of 1182621
+ 4841 strings out of 495061
+ 69074 string characters out of 1182621
  133367 words of memory out of 3000000
- 7815 multiletter control sequences out of 15000+50000
+ 7816 multiletter control sequences out of 15000+50000
  28728 words of font info for 75 fonts, out of 3000000 for 9000
  28 hyphenation exceptions out of 8191
  38i,6n,36p,522b,411s stack positions out of 5000i,500n,10000p,200000b,50000s
@@ -634,9 +634,9 @@ msfonts/cm/cmtt12.pfb></usr/share/texmf-texlive/fonts/type1/public/mathpazo/fpl
 mri.pfb></usr/share/texmf-texlive/fonts/type1/urw/palatino/uplb8a.pfb></usr/sha
 re/texmf-texlive/fonts/type1/urw/palatino/uplr8a.pfb></usr/share/texmf-texlive/
 fonts/type1/urw/palatino/uplri8a.pfb>
-Output written on Tutorial.pdf (20 pages, 1296896 bytes).
+Output written on Tutorial.pdf (20 pages, 1297425 bytes).
 PDF statistics:
- 464 PDF objects out of 1000 (max. 8388607)
- 103 named destinations out of 1000 (max. 500000)
+ 466 PDF objects out of 1000 (max. 8388607)
+ 104 named destinations out of 1000 (max. 500000)
  309 words of extra memory for PDF output out of 10000 (max. 10000000)
 

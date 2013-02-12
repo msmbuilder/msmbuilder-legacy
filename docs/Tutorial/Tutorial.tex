@@ -7,7 +7,7 @@
 \usepackage{graphicx}
 \usepackage{subfigure}
 \title
-{MSMBuilder 2.5 Tutorial
+{MSMBuilder 2.6 Tutorial
 }
 
 \author{Kyle Beauchamp \and TJ Lane \and Greg Bowman \and  Robert McGibbon \and Christian Schwantes \and Vijay Pande}
@@ -283,10 +283,10 @@ Cluster your data using your choice of clustering algorithm and distance metric.
 \begin{enumerate}
  \item RMSD + k-centers clustering \cite{Bowman2009c, Bowman2009a} ( ``Cluster.py  rmsd kcenters'')
  \item RMSD + hybrid k-centers / k-medoids clustering \cite{msmb2} (``Cluster.py  rmsd hybrid'')
- \item RMSD + Ward clustering (``Cluster.py  rmsd hierarchical'')
+ \item RMSD + Ward clustering \cite{beauchamp2012simple} (``Cluster.py  rmsd hierarchical'')
 \end{enumerate}
 
-We recommend Ward clustering if it is computationally feasible; otherwise, use the hybrid clustering.  Ward clustering calculations an $O(N^2)$ distance matrix, which may be prohibitive for datasets with many conformations.  
+Note that Ward clustering calculates an $O(N^2)$ distance matrix, which may be prohibitive for datasets with many conformations.  
 
 Most of our experience has been in applying MSMBuilder to protein folding.  Thus, non-folding applications may require a slightly different protocol.
 
