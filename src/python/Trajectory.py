@@ -140,11 +140,11 @@ class Trajectory(ConformationBaseClass):
             raise TypeError('You can only add two Trajectory instances')
         Sum = copy.deepcopy(self)
         # Simply copy the XYZList in here if the Trajectory is Empty.
-        if 'XYZList' not in self and 'XYZList' not in other:
+        if self['XYZList'] is None and other['XYZList'] is None:
             pass
-        elif 'XYZList' not in self:
+        elif self['XYZList'] is None:
             Sum['XYZList'] = copy.deepcopy(other['XYZList'])
-        elif 'XYZList' not in other:
+        elif other['XYZList'] is None:
             Sum['XYZList'] = copy.deepcopy(self['XYZList'])
         else:
             if not self['XYZList'].shape[1] == other['XYZList'].shape[1]:
@@ -157,7 +157,7 @@ class Trajectory(ConformationBaseClass):
         if not isinstance(other, Trajectory):
             raise TypeError('You can only add two Trajectory instances')
         # Simply copy the XYZList in here if the Trajectory is Empty.
-        if 'XYZList' not in self:
+        if self['XYZList'] is None:
             self['XYZList'] = copy.deepcopy(other['XYZList'])
         else:
             # Check number of atoms.
