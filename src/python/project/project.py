@@ -218,6 +218,55 @@ class Project(object):
 
         return filename_or_file
 
+    def get_random_confs_from_states(self, assignments, states, num_confs):
+        """
+        Get random conformations from a particular state in assignments.
+
+        Parameters:
+        ----------
+        assignments : np.ndarray
+            2D array storing the assignments for a particular MSM
+        states : int or 1d array_like
+            state index (or indices) to load random conformations from
+        num_confs : int or 1d array_like
+            number of conformations to get from state. The shape should 
+            be the same as the states argument
+
+        Returns
+        -------
+        random_confs : msmbuilder.Trajectory
+            Trajectory object containing random conformations from the 
+            specified state
+        """
+
+        if isinstance(states, int):
+            states = np.array([states])
+
+        if isinstance(num_confs, int):
+            num_confs = np.array([num_confs])
+
+        # make sure each is a flattened array
+        states = np.array(states).flatten()
+        num_confs = np.array(num_confs).flatten()
+
+        if len(num_confs) != len(states):
+            raise Exception("num_confs must be the same size as num_states")
+
+        inv_assignments = MSMLib.invert_assignments(assignments)
+        state_counts = np.bincount(assignments[np.where(assignments!=-1)])
+
+        random_confs = self.get_empty_traj()
+
+        for n, state in zip(num_confs, states):
+            logger.debug("Working on %s", state)
+            np.random.randint(0, state_counts[state], size=n)
+
+            traj_inds, frame_inds = inv_assignments[s]
+            random_confs += self.load_frames(traj_inds, frame_inds)
+
+        return random_confs
+        
+
     def load_traj(self, trj_index, stride=1, atom_indices=None):
         "Load the a trajectory from disk"
         filename = self.traj_filename(trj_index)
