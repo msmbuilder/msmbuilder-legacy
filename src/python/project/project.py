@@ -21,6 +21,7 @@ import numpy as np
 import yaml
 from msmbuilder import Trajectory
 from msmbuilder import io
+from msmbuilder import MSMLib
 import logging
 from msmbuilder.utils import keynat
 logger = logging.getLogger(__name__)
@@ -241,12 +242,12 @@ class Project(object):
 
         if isinstance(states, int):
             states = np.array([states])
-
-        if isinstance(num_confs, int):
-            num_confs = np.array([num_confs])
-
-        # make sure each is a flattened array
         states = np.array(states).flatten()
+
+        # if num_confs is just a number or a length 1 array, map it to
+        # eachs tate given in states
+        if isinstance(num_confs, int) or len(num_confs) == 1:
+            num_confs = np.array([num_confs] * len(states)) 
         num_confs = np.array(num_confs).flatten()
 
         if len(num_confs) != len(states):
@@ -255,14 +256,15 @@ class Project(object):
         inv_assignments = MSMLib.invert_assignments(assignments)
         state_counts = np.bincount(assignments[np.where(assignments!=-1)])
 
-        random_confs = self.get_empty_traj()
+        random_confs = self.empty_traj()
 
         for n, state in zip(num_confs, states):
             logger.debug("Working on %s", state)
-            np.random.randint(0, state_counts[state], size=n)
+            random_conf_inds = np.random.randint(0, state_counts[state], size=n)
 
-            traj_inds, frame_inds = inv_assignments[s]
-            random_confs += self.load_frames(traj_inds, frame_inds)
+            traj_inds, frame_inds = inv_assignments[state]
+            random_confs += self.load_frame(traj_inds[random_conf_inds], 
+                                            frame_inds[random_conf_inds])
 
         return random_confs
         
