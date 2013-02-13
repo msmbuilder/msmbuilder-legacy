@@ -355,7 +355,8 @@ def invert_assignments(assignments):
     """
 
     inverse_mapping = defaultdict(lambda: ([], []))
-    non_neg_inds = np.where(assignments != -1)  # we do not care about -1's
+    non_neg_inds = np.array(np.where(assignments != -1)).T  
+    # we do not care about -1's
 
     for (i, j) in non_neg_inds:
         inverse_mapping[assignments[i, j]][0].append(i)
