@@ -220,7 +220,7 @@ class Project(object):
         return filename_or_file
 
     def get_random_confs_from_states(self, assignments, states, num_confs, 
-        replacement=True):
+        replacement=True, random=np.random):
         """
         Get random conformations from a particular state (or states) in assignments.
 
@@ -235,22 +235,29 @@ class Project(object):
             be the same as the states argument
         replacement : bool, optional
             whether to sample with replacement or not (default: True)
+        random : np.random.RandomState, optional
+            use a particular RandomState for generating the random samples.
+            this is only useful if you want to get the same samples, i.e.
+            when debugging something.
 
         Returns
         -------
-        random_confs : msmbuilder.Trajectory
+        random_confs : msmbuilder.Trajectory or list of
+                       msmbuilder.Trajectory objects
+            If states is a list, then the output is a list, otherwise a 
+            single trajectory is returned
             Trajectory object containing random conformations from the 
             specified state
         """
 
-        def randomize(state_counts, size=1, replacement=True):
+        def randomize(state_counts, size=1, replacement=True, random=np.random):
             if replacement:
-                result = np.random.randint(0, state_counts, size=size)
+                result = random.randint(0, state_counts, size=size)
             else:
-                if size > state_counts:
+                if size >= state_counts:
                     result = np.arange(state_counts)
                 else:
-                    result = np.random.permutation(np.arange(state_counts))[:size]
+                    result = random.permutation(np.arange(state_counts))[:size]
 
             return result
             
@@ -276,16 +283,18 @@ class Project(object):
         inv_assignments = MSMLib.invert_assignments(assignments)
         state_counts = np.bincount(assignments[np.where(assignments!=-1)])
 
-        random_confs = self.empty_traj()
+        random_confs = []
 
         for n, state in zip(num_confs, states):
             logger.debug("Working on %s", state)
-            random_conf_inds = randomize(state_counts[state], size=n)
+            random_conf_inds = randomize(state_counts[state], size=n,
+                                         replacement=replacement, 
+                                         random=random)
 
             traj_inds, frame_inds = inv_assignments[state]
-            random_confs += self.load_frame(traj_inds[random_conf_inds], 
-                                            frame_inds[random_conf_inds])
-
+            random_confs.append(self.load_frame(traj_inds[random_conf_inds], 
+                                                frame_inds[random_conf_inds]))
+        
         return random_confs
         
 
