@@ -222,7 +222,7 @@ class Project(object):
     def get_random_confs_from_states(self, assignments, states, num_confs, 
         replacement=True):
         """
-        Get random conformations from a particular state in assignments.
+        Get random conformations from a particular state (or states) in assignments.
 
         Parameters:
         ----------
@@ -259,11 +259,16 @@ class Project(object):
             states = np.array([states])
         states = np.array(states).flatten()
 
-        # if num_confs is just a number or a length 1 array, map it to
-        # eachs tate given in states
-        if isinstance(num_confs, int) or len(num_confs) == 1:
+        # if num_confs is just a number, map it to
+        # each state given in states
+        if isinstance(num_confs, int):
             num_confs = np.array([num_confs] * len(states)) 
         num_confs = np.array(num_confs).flatten()
+
+        # if num_confs is length-1, then map that value to each
+        # state in states
+        if len(num_confs) == 1:
+            num_confs = np.array(list(num_confs) * len(states))
 
         if len(num_confs) != len(states):
             raise Exception("num_confs must be the same size as num_states")
