@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=pdflatex 2012.8.28)  12 FEB 2013 13:43
+This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=pdflatex 2012.8.28)  14 FEB 2013 10:50
 entering extended mode
  %&-line parsing enabled.
 **Tutorial.tex
@@ -518,7 +518,7 @@ Overfull \hbox (54.60022pt too wide) in paragraph at lines 136--136
 mescales.dat[] 
  []
 
-<figures/microstate_timescales.pdf, id=187, 587.19376pt x 442.65375pt>
+<figures/microstate_timescales.pdf, id=188, 587.19376pt x 442.65375pt>
 File: figures/microstate_timescales.pdf Graphic file (type pdf)
 
 <use figures/microstate_timescales.pdf> [6]
@@ -545,10 +545,10 @@ Overfull \hbox (73.12523pt too wide) in paragraph at lines 191--191
 acro4/ -A PCCA+[] 
  []
 
-<figures/Macro4.pdf, id=231, 578.16pt x 433.62pt>
+<figures/Macro4.pdf, id=232, 578.16pt x 433.62pt>
 File: figures/Macro4.pdf Graphic file (type pdf)
  <use figures/Macro4.pdf>
-<figures/Macro5.pdf, id=233, 578.16pt x 433.62pt>
+<figures/Macro5.pdf, id=234, 578.16pt x 433.62pt>
 File: figures/Macro5.pdf Graphic file (type pdf)
  <use figures/Macro5.pdf>
 [8] [9 <./figures/Macro4.pdf> <./figures/Macro5.pdf>]
@@ -634,7 +634,7 @@ msfonts/cm/cmtt12.pfb></usr/share/texmf-texlive/fonts/type1/public/mathpazo/fpl
 mri.pfb></usr/share/texmf-texlive/fonts/type1/urw/palatino/uplb8a.pfb></usr/sha
 re/texmf-texlive/fonts/type1/urw/palatino/uplr8a.pfb></usr/share/texmf-texlive/
 fonts/type1/urw/palatino/uplri8a.pfb>
-Output written on Tutorial.pdf (20 pages, 1297425 bytes).
+Output written on Tutorial.pdf (20 pages, 1297554 bytes).
 PDF statistics:
  466 PDF objects out of 1000 (max. 8388607)
  104 named destinations out of 1000 (max. 500000)
