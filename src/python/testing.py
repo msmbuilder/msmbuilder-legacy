@@ -101,9 +101,9 @@ def eq(o1, o2, decimal=6):
     assert (type(o1) is type(o2)), 'o1 and o2 not the same type: %s %s' % (type(o1), type(o2))
 
     if isinstance(o1, dict):
-        assert_dict_equal(o1, o1, decimal)
+        assert_dict_equal(o1, o2, decimal)
     elif isspmatrix(o1):
-        assert_spase_matrix_equal(o1, o1, decimal)
+        assert_spase_matrix_equal(o1, o2, decimal)
     elif isinstance(o1, np.ndarray):
         if o1.dtype.kind == 'f' or o2.dtype.kind == 'f':
             # compare floats for almost equality
