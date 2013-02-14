@@ -10,55 +10,6 @@ logger = logging.getLogger('msmbuilder.scripts.SaveStructures')
 DEBUG = True
 
 
-def run(project, assignments, states, n_per_state, random=None, replacement=True):
-    """Extract random conformations from states
-
-    Parameters
-    ----------
-    project : msmbuilder.project
-    assignments : np.ndarray, shape=[n_trajs, n_confs], dtype=int
-    states : array_like
-        The indices of the states to pull from
-    n_per_state : int
-        Number of conformations to extract per state
-    random : np.random.RandomState, optional
-        Source of randomness
-
-    Returns
-    -------
-    confs : [msmbuilder.Trajectory]
-        List of trajectories, each of length n_per_state. confs[i][j] is
-        the `j`th conformation sampled from state `states[i]`.
-    """
-
-    if random is None:
-        random = np.random
-
-    results = []
-    # get a mapping from microstate -> trj/frame
-    inv = MSMLib.invert_assignments(assignments)
-    for s in states:
-        trajs, frames = inv[s]
-        if len(trajs) != len(frames):
-            raise RuntimeError('inverse assignments corrupted?')
-
-        if replacement:
-            if len(trajs) < n_per_state:
-                logger.error("Asked for %d confs per state, but state %d only has %d" % (n_per_state, s, len(trajs)))
-            # indices of the confs to select
-            r = random.randint(len(trajs), size=n_per_state)
-        else:
-            if len(trajs) < n_per_state:
-                raise ValueError("Asked for %d confs per state, but state %d only has %d" % (n_per_state, s, len(trajs)))
-            # draw n_per_state random numbers between `0` and `len(trajs)` without replacement
-            r = random.permutation(len(trajs))[:n_per_state]
-
-
-        results.append(project.load_frame(trajs[r], frames[r]))
-
-    return results
-
-
 def save(confs_by_state, states, style, format, outdir):
     "Save the results to disk"
 
@@ -159,9 +110,9 @@ conformations), or in the same file.
 
 
     # extract the conformations using np.random for the randomness
-    confs_by_state = run(project=project, assignments=assignments,
-        states=states, n_per_state=args.conformations_per_state,
-        random=np.random, replacement=args.replacement)
+    confs_by_state = project.get_random_confs_from_states(assignments,
+        states=states, num_confs=args.conformations_per_state,
+        replacement=args.replacement)
 
     # save the conformations to disk, in the requested style
     save(confs_by_state=confs_by_state, states=states, style=args.style,

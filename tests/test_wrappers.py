@@ -248,13 +248,14 @@ class test_PCCA(WTempdir):
 
 class test_SaveStructures(WTempdir):
     def test(self):
-        from msmbuilder.scripts.SaveStructures import run, save
+        from msmbuilder.scripts.SaveStructures import save
 
         project = get('ProjectInfo.yaml')
         assignments = get('Assignments.h5')['arr_0']
         which_states = [0, 1, 2]
-        list_of_trajs = run(project, assignments, which_states, n_per_state=2,
-            random=np.random.RandomState(42), replacement=True)
+        list_of_trajs = project.get_random_confs_from_states(assignments, 
+            which_states, num_confs=2, replacement=True,
+            random=np.random.RandomState(42))
 
         assert isinstance(list_of_trajs, list)
         assert isinstance(list_of_trajs[0], Trajectory)
