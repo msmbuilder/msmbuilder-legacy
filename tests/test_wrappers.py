@@ -105,7 +105,7 @@ class test_Cluster_kcenters(WTempdir):
             '-d', pjoin(self.td, 'Assignments.h5.distances'),
             '-g', pjoin(self.td, 'Gens.lh5'),
             'rmsd', '-a', get('AtomIndices.dat', just_filename=True),
-            'kcenters', '-k', '100'], print_banner=False)
+            'kcenters', '-k', '74'], print_banner=False)
         Cluster.main(args, metric)
 
         eq(load(pjoin(self.td, 'Assignments.h5')),
