@@ -254,8 +254,9 @@ class Project(object):
             if replacement:
                 result = random.randint(0, state_counts, size=size)
             else:
-                if size >= state_counts:
-                    result = np.arange(state_counts)
+                if size > state_counts:
+                    raise ValueError("Asked for %d conformations from a state "
+                                     "with only %d conformations." % (size, state_counts))
                 else:
                     result = random.permutation(np.arange(state_counts))[:size]
 
