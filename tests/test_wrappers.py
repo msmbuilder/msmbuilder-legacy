@@ -103,7 +103,7 @@ class test_Cluster_kcenters(WTempdir):
             '-p', get('ProjectInfo.yaml', just_filename=True),
             '-o', self.td,
             'rmsd', '-a', get('AtomIndices.dat', just_filename=True),
-            'kcenters', '-k', '100'], print_banner=False)
+            'kcenters', '-k', '74'], print_banner=False)
         Cluster.main(args, metric)
 
         eq(load(pjoin(self.td, 'Assignments.h5')),
