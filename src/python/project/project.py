@@ -219,7 +219,8 @@ class Project(object):
 
         return filename_or_file
 
-    def get_random_confs_from_states(self, assignments, states, num_confs):
+    def get_random_confs_from_states(self, assignments, states, num_confs, 
+        replacement=True):
         """
         Get random conformations from a particular state in assignments.
 
@@ -232,6 +233,8 @@ class Project(object):
         num_confs : int or 1d array_like
             number of conformations to get from state. The shape should 
             be the same as the states argument
+        replacement : bool, optional
+            whether to sample with replacement or not (default: True)
 
         Returns
         -------
@@ -239,6 +242,18 @@ class Project(object):
             Trajectory object containing random conformations from the 
             specified state
         """
+
+        def randomize(state_counts, size=1, replacement=True):
+            if replacement:
+                result = np.random.randint(0, state_counts, size=size)
+            else:
+                if size > state_counts:
+                    result = np.arange(state_counts)
+                else:
+                    result = np.random.permutation(np.arange(state_counts))[:size]
+
+            return result
+            
 
         if isinstance(states, int):
             states = np.array([states])
@@ -260,7 +275,7 @@ class Project(object):
 
         for n, state in zip(num_confs, states):
             logger.debug("Working on %s", state)
-            random_conf_inds = np.random.randint(0, state_counts[state], size=n)
+            random_conf_inds = randomize(state_counts[state], size=n)
 
             traj_inds, frame_inds = inv_assignments[state]
             random_confs += self.load_frame(traj_inds[random_conf_inds], 
