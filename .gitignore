@@ -6,6 +6,9 @@ src/python/version.py
 # ignore mac metadata files
 ._*
 
+# ignore vim temporary files
+.*.swp
+
 # ignore unit tests workking dir
 TestFiles/UnitTestWorkingDir
 

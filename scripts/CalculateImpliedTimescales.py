@@ -17,28 +17,50 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
+import sys
+import os
 import numpy as np
 
+from msmbuilder import MSMLib
+from msmbuilder import io
 from msmbuilder import arglib
 from msmbuilder import msm_analysis
 
 import logging
-logger = logging.getLogger('msmbuilder.scripts.CalculateImpliedTimescales')
+logger = logging.getLogger(__name__)
 
 
-def run(MinLagtime, MaxLagtime, Interval, NumEigen, AssignmentsFn, trimming,
-        symmetrize, nProc):
+def run(min_lag_time, max_lag_time, interval, num_eigen, assignments_list, 
+        symmetrize, num_procs, output):
 
-    logger.info("Getting %d eigenvalues (timescales) for each lagtime...", NumEigen)
-    lagTimes = range(MinLagtime, MaxLagtime + 1, Interval)
-    logger.info("Building MSMs at the following lag times: %s", lagTimes)
+    arglib.die_if_path_exists(output)
+    
+    # Setup some model parameters
+    
+    flat_assignments = np.concatenate([assignments.flatten()
+                                       for assignments in assignments_list])
+    num_states = len(np.unique(flat_assignments[np.where(flat_assignments != -1)]))
+
+    if num_states <= num_eigen-1: 
+        num_eigen = num_states-2
+        logger.warning("Number of requested eigenvalues exceeds the rank of the "
+                       "transition matrix! Defaulting to the maximum possible "
+                       "number of eigenvalues.")
+
+    logger.info("Getting %d eigenvalues (timescales) for each lagtime...", 
+                num_eigen)
+
+    lag_times = range(min_lag_time, max_lag_time+1, interval)
+    logger.info("Building MSMs at the following lag times: %s", lag_times)
 
     # Get the implied timescales (eigenvalues)
-    impTimes = msm_analysis.get_implied_timescales(AssignmentsFn, lagTimes,
-        n_implied_times=NumEigen, sliding_window=True, trimming=trimming,
-        symmetrize=symmetrize, n_procs=nProc)
+    imp_times = msm_analysis.get_implied_timescales(assignments_list, lag_times,
+        num_implied_times=num_eigen, sliding_window=True, symmetrize=symmetrize,
+        num_procs=num_procs)
 
-    return impTimes
+    np.savetxt(output, imp_times)
+
+    return
 
 
 if __name__ == "__main__":
@@ -46,40 +68,43 @@ if __name__ == "__main__":
 \nCalculates the implied timescales of a set of assigned data, up to
 the argument 'lagtime'. Returns: ImpliedTimescales.dat, a flat file that
 contains all the lag times.\n""")
-    parser.add_argument('assignments', type=str)
-    parser.add_argument('lagtime', help="""The lagtime range to calculate.
-        Pass two ints as X,Y with NO WHITESPACE, where X is the lowest
-        timescale you want and Y is the biggest. EG: '-l 5,50'.""")
+    parser.add_argument('assignments', nargs='+', help="""Assignments file(s) 
+        constructed by msmbuilder.""")
+    parser.add_argument('lag_times', nargs=2, type=int, help="""The lagtime range 
+        to calculate. Pass two ints as "X Y" with whitespace in between, where X is
+        the lowest timescale you want and Y is the biggest. EG: '-l 5 50'.""")
     parser.add_argument('output', help="""The name of the  implied
-        timescales data file (use .dat extension)""", default='ImpliedTimescales.dat')
+        timescales data file (use .dat extension)""", 
+        default='ImpliedTimescales.dat')
     parser.add_argument('procs', help='''Number of concurrent processes
         (cores) to use''', default=1, type=int)
-    parser.add_argument('eigvals', help="""Number of slowest implied timescales to
-        retrieve at each lag time. Note: an n-state model will have n-1
-        implied timescales.""", default=10, type=int)
-    parser.add_argument('interval', help="""Number of times (intervals)
-        to calculate lagtimes for""", default=20, type=int)
+    parser.add_argument('eigvals', help="""'Number of eigenvalues
+        (implied timescales) to retrieve at each lag time""", default=10, type=int)
+    parser.add_argument('interval', help="""Calculate implied timescales between
+        the lag time range at the specified interval (frames).""", default=20, 
+        type=int)
     parser.add_argument('symmetrize', help="""Method by which to estimate a
         symmetric counts matrix. Symmetrization ensures reversibility, but may skew
         dynamics. We recommend maximum likelihood estimation (MLE) when tractable,
         else try Transpose. It is strongly recommended you read the documentation
         surrounding this choice.""", default='MLE',
         choices=['MLE', 'Transpose', 'None'])
-    parser.add_argument('trim', help="""Whether or not to apply an ergodic trim.
-        If true, keeps only the largest observed ergodic subset of the data, if
-        false, keeps everything. Default: True.""", default=True, type=bool)
     args = parser.parse_args()
-    arglib.die_if_path_exists(args.output)
 
-    LagTimes = args.lagtime.split(',')
-    MinLagtime = int(LagTimes[0])
-    MaxLagtime = int(LagTimes[1])
+    min_lag_time, max_lag_time = args.lag_times
 
     # Pass the symmetric flag
     if args.symmetrize in ["None", "none", None]:
         args.symmetrize = None
 
-    impTimes = run(MinLagtime, MaxLagtime, args.interval, args.eigvals, args.assignments,
-        args.trim, args.symmetrize, args.procs)
-    np.savetxt(args.output, impTimes)
-    logger.info("Saved output to %s", args.output)
+    # Load the assignments
+    assignments_list = []
+    for i in xrange(len(args.assignments)):
+        try:
+            assignments = io.loadh(args.assignments[i], 'arr_0')
+        except KeyError:
+            assignments = io.loadh(args.assignments[i], 'Data')
+        assignments_list.append(assignments)
+        
+    run(min_lag_time, max_lag_time, args.interval, args.eigvals, assignments_list,
+        args.symmetrize, args.procs, args.output)
