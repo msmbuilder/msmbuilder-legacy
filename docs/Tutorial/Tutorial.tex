@@ -53,6 +53,15 @@ Note for OSX users: Enthought represents the easiest way to obtain a working Pyt
 
 Note: please use a 64 bit version of python (and thus of MSMBuilder).  On certain systems (OSX Lion), 32 bit builds have experienced crashes in the RMSD / Clustering code.
 
+Note: if you are unable to use Enthought, there are other pre-compiled Python distributions available, although they might not be as fast as Enthought.  Options include Python(x,y) and the Scipy Superpack (OSX).  Finally, most Linux users can install most prerequisites using their package manager.  In Ubuntu, the following will install most of the prerequisites:
+
+\begin{verbatim}
+sudo apt-get install libhdf5-serial-dev python-dev python-numpy \
+python-scipy python-setuptools python-nose python-tables \
+python-matplotlib python-yaml swig ipython
+\end{verbatim}
+
+
 \subsection{Download and Install MSMBuilder}
 
 Download MSMBuilder, unzip, move to the msmbuilder directory.  Install using setup.py:
