@@ -170,7 +170,9 @@ class CovarianceMatrix(object):
         outer_expectations = np.outer(self.sum_t, self.sum_t_dt) / float(self.trained_frames) ** 2
 
         current_estimate = time_lag_corr - outer_expectations
-        current_estimate += current_estimate.T  # symmetrize the matrix
+        #current_estimate += current_estimate.T  # symmetrize the matrix
+        #above suffers from a bug in numpy.ndarray.__iadd__
+        current_estimate = current_estimate + current_estimate.T
         current_estimate /= 2.
 
         if self.calc_cov_mat:
