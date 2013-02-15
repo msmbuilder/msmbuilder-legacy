@@ -39,14 +39,17 @@ parser.add_argument('project')
 parser.add_argument(dest='stride', help='Subsample by striding',
     default=1, type=int)
 parser.add_argument('output_dir', help='''Output directory to save clustering data.
-    This will include:
-    (1) Assignments.h5 (If clustering is hierarchical or stride=1):
+    This will include some of the following depending on the clustering algorithm:
+    (1) Assignments.h5 (If clustering is not hierarchical and stride=1):
         Contains the state assignments
-    (2) Assignments.h5.distances (If clustering is hierarchical or stride=1):
+    (2) Assignments.h5.distances (If clustering is not hierarchical and stride=1):
         Contains the distance to the generator according to the distance
         metric that was employed
-    (3) Gens.lh5: 
-        Trajectory object representing the generators for each state''')
+    (3) Gens.lh5 (If clustering is not hierarchical): 
+        Trajectory object representing the generators for each state
+    (4) ZMatrix.h5 (If clsutering is hierarchical):
+        This is the ZMatrix corresponding to the result of hierarchical clustering.
+        use it with AssignHierarchical.py to build your assignments file.''')
 
 ################################################################################
 
