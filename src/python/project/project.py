@@ -224,7 +224,7 @@ class Project(object):
         """
         Get random conformations from a particular state (or states) in assignments.
 
-        Parameters:
+        Parameters
         ----------
         assignments : np.ndarray
             2D array storing the assignments for a particular MSM
@@ -251,6 +251,37 @@ class Project(object):
         """
 
         def randomize(state_counts, size=1, replacement=True, random=np.random):
+            """
+            This is a helper function for selecting random conformations. It will
+            select many samples from a discrete, uniform distribuion over state_counts.
+            If replacement==True, then np.random.randint will be used, otherwise
+            random.permutation will be used.
+
+            Parameters
+            ----------
+            state_counts : int
+                number of conformations in the state
+            size : int, optional
+                number of samples to draw (size kwarg in np.random.randint)
+                default: 1
+            replacement : bool, optional
+                if True, then we sample with replacement, otherwise we use a 
+                permutation
+            random : np.random.RandomState, optional
+                if you want this to behave deterministically then pass a particular
+                random state, otherwise we will use np.random.
+
+            Returns
+            -------
+            result : np.ndarray
+                1d array with samples from the given distribution
+
+            Raises
+            ------
+            ValueError: if size > state_counts and replacement is False, then
+                it is not possible to sample that many conformations without 
+                replacement
+            """
             if replacement:
                 result = random.randint(0, state_counts, size=size)
             else:
