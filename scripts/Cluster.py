@@ -47,7 +47,7 @@ parser.add_argument('output_dir', help='''Output directory to save clustering da
         metric that was employed
     (3) Gens.lh5 (If clustering is not hierarchical): 
         Trajectory object representing the generators for each state
-    (4) ZMatrix.h5 (If clsutering is hierarchical):
+    (4) ZMatrix.h5 (If clustering is hierarchical):
         This is the ZMatrix corresponding to the result of hierarchical clustering.
         use it with AssignHierarchical.py to build your assignments file.''')
 
