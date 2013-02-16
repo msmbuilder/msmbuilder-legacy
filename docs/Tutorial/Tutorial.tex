@@ -126,6 +126,7 @@ ConvertDataToHDF.py  -s native.pdb -i XTC
 \end{verbatim}
 
 \subsubsection{Cluster your data}
+
 The following command clusters your data using the RMSD metric using a hybrid k-centers k-medoids approach.  K-centers clustering continues until the intercluster distance (-d) is 0.045 nm.  At that point, 50 iterations (-l) of hybrid k-medoids are performed to refine those clusters.
 
 \begin{verbatim}
@@ -133,6 +134,8 @@ Cluster.py rmsd hybrid -d 0.045 -l 50
 \end{verbatim}
 
 The assignments of each conformation are stored as Data/Assignments.h5.  The cluster centers are stored as Data/Gens.lh5.  
+
+Note that clustering with the RMSD metric requires a list of which atom indices to use during RMSD calculation.  This file is typically called AtomIndices.dat and can typically be created using the script CreateAtomIndices.py.  Because alanine dipeptide contains non-standard atom names, it cannot be generated automatically; a default AtomIndices.dat has already been placed in the Tutorial directory for your use.  
 
 \subsubsection{Alternative Clustering Protocols}
 
