@@ -476,7 +476,9 @@ def calculate_fluxes(sources, sinks, tprob, populations=None, committors=None):
         fluxes = np.dot(np.dot(X, tprob), Y)
         fluxes[(np.arange(n), np.arange(n))] = np.zeros(n)
     else:
-        fluxes = np.dot(np.dot(X.tocsr(), tprob.tocsr()), Y.tocsr())
+        fluxes = (X.tocsr().dot(tprob.tocsr())).dot(Y.tocsr())
+        # This should be the same as below, but it's a bit messy...
+        #fluxes = np.dot(np.dot(X.tocsr(), tprob.tocsr()), Y.tocsr())
         fluxes = fluxes.tolil()
         fluxes.setdiag(np.zeros(n))
 
@@ -812,7 +814,9 @@ def calculate_committors(sources, sinks, tprob):
     if dense:
         RHS = np.dot(tprob, IdB)
     else:
-        RHS = tprob * IdB
+        RHS = tprob.dot(IdB)
+        # This should be the same as below
+        #RHS = tprob * IdB
 
     RHS[sources] = 0.0
     RHS[sinks] = 1.0
@@ -933,6 +937,7 @@ def calculate_fraction_visits(tprob, waypoint, source, sink, return_cond_Q=False
     # state i ends in j, where j runs over the source + sink + waypoint
     # (waypoint is position -1)
     B = np.dot(np.linalg.inv(np.eye(n) - P), R)
+    # Not sure if this is sparse or not...
 
     # add probs for the sinks, waypoint / b[i] is P( i --> {C & not A, B} )
     b = np.append(B[:, -1].flatten(), [0.0] * (len(Bsink_indices) - 1) + [1.0])
