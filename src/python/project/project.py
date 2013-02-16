@@ -253,8 +253,11 @@ class Project(object):
         def randomize(state_counts, size=1, replacement=True, random=np.random):
             """
             This is a helper function for selecting random conformations. It will
-            select many samples from a discrete, uniform distribuion over state_counts.
-            If replacement==True, then np.random.randint will be used, otherwise
+            select many samples from a discrete, uniform distribution over:
+            
+            .. math::  \{i\}_{i=1}^{\textnormal{state_counts}}
+
+            If replacement==True, then random.randint will be used, otherwise
             random.permutation will be used.
 
             Parameters
