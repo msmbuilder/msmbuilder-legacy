@@ -54,7 +54,7 @@ from msmbuilder.scripts import CalculateProjectDistance
 
 def pjoin(*args):
     return os.path.join(*args)
-
+# CRS: is this function really necessary?
 
 # subclassing this will get you a test where you have a temporary
 # directory (self.td) that will get cleaned up when you tes finishes
@@ -103,7 +103,7 @@ class test_Cluster_kcenters(WTempdir):
             '-p', get('ProjectInfo.yaml', just_filename=True),
             '-o', self.td,
             'rmsd', '-a', get('AtomIndices.dat', just_filename=True),
-            'kcenters', '-k', '74'], print_banner=False)
+            'kcenters', '-k', '100'], print_banner=False)
         Cluster.main(args, metric)
 
         eq(load(pjoin(self.td, 'Assignments.h5')),
@@ -140,9 +140,9 @@ class test_Assign(WTempdir):
         Assign.main(args, metric)
 
         eq(load(pjoin(self.td, 'Assignments.h5')),
-           get('Assignments.h5'))
+           get('assign/Assignments.h5'))
         eq(load(pjoin(self.td, 'Assignments.h5.distances')),
-           get('Assignments.h5.distances'))
+           get('assign/Assignments.h5.distances'))
 
 
 def test_AssignHierarchical():
@@ -173,13 +173,13 @@ def test_CalculateImpliedTimescales():
 
 
 def test_CalculateMFPTs(mfpt_state=70):
-    mfpt = CalculateMFPTs.run(get('tProb.mtx'), mfpt_state)
+    mfpt = CalculateMFPTs.run(get('transition_path_theory_reference/tProb.mtx'), mfpt_state)
     mfpt0 = get(pjoin("transition_path_theory_reference", "mfpt.h5"))['Data']
     eq(mfpt, mfpt0)
 
 
 def test_CalculateTPT():
-    T = get("tProb.mtx")
+    T = get("transition_path_theory_reference/tProb.mtx")
     sources = [0]  # chosen arb. for ref. by TJL
     sinks = [70]  # chosen arb. for ref. by TJL
     script_out = CalculateTPT.run(T, sources, sinks)
@@ -199,7 +199,7 @@ def test_CalculateClusterRadii():
 
 
 def test_FindPaths():
-    tprob = get("tProb.mtx")
+    tprob = get("transition_path_theory_reference/tProb.mtx")
     sources = [0]
     sinks = [70]
     paths, bottlenecks, fluxes = FindPaths.run(tprob, sources, sinks, 10)
