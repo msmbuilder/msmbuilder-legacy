@@ -286,3 +286,19 @@ def lru_cache(maxsize=100):
         wrapper.clear = clear
         return wrapper
     return decorating_function
+
+def check_assignment_array_input(assignments,check_ndarray=True, check_integer=True, ndim=2):
+    """Check if input is an appropriate data type for assignments.
+    
+    Checks if type is Numpy array, if dtype is int-like,
+    and if ndim is ndim (2 by default).
+    """
+    
+    if check_ndarray and not isinstance(assignments, np.ndarray):
+        raise(Exception("Input assignments must be numpy array type."))
+
+    if check_integer and assignments.dtype.kind != "i":
+        raise(Exception("Input assignments must be integer type."))
+
+    if assignments.ndim != ndim:
+        raise(Exception("Input assignments must have ndim = %d; found %d." % (ndim, assignments.ndim)))
