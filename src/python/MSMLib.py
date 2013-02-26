@@ -358,15 +358,26 @@ def invert_assignments(assignments):
         Mapping from state -> traj,frame, such that inverse_mapping[s]
         gives the conformations assigned to state s.
 
+    Notes
+    -----
+    The assignments array may have -1's, which are simply placeholders
+        we do not add these to the inverted assignments. Therefore, doing
+        the following will raise a KeyError:
+
+        >>> inv_assignments = MSMLib.invert_assignments(assignments)
+        >>> print inv_assignments[-1]
+        KeyError: -1
     """
 
     check_assignment_array_input(assignments)
 
     inverse_mapping = defaultdict(lambda: ([], []))
-    for i in xrange(assignments.shape[0]):
-        for j in xrange(assignments.shape[1]):
-            inverse_mapping[assignments[i, j]][0].append(i)
-            inverse_mapping[assignments[i, j]][1].append(j)
+    non_neg_inds = np.array(np.where(assignments != -1)).T  
+    # we do not care about -1's
+
+    for (i, j) in non_neg_inds:
+        inverse_mapping[assignments[i, j]][0].append(i)
+        inverse_mapping[assignments[i, j]][1].append(j)
 
     # convert from lists to numpy arrays
     for key, (trajs, frames) in inverse_mapping.iteritems():
