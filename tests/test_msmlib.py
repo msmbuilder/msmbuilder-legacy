@@ -7,7 +7,7 @@ from msmbuilder import MSMLib
 
 def test_get_count_matrix_from_assignments_1():
 
-    assignments = np.zeros((10, 10))
+    assignments = np.zeros((10, 10),'int')
 
     val = MSMLib.get_count_matrix_from_assignments(assignments).todense()
     correct = np.matrix([[90.0]])
