@@ -21,7 +21,7 @@ class RedDimPNorm(Vectorized, AbstractDistanceMetric):
             good_vecs = np.where( ( data_dict['vals'].imag == 0 ) 
                                     & ( data_dict['vals'].real < 1 ) 
                                     & ( np.abs( data_dict['vecs'].imag ).max(axis=0) == 0 ) )[0]
-            good_vecs = np.arange( data_dict['vals'].shape[0] )
+#            good_vecs = np.arange( data_dict['vals'].shape[0] )
             self.vecs = np.array( data_dict['vecs'][:, good_vecs].real)
             self.vals = np.array( data_dict['vals'][ good_vecs ].real.astype(float) ) # These should be real already but have 1E-16j attached to them
 
