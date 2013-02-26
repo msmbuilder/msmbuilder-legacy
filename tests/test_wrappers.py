@@ -157,8 +157,8 @@ class test_BuildMSM(WTempdir):
         BuildMSM.run(lagtime=1, assignments=get('Assignments.h5')['arr_0'], symmetrize='MLE',
             out_dir=self.td)
 
-        eq(load(pjoin(self.td, 'tProb.mtx')), get('tProb.mtx'))
-        eq(load(pjoin(self.td, 'tCounts.mtx')), get('tCounts.mtx'))
+        eq(load(pjoin(self.td, 'tProb.mtx')), get('tProb.mtx'), decimal=5)
+        eq(load(pjoin(self.td, 'tCounts.mtx')), get('tCounts.mtx'), decimal=3)
         eq(load(pjoin(self.td, 'Mapping.dat')), get('Mapping.dat'))
         eq(load(pjoin(self.td, 'Assignments.Fixed.h5')), get('Assignments.Fixed.h5'))
         eq(load(pjoin(self.td, 'Populations.dat')), get('Populations.dat'))
