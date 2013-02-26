@@ -30,7 +30,7 @@ class TestTPT():
     def setUp(self):
         
         # load in the reference data
-        self.tprob = get("tProb.mtx")
+        self.tprob = get("transition_path_theory_reference/tProb.mtx")
         self.sources   = [0]   # chosen arbitarily by TJL
         self.sinks     = [70]  # chosen arbitarily by TJL
         self.waypoints = [60]  # chosen arbitarily by TJL

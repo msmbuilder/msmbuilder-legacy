@@ -43,7 +43,7 @@
 \item ipython (optional for interactive mode)
 \item pymol (optional for visualization)
 \end{itemize}
-Note that the Enthought Python Distribution contains most of these prerequisites and provides an easy way to facilitate installation.
+Note that the Enthought Python Distribution contains most of these prerequisites and provides an easy way to facilitate installation.  Note that EPD free does \emph{not} contain all the required prerequisites, but the full or academic versions do.  
 
 \subsection{Install Python and Python Packages}
 
@@ -52,6 +52,15 @@ Rather than individually install the many python dependencies, we recommend that
 Note for OSX users: Enthought represents the easiest way to obtain a working Python installation.  The OSX system Python install is broken and cannot properly build Python extensions, which are required for MSMBuilder installation.  Also, see FAQ question 11 for a known issue with OSX Lion and OpenMP.  
 
 Note: please use a 64 bit version of python (and thus of MSMBuilder).  On certain systems (OSX Lion), 32 bit builds have experienced crashes in the RMSD / Clustering code.
+
+Note: if you are unable to use Enthought, there are other pre-compiled Python distributions available, although they might not be as fast as Enthought.  Options include Python(x,y) and the Scipy Superpack (OSX).  Finally, most Linux users can install most prerequisites using their package manager.  In Ubuntu, the following will install most of the prerequisites:
+
+\begin{verbatim}
+sudo apt-get install libhdf5-serial-dev python-dev python-numpy \
+python-scipy python-setuptools python-nose python-tables \
+python-matplotlib python-yaml swig ipython
+\end{verbatim}
+
 
 \subsection{Download and Install MSMBuilder}
 
@@ -117,6 +126,7 @@ ConvertDataToHDF.py  -s native.pdb -i XTC
 \end{verbatim}
 
 \subsubsection{Cluster your data}
+
 The following command clusters your data using the RMSD metric using a hybrid k-centers k-medoids approach.  K-centers clustering continues until the intercluster distance (-d) is 0.045 nm.  At that point, 50 iterations (-l) of hybrid k-medoids are performed to refine those clusters.
 
 \begin{verbatim}
@@ -124,6 +134,8 @@ Cluster.py rmsd hybrid -d 0.045 -l 50
 \end{verbatim}
 
 The assignments of each conformation are stored as Data/Assignments.h5.  The cluster centers are stored as Data/Gens.lh5.  
+
+Note that clustering with the RMSD metric requires a list of which atom indices to use during RMSD calculation.  This file is typically called AtomIndices.dat and can typically be created using the script CreateAtomIndices.py.  Because alanine dipeptide contains non-standard atom names, it cannot be generated automatically; a default AtomIndices.dat has already been placed in the Tutorial directory for your use.  
 
 \subsubsection{Alternative Clustering Protocols}
 

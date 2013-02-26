@@ -26,5 +26,5 @@ Contributing
 ------------
 Have you found a bug? Do you have an idea for a great new feature, or a gripe about an existing one? Have you written some code that you'd like to contribute to MSMBuilder? Awesome! We'd love to have your contribution! 
 
-MSMBuilder is [hosted](https://github.com/SimTk/msmbuilder) on GitHub. Filing an issue such as a bug report of feature request is easy and will contribute to  the future development of MSMBuilder. Contributing code is easy too, just fork the repository and then submit a pull request. A few guidelines on contributing can be found [here](http://msmbuilder.readthedocs.org/en/latest/developer.html). 
+MSMBuilder is [hosted](https://github.com/SimTk/msmbuilder) on GitHub. Filing an issue such as a bug report or feature request is easy and will contribute to  the future development of MSMBuilder. Contributing code is easy too, just fork the repository and then submit a pull request. A few guidelines on contributing can be found [here](http://msmbuilder.readthedocs.org/en/latest/developer.html). 
 

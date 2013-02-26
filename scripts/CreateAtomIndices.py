@@ -152,7 +152,9 @@ if __name__ == "__main__":
     indices in such situations.  Note that "heavy" keeps all heavy atoms that
     are not symmetry equivalent.  By symmetry equivalent, we mean atoms
     identical under an exchange of labels.  For example, heavy will exclude
-    the two pairs of equivalent carbons (CD, CE) in a PHE ring.''', 
+    the two pairs of equivalent carbons (CD, CE) in a PHE ring.    
+    Note that AtomIndices.dat should be zero-indexed--that is, a 0 
+    in AtomIndices.dat corresponds to the first atom in your PDB''', 
     choices=['minimal', 'heavy', 'alpha', 'all'], default='minimal')
   args = parser.parse_args()
   arglib.die_if_path_exists(args.output)
