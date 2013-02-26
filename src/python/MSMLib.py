@@ -37,7 +37,7 @@ import scipy
 import numpy as np
 import scipy.optimize
 from collections import defaultdict
-from msmbuilder.utils import deprecated
+from msmbuilder.utils import deprecated, check_assignment_array_input
 from msmbuilder import msm_analysis
 import logging
 logger = logging.getLogger(__name__)
@@ -228,6 +228,8 @@ def get_count_matrix_from_assignments(assignments, n_states=None, lag_time=1, sl
     Sliding window yields non-independent samples, but wastes less data.
     """
 
+    check_assignment_array_input(assignments)
+
     if not n_states:
         n_states = 1 + int(
             np.max([np.max(a) for a in assignments]))   # Lutz: a single np.max is not enough, b/c it can't handle a list of 1-d arrays of different lengths
@@ -269,6 +271,8 @@ def get_counts_from_traj(states, n_states=None, lag_time=1, sliding_window=True)
     C : sparse matrix of integers
         The computed transition count matrix
     """
+
+    check_assignment_array_input(states, ndim=1)
 
     if not n_states:
         n_states = np.max(states) + 1
@@ -322,6 +326,8 @@ def apply_mapping_to_assignments(assignments, mapping):
 
     """
 
+    check_assignment_array_input(assignments)
+
     NewMapping = mapping.copy()
     # Make a special state for things that get deleted by Ergodic Trimming.
     NewMapping[np.where(mapping == -1)] = mapping.max() + 1
@@ -353,6 +359,8 @@ def invert_assignments(assignments):
         gives the conformations assigned to state s.
 
     """
+
+    check_assignment_array_input(assignments)
 
     inverse_mapping = defaultdict(lambda: ([], []))
     for i in xrange(assignments.shape[0]):
@@ -422,6 +430,8 @@ def renumber_states(assignments):
     -----
     Useful if some states have 0 counts.
     """
+
+    check_assignment_array_input(assignments)
 
     unique = list(np.unique(assignments))
     if unique[0] == -1:
