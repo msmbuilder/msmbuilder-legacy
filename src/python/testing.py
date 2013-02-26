@@ -149,7 +149,7 @@ def assert_sparse_matrix_equal(m1, m2, decimal=6):
 
     # both are sparse matricies
     assert isspmatrix(m1)
-    assert isspmatrix(m1)
+    assert isspmatrix(m2)
 
     # make sure they have the same format
     eq_(m1.format, m2.format)
