@@ -26,6 +26,7 @@ Contents:
    project
    fahproject
    developer
+   whats_new
    
 Indices and tables
 ==================
