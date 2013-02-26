@@ -159,7 +159,18 @@ def assert_sparse_matrix_equal(m1, m2, decimal=6):
 
     # even though its called assert_array_almost_equal, it will
     # work for scalars
-    assert_array_almost_equal(np.abs(m1 - m2).sum(), 0, decimal=decimal)
+    m1 = m1.tocsr()
+    m2 = m2.tocsr()
+    m1.eliminate_zeros()
+    m2.eliminate_zeros()
+
+    xi1, yi1 = m1.nonzero()
+    xi2, yi2 = m2.nonzero()
+
+    assert_array_equal(xi1, xi2)
+    assert_array_equal(yi1, yi2)
+#    assert_array_almost_equal(np.abs(m1 - m2).sum(), 0, decimal=decimal)
+    assert_array_almost_equal(m1.data, m2.data, decimal=decimal)
 
 # decorator to mark tests as expected failure
 def expected_failure(test):
