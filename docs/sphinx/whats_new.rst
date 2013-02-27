@@ -2,13 +2,14 @@
 
 .. _changes_2_6:
 
-2.6
-====
+What's New
+==========
 
-Changelog
----------
+2.6 Changelog
+-------------
 
-   - Migrated from SVN to Github for version control
+   - Migrated from SVN to Github for version control. The source code can 
+     now be found at https://github.com/SimTk/msmbuilder
 
    - Renamed all the functions in MSMLib to be pep8 compliant. 
      Aliases have been added for the old names.  Note: Trajectory.py is 
@@ -46,22 +47,16 @@ Changelog
    - Updates to tutorials.   
 
 
-2.5.1
-=======
-
-Changelog
-----------
+2.5.1 Changelog
+---------------
 
    - Updates to tutorials.
 
    - Moved Ward clustering and SCRE to AdvancedMethods tutorial.
    
 
-2.5
-=======
-
-Changelog
-----------
+2.5 Changelog
+-------------
 
    - The libraries are distance metric agnostic, you can use your own 
      new distance metric without having to change the clustering/assignment code.
@@ -76,30 +71,20 @@ Changelog
 
    - SCRE rate matrix estimation.
 
-2.0.4
-=======
-
-Changelog
-----------
+2.0.4 Changelog
+---------------
 
    - Improvements in PCCA, PCCA+ lead to better macrostate definition.
 
-2.0.3
-=======
-
-Changelog
-----------
-
+2.0.3 Changelog
+---------------
    - Bug fix: In ConvertDataToHDF, the Stride option was not being used 
      for non-FAH style datasets. 
    
    - Fixed unicode strings were causing scipy issues on certain platforms.
 
-2.0.2
-=======
-
-Changelog
-----------
+2.0.2 Changelog
+---------------
 
 
    - Fixed issue with AtomIndices in UpdateProjectToHDF
@@ -110,11 +95,8 @@ Changelog
 
    - Fixed some tabbing issues in MSMLib.py
 
-2.0.1
-=======
-
-Changelog
-----------
+2.0.1 Changelog
+---------------
 
    - Fixed a bug in ConvertProjectToHDF that prevented MSMBuilder from seeing 
      multiple XTC files in a single directory. 
