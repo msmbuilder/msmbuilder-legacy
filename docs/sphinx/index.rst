@@ -12,6 +12,7 @@ Contents:
    :maxdepth: 2
    
    intro
+   whats_new
    metrics
    clustering
    assigning
@@ -26,7 +27,6 @@ Contents:
    project
    fahproject
    developer
-   whats_new
    
 Indices and tables
 ==================
