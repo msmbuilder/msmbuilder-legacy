@@ -1,8 +1,11 @@
 from msmbuilder import msm_analysis, MSMLib
 import numpy as np
+import statsmodels
 import statsmodels.tsa.stattools
+from unittest import skipIf
 
 
+@skipIf(int(statsmodels.__version__.split('.')[1]) <= 4, "Need developer version of statsmodels to use statsmodels.tsa.stattools.acf")
 class test_msm_acf():
     def __init__(self):
         self.epsilon = 1E-7

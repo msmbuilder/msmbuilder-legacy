@@ -54,7 +54,7 @@ from msmbuilder.scripts import CalculateProjectDistance
 
 def pjoin(*args):
     return os.path.join(*args)
-
+# CRS: is this function really necessary?
 
 # subclassing this will get you a test where you have a temporary
 # directory (self.td) that will get cleaned up when you tes finishes
@@ -140,9 +140,9 @@ class test_Assign(WTempdir):
         Assign.main(args, metric)
 
         eq(load(pjoin(self.td, 'Assignments.h5')),
-           get('Assignments.h5'))
+           get('assign/Assignments.h5'))
         eq(load(pjoin(self.td, 'Assignments.h5.distances')),
-           get('Assignments.h5.distances'))
+           get('assign/Assignments.h5.distances'))
 
 
 def test_AssignHierarchical():
@@ -157,8 +157,8 @@ class test_BuildMSM(WTempdir):
         BuildMSM.run(lagtime=1, assignments=get('Assignments.h5')['arr_0'], symmetrize='MLE',
             out_dir=self.td)
 
-        eq(load(pjoin(self.td, 'tProb.mtx')), get('tProb.mtx'))
-        eq(load(pjoin(self.td, 'tCounts.mtx')), get('tCounts.mtx'))
+        eq(load(pjoin(self.td, 'tProb.mtx')), get('tProb.mtx'), decimal=5)
+        eq(load(pjoin(self.td, 'tCounts.mtx')), get('tCounts.mtx'), decimal=3)
         eq(load(pjoin(self.td, 'Mapping.dat')), get('Mapping.dat'))
         eq(load(pjoin(self.td, 'Assignments.Fixed.h5')), get('Assignments.Fixed.h5'))
         eq(load(pjoin(self.td, 'Populations.dat')), get('Populations.dat'))
@@ -173,13 +173,13 @@ def test_CalculateImpliedTimescales():
 
 
 def test_CalculateMFPTs(mfpt_state=70):
-    mfpt = CalculateMFPTs.run(get('tProb.mtx'), mfpt_state)
+    mfpt = CalculateMFPTs.run(get('transition_path_theory_reference/tProb.mtx'), mfpt_state)
     mfpt0 = get(pjoin("transition_path_theory_reference", "mfpt.h5"))['Data']
     eq(mfpt, mfpt0)
 
 
 def test_CalculateTPT():
-    T = get("tProb.mtx")
+    T = get("transition_path_theory_reference/tProb.mtx")
     sources = [0]  # chosen arb. for ref. by TJL
     sinks = [70]  # chosen arb. for ref. by TJL
     script_out = CalculateTPT.run(T, sources, sinks)
@@ -199,7 +199,7 @@ def test_CalculateClusterRadii():
 
 
 def test_FindPaths():
-    tprob = get("tProb.mtx")
+    tprob = get("transition_path_theory_reference/tProb.mtx")
     sources = [0]
     sinks = [70]
     paths, bottlenecks, fluxes = FindPaths.run(tprob, sources, sinks, 10)
