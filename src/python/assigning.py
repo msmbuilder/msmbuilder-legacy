@@ -4,7 +4,6 @@ import tables
 import warnings
 from msmbuilder import io
 from msmbuilder import Trajectory
-from msmbuilder import metrics
 import logging
 logger = logging.getLogger(__name__)
 
@@ -63,36 +62,49 @@ def _setup_containers(project, assignments_fn, distances_fn):
     return f_assignments, f_distances
 
 
-def assign_in_memory(metric, generators, project):
-    """This really should be called simple assign -- its the simplest"""
+def assign_in_memory(metric, generators, project, atom_indices_to_load=None):
+    """
+    Assign every frame to its closest generator
+
+    This code does everything in memory, and does not checkpoint. It also does
+    not save any results to disk.
+
+    Parameters
+    ----------
+    metric : msmbuilder.metrics.AbstractDistanceMetric
+        A distance metric used to define "closest"
+    project : msmbuilder.Project
+        Used to load the trajectories
+    generators : msmbuilder.Trajectory
+        A trajectory containing the structures of all of the cluster centers
+    atom_indices_to_load : {None, list}
+        The indices of the atoms to load for each trajectory chunk. Note that
+        this method is responsible for loading up atoms from the project, but
+        does NOT load up the generators. Those are passed in as a trajectory
+        object (above). So if the generators are already subsampled to a restricted
+        set of atom indices, but the trajectories on disk are NOT, you'll
+        need to pass in a set of indices here to resolve the difference.
+
+    See Also
+    --------
+    assign_with_checkpoint
+    """
 
     n_trajs, max_traj_length = project.n_trajs, np.max(project.traj_lengths)
     assignments = -1 * np.ones((n_trajs, max_traj_length), dtype='int')
     distances = -1 * np.ones((n_trajs, max_traj_length), dtype='float32')
 
-    # if we're using an RMSD metric, get the relevant indices from the generators
-    # then inject a blank array into RMSD
-    # TODO clean this up 
-    if isinstance(metric, metrics.RMSD):
-        atom_indices = metric.atomindices
-        metric.atomindices = None # probably bad...
-        logger.info('RMSD metric - loading only the atom indices required')
-    else:
-        atom_indices = None
-
     pgens = metric.prepare_trajectory(generators)
 
     for i in xrange(n_trajs):
-        traj = project.load_traj(i)
+        traj = project.load_traj(i, atom_indices=atom_indices_to_load)
 
-        if atom_indices != None:
-            traj['XYZList'] = traj['XYZList'][:,atom_indices,:]
         if traj['XYZList'].shape[1] != generators['XYZList'].shape[1]:
             raise ValueError('Number of atoms in generators does not match '
                              'traj we\'re trying to assign! Maybe check atom indices?')
-        
+
         ptraj = metric.prepare_trajectory(traj)
-        
+
         for j in xrange(len(traj)):
             d = metric.one_to_all(ptraj, pgens, j)
             assignments[i,j] = np.argmin(d)
@@ -101,11 +113,15 @@ def assign_in_memory(metric, generators, project):
     return assignments, distances
 
 
-def assign_with_checkpoint(metric, project, generators, assignments_path, 
-                           distances_path, chunk_size=10000):
+def assign_with_checkpoint(metric, project, generators, assignments_path,
+                           distances_path, chunk_size=10000, atom_indices_to_load=None):
     """
     Assign every frame to its closest generator
-    
+
+    The results will be checkpointed along the way, trajectory by trajectory.
+    If the process is killed, it should be able to roughly pick up where it
+    left off.
+
     Parameters
     ----------
     metric : msmbuilder.metrics.AbstractDistanceMetric
@@ -126,26 +142,21 @@ def assign_with_checkpoint(metric, project, generators, assignments_path,
         the number of frames you can fit in memory at any one time. Note, this
         is only important if your trajectories are long, as the effective chunk_size
         is really `min(traj_length, chunk_size)`
-        
-    Notes
-    -----
-    The results will be checkpointed along the way, trajectory by trajectory. So if
-    the process is killed, it should be able to roughly pick up where it left off.
+    atom_indices_to_load : {None, list}
+        The indices of the atoms to load for each trajectory chunk. Note that
+        this method is responsible for loading up atoms from the project, but
+        does NOT load up the generators. Those are passed in as a trajectory
+        object (above). So if the generators are already subsampled to a restricted
+        set of atom indices, but the trajectories on disk are NOT, you'll
+        need to pass in a set of indices here to resolve the difference.
+
+    See Also
+    --------
+    assign_in_memory
     """
-    
-    # if we're using an RMSD metric, get the relevant indices from the generators
-    # then inject a blank array into RMSD
-    # TODO clean this up 
-    if isinstance(metric, metrics.RMSD):
-        atom_indices = metric.atomindices
-        metric.atomindices = None # probably bad...
-        logger.info('RMSD metric - loading only the atom indices required')
-    else:
-        atom_indices = None
-        
-    
+
     pgens = metric.prepare_trajectory(generators)
-    
+
     # setup the file handles
     fh_a, fh_d = _setup_containers(project, assignments_path, distances_path)
 
@@ -156,28 +167,25 @@ def assign_with_checkpoint(metric, project, generators, assignments_path,
         if fh_a.root.completed_trajs[i] or fh_d.root.completed_trajs[i]:
             raise RuntimeError('Corruption detected')
         logger.info('Assigning trajectory %s', i)
-        
+
         # pointer to the position in the total trajectory where
         # the current chunk starts, so we know where in the Assignments
         # array to put each batch of data
         start_index = 0
-        
-        for tchunk in Trajectory.enum_chunks_from_lhdf(project.traj_filename(i), ChunkSize=chunk_size):
-            
-            # support for atom indexing on the trajectories we're trying to assign
-            # might be good to have the atom indices stored in the generators and
-            # extracted automatically, then fed in here
-            # added TJL 10.27.12         
-            if atom_indices != None:
-                tchunk['XYZList'] = tchunk['XYZList'][:,atom_indices,:]
+
+        filename = project.traj_filename(i)
+        chunkiter = Trajectory.enum_chunks_from_lhdf(filename,
+                ChunkSize=chunk_size, AtomIndices=atom_indices_to_load)
+        for tchunk in chunkiter:
             if tchunk['XYZList'].shape[1] != generators['XYZList'].shape[1]:
-                raise ValueError('Number of atoms in generators does not match '
-                                 'traj we\'re trying to assign! Maybe check atom indices?')
-                                 
+                msg = ("Number of atoms in generators does not match "
+                       "traj we're trying to assign! Maybe check atom indices?")
+                raise ValueError(msg)
+
             ptchunk = metric.prepare_trajectory(tchunk)
-            
+
             this_length = len(ptchunk)
-            
+
             distances = np.empty(this_length, dtype=np.float32)
             assignments = np.empty(this_length, dtype=np.int)
 
@@ -186,16 +194,16 @@ def assign_with_checkpoint(metric, project, generators, assignments_path,
                 ind = np.argmin(d)
                 assignments[j] = ind
                 distances[j] = d[ind]
-            
+
             end_index = start_index+this_length
             fh_a.root.arr_0[i, start_index:end_index] = assignments
             fh_d.root.arr_0[i, start_index:end_index] = distances
-            
+
             # i'm not sure exactly what the optimal flush frequency is
             fh_a.flush()
             fh_d.flush()
             start_index = end_index
-                
+
         # we're going to keep duplicates of this record -- i.e. writing
         # it to both files
 
@@ -212,11 +220,13 @@ def assign_with_checkpoint(metric, project, generators, assignments_path,
         fh_a.root.completed_trajs[i] = True
         fh_d.root.completed_trajs[i] = True
 
-    
-    fh_a.close()        
+
+    fh_a.close()
     fh_d.close()
 
-def streaming_assign_with_checkpoint(metric, project, generators, assignments_path, distances_path, checkpoint=1,chunk_size=10000):
-    warnings.warn("assign_with_checkpoint now uses the steaming engine -- this function is deprecated", DeprecationWarning)
-    assign_with_checkpoint(metric, project, generators, assignments_path, distances_path, chunk_size)
-
+def streaming_assign_with_checkpoint(metric, project, generators, assignments_path,
+    distances_path, checkpoint=1,chunk_size=10000, atom_indices_to_load=None):
+    warnings.warn(("assign_with_checkpoint now uses the steaming engine "
+        "-- this function is deprecated"), DeprecationWarning)
+    assign_with_checkpoint(metric, project, generators, assignments_path,
+        distances_path, chunk_size, atom_indices_to_load)
