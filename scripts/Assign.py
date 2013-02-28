@@ -56,9 +56,9 @@ def main(args, metric):
                    'that the Cluster.py script saves a generators file that '
                    'only contains the indices of the atoms of interest, and '
                    'not any of the superfluous degrees of freedom that were '
-                   'not used for clustering. But you supplied a %d cluster '
-                   'centers each containg %d atoms. You atom indices file on '
-                   'the other hand contains %d atoms') \
+                   'not used for clustering. But you supplied %d cluster '
+                   'centers each containg %d atoms. Your atom indices file '
+                   'on the other hand contains %d atoms') \
                     % (gens['XYZList'].shape[0], gens['XYZList'].shape[1],
                        len(metric.atomindices))
             raise ValueError(msg)
