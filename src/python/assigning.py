@@ -63,7 +63,32 @@ def _setup_containers(project, assignments_fn, distances_fn):
 
 
 def assign_in_memory(metric, generators, project, atom_indices_to_load=None):
-    """This really should be called simple assign -- its the simplest"""
+    """
+    Assign every frame to its closest generator
+
+    This code does everything in memory, and does not checkpoint. It also does
+    not save any results to disk.
+
+    Parameters
+    ----------
+    metric : msmbuilder.metrics.AbstractDistanceMetric
+        A distance metric used to define "closest"
+    project : msmbuilder.Project
+        Used to load the trajectories
+    generators : msmbuilder.Trajectory
+        A trajectory containing the structures of all of the cluster centers
+    atom_indices_to_load : {None, list}
+        The indices of the atoms to load for each trajectory chunk. Note that
+        this method is responsible for loading up atoms from the project, but
+        does NOT load up the generators. Those are passed in as a trajectory
+        object (above). So if the generators are already subsampled to a restricted
+        set of atom indices, but the trajectories on disk are NOT, you'll
+        need to pass in a set of indices here to resolve the difference.
+
+    See Also
+    --------
+    assign_with_checkpoint
+    """
 
     n_trajs, max_traj_length = project.n_trajs, np.max(project.traj_lengths)
     assignments = -1 * np.ones((n_trajs, max_traj_length), dtype='int')
@@ -72,7 +97,7 @@ def assign_in_memory(metric, generators, project, atom_indices_to_load=None):
     pgens = metric.prepare_trajectory(generators)
 
     for i in xrange(n_trajs):
-        traj = project.load_traj(i, atom_indices_to_load)
+        traj = project.load_traj(i, atom_indices=atom_indices_to_load)
 
         if traj['XYZList'].shape[1] != generators['XYZList'].shape[1]:
             raise ValueError('Number of atoms in generators does not match '
@@ -92,6 +117,10 @@ def assign_with_checkpoint(metric, project, generators, assignments_path,
                            distances_path, chunk_size=10000, atom_indices_to_load=None):
     """
     Assign every frame to its closest generator
+
+    The results will be checkpointed along the way, trajectory by trajectory.
+    If the process is killed, it should be able to roughly pick up where it
+    left off.
 
     Parameters
     ----------
@@ -121,10 +150,9 @@ def assign_with_checkpoint(metric, project, generators, assignments_path,
         set of atom indices, but the trajectories on disk are NOT, you'll
         need to pass in a set of indices here to resolve the difference.
 
-    Notes
-    -----
-    The results will be checkpointed along the way, trajectory by trajectory. So if
-    the process is killed, it should be able to roughly pick up where it left off.
+    See Also
+    --------
+    assign_in_memory
     """
 
     pgens = metric.prepare_trajectory(generators)
@@ -149,14 +177,10 @@ def assign_with_checkpoint(metric, project, generators, assignments_path,
         chunkiter = Trajectory.enum_chunks_from_lhdf(filename,
                 ChunkSize=chunk_size, AtomIndices=atom_indices_to_load)
         for tchunk in chunkiter:
-
-            # support for atom indexing on the trajectories we're trying to assign
-            # might be good to have the atom indices stored in the generators and
-            # extracted automatically, then fed in here
-            # added TJL 10.27.12
             if tchunk['XYZList'].shape[1] != generators['XYZList'].shape[1]:
-                raise ValueError('Number of atoms in generators does not match '
-                                 'traj we\'re trying to assign! Maybe check atom indices?')
+                msg = ("Number of atoms in generators does not match "
+                       "traj we're trying to assign! Maybe check atom indices?")
+                raise ValueError(msg)
 
             ptchunk = metric.prepare_trajectory(tchunk)
 
@@ -200,6 +224,9 @@ def assign_with_checkpoint(metric, project, generators, assignments_path,
     fh_a.close()
     fh_d.close()
 
-def streaming_assign_with_checkpoint(metric, project, generators, assignments_path, distances_path, checkpoint=1,chunk_size=10000):
-    warnings.warn("assign_with_checkpoint now uses the steaming engine -- this function is deprecated", DeprecationWarning)
-    assign_with_checkpoint(metric, project, generators, assignments_path, distances_path, chunk_size)
+def streaming_assign_with_checkpoint(metric, project, generators, assignments_path,
+    distances_path, checkpoint=1,chunk_size=10000, atom_indices_to_load=None):
+    warnings.warn(("assign_with_checkpoint now uses the steaming engine "
+        "-- this function is deprecated"), DeprecationWarning)
+    assign_with_checkpoint(metric, project, generators, assignments_path,
+        distances_path, chunk_size, atom_indices_to_load)
