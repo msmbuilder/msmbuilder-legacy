@@ -393,7 +393,7 @@ Outputs (stored in the directory specified with outDir):
     add_argument(parser, '-o', dest='outDir', help='Path to save the output to.', default="Output_BACE", required=False)
     args = parser.parse_args()
 
-    if "mtx" in args.tCountFn:
+    if args.tCountFn[-4:] == ".mtx":
         c = scipy.sparse.lil_matrix(scipy.io.mmread(args.tCountFn), dtype=np.float32)
         multiDist = multiDistSparse
         filterFunc = filterFuncSparse
@@ -403,7 +403,7 @@ Outputs (stored in the directory specified with outDir):
             multiDist = multiDistDense
             filterFunc = filterFuncDense
     else:
-        c = np.loadtxt(tCountFn, dtype=np.float32)
+        c = np.loadtxt(args.tCountFn, dtype=np.float32)
         multiDist = multiDistDense
         filterFunc = filterFuncDense
 
