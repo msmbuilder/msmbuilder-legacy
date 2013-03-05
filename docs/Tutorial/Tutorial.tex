@@ -192,7 +192,9 @@ Populations.dat contains the maximum likelihood estimated reversible equilibrium
 
 \subsubsection{Construct a Macrostate MSM}
 
-Spectral clustering methods such as PCCA+  \cite{Deuflhard2000, Deuflhard2005, kube2007coarse} can be used to construct metastable models with a minimal number of states.  First, we need to construct a microstate model with a short lagtime.  The short lagtime is necessary because PCCA+ tries to create macrostates that are long-lived, or metastable.  At long lagtimes, states become less and less metastable.
+Spectral clustering methods such as PCCA+  \cite{Deuflhard2000, Deuflhard2005, kube2007coarse} can be used to construct metastable models with a minimal number of states.  You may also be interested in trying a Bayesian method called BACE \cite{Bowman2012} that appears to outperform existing spectral methods.  However, for the purpose of this Tutorial, we will focus on the more standard spectral methods.
+
+First, we need to construct a microstate model with a short lagtime.  The short lagtime is necessary because PCCA+ tries to create macrostates that are long-lived, or metastable.  At long lagtimes, states become less and less metastable.
 
 \begin{verbatim}
  BuildMSM.py -l 1 -o L1
@@ -356,6 +358,9 @@ Notes:
  \item PCCA+ requires a reversible MSM as input
  \item You can discard eigenvectors based on their equilibrium flux (fPCCA+).
 \end{enumerate}
+
+\subsubsection{BACE\_Coarse\_Graining.py}
+An alternative method for lumping microstates into macrostates using a Bayesian approach (Bayesian agglomerative clustering engine) \cite{Bowman2012}.  This is an attractive option as it appears to outperform existing spectral methods.  To learn how to use BACE, run the script with the -h option.
 
 \newpage
 

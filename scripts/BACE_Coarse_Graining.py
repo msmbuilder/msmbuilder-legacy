@@ -375,7 +375,11 @@ The algorithm works by iteratively merging states until the final desired number
 
 Results are often obtained most quickly by forcing the program to use dense matrices (with the -f option) and using a single processor.  Sparse matrices (and possibly multiple processors) are useful when insufficient  memory is available to use dense matrices.
 
-A macrostate model may be attractive for further analysis if further reducing the number of macrostates (M) causes a large increase in the Bayes factor (cost), as reported in the bayesFactors.dat output file described below.  For example, if the Bayes factor increases steadily as one goes from models with M-5, M-4, ..., M states but increases much more dramatically when going from M to M-1 states, then a model with M states may be of interest because the sudden increase in the Bayes factor for going to M-1 states suggests two very distinct free energy basins are being merged.
+A macrostate model may be attractive for further analysis if further reducing the number of macrostates (M) causes a large increase in the Bayes factor (cost), as reported in the bayesFactors.dat output file described below.  For example, if the Bayes factor increases steadily as one goes from models with M-5, M-4, ..., M states but increases much more dramatically when going from M to M-1 states, then a model with M states may be of interest because the sudden increase in the Bayes factor for going to M-1 states suggests two very distinct free energy basins are being merged.  To make these judgments, it is often useful to plot the Bayes factor as a function of the number of macrostates.
+
+Once you have chosen the number of macrostates (M) you wish to analyze further, you can calculate the appropriate transition matrices using the BuildMSM.py script.  For example, to build a model with 5 macrostates you might run something like
+    BuildMSM.py -l 1 -a Data/Assignments.Fixed.h5 -m Output_BACE/map5.dat -o BACE_5state
+The -m option is the crucial addition for directing the script to apply the specified mapping from the microstates in the h5 file to the macrostates specified by the -m option.
 
 Outputs (stored in the directory specified with outDir): 
     bayesFactors.dat = the Bayes factors (cost) for each merging of two states. The first column is the number of macrostates (M) and the second column is the Bayes factor (cost) for coarse-graining from M+1 states to M states.
