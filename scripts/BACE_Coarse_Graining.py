@@ -373,7 +373,11 @@ if __name__ == '__main__':
 
 The algorithm works by iteratively merging states until the final desired number of states (the nMacro parameter) is reached.
 
-Description output (put into directory specified with outDir): 
+Results are often obtained most quickly by forcing the program to use dense matrices (with the -f option) and using a single processor.  Sparse matrices (and possibly multiple processors) are useful when insufficient  memory is available to use dense matrices.
+
+A macrostate model may be attractive for further analysis if further reducing the number of macrostates (M) causes a large increase in the Bayes factor (cost), as reported in the bayesFactors.dat output file described below.  For example, if the Bayes factor increases steadily as one goes from models with M-5, M-4, ..., M states but increases much more dramatically when going from M to M-1 states, then a model with M states may be of interest because the sudden increase in the Bayes factor for going to M-1 states suggests two very distinct free energy basins are being merged.
+
+Outputs (stored in the directory specified with outDir): 
     bayesFactors.dat = the Bayes factors (cost) for each merging of two states. The first column is the number of macrostates (M) and the second column is the Bayes factor (cost) for coarse-graining from M+1 states to M states.
     mapX.dat = the mapping from the original state numbering to X coarse-grained states.'''
 
@@ -381,8 +385,8 @@ Description output (put into directory specified with outDir):
     add_argument(parser, '-c', dest='tCountFn', help='Path to transition count matrix file (sparse and dense formats accepted).', required=True)
     add_argument(parser, '-n', dest='nMacro', help='Minimum number of macrostates to make.', default=2, type=int)
     add_argument(parser, '-p', dest='nProc', help='Number of processors to use.', default=1, type=int, required=False)
-    add_argument(parser, '-f', dest='forceDense', help='If true, will force transition matrix into a dense format. Using the dense format is faster if you have enough memory.', default=False, type=bool, required=False, nargs='?', const=True)
-    add_argument(parser, '-o', dest='outDir', help='Path to save output to.', default="Output_BACE", required=False)
+    add_argument(parser, '-f', dest='forceDense', help='If true, the program will force the transition matrix into a dense format. Using the dense format is faster if you have enough memory.', default=False, type=bool, required=False, nargs='?', const=True)
+    add_argument(parser, '-o', dest='outDir', help='Path to save the output to.', default="Output_BACE", required=False)
     args = parser.parse_args()
 
     if "mtx" in args.tCountFn:
