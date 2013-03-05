@@ -17,6 +17,12 @@ G.~R. Bowman, K.~A. Beauchamp, G.~Boxer, and V.~S. Pande.
   state models for full protein systems}.
 \newblock {\em J. Chem. Phys.}, 131:124101, Sep 2009.
 
+\bibitem{Bowman2012}
+G.R. Bowman.
+\newblock Improved coarse-graining of markov state models via explicit
+  consideration of statistical uncertainty.
+\newblock {\em J. Chem. Phys.}, 137:134111, 2012.
+
 \bibitem{Bowman2009a}
 G.R. Bowman, X.~Huang, and V.S. Pande.
 \newblock Using generalized ensemble simulations and markov state models to
