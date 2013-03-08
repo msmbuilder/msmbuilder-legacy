@@ -307,8 +307,11 @@ def filterFuncDense(c, nProc):
     logger.info("Merging %d states with insufficient statistics into their kinetically-nearest neighbor", statesPrune.shape[0])
 
     for s in statesPrune:
-        dest = c[s,:].argmax()
+        row = c[s,:]
+        row[s] = 0
+        dest = row.argmax()
         c[dest,:] += c[s,:]
+        c[:,dest] += c[:,s]
         c[s,:] = 0
         c[:,s] = 0
         map = renumberMap(map, map[s])
@@ -358,8 +361,11 @@ def filterFuncSparse(c, nProc):
     logger.info("Merging %d states with insufficient statistics into their kinetically-nearest neighbor", statesPrune.shape[0])
 
     for s in statesPrune:
-        dest = c.rows[s][np.argmax(c.data[s])]
+        row = c[s,:].toarray()[0]
+        row[s] = 0
+        dest = row.argmax()
         c[dest,:] += c[s,:]
+        c[:,dest] += c[:,s]
         c[s,:] = 0
         c[:,s] = 0
         map = renumberMap(map, map[s])
