@@ -1,12 +1,12 @@
 import numpy as np
 
-from lumper import Lumper
+from lumper import EigenvectorLumper
 
 import logging
 logger = logging.getLogger(__name__)
 
 
-class PCCA(Lumper):
+class PCCA(EigenvectorLumper):
     def __init__(self, T, num_macrostates, tolerance=1E-5, flux_cutoff=None):
         """Create a lumped model using the PCCA algorithm.
         
@@ -42,7 +42,7 @@ class PCCA(Lumper):
         aggregates in reversible nearly uncoupled markov chains,"
         Linear Algebra Appl., vol 315 pp 39-59, 2000.    
         """        
-        Lumper.__init__(self, T, num_macrostates, flux_cutoff=None)
+        EigenvectorLumper.__init__(self, T, num_macrostates, flux_cutoff=None)
         self.lump(tolerance=tolerance)
 
     def lump(self, tolerance):

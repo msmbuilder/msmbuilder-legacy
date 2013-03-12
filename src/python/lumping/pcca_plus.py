@@ -6,13 +6,13 @@ tr = np.trace
 
 import scipy.optimize
 
-from lumper import Lumper
+from lumper import EigenvectorLumper
 
 import logging
 logger = logging.getLogger(__name__)
 
 
-class PCCAPlus(Lumper):
+class PCCAPlus(EigenvectorLumper):
     def __init__(self, T, num_macrostates, objective_function="crisp_metastability", flux_cutoff=None, do_minimization=True):
         """Perform PCCA+ lumping and return PCCA+ object.
     
@@ -96,7 +96,7 @@ class PCCAPlus(Lumper):
             possible_objective_functions = ["crispness", "crisp_metastability", "metastability"]
             raise Exception("objective_function must be one of ", possible_objective_functions)        
         
-        Lumper.__init__(self,T,num_macrostates,flux_cutoff=None)
+        EigenvectorLumper.__init__(self,T,num_macrostates,flux_cutoff=None)
         self.lump(do_minimization=do_minimization)
 
     def lump(self, do_minimization=True):
