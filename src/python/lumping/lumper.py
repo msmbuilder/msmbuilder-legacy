@@ -11,6 +11,19 @@ logger = logging.getLogger(__name__)
 
 class Lumper():
     def __init__(self,T,num_macrostates,flux_cutoff=None):
+        """Base class for PCCA and PCCA+.
+               
+        Parameters
+        ----------
+        T : csr sparse matrix
+            Transition matrix
+        num_macrostates : int
+            Desired number of macrostates
+        flux_cutoff : float
+            Can be set to discard low-flux eigenvectors.
+        """
+        
+        
         self.T = T
         self.num_macrostates = num_macrostates        
         
@@ -28,6 +41,7 @@ class Lumper():
     
 
 def construct_right_eigenvectors(left_eigenvectors, populations, num_macrostates):
+    """Calculate normalized right eigenvectors from left eigenvectors and populations."""
     right_eigenvectors = left_eigenvectors.copy()
     for i in range(num_macrostates):
         right_eigenvectors[:, i] /= populations
@@ -60,8 +74,7 @@ def normalize_left_eigenvectors(left_eigenvectors):
 
 
 def trim_eigenvectors_by_flux(eigenvalues, left_eigenvectors, flux_cutoff):
-    """
-    Trim eigenvectors that have low equilibrium flux.
+    """Trim eigenvectors that have low equilibrium flux.
 
     Parameters
     ----------
