@@ -190,6 +190,8 @@ def get_implied_timescales(assignments_fn, lag_times, n_implied_times=100, slidi
 
     formatted_lags = np.array(formatted_lags)
 
+    pool.close()
+
     return formatted_lags
 
 
