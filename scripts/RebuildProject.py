@@ -1,15 +1,12 @@
 import numpy as np
 import glob
 import logging
-from msmbuilder import Trajectory, Project, utils
+from msmbuilder import Trajectory, Project, utils, arglib
 
 logger = logging.getLogger('msmbuilder.scripts.RebuildProject')
 
-traj_dir = "./Trajectories/"
-conf_filename = "native.pdb"
-project_filename = './ProjectInfo.yaml'
 
-def run(traj_dir=traj_dir, conf_filename=conf_filename, project_filename=project_filename):
+def run(traj_dir, conf_filename, project_filename):
     logger.info("Rebuilding project.")
     file_list = glob.glob(traj_dir + "/trj*.lh5")
     num_traj = len(file_list)
@@ -35,4 +32,16 @@ def run(traj_dir=traj_dir, conf_filename=conf_filename, project_filename=project
     logger.info("Wrote %s" % project_filename)
     
 if __name__ == "__main__":
-    run()
+    parser = arglib.ArgumentParser(description=
+                                   """Rebuild the project file (ProjectInfo.yaml).
+                                   This is useful when trajectory files have been 
+                                   deleted, or when you have lost your ProjectInfo 
+                                   file.
+                                   \nOutput: ProjectInfo.yaml
+                                   """)
+    parser.add_argument('traj_dir',default="./Trajectories/")
+    parser.add_argument('conf_filename',default="native.pdb")
+    parser.add_argument('project_filename',default="./ProjectInfo.yaml")
+    args = parser.parse_args()
+    
+    run(args.traj_dir, args.conf_filename, args.project_filename)
