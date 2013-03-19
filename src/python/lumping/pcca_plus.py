@@ -12,6 +12,130 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def metastability(alpha, T, right_eigenvectors, square_map, pi):
+    """Return the metastability PCCA+ objective function.
+
+    Parameters
+    ----------
+    alpha : ndarray
+        Parameters of objective function (e.g. flattened A)
+    T : csr sparse matrix
+        Transition matrix
+    right_eigenvectors : ndarray
+        The right eigenvectors.
+    square_map : ndarray
+        Mapping from square indices (i,j) to flat indices (k).
+    pi : ndarray
+        Equilibrium Populations of transition matrix.
+
+    Returns
+    -------
+    obj : float
+        The objective function
+
+    Notes
+    -------
+    metastability: try to make metastable fuzzy state decomposition.
+    Defined in ref. [2].
+    """
+
+    num_micro, num_eigen = right_eigenvectors.shape
+
+    A, chi, mapping = calculate_fuzzy_chi(alpha, square_map, right_eigenvectors)
+
+    if len(np.unique(mapping)) != right_eigenvectors.shape[1] or has_constraint_violation(A, right_eigenvectors):  # If current point is infeasible or leads to degenerate lumping.
+        return -1.0 * np.inf
+
+    obj = 0.0
+    for i in range(num_eigen):  # Calculate  metastabilty of the lumped model.  Eqn 4.20 in LAA.
+        obj += np.dot(T.dot(chi[:, i]), pi * chi[:, i]) / np.dot(chi[:, i], pi)
+
+    return obj
+
+
+def crisp_metastability(alpha, T, right_eigenvectors, square_map, pi):
+    """Return the crisp_metastability PCCA+ objective function.
+
+    Parameters
+    ----------
+    alpha : ndarray
+        Parameters of objective function (e.g. flattened A)
+    T : csr sparse matrix
+        Transition matrix
+    right_eigenvectors : ndarray
+        The right eigenvectors.
+    square_map : ndarray
+        Mapping from square indices (i,j) to flat indices (k).
+    pi : ndarray
+        Equilibrium Populations of transition matrix.
+
+    Returns
+    -------
+    obj : float
+        The objective function
+
+    Notes
+    -------
+    crisp_metastability: try to make the resulting crisp msm metastable.
+    This is the recommended choice.  This is the metastability (trace)
+    of a transition matrix computed by forcing a crisp (non-fuzzy)
+    microstate mapping.  Defined in ref. [2].
+    """
+
+    num_micro, num_eigen = right_eigenvectors.shape
+
+    A, chi_fuzzy, mapping = calculate_fuzzy_chi(alpha, square_map, right_eigenvectors)
+
+    chi = 0.0 * chi_fuzzy  # Make the membership matrix "crisp"
+    chi[np.arange(num_micro), mapping] = 1.
+
+    if len(np.unique(mapping)) != right_eigenvectors.shape[1] or has_constraint_violation(A, right_eigenvectors):  # If current point is infeasible or leads to degenerate lumping.
+        return -1.0 * np.inf
+
+    obj = 0.0
+    for i in range(num_eigen):  # Calculate  metastabilty of the lumped model.  Eqn 4.20 in LAA.
+        obj += np.dot(T.dot(chi[:, i]), pi * chi[:, i]) / np.dot(chi[:, i], pi)
+
+    return obj
+
+
+def crispness(alpha, T, right_eigenvectors, square_map, pi):
+    """Return the crispness PCCA+ objective function.
+
+    Parameters
+    ----------
+    alpha : ndarray
+        Parameters of objective function (e.g. flattened A)
+    T : csr sparse matrix
+        Transition matrix
+    right_eigenvectors : ndarray
+        The right eigenvectors.
+    square_map : ndarray
+        Mapping from square indices (i,j) to flat indices (k).
+    pi : ndarray
+        Equilibrium Populations of transition matrix.
+
+    Returns
+    -------
+    obj : float
+        The objective function
+
+    Notes
+    -------
+    Tries to make crisp state decompostion.  This function is
+    defined in [3].
+    """
+
+    A, chi, mapping = calculate_fuzzy_chi(alpha, square_map, right_eigenvectors)
+
+    if len(np.unique(mapping)) != right_eigenvectors.shape[1] or has_constraint_violation(A, right_eigenvectors):  # If current point is infeasible or leads to degenerate lumping.
+        return -1.0 * np.inf
+
+    obj = tr(dot(diag(1. / A[0]), dot(A.transpose(), A)))
+
+    return obj
+
+
 class PCCAPlus(EigenvectorLumper):
     def __init__(self, T, num_macrostates, objective_function="crisp_metastability", flux_cutoff=None, do_minimization=True):
         """Perform PCCA+ lumping and return PCCA+ object.
@@ -296,25 +420,25 @@ def index_search(right_eigenvectors):
         Indices of simplex
     """
 
-    n, N = right_eigenvectors.shape
+    num_micro, num_eigen = right_eigenvectors.shape
 
-    index = np.zeros(N, 'int')
+    index = np.zeros(num_eigen, 'int')
 
     # first vertex: row with largest norm
-    index[0] = np.argmax([norm(right_eigenvectors[i]) for i in range(n)])
+    index[0] = np.argmax([norm(right_eigenvectors[i]) for i in range(num_micro)])
 
-    OrthoSys = right_eigenvectors - np.outer(np.ones(n), right_eigenvectors[index[0]])
+    ortho_sys = right_eigenvectors - np.outer(np.ones(num_micro), right_eigenvectors[index[0]])
 
-    for j in range(1, N):
-        temp = OrthoSys[index[j - 1]].copy()
-        for l in range(n):
-            OrthoSys[l] -= temp * dot(OrthoSys[l], temp)
+    for j in range(1, num_eigen):
+        temp = ortho_sys[index[j - 1]].copy()
+        for l in range(num_micro):
+            ortho_sys[l] -= temp * dot(ortho_sys[l], temp)
 
-        distlist = np.array([norm(OrthoSys[l]) for l in range(n)])
+        dist_list = np.array([norm(ortho_sys[l]) for l in range(num_micro)])
 
-        index[j] = np.argmax(distlist)
+        index[j] = np.argmax(dist_list)
 
-        OrthoSys /= distlist.max()
+        ortho_sys /= dist_list.max()
 
     return index
 
@@ -335,7 +459,7 @@ def fill_A(A, right_eigenvectors):
     A : ndarray
         Feasible transformation matrix.
     """
-    n, N = right_eigenvectors.shape
+    num_micro, num_eigen = right_eigenvectors.shape
 
     A = A.copy()
 
@@ -377,129 +501,3 @@ def calculate_fuzzy_chi(alpha, square_map, right_eigenvectors):
     chi_fuzzy = np.dot(right_eigenvectors, A)  # Calculate the fuzzy membership matrix.
     mapping = np.argmax(chi_fuzzy, 1)  # Calculate the microstate mapping.
     return A, chi_fuzzy, mapping
-
-
-def metastability(alpha, T, right_eigenvectors, square_map, pi):
-    """Return the metastability PCCA+ objective function.
-
-    Parameters
-    ----------
-    alpha : ndarray
-        Parameters of objective function (e.g. flattened A)
-    T : csr sparse matrix
-        Transition matrix
-    right_eigenvectors : ndarray
-        The right eigenvectors.
-    square_map : ndarray
-        Mapping from square indices (i,j) to flat indices (k).
-    pi : ndarray
-        Equilibrium Populations of transition matrix.
-
-    Returns
-    -------
-    obj : float
-        The objective function
-
-    Notes
-    -------
-    metastability: try to make metastable fuzzy state decomposition.
-    Defined in ref. [2].
-    """
-
-    n, N = right_eigenvectors.shape
-
-    A, chi, mapping = calculate_fuzzy_chi(alpha, square_map, right_eigenvectors)
-
-    if len(np.unique(mapping)) != right_eigenvectors.shape[1] or has_constraint_violation(A, right_eigenvectors):  # If current point is infeasible or leads to degenerate lumping.
-        return -1.0 * np.inf
-
-    obj = 0.0
-    for i in range(N):  # Calculate  metastabilty of the lumped model.  Eqn 4.20 in LAA.
-        obj += np.dot(T.dot(chi[:, i]), pi * chi[:, i]) / np.dot(chi[:, i], pi)
-
-    return obj
-
-
-def crisp_metastability(alpha, T, right_eigenvectors, square_map, pi):
-    """Return the crisp_metastability PCCA+ objective function.
-
-    Parameters
-    ----------
-    alpha : ndarray
-        Parameters of objective function (e.g. flattened A)
-    T : csr sparse matrix
-        Transition matrix
-    right_eigenvectors : ndarray
-        The right eigenvectors.
-    square_map : ndarray
-        Mapping from square indices (i,j) to flat indices (k).
-    pi : ndarray
-        Equilibrium Populations of transition matrix.
-
-    Returns
-    -------
-    obj : float
-        The objective function
-
-    Notes
-    -------
-    crisp_metastability: try to make the resulting crisp msm metastable.
-    This is the recommended choice.  This is the metastability (trace)
-    of a transition matrix computed by forcing a crisp (non-fuzzy)
-    microstate mapping.  Defined in ref. [2].
-    """
-
-    n, N = right_eigenvectors.shape
-
-    A, chi_fuzzy, mapping = calculate_fuzzy_chi(alpha, square_map, right_eigenvectors)
-
-    chi = 0.0 * chi_fuzzy  # Make the membership matrix "crisp"
-    chi[np.arange(n), mapping] = 1.
-
-    if len(np.unique(mapping)) != right_eigenvectors.shape[1] or has_constraint_violation(A, right_eigenvectors):  # If current point is infeasible or leads to degenerate lumping.
-        return -1.0 * np.inf
-
-    obj = 0.0
-    for i in range(N):  # Calculate  metastabilty of the lumped model.  Eqn 4.20 in LAA.
-        obj += np.dot(T.dot(chi[:, i]), pi * chi[:, i]) / np.dot(chi[:, i], pi)
-
-    return obj
-
-
-def crispness(alpha, T, right_eigenvectors, square_map, pi):
-    """Return the crispness PCCA+ objective function.
-
-    Parameters
-    ----------
-    alpha : ndarray
-        Parameters of objective function (e.g. flattened A)
-    T : csr sparse matrix
-        Transition matrix
-    right_eigenvectors : ndarray
-        The right eigenvectors.
-    square_map : ndarray
-        Mapping from square indices (i,j) to flat indices (k).
-    pi : ndarray
-        Equilibrium Populations of transition matrix.
-
-    Returns
-    -------
-    obj : float
-        The objective function
-
-    Notes
-    -------
-    Tries to make crisp state decompostion.  This function is
-    defined in [3].
-    """
-
-    n, N = right_eigenvectors.shape
-
-    A, chi, mapping = calculate_fuzzy_chi(alpha, square_map, right_eigenvectors)
-
-    if len(np.unique(mapping)) != right_eigenvectors.shape[1] or has_constraint_violation(A, right_eigenvectors):  # If current point is infeasible or leads to degenerate lumping.
-        return -1.0 * np.inf
-
-    obj = tr(dot(diag(1. / A[0]), dot(A.transpose(), A)))
-
-    return obj

@@ -32,7 +32,7 @@ class PCCA(EigenvectorLumper):
             mapping from the Microstate indices to the Macrostate indices
 
         Notes
-        -----
+        -------
         To construct a Macrostate MSM, you then need to map your Assignment data to
         the new states (e.g. MSMLib.apply_mapping_to_assignments).
 
@@ -46,6 +46,15 @@ class PCCA(EigenvectorLumper):
         self.lump(tolerance=tolerance)
 
     def lump(self, tolerance):
+        """Do the PCCA lumping.
+
+        Notes
+        -------
+        1.  Iterate over the eigenvectors, starting with the slowest.
+        2.  Calculate the spread of that eigenvector within each existing macrostate.
+        3.  Pick the macrostate with the largest eigenvector spread.
+        4.  Split the macrostate based on the sign of the eigenvector.
+        """
 
         right_eigenvectors = self.right_eigenvectors[:, 1:]  # Extract non-perron eigenvectors
 
@@ -53,17 +62,11 @@ class PCCA(EigenvectorLumper):
 
         #Function to calculate the spread of a single eigenvector.
         spread = lambda x: x.max() - x.min()
-        """
-        1.  Iterate over the eigenvectors, starting with the slowest.
-        2.  Calculate the spread of that eigenvector within each existing macrostate.
-        3.  Pick the macrostate with the largest eigenvector spread.
-        4.  Split the macrostate based on the sign of the eigenvector.
-        """
 
         for i in range(self.num_macrostates - 1):  # Thus, if we want 2 states, we split once.
             v = right_eigenvectors[:, i]
-            AllSpreads = np.array([spread(v[microstate_mapping == k]) for k in range(i + 1)])
-            StateToBeSplit = np.argmax(AllSpreads)
-            microstate_mapping[(microstate_mapping == StateToBeSplit) & (v >= tolerance)] = i + 1
+            all_spreads = np.array([spread(v[microstate_mapping == k]) for k in range(i + 1)])
+            state_to_split = np.argmax(all_spreads)
+            microstate_mapping[(microstate_mapping == state_to_split) & (v >= tolerance)] = i + 1
 
         self.microstate_mapping = microstate_mapping
