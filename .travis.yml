@@ -28,6 +28,7 @@ install:
     - sudo apt-get install python-pandas
     - sudo apt-get install python-statsmodels
     - sudo easy_install fastcluster
+    - none /dev/shm tmpfs defaults 0 0    
 script:
     - sudo python setup.py install
     - nosetests -vv
