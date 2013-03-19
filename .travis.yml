@@ -28,7 +28,7 @@ install:
     - sudo apt-get install python-pandas
     - sudo apt-get install python-statsmodels
     - sudo easy_install fastcluster
-    - sudo sh -c "echo 'none /dev/shm tmpfs rw,nosuid,nodev,noexec 0 0' >> /etc/fstab"
+    - sudo rm -rf /dev/shm && sudo ln -s /run/shm /dev/shm     
 script:
     - sudo python setup.py install
     - nosetests -vv
