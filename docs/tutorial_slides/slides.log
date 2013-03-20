@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=pdflatex 2012.7.25)  19 MAR 2013 22:01
+This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=pdflatex 2012.7.25)  19 MAR 2013 22:28
 entering extended mode
  %&-line parsing enabled.
 **slides.tex
@@ -1363,6 +1363,12 @@ File: Figures/macro_implied-cut.pdf Graphic file (type pdf)
 
 
 (./slides.vrb
+Overfull \hbox (39.2071pt too wide) in paragraph at lines 5--5
+[]\OT1/cmtt/m/n/10 SaveStructures.py -s -1 -a Macro4/MacroAssignments.h5  -c 1 
+-S sep[] 
+ []
+
+
 Overfull \hbox (12.95734pt too wide) in paragraph at lines 5--5
 []\OT1/cmtt/m/n/10 pymol PDBs/State0-0.pdb PDBs/State1-0.pdb PDBs/State2-0.pdb 
 \[] 
@@ -1376,7 +1382,17 @@ Overfull \vbox (8.86826pt too high) detected at line 515
 
 [39
 
- <./Figures/ala.png>]
+ <./Figures/ala.png>] <Figures/GitHub.png, id=643, 1284.8pt x 803.0pt>
+File: Figures/GitHub.png Graphic file (type png)
+
+<use Figures/GitHub.png>
+Overfull \hbox (5.69043pt too wide) in paragraph at lines 522--522
+ [][] 
+ []
+
+[40
+
+ <./Figures/GitHub.png (PNG copy)>]
 \tf@nav=\write6
 \openout6 = `slides.nav'.
 
@@ -1393,10 +1409,10 @@ LaTeX Font Warning: Size substitutions with differences
 
  ) 
 Here is how much of TeX's memory you used:
- 15317 strings out of 495061
- 281032 string characters out of 1182621
+ 15326 strings out of 495061
+ 281168 string characters out of 1182621
  337057 words of memory out of 3000000
- 17948 multiletter control sequences out of 15000+50000
+ 17954 multiletter control sequences out of 15000+50000
  29069 words of font info for 93 fonts, out of 3000000 for 9000
  28 hyphenation exceptions out of 8191
  49i,11n,53p,395b,526s stack positions out of 5000i,500n,10000p,200000b,50000s
@@ -1413,9 +1429,9 @@ s/type1/public/amsfonts/cm/cmtt10.pfb></usr/share/texmf-texlive/fonts/type1/pub
 lic/mathpazo/fplmr.pfb></usr/share/texmf-texlive/fonts/type1/public/mathpazo/fp
 lmri.pfb></usr/share/texmf-texlive/fonts/type1/public/amsfonts/symbols/msam10.p
 fb>
-Output written on slides.pdf (39 pages, 12770129 bytes).
+Output written on slides.pdf (40 pages, 12945630 bytes).
 PDF statistics:
- 705 PDF objects out of 1000 (max. 8388607)
- 79 named destinations out of 1000 (max. 500000)
- 163 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 711 PDF objects out of 1000 (max. 8388607)
+ 81 named destinations out of 1000 (max. 500000)
+ 168 words of extra memory for PDF output out of 10000 (max. 10000000)
 
