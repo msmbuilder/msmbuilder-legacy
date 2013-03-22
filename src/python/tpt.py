@@ -827,8 +827,9 @@ def calculate_committors(sources, sinks, tprob):
     else:
         Q = np.linalg.solve(T, RHS)
 
-    assert np.all(Q <= 1.0)
-    assert np.all(Q >= 0.0)
+    epsilon = 0.001
+    assert np.all(Q <= 1.0 + epsilon)
+    assert np.all(Q >= 0.0 - epsilon)
 
     return Q
 
