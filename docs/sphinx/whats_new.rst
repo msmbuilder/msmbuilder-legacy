@@ -36,6 +36,8 @@ What's New
 
    - Switched to YAML for storing project information.  
 
+   - Added script RebuildProject.py to construct YAML ProjectInfo file.
+
    - Deleted the :class:`Serializer` class.
 
    - New msmbuilder.io module for storing output.  
@@ -46,6 +48,7 @@ What's New
    
    - Updates to tutorials.   
 
+   - Rewrote lumping code for improved readability.  
 
 2.5.1 Changelog
 ---------------
