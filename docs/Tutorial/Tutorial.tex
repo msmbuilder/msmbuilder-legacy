@@ -117,7 +117,7 @@ Finally, in this tutorial we assume that you have installed pymol for viewing co
 
 \subsubsection{Move to tutorial directory, prepare trajectories}
 \begin{verbatim}
-cd msmbuilder_tutorial 
+cd Tutorial 
 \end{verbatim}
 
 \subsubsection{Create an MSMBuilder Project}
@@ -171,7 +171,6 @@ BuildMSM.py -l 3
 At this point, MSMBuilder has written the following files into your ./Data/ directory:
 \begin{verbatim}
 Assignments.Fixed.h5
-tCounts.UnSym.mtx
 tCounts.mtx
 tProb.mtx
 Mapping.dat
@@ -179,8 +178,6 @@ Populations.dat
 \end{verbatim}
 
 Assignments.Fixed.h5 contains a “fixed” version of your microstate assignments that has removed all data that is trimmed the maximal ergodic subgraph of your data.  
-
-tCounts.UnSym.mtx contains the raw counts of the ergodic data.  These counts may not be reversible (thus, the count matrix may not be symmetric).  
 
 tCounts.mtx contains the maximum likelihood estimated reversible count matrix.  This is a symmetric matrix.  
 

@@ -82,7 +82,7 @@ if __name__ == "__main__":
                                    produced. Outputs will be saved in the directory of your input Assignments.h5
                                    file.
                                    \nOutput: tCounts.mtx, tProb.mtx, Populations.dat,  Mapping.dat,
-                                   Assignments.Fixed.h5, tCounts.UnSym.mtx""")
+                                   Assignments.Fixed.h5""")
     parser.add_argument('assignments')
     parser.add_argument('symmetrize', help="""Method by which to estimate a
                         symmetric counts matrix. Symmetrization ensures reversibility, but may skew
