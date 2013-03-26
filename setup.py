@@ -5,7 +5,7 @@ import os, sys
 from glob import glob
 import subprocess
 
-VERSION = "2.6.0"
+VERSION = "2.7.dev"
 ISRELEASED = False
 __author__ = "MSMBuilder Team"
 __version__ = VERSION
