@@ -70,7 +70,7 @@ def import_sparse_eig():
 sparse_eigen = import_sparse_eig()
 
 
-def get_eigenvectors(t_matrix, n_eigs, epsilon=.001, dense_cutoff=50, right=False):
+def get_eigenvectors(t_matrix, n_eigs, epsilon=.001, dense_cutoff=50, right=False, tol=1E-30):
     """Get the left eigenvectors of a transition matrix, sorted by eigenvalue
     magnitude
 
@@ -86,6 +86,8 @@ def get_eigenvectors(t_matrix, n_eigs, epsilon=.001, dense_cutoff=50, right=Fals
         use dense eigensolver if dimensionality is below this
     right : bool, optional
         if true, compute the right eigenvectors instead of the left
+    tol : float, optional
+        Convergence criterion for sparse eigenvalue solver.
 
 
     Returns
@@ -98,7 +100,8 @@ def get_eigenvectors(t_matrix, n_eigs, epsilon=.001, dense_cutoff=50, right=Fals
     Notes
     -----
     Left eigenvectors satisfy the relation :math:`V \mathbf{T} = \lambda V`
-    Vectors are returned in columns of matrix.
+    Vectors are returned in columns of matrix.  
+    Too large a value of tol may lead to unstable results.  See GitHub issue #174.
     """
 
     check_transition(t_matrix, epsilon)
@@ -120,7 +123,7 @@ def get_eigenvectors(t_matrix, n_eigs, epsilon=.001, dense_cutoff=50, right=Fals
         t_matrix = t_matrix.transpose()
 
     if scipy.sparse.issparse(t_matrix):
-        values, vectors = sparse_eigen(t_matrix.tocsr(), n_eigs, which="LR", maxiter=100000)
+        values, vectors = sparse_eigen(t_matrix.tocsr(), n_eigs, which="LR", maxiter=100000,tol=tol)
     else:
         values, vectors = eig(t_matrix)
 
