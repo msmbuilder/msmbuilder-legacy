@@ -72,7 +72,8 @@ class TestTPT():
         fluxes_ref = io.loadh( tpt_get("dijkstra_fluxes.h5"), 'Data')
         bottlenecks_ref = io.loadh( tpt_get("dijkstra_bottlenecks.h5"), 'Data')
 
-        #npt.assert_array_almost_equal(path_output[0], paths_ref)
+        for i in xrange(len(paths_ref)):
+            npt.assert_array_almost_equal(path_output[0][i], paths_ref[i])
         npt.assert_array_almost_equal(path_output[1], bottlenecks_ref)
         npt.assert_array_almost_equal(path_output[2], fluxes_ref)
         
