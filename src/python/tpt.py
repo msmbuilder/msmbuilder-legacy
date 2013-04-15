@@ -350,16 +350,16 @@ def _backtrack(B, b, pi, NFlux):
                 path.append(pi[path[-1]])
         path.reverse()
 
-        bottleneck, Flux = find_path_bottleneck(path, NFlux)
+        bottleneck, flux = find_path_bottleneck(path, NFlux)
 
-        logger.debug('In Backtrack: Flux %s, bestflux %s', Flux, bestflux)
+        logger.debug('In Backtrack: Flux %s, bestflux %s', flux, bestflux)
 
-        if Flux > bestflux:
+        if flux > bestflux:
             bestpath = path
             bestbottleneck = bottleneck
-            bestflux = Flux
+            bestflux = flux
 
-    if Flux == 0:
+    if flux == 0:
         bestpath = []
         bottleneck = (np.nan, np.nan)
         bestflux = 0
