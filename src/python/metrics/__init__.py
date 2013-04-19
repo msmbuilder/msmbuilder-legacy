@@ -15,3 +15,4 @@ from baseclasses import Vectorized
 from rmsd import RMSD
 from dihedral import Dihedral
 from contact import BooleanContact, AtomPairs, ContinuousContact
+from hybrid import Hybrid, HybridPNorm
