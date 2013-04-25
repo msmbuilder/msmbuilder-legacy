@@ -137,7 +137,7 @@ After clustering, one must assign the data to the clusters.  For the clustering 
 
 The assignments of each conformation are stored as Data/Assignments.h5.  The cluster centers are stored as Data/Gens.lh5.  
 
-Note that clustering with the RMSD metric requires a list of which atom indices to use during RMSD calculation.  This file is typically called AtomIndices.dat and can typically be created using the script CreateAtomIndices.py.  Because alanine dipeptide contains non-standard atom names, it cannot be generated automatically; a default AtomIndices.dat has already been placed in the Tutorial directory for your use.  
+Note that clustering with the RMSD metric requires a list of which atom indices to use during RMSD calculation.  This file is typically called AtomIndices.dat and can typically be created using the script CreateAtomIndices.py.  Because alanine dipeptide contains non-standard atom names, it cannot be generated automatically; a default AtomIndices.dat has already been placed in the Tutorial directory for your use.  Note that AtomIndices.dat uses \emph{zero} based indexing--the first atom in your system has index 0.  
 
 \subsubsection{Alternative Clustering Protocols}
 
