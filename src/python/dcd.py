@@ -197,7 +197,7 @@ class DCDReader:
             # supress the PEP3118 warning
             # http://stackoverflow.com/questions/4964101/pep-3118-warning-when-using-ctypes-array-as-numpy-array
             warnings.simplefilter("ignore")
-            coords = np.asfarray(np.array(xyzvec).reshape(self.natoms.value, 3))
+            coords = np.asfarray(np.ctypeslib.as_array(xyzvec).reshape(self.natoms.value, 3))
             
         if self._atomindices != None:
             coords = coords[self._atomindices, ]
