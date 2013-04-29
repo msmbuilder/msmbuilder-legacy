@@ -66,8 +66,8 @@ class TransitionSampler(Sampler):
         C : ndarray
             Count matrix
         alpha : float
-            Strength of Dirichlet prior.  Default %f
-        """ % ALPHA
+            Strength of Dirichlet prior.
+        """
         Sampler.__init__(self, C)
 
         initial = MSMLib.estimate_transition_matrix(C)
@@ -98,8 +98,8 @@ class RateSampler(Sampler):
         C : ndarray
             Count matrix
         beta : float
-            Parameter of exponential prior.  Default %f
-        """ % BETA
+            Parameter of exponential prior. 
+        """
         Sampler.__init__(self, C)
 
         T = MSMLib.estimate_transition_matrix(C)
@@ -186,9 +186,9 @@ class ReversibleRateSampler(Sampler):
         C : ndarray
             Count matrix
         beta : float
-            Parameter of exponential prior, default = %f
+            Parameter of exponential prior
         alpha : float
-            Parameter of Dirichlet prior, default = %f
+            Parameter of Dirichlet prior
 
         Notes
         -----
@@ -199,7 +199,7 @@ class ReversibleRateSampler(Sampler):
         We model the upper triangle (exclusive) of S using independent 
         exponential variables.  We model the equilibrium populations 
         as a Dirichlet variable.  
-        """ % (BETA, ALPHA)
+        """ 
         Sampler.__init__(self, C)
 
         self.num_tril = np.tril_indices_from(C,-1)[0].shape[0]
