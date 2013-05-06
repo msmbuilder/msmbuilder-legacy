@@ -34,15 +34,17 @@ class Sampler():
         self.C = C
         self.num_states = C.shape[0]
 
-    def sample(self, num_steps, thin=1, filename=None):
+    def sample(self, num_steps, thin=1, burn=0, filename=None):
         """Sample the MCMC chain and store the results.
 
         Parameters
         ----------
         num_steps : int
             How many MCMC samples to generate
-        thin : int, optional
-            Subsample MCMC chain by this amount (default 1).
+        thin : int, optional, default 1
+            Subsample MCMC chain by this amount.
+        burn : int, optional, default 0
+            Discard first `burn` MCMC samples.  
         filename : str, optional
             If not None, store results as HDF file rather than in RAM.
 
@@ -53,7 +55,7 @@ class Sampler():
             db = "hdf5"
             
         self.mcmc = pymc.MCMC(self, db=db, dbname=filename)
-        self.mcmc.sample(num_steps, thin=thin)    
+        self.mcmc.sample(num_steps, thin=thin, burn=burn)    
 
 
 class TransitionSampler(Sampler):
