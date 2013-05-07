@@ -186,7 +186,7 @@ class Trajectory(ConformationBaseClass):
             Precision to save xyzlist
         """
         indexlist = self.pop('IndexList', None)
-        
+
         xyzlist = self.pop('XYZList')
         rounded = _convert_to_lossy_integers(xyzlist, precision)
         self['XYZList'] = rounded
@@ -213,7 +213,7 @@ class Trajectory(ConformationBaseClass):
         indexlist = self.pop('IndexList', None)
         io.saveh(filename, **self)
         self['IndexList'] = indexlist
-        
+
 
     def save_to_xtc(self, filename, precision=DEFAULT_PRECISION):
         """Dump the coordinates to XTC
@@ -225,7 +225,7 @@ class Trajectory(ConformationBaseClass):
         precision: float, optional
             I'm not really sure what this does (RTM 6/27).
         """
- 
+
         if os.path.exists(filename):
             raise IOError("%s already exists" % filename)
         XTCFile=xtc.XTCWriter(filename)
@@ -390,7 +390,10 @@ class Trajectory(ConformationBaseClass):
 
             A["XYZList"] = np.array(A["XYZList"])
             if num_redundant != 0:
-                logger.warning("Found and discarded %d redunant snapshots in loaded traj", num_redundant)
+                logger.warning("Found and discarded %d redundant snapshots in loaded traj", num_redundant)
+
+            if A["XYZList"].shape[1] != A['AtomNames'].shape[0]:
+                raise ValueError('The coordinate data contains %d atoms, but the topology contains %d atoms. Did you supply the wrong topology perhaps?' % (A["XYZList"].shape[1], A['AtomNames'].shape[0]))
 
         # in inspection mode
         else:
@@ -420,6 +423,10 @@ class Trajectory(ConformationBaseClass):
             for c in dcd.DCDReader(FilenameList):
                 A["XYZList"].append(c.copy())
             A["XYZList"] = np.array(A["XYZList"])
+
+            if A["XYZList"].shape[1] != A['AtomNames'].shape[0]:
+                raise ValueError('The coordinate data contains %d atoms, but the topology contains %d atoms. Did you supply the wrong topology perhaps?' % (A["XYZList"].shape[1], A['AtomNames'].shape[0]))
+
         else:  # This is wasteful to read everything in just to get the length
             XYZ = []
             for c in dcd.DCDReader(FilenameList):
@@ -449,6 +456,10 @@ class Trajectory(ConformationBaseClass):
             A["XYZList"] = np.array(A["XYZList"])
             A["Velocities"] = np.array(A["Velocities"])
             A["Forces"] = np.array(A["Forces"])
+
+            if A["XYZList"].shape[1] != A['AtomNames'].shape[0]:
+                raise ValueError('The coordinate data contains %d atoms, but the topology contains %d atoms. Did you supply the wrong topology perhaps?' % (A["XYZList"].shape[1], A['AtomNames'].shape[0]))
+
         else:
             i = 0
             for c in xtc.TRRReader(TRRFilenameList):
@@ -513,14 +524,14 @@ class Trajectory(ConformationBaseClass):
             # IndexList is a VLArray, so we need to read the whole list with node.read() (same as node[:]) and then loop through each
                 # row (residue) and remove the atom indices that are not wanted
             #A['IndexList'] = [ [ i for i in row if (i in AtomIndices) ] for row in F.root.IndexList[:] ]
-            
+
         else:
             A['AtomID'] = np.array( F.root.AtomID[:], dtype=np.int32 )
             A['AtomNames'] = np.array( F.root.AtomNames[:] )
             A['ChainID'] = np.array( F.root.ChainID[:])
             A['ResidueID'] = np.array( F.root.ResidueID[:], dtype=np.int32 )
             A['ResidueNames'] = np.array( F.root.ResidueNames[:] )
-            
+
             #A['IndexList'] = F.root.IndexList[:]
 
         #A['SerializerFilename'] = os.path.abspath(TrajFilename)
@@ -689,12 +700,12 @@ class Trajectory(ConformationBaseClass):
             raise IOError("Incorrect file type--cannot get conformation %s" % TrajFilename)
 
     @classmethod
-    def load_trajectory_file(cls, Filename, JustInspect=False, Conf=None, 
+    def load_trajectory_file(cls, Filename, JustInspect=False, Conf=None,
                              Stride=1, AtomIndices=None):
         """Loads a trajectory into memory, automatically deciding which methods to call based on filetype.  For XTC files, this method uses a pre-registered Conformation filename as a pdb."""
-        
+
         extension = os.path.splitext(Filename)[1]
-        
+
         # check to see if we're supposed to load only a subset of the atoms
         if AtomIndices != None:
             if (extension == '.lh5') or (extension == '.h5'):
@@ -702,9 +713,9 @@ class Trajectory(ConformationBaseClass):
             else:
                 raise NotImplementedError('AtomIndices kwarg option only'
                                           'available for .lh5 & .h5 format')
-            
 
-        # if we're not going to load a subset of the atoms, then proceed 
+
+        # if we're not going to load a subset of the atoms, then proceed
         if extension == '.h5':
             return Trajectory.load_from_hdf(Filename, JustInspect=JustInspect, Stride=Stride, AtomIndices=AtomIndices)
 
