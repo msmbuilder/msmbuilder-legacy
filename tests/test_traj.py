@@ -3,7 +3,6 @@ import numpy as np
 from msmbuilder.testing import *
 from msmbuilder import Trajectory
 
-
 def test_traj_0():
     
     aind = np.unique( np.random.randint( 22, size=4) )
