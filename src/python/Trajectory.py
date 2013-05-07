@@ -393,7 +393,7 @@ class Trajectory(ConformationBaseClass):
                 logger.warning("Found and discarded %d redunant snapshots in loaded traj", num_redundant)
 
             if A["XYZList"].shape[1] != A['AtomNames'].shape[0]:
-                raise ValueError('The coordinate data contains %d atoms, but the topology contains only %d atoms. Did you supply the wrong topology perhaps?' % (A["XYZList"].shape[1], A['AtomNames'].shape[0]))
+                raise ValueError('The coordinate data contains %d atoms, but the topology contains %d atoms. Did you supply the wrong topology perhaps?' % (A["XYZList"].shape[1], A['AtomNames'].shape[0]))
 
         # in inspection mode
         else:
@@ -425,7 +425,7 @@ class Trajectory(ConformationBaseClass):
             A["XYZList"] = np.array(A["XYZList"])
 
             if A["XYZList"].shape[1] != A['AtomNames'].shape[0]:
-                raise ValueError('The coordinate data contains %d atoms, but the topology contains only %d atoms. Did you supply the wrong topology perhaps?' % (A["XYZList"].shape[1], A['AtomNames'].shape[0]))
+                raise ValueError('The coordinate data contains %d atoms, but the topology contains %d atoms. Did you supply the wrong topology perhaps?' % (A["XYZList"].shape[1], A['AtomNames'].shape[0]))
 
         else:  # This is wasteful to read everything in just to get the length
             XYZ = []
@@ -458,7 +458,7 @@ class Trajectory(ConformationBaseClass):
             A["Forces"] = np.array(A["Forces"])
 
             if A["XYZList"].shape[1] != A['AtomNames'].shape[0]:
-                raise ValueError('The coordinate data contains %d atoms, but the topology contains only %d atoms. Did you supply the wrong topology perhaps?' % (A["XYZList"].shape[1], A['AtomNames'].shape[0]))
+                raise ValueError('The coordinate data contains %d atoms, but the topology contains %d atoms. Did you supply the wrong topology perhaps?' % (A["XYZList"].shape[1], A['AtomNames'].shape[0]))
 
         else:
             i = 0
