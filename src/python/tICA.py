@@ -143,7 +143,8 @@ class CovarianceMatrix(object):
             self.sum_t_dt += self.sum_t
 
         if self.calc_cov_mat:
-            self.corrs_lag0 += data_vector.T.dot(data_vector)
+            self.corrs_lag0_t += data_vector[:-self.lag].T.dot(data_vector[:-self.lag])
+            self.corrs_lag0_t_dt += data_vector[self.lag:].T.dot(data_vector[self.lag:])
             self.sum_all += data_vector.sum(axis=0)
             self.total_frames += data_vector.shape[0]
 
@@ -164,20 +165,19 @@ class CovarianceMatrix(object):
         correlation matrix, which can cause problems!
         
         """
+        two_N = 2. * float(self.trained_frames)
+        # ^^ denominator in all of these expressions...
+        mle_mean = (self.sum_t + self.sum_t_dt) / two_N
+        outer_means = np.outer(mle_mean, mle_mean)
         
-        time_lag_corr = (self.corrs) / float(self.trained_frames)
+        time_lag_corr = (self.corrs + self.corrs.T) / two_N
 
-        outer_expectations = np.outer(self.sum_t, self.sum_t_dt) / float(self.trained_frames) ** 2
-
-        current_estimate = time_lag_corr - outer_expectations
-        #current_estimate += current_estimate.T  # symmetrize the matrix
-        #above suffers from a bug in numpy.ndarray.__iadd__
-        current_estimate = current_estimate + current_estimate.T
-        current_estimate /= 2.
+        current_estimate = time_lag_corr - outer_means
 
         if self.calc_cov_mat:
-            cov_mat = self.corrs_lag0 / float(self.total_frames) -  \
-                np.outer(self.sum_all, self.sum_all) / float(self.total_frames) ** 2
+
+            cov_mat = (self.corrs_lag0_t + self.corrs_lag0_t_dt) / two_N
+            cov_mat -= np.outer(mle_mean, mle_mean)
 
             return current_estimate, cov_mat
 
