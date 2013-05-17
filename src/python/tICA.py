@@ -112,7 +112,8 @@ class CovarianceMatrix(object):
         self.sum_all = np.zeros(N, dtype=float)
 
         if self.calc_cov_mat:
-            self.corrs_lag0 = np.zeros((N, N), dtype=float)
+            self.corrs_lag0_t = np.zeros((N, N), dtype=float)
+            self.corrs_lag0_t_dt = np.zeros((N, N), dtype=float)
 
     def train(self, data_vector):
         a=time()  # For debugging we are tracking the time each step takes
