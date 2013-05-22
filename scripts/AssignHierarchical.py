@@ -25,7 +25,7 @@ import logging
 logger = logging.getLogger('msmbuilder.scripts.AssignHierarchical')
 
 parser = arglib.ArgumentParser(description='Assign data using a hierarchical clustering')
-parser.add_argument('hierarchical_clustering_zmatrix', default='./Data/Zmatrix.h5', 
+parser.add_argument('hierarchical_clustering_zmatrix', default='./Data/ZMatrix.h5',
     help='Path to hierarchical clustering zmatrix' )
 parser.add_argument('num_states', help='Number of States', default='none')
 parser.add_argument('cutoff_distance', help='Maximum cophenetic distance', default='none')
