@@ -8,6 +8,7 @@ import scipy.io
 
 from msmbuilder import tpt
 from msmbuilder import io
+from msmbuilder.scripts import FindPaths
 
 from msmbuilder.testing import get
 
@@ -35,6 +36,11 @@ class TestTPT():
         self.sinks     = [70]  # chosen arbitarily by TJL
         self.waypoints = [60]  # chosen arbitarily by TJL
         self.lag_time  = 1.0   # chosen arbitarily by TJL
+
+        self.multi_sources = get("transition_path_theory_reference/many_state/sources.dat").astype(int)
+        self.multi_sinks = get("transition_path_theory_reference/many_state/sinks.dat").astype(int)
+
+        self.num_paths = 10
 
         # set up the reference data for hub scores
         K = np.loadtxt( hub_get('ratemat_1.dat') )
@@ -72,11 +78,26 @@ class TestTPT():
         fluxes_ref = io.loadh( tpt_get("dijkstra_fluxes.h5"), 'Data')
         bottlenecks_ref = io.loadh( tpt_get("dijkstra_bottlenecks.h5"), 'Data')
 
-        #npt.assert_array_almost_equal(path_output[0], paths_ref)
+        for i in xrange(len(paths_ref)):
+            npt.assert_array_almost_equal(path_output[0][i], paths_ref[i])
         npt.assert_array_almost_equal(path_output[1], bottlenecks_ref)
         npt.assert_array_almost_equal(path_output[2], fluxes_ref)
-        
-        
+
+
+    def test_multi_state_path_calculations(self):
+        path_output = FindPaths.run(self.tprob, self.multi_sources, self.multi_sinks, self.num_paths)
+
+        path_result_ref = io.loadh(tpt_get("many_state/Paths.h5"))
+
+        paths_ref = path_result_ref['Paths']
+        bottlenecks_ref = path_result_ref['Bottlenecks']
+        fluxes_ref = path_result_ref['fluxes']
+
+        npt.assert_array_almost_equal(path_output[0], paths_ref)
+        npt.assert_array_almost_equal(path_output[1], bottlenecks_ref)
+        npt.assert_array_almost_equal(path_output[2], fluxes_ref)
+
+
     def test_mfpt(self):
         
         mfpt = tpt.calculate_mfpt(self.sinks, self.tprob, lag_time=self.lag_time)
