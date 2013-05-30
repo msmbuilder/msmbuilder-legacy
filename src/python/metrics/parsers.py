@@ -51,7 +51,8 @@ def add_metric_parsers(parser):
         (cityblock, etc). This code is executed in parallel on multiple cores (but
         not multiple boxes) using OMP. ''') 
     add_argument(dihedral, '-a', dest='dihedral_angles', default='phi/psi',
-        help='which dihedrals. Choose from phi, psi, chi. To choose multiple, seperate them with a slash')
+        help='which dihedrals. Choose from phi, psi, chi (to choose multiple, seperate them with a slash), or user')
+    add_argument(dihedral, '-f', dest='dihedral_userfilename', default='DihedralIndices.dat', help='filename for dihedral indices, N lines of 4 space-separated indices (otherwise ignored)')
     add_argument(dihedral, '-p', dest='dihedral_p', default=2, help='p used for metric=minkowski (otherwise ignored)')
     add_argument(dihedral, '-m', dest='dihedral_metric', default='euclidean',
         help='which distance metric', choices=Dihedral.allowable_scipy_metrics)
@@ -118,7 +119,7 @@ def construct_metric(args):
 
     elif args.metric == 'dihedral':
         metric = Dihedral(metric=args.dihedral_metric,
-            p=args.dihedral_p, angles=args.dihedral_angles)
+            p=args.dihedral_p, angles=args.dihedral_angles, userfilename=args.dihedral_userfilename)
     
     elif args.metric == 'contact':
         if args.contact_which != 'all':
