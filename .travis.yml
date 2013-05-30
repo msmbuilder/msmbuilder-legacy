@@ -1,18 +1,34 @@
-language: python
-python:
-  - 2.7
-virtualenv:
-  system_site_packages: true
-before_install:
-  - pip install nose --use-mirrors -qq
-  - sudo apt-get install -qq libhdf5-serial-dev
-  - pip install numexpr --use-mirrors -qq
-  - pip install cython --use-mirrors -qq
-  - pip install tables --use-mirrors -qq
-  - sudo apt-get install -qq python-numpy python-scipy python-matplotlib
-  - sudo apt-get install -qq swig
-  - pip install ./
+# Adapted from statsmodel's .yaml file
+# https://github.com/statsmodels/statsmodels/blob/master/.travis.yml
+# which itself was adapted from M. Brett's .yaml file for nipy: 
+# https://github.com/nipy/nipy/blob/master/.travis.yml
+#
+# We pretend to be C because we can't use the python support in
+# travis-ci; it uses virtualenvs, they do not have numpy, scipy, matplotlib,
+# and it is impractical to build them
+language: c
 install:
-  - python setup.py install
+    - sudo apt-get update
+    - sudo apt-get install -qq libhdf5-serial-dev
+    - sudo apt-get install -qq python-dev
+    - sudo apt-get install -qq python-numpy
+    - sudo apt-get install -qq python-scipy
+    - sudo apt-get install -qq python-setuptools
+    - sudo apt-get install -qq python-nose
+    - sudo apt-get install -qq cython
+    - sudo apt-get install -qq python-numexpr
+    - sudo apt-get install -qq python-tables
+    - sudo apt-get install -qq python-matplotlib
+    - sudo apt-get install -qq swig
+    - sudo apt-get install -qq python-yaml
+    
+# install later versions of pandas and statsmodels from the pythonXY PPA
+# which is recommended by https://github.com/pydata/pandas/blob/master/doc/source/install.rst
+    - sudo add-apt-repository --yes ppa:pythonxy/pythonxy-devel && sudo apt-get update
+    - sudo apt-get install python-pandas
+    - sudo apt-get install python-statsmodels
+    - sudo easy_install fastcluster
+    - sudo rm -rf /dev/shm && sudo ln -s /run/shm /dev/shm     
 script:
-  - nosetests
+    - sudo python setup.py install
+    - nosetests -vv

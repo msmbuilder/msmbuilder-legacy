@@ -3,7 +3,6 @@ import numpy as np
 from msmbuilder.testing import *
 from msmbuilder import Trajectory
 
-
 def test_traj_0():
     
     aind = np.unique( np.random.randint( 22, size=4) )
@@ -37,6 +36,14 @@ def test_traj_1():
     for i in range(20):
         test_traj_0()
         
-        
+def test_xtc_dcd():
+    pdb_filename = get("native.pdb", just_filename=True)
+    xtc_filename = get('RUN00_frame0.xtc', just_filename=True)
+    dcd_filename = get('RUN00_frame0.dcd', just_filename=True)
+    r_xtc = Trajectory.load_from_xtc(xtc_filename, pdb_filename)
+    r_dcd = Trajectory.load_from_dcd(dcd_filename, pdb_filename)
 
-    
+    x_xtc = r_xtc["XYZList"]
+    x_dcd = r_dcd["XYZList"]
+
+    eq(x_xtc, x_dcd, decimal=4)

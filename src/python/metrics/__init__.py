@@ -16,3 +16,4 @@ from rmsd import RMSD
 from dihedral import Dihedral
 from contact import BooleanContact, AtomPairs, ContinuousContact
 from projection import RedDimPNorm
+from hybrid import Hybrid, HybridPNorm

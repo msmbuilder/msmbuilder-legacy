@@ -21,6 +21,7 @@ import numpy as np
 import yaml
 from msmbuilder import Trajectory
 from msmbuilder import io
+from msmbuilder import MSMLib
 import logging
 from msmbuilder.utils import keynat
 logger = logging.getLogger(__name__)
@@ -216,6 +217,120 @@ class Project(object):
             handle.close()
 
         return filename_or_file
+
+    def get_random_confs_from_states(self, assignments, states, num_confs, 
+        replacement=True, random=np.random):
+        """
+        Get random conformations from a particular state (or states) in assignments.
+
+        Parameters
+        ----------
+        assignments : np.ndarray
+            2D array storing the assignments for a particular MSM
+        states : int or 1d array_like
+            state index (or indices) to load random conformations from
+        num_confs : int or 1d array_like
+            number of conformations to get from state. The shape should 
+            be the same as the states argument
+        replacement : bool, optional
+            whether to sample with replacement or not (default: True)
+        random : np.random.RandomState, optional
+            use a particular RandomState for generating the random samples.
+            this is only useful if you want to get the same samples, i.e.
+            when debugging something.
+
+        Returns
+        -------
+        random_confs : msmbuilder.Trajectory or list of
+                       msmbuilder.Trajectory objects
+            If states is a list, then the output is a list, otherwise a 
+            single trajectory is returned
+            Trajectory object containing random conformations from the 
+            specified state
+        """
+
+        def randomize(state_counts, size=1, replacement=True, random=np.random):
+            """
+            This is a helper function for selecting random conformations. It will
+            select many samples from a discrete, uniform distribution over:
+            
+            .. math::  \{i\}_{i=1}^{\textnormal{state_counts}}
+
+            If replacement==True, then random.randint will be used, otherwise
+            random.permutation will be used.
+
+            Parameters
+            ----------
+            state_counts : int
+                number of conformations in the state
+            size : int, optional
+                number of samples to draw (size kwarg in np.random.randint)
+                default: 1
+            replacement : bool, optional
+                if True, then we sample with replacement, otherwise we use a 
+                permutation
+            random : np.random.RandomState, optional
+                if you want this to behave deterministically then pass a particular
+                random state, otherwise we will use np.random.
+
+            Returns
+            -------
+            result : np.ndarray
+                1d array with samples from the given distribution
+
+            Raises
+            ------
+            ValueError: if size > state_counts and replacement is False, then
+                it is not possible to sample that many conformations without 
+                replacement
+            """
+            if replacement:
+                result = random.randint(0, state_counts, size=size)
+            else:
+                if size > state_counts:
+                    raise ValueError("Asked for %d conformations from a state "
+                                     "with only %d conformations." % (size, state_counts))
+                else:
+                    result = random.permutation(np.arange(state_counts))[:size]
+
+            return result
+            
+
+        if isinstance(states, int):
+            states = np.array([states])
+        states = np.array(states).flatten()
+
+        # if num_confs is just a number, map it to
+        # each state given in states
+        if isinstance(num_confs, int):
+            num_confs = np.array([num_confs] * len(states)) 
+        num_confs = np.array(num_confs).flatten()
+
+        # if num_confs is length-1, then map that value to each
+        # state in states
+        if len(num_confs) == 1:
+            num_confs = np.array(list(num_confs) * len(states))
+
+        if len(num_confs) != len(states):
+            raise Exception("num_confs must be the same size as num_states")
+
+        inv_assignments = MSMLib.invert_assignments(assignments)
+        state_counts = np.bincount(assignments[np.where(assignments!=-1)])
+
+        random_confs = []
+
+        for n, state in zip(num_confs, states):
+            logger.debug("Working on %s", state)
+            random_conf_inds = randomize(state_counts[state], size=n,
+                                         replacement=replacement, 
+                                         random=random)
+
+            traj_inds, frame_inds = inv_assignments[state]
+            random_confs.append(self.load_frame(traj_inds[random_conf_inds], 
+                                                frame_inds[random_conf_inds]))
+        
+        return random_confs
+        
 
     def load_traj(self, trj_index, stride=1, atom_indices=None):
         "Load the a trajectory from disk"

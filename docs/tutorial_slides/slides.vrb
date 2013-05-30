@@ -1,0 +1,9 @@
+\frametitle {Save PDBs}\par \begin{verbatim}
+SaveStructures.py -s -1 -a Macro4/MacroAssignments.h5 \
+-c 1 -S sep
+pymol PDBs/State0-0.pdb PDBs/State1-0.pdb PDBs/State2-0.pdb \
+PDBs/State3-0.pdb
+\end{verbatim}
+
+\includegraphics[width=7.0cm]{Figures/ala.png}
+

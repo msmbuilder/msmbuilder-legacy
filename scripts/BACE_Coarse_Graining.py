@@ -40,7 +40,7 @@ of the License, or (at your option) any later version.
 --------------------------------------------------------------------------------
 
 Please cite:
-GR Bowman. Improved coarse-graining of Markov state models via explicit consideration of statistical uncertainty. J Chem Phys 2012.
+GR Bowman. Improved coarse-graining of Markov state models via explicit consideration of statistical uncertainty. J Chem Phys 2012;137;134111.
 
 Currently available as arXiv:1201.3867 2012.
 
@@ -307,8 +307,11 @@ def filterFuncDense(c, nProc):
     logger.info("Merging %d states with insufficient statistics into their kinetically-nearest neighbor", statesPrune.shape[0])
 
     for s in statesPrune:
-        dest = c[s,:].argmax()
+        row = c[s,:]
+        row[s] = 0
+        dest = row.argmax()
         c[dest,:] += c[s,:]
+        c[:,dest] += c[:,s]
         c[s,:] = 0
         c[:,s] = 0
         map = renumberMap(map, map[s])
@@ -358,8 +361,11 @@ def filterFuncSparse(c, nProc):
     logger.info("Merging %d states with insufficient statistics into their kinetically-nearest neighbor", statesPrune.shape[0])
 
     for s in statesPrune:
-        dest = c.rows[s][np.argmax(c.data[s])]
+        row = c[s,:].toarray()[0]
+        row[s] = 0
+        dest = row.argmax()
         c[dest,:] += c[s,:]
+        c[:,dest] += c[:,s]
         c[s,:] = 0
         c[:,s] = 0
         map = renumberMap(map, map[s])
@@ -373,19 +379,27 @@ if __name__ == '__main__':
 
 The algorithm works by iteratively merging states until the final desired number of states (the nMacro parameter) is reached.
 
-Description output (put into directory specified with outDir): 
+Results are often obtained most quickly by forcing the program to use dense matrices (with the -f option) and using a single processor.  Sparse matrices (and possibly multiple processors) are useful when insufficient  memory is available to use dense matrices.
+
+A macrostate model may be attractive for further analysis if further reducing the number of macrostates (M) causes a large increase in the Bayes factor (cost), as reported in the bayesFactors.dat output file described below.  For example, if the Bayes factor increases steadily as one goes from models with M-5, M-4, ..., M states but increases much more dramatically when going from M to M-1 states, then a model with M states may be of interest because the sudden increase in the Bayes factor for going to M-1 states suggests two very distinct free energy basins are being merged.  To make these judgments, it is often useful to plot the Bayes factor as a function of the number of macrostates.
+
+Once you have chosen the number of macrostates (M) you wish to analyze further, you can calculate the appropriate transition matrices using the BuildMSM.py script.  For example, to build a model with 5 macrostates you might run something like
+    BuildMSM.py -l 1 -a Data/Assignments.Fixed.h5 -m Output_BACE/map5.dat -o BACE_5state
+The -m option is the crucial addition for directing the script to apply the specified mapping from the microstates in the h5 file to the macrostates specified by the -m option.
+
+Outputs (stored in the directory specified with outDir): 
     bayesFactors.dat = the Bayes factors (cost) for each merging of two states. The first column is the number of macrostates (M) and the second column is the Bayes factor (cost) for coarse-graining from M+1 states to M states.
     mapX.dat = the mapping from the original state numbering to X coarse-grained states.'''
 
 , formatter_class=argparse.RawDescriptionHelpFormatter)
     add_argument(parser, '-c', dest='tCountFn', help='Path to transition count matrix file (sparse and dense formats accepted).', required=True)
     add_argument(parser, '-n', dest='nMacro', help='Minimum number of macrostates to make.', default=2, type=int)
-    add_argument(parser, '-p', dest='nProc', help='Number of processors to use (if None, the code will use all the available processors on your machine).', default=None, type=int, required=False)
-    add_argument(parser, '-f', dest='forceDense', help='If true, will force transition matrix into a dense format. Using the dense format is faster if you have enough memory.', default=False, type=bool, required=False, nargs='?', const=True)
-    add_argument(parser, '-o', dest='outDir', help='Path to save output to.', default="Output_BACE", required=False)
+    add_argument(parser, '-p', dest='nProc', help='Number of processors to use.', default=1, type=int, required=False)
+    add_argument(parser, '-f', dest='forceDense', help='If true, the program will force the transition matrix into a dense format. Using the dense format is faster if you have enough memory.', default=False, type=bool, required=False, nargs='?', const=True)
+    add_argument(parser, '-o', dest='outDir', help='Path to save the output to.', default="Output_BACE", required=False)
     args = parser.parse_args()
 
-    if "mtx" in args.tCountFn:
+    if args.tCountFn[-4:] == ".mtx":
         c = scipy.sparse.lil_matrix(scipy.io.mmread(args.tCountFn), dtype=np.float32)
         multiDist = multiDistSparse
         filterFunc = filterFuncSparse
@@ -395,7 +409,7 @@ Description output (put into directory specified with outDir):
             multiDist = multiDistDense
             filterFunc = filterFuncDense
     else:
-        c = np.loadtxt(tCountFn, dtype=np.float32)
+        c = np.loadtxt(args.tCountFn, dtype=np.float32)
         multiDist = multiDistDense
         filterFunc = filterFuncDense
 
