@@ -27,16 +27,16 @@ logger = logging.getLogger('msmbuilder.scripts.ConvertDataToHDF')
 
 def run(projectfn, PDBfn, InputDir, source, min_length, stride, rmsd_cutoff):
     
-    # check if we are doing an update or a fresh run
-    if os.path.exists(projectfn):
-        logger.info("Found project info file encoding previous work, running in update mode...")
-        update = True
-    else:
-        update = False
-    
-    logger.info("Looking for %s style data in %s", source, InputDir)
-    if update:
-        raise NotImplementedError("Ack! Update mode is not yet ready yet.")
+    # # check if we are doing an update or a fresh run
+    # if os.path.exists(projectfn):
+    #     logger.info("Found project info file encoding previous work, running in update mode...")
+    #     update = True
+    # else:
+    #     update = False
+    # 
+    # logger.info("Looking for %s style data in %s", source, InputDir)
+    # if update:
+    #     raise NotImplementedError("Ack! Update mode is not yet ready yet.")
     
     
     # if the source is fah, we'll use some special FaH specific loading functions
@@ -96,14 +96,8 @@ gets discarded. Further, the FahProject object retains a little more discard
 functionality.
 """)
     
-    parser.add_argument('project', type=str, help='''The ProjectInfo (.h5) file
-        that contains a mapping of the previous work done. If you specify a file that
-        exists on disk, conversion will pick up where it left off and simply add data
-        to what has already been done. If you specify a file that doesn't exist, the
-        conversion starts from the beginning and writes a ProjectInfo file with that name
-        at the end of the conversion. NOTE: If you specify a ProjectInfo file, the conversion
-        automatically retrieves the conversion parameters you were using before and uses
-        them - all other options you specify will be IGNORED.''')
+    parser.add_argument('project', type=str, help='''The ProjectInfo (.h5) to
+        write to disk. Contains metadata associated with your project''')
     parser.add_argument('pdb')
     parser.add_argument('input_dir', help='''Path to the parent directory
         containing subdirectories with MD (.xtc/.dcd) data. See the description above

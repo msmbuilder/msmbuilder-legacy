@@ -5,7 +5,7 @@ import os, sys
 from glob import glob
 import subprocess
 
-VERSION = "2.6.dev"
+VERSION = "2.7.dev"
 ISRELEASED = False
 __author__ = "MSMBuilder Team"
 __version__ = VERSION
@@ -19,7 +19,8 @@ metadata = {
     'url': 'https://simtk.org/home/msmbuilder',
     'download_url': 'https://simtk.org/home/msmbuilder',
     'install_requires': ['scipy', 'matplotlib', 'pyyaml',
-                         'deap', 'fastcluster',"statsmodels"],
+                         'fastcluster','statsmodels',
+                         'pandas'],
     'platforms': ["Linux", "Mac OS X"],
     'zip_safe': False,
     'description': "Python Code for Building Markov State Models",
@@ -156,6 +157,9 @@ def configuration(parent_package='',top_path=None):
 
     config.add_subpackage('project',
                           subpackage_path='src/python/project')
+
+    config.add_subpackage('lumping',
+                          subpackage_path='src/python/lumping')
 
     # add asa extension
     # note this is wrapped using f2py, which

@@ -17,7 +17,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-import sys, os
+import os
 import scipy.io
 import numpy as np
 
@@ -34,7 +34,8 @@ def run_pcca(num_macrostates, assignments, tProb):
     logger.info("Running PCCA...")
     if len(np.unique(assignments[np.where(assignments != -1)])) != tProb.shape[0]:
         raise ValueError('Different number of states in assignments and tProb!')
-    MAP = lumping.PCCA(tProb, num_macrostates)
+    PCCA = lumping.PCCA(tProb, num_macrostates)
+    MAP = PCCA.microstate_mapping
 
     # MAP the new assignments and save, make sure don't
     # mess up negaitve one's (ie where don't have data)
@@ -46,8 +47,10 @@ def run_pcca_plus(num_macrostates, assignments, tProb, flux_cutoff=0.0,
     objective_function="crispness",do_minimization=True):
     
     logger.info("Running PCCA+...")
-    A, chi, vr, MAP = lumping.pcca_plus(tProb, num_macrostates, flux_cutoff=flux_cutoff,
+    pcca_plus = lumping.PCCAPlus(tProb, num_macrostates, flux_cutoff=flux_cutoff,
         do_minimization=do_minimization, objective_function=objective_function)
+    
+    A, chi, MAP = pcca_plus.A, pcca_plus.chi, pcca_plus.microstate_mapping
 
     MSMLib.apply_mapping_to_assignments(assignments, MAP)    
 

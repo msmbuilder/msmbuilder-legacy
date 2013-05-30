@@ -11,7 +11,7 @@ from nose import SkipTest
 
 from pkg_resources import resource_filename
 
-__all__ = ['get', 'load', 'eq', 'assert_dict_equal', 'assert_spase_matrix_equal',
+__all__ = ['get', 'load', 'eq', 'assert_dict_equal', 'assert_sparse_matrix_equal',
            'expected_failure', 'skip',
            # stuff that was imported from numpy / nose too
           'ok_', 'eq_', 'assert_allclose', 'assert_almost_equal',
@@ -101,9 +101,9 @@ def eq(o1, o2, decimal=6):
     assert (type(o1) is type(o2)), 'o1 and o2 not the same type: %s %s' % (type(o1), type(o2))
 
     if isinstance(o1, dict):
-        assert_dict_equal(o1, o1, decimal)
+        assert_dict_equal(o1, o2, decimal)
     elif isspmatrix(o1):
-        assert_spase_matrix_equal(o1, o1, decimal)
+        assert_sparse_matrix_equal(o1, o2, decimal)
     elif isinstance(o1, np.ndarray):
         if o1.dtype.kind == 'f' or o2.dtype.kind == 'f':
             # compare floats for almost equality
@@ -140,7 +140,7 @@ def assert_dict_equal(t1, t2, decimal=6):
             eq_(val, t2[key])
 
 
-def assert_spase_matrix_equal(m1, m2, decimal=6):
+def assert_sparse_matrix_equal(m1, m2, decimal=6):
     """Assert two scipy.sparse matrices are equal."""
 
     # delay the import to speed up stuff if this method is unused
@@ -149,14 +149,28 @@ def assert_spase_matrix_equal(m1, m2, decimal=6):
 
     # both are sparse matricies
     assert isspmatrix(m1)
-    assert isspmatrix(m1)
+    assert isspmatrix(m2)
 
     # make sure they have the same format
     eq_(m1.format, m2.format)
 
+    #make sure they have the same shape
+    eq_(m1.shape, m2.shape)
+
     # even though its called assert_array_almost_equal, it will
     # work for scalars
-    assert_array_almost_equal((m1 - m2).sum(), 0, decimal=decimal)
+    m1 = m1.tocsr()
+    m2 = m2.tocsr()
+    m1.eliminate_zeros()
+    m2.eliminate_zeros()
+
+    xi1, yi1 = m1.nonzero()
+    xi2, yi2 = m2.nonzero()
+
+    assert_array_equal(xi1, xi2)
+    assert_array_equal(yi1, yi2)
+#    assert_array_almost_equal(np.abs(m1 - m2).sum(), 0, decimal=decimal)
+    assert_array_almost_equal(m1.data, m2.data, decimal=decimal)
 
 # decorator to mark tests as expected failure
 def expected_failure(test):
