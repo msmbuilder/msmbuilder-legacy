@@ -24,9 +24,9 @@ class ProjectBuilder(object):
             actually be in input_traj_dir/<something>/{files}.
         input_traj_ext : {'.xtc', '.dcd'}
             Trajectory file format
-        conf : msmbuilder.Trajectory 
-            Trajectory with the correct atom names
-            This will be used to load xtc's and other trajectories
+        conf_filename : str 
+            path to a pdb
+            this will be used to load xtc's and other trajectories
 
         Additional Parameters
         ---------------------
