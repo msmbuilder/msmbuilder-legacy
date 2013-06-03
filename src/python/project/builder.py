@@ -4,6 +4,8 @@ from glob import glob
 from msmbuilder.utils import keynat
 from msmbuilder import Trajectory
 from msmbuilder.utils import keynat
+import IPython
+import numpy as np
 
 from project import Project
 from validators import ValidationError
@@ -21,14 +23,17 @@ class ProjectBuilder(object):
             actually be in input_traj_dir/<something>/{files}.
         input_traj_ext : {'.xtc', '.dcd'}
             Trajectory file format
-        conf_filename : str
-            Path to a pdb
+        conf : msmbuilder.Trajectory 
+            Trajectory with the correct atom names
+            This will be used to load xtc's and other trajectories
 
         Additional Parameters
         ---------------------
         stride : int
             Stride the input data at this frequency
         validators : [msmbuilder.project.Validator]
+        project : msmbuilder.Project
+            project instance that we are updating
 
         Attributes
         ----------
@@ -43,12 +48,14 @@ class ProjectBuilder(object):
         self.input_traj_dir = input_traj_dir
         self.input_traj_ext = input_traj_ext
         self.conf_filename = conf_filename
-        self.project = None
 
         self.output_traj_ext = '.lh5'
         self.output_traj_basename = kwargs.pop('output_traj_basename', 'trj')
         self.output_traj_dir = kwargs.pop('output_traj_dir', 'Trajectories')
         self.stride = kwargs.pop('stride', 1)
+        self.project = kwargs.pop('project', None)
+        self.project_updated = False
+        # Keep track of when we've updated everything
 
         self._validators = []
         for e in kwargs.pop('validators', []):
@@ -75,8 +82,8 @@ class ProjectBuilder(object):
             On failure
         """
 
-        for valilator in self._validators:
-            valilator(traj)
+        for validator in self._validators:
+            validator(traj)
 
     def add_validator(self, validator):
         """
@@ -124,7 +131,7 @@ class ProjectBuilder(object):
         >>> pb.project == pb.get_project()
         True
         """
-        if self.project is None:
+        if not self.project_updated:
             self.convert()
         return self.project
 
@@ -132,8 +139,11 @@ class ProjectBuilder(object):
         "Create self.output_traj_dir, or throw an error if it already exists"
         if not os.path.exists(self.output_traj_dir):
             os.makedirs(self.output_traj_dir)
-        else:
+        elif self.project is None:
             raise IOError('%s already exists' % self.output_traj_dir)
+        else:  # project exists so we are supposed to be updating the 
+               # trajectories
+            pass
 
     def convert(self):
         """
@@ -151,45 +161,105 @@ class ProjectBuilder(object):
         traj_errors = []
         traj_converted_from = []
 
+        if not self.project is None:
+            old_traj_locs = ['/'.join([d for d in file_list[0].split('/') if not d in ['.','..']][:-1]) for file_list in self.project._traj_converted_from]
+            # ^^^ haha, @rmcgibbo, is this acceptable?
+        else:
+            old_traj_locs = []
+        old_traj_locs = np.array(old_traj_locs)
+
         for i, file_list in enumerate(self._input_trajs()):
             
             error = None
-            
-            try:
-                traj = self._load_traj(file_list)
-                traj["XYZList"] = traj["XYZList"][::self.stride]
-            except TypeError as e:
-                traj_errors.append(e)
-                logger.warning('Could not convert: %s (%s)', file_list, e)
-            else:
-                lh5_fn = os.path.join(self.output_traj_dir, 
-                                      (self.output_traj_basename + str(i) + self.output_traj_ext))
-                traj.save(lh5_fn)
-                traj_lengths.append(len(traj["XYZList"]))
-                traj_paths.append(lh5_fn)
-                traj_converted_from.append(file_list)
-            
+
+            traj_loc = '/'.join([d for d in file_list[0].split('/') if not d in ['.', '..'] ][:-1])
+            if not traj_loc in old_traj_locs:
                 try:
-                    self._validate_traj(traj)
-                    logger.info("%s, length %d, converted to %s", 
+                    traj = self._load_traj(file_list)
+                    traj["XYZList"] = traj["XYZList"][::self.stride]
+                except TypeError as e:
+                    traj_errors.append(e)
+                    logger.warning('Could not convert: %s (%s)', file_list, e)
+                else:
+                    lh5_fn = os.path.join(self.output_traj_dir, 
+                                      (self.output_traj_basename + str(i) + self.output_traj_ext))
+                    traj.save(lh5_fn)
+                    traj_lengths.append(len(traj["XYZList"]))
+                    traj_paths.append(lh5_fn)
+                    traj_converted_from.append(file_list)
+            
+                    try:
+                        self._validate_traj(traj)
+                        logger.info("%s, length %d, converted to %s", 
                                 file_list, traj_lengths[-1], lh5_fn)
-                except ValidationError as e:
-                    error = e
-                    logger.error("%s, length %d, converted to %s with error '%s'", 
-                                 file_list, traj_lengths[-1], lh5_fn, e)
+                    except ValidationError as e:
+                        error = e
+                        logger.error("%s, length %d, converted to %s with error '%s'", 
+                                     file_list, traj_lengths[-1], lh5_fn, e)
 
-            traj_errors.append(error)
+                traj_errors.append(error)
 
-        if len(traj_paths) == 0:
-            os.rmdir(self.output_traj_dir)
-            raise RuntimeError('No conversion jobs found!')
+            else:  # Then this trajectory has been seen before, and so we need to 
+                   # either extend it or skip it 
+                   # This procedure would ideally be done using EArrays and we 
+                   # use pyTables to actually extend the trajectory. Currently,
+                   # the XYZList is a CArray, and so at some point we have to load
+                   # the old array into memory, which is not the most efficient
+                   # way to do this...
+                old_ind = np.where(old_traj_locs == traj_loc)[0][0]
+                old_locs = self.project._traj_converted_from[old_ind]
+                old_num_files = len(old_locs)
+        
+                if old_num_files == len(file_list):
+                    # Just assume if it is the same number of files then they are the
+                    # same. We should change this eventually
+                    continue
+                elif old_num_files < len(file_list):
+                    # Need to update the trajectory
+                    traj = self.project.load_traj(old_ind)
 
+                    extended_traj = self._load_traj(file_list[old_num_files:])
+                    # assume that the first <old_num_files> are the same
+                    # ^^^ This should be modified, but I want to get it working first
+                    traj['XYZList'] = np.concatenate((traj['XYZList'], extended_traj['XYZList']))
+                    traj.save(self.project._traj_paths[old_ind])
+                    # This does what we want it to do, because msmbuilder.io.saveh
+                    # deletes keys that already. However, this could be made more
+                    # efficient by only updating the XYZList node since it's the
+                    # only thing that changes
 
+                    new_traj_locs = np.concatenate((old_locs, file_list[old_num_files:]))
+                    self.project._traj_converted_from[old_ind] = list(new_traj_locs)
+                    self.project._traj_lengths[old_ind] = len(traj['XYZList'])
+                    # _errors updated later, saved to the same place, so traj_filename is the same
+                else:
+                    # Somehow lost some frames...
+                    logger.warn('Fewer frames found than currently have. Skipping. (%s)' % traj_loc)
+                    continue
+
+        #if len(traj_paths) == 0:
+        #    os.rmdir(self.output_traj_dir)
+        #    raise RuntimeError('No conversion jobs found!')
+
+        #print traj_lengths, traj_paths, traj_errors, traj_converted_from
+        #print self.project._traj_lengths, self.project._traj_paths, self.project._traj_errors, self.project._traj_converted_from
+        traj_lengths = list(self.project._traj_lengths) + traj_lengths
+        traj_paths = list(self.project._traj_paths) + traj_paths
+        traj_errors = list(self.project._traj_errors) + traj_errors
+        traj_converted_from = list(self.project._traj_converted_from) + traj_converted_from
+        traj_converted_from = [[str(i) for i in l] for l in traj_converted_from]
+
+        #print traj_lengths, traj_paths, traj_errors, traj_converted_from
         self.project = Project({'conf_filename': self.conf_filename,
                                 'traj_lengths': traj_lengths,
                                 'traj_paths': traj_paths,
                                 'traj_errors': traj_errors,
                                 'traj_converted_from': traj_converted_from})
+
+        self.updated_project = True
+
+        #IPython.embed()
+
 
     def _input_trajs(self):
         logger.warning("WARNING: Sorting trajectory files by numerical values in their names.")
