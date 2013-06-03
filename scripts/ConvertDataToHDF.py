@@ -21,11 +21,13 @@ import sys
 import os
 
 from msmbuilder.project import validators, ProjectBuilder, FahProjectBuilder
+from msmbuilder import Project
 from msmbuilder.arglib import ArgumentParser, die_if_path_exists
+from msmbuilder import Trajectory
 import logging
 logger = logging.getLogger('msmbuilder.scripts.ConvertDataToHDF')
 
-def run(projectfn, PDBfn, InputDir, source, min_length, stride, rmsd_cutoff):
+def run(projectfn, conf_filename, InputDir, source, min_length, stride, rmsd_cutoff):
     
     # # check if we are doing an update or a fresh run
     # if os.path.exists(projectfn):
@@ -42,11 +44,20 @@ def run(projectfn, PDBfn, InputDir, source, min_length, stride, rmsd_cutoff):
     # if the source is fah, we'll use some special FaH specific loading functions
     # to (1) try to recover in case of errors and (2) load the specific directory
     # hierarchy of FaH (RUN/CLONE/GEN/frame.xtc)
+    if os.path.exists(projectfn):
+        project = Project.load_from(projectfn)
+        logger.warn("%s exists, will modify it and update the trajectories in %s",
+                    projectfn, '/'.join(project._traj_paths[0].split('/')[:-1]))
+    else:
+        project = None
+
     if source.startswith('file'):
         itype = '.dcd' if 'dcd' in source else '.xtc'
-        pb = ProjectBuilder(InputDir, input_traj_ext=itype, conf_filename=PDBfn, stride=stride)
+        pb = ProjectBuilder(InputDir, input_traj_ext=itype, conf_filename=conf_filename, 
+                            stride=stride, project=project)
     elif source == 'fah':
-        pb = FahProjectBuilder(InputDir, input_traj_ext='.xtc', conf_filename=PDBfn, stride=stride)
+        pb = FahProjectBuilder(InputDir, input_traj_ext='.xtc', conf_filename=conf_filename, 
+                            stride=stride, project=project)
     else:
         raise ValueError("Invalid argument for source: %s" % source)
 
@@ -56,7 +67,7 @@ def run(projectfn, PDBfn, InputDir, source, min_length, stride, rmsd_cutoff):
     if rmsd_cutoff is not None:
         # TODO: this is going to use ALL of the atom_indices, including hydrogen. This is
         # probably not the desired functionality
-        validator = validators.RMSDExplosionValidator(PDBfn, max_rmsd=rmsd_cutoff, atom_indices=None)
+        validator = validators.RMSDExplosionValidator(pdb, max_rmsd=rmsd_cutoff, atom_indices=None)
         pb.add_validator(validator)
     
     # Only accept trajectories with more snapshots than min_length.
@@ -131,6 +142,6 @@ functionality.
         rmsd_cutoff = None
     else:
         logger.warning("Will discard any frame that is %f nm from the PDB conformation...", rmsd_cutoff)
-    
+
     run(args.project, args.pdb, args.input_dir, args.source,
         args.min_length, args.stride, rmsd_cutoff)
