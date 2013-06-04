@@ -86,7 +86,7 @@ class Project(object):
 
         self._conf_filename = records['conf_filename']
         self._traj_lengths = np.array(records['traj_lengths'])
-        self._traj_paths = np.array(records['traj_paths'])
+        self._traj_paths = np.array([os.path.relpath(p) for p in records['traj_paths']])
         self._traj_converted_from = list(records['traj_converted_from'])
         self._traj_errors = np.array(records['traj_errors'])
         self._project_dir = os.path.abspath(project_dir)
