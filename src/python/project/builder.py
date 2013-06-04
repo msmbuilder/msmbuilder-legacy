@@ -268,11 +268,12 @@ class ProjectBuilder(object):
 
         #print traj_lengths, traj_paths, traj_errors, traj_converted_from
         #print self.project._traj_lengths, self.project._traj_paths, self.project._traj_errors, self.project._traj_converted_from
-        traj_lengths = list(self.project._traj_lengths) + traj_lengths
-        traj_paths = list(self.project._traj_paths) + traj_paths
-        traj_errors = list(self.project._traj_errors) + traj_errors
-        traj_converted_from = list(self.project._traj_converted_from) + traj_converted_from
-        traj_converted_from = [[str(i) for i in l] for l in traj_converted_from]
+        if not self.project is None:
+            traj_lengths = list(self.project._traj_lengths) + traj_lengths
+            traj_paths = list(self.project._traj_paths) + traj_paths
+            traj_errors = list(self.project._traj_errors) + traj_errors
+            traj_converted_from = list(self.project._traj_converted_from) + traj_converted_from
+            traj_converted_from = [[str(i) for i in l] for l in traj_converted_from]
 
         #print traj_lengths, traj_paths, traj_errors, traj_converted_from
         self.project = Project({'conf_filename': self.conf_filename,
