@@ -868,20 +868,47 @@ class BaseFlatClusterer(object):
     and then using the prepared, concatenated trajectory self.ptraj for your clustering.
     """
 
-    def __init__(self, metric, trajectories):
+    def __init__(self, metric, trajectories=None, prep_trajectories=None):
+
         if not isinstance(metric, metrics.AbstractDistanceMetric):
             raise TypeError('%s is not an AbstractDistanceMetric' % metric)
         # if we got a single trajectory instead a list of trajectories, make it a
         # list
-        if 'XYZList' in trajectories:
-            trajectories = [trajectories]
-        elif isinstance(trajectories, types.GeneratorType):
-            trajectories = list(trajectories)
+        if not trajectories is None:
+            if 'XYZList' in trajectories:
+                trajectories = [trajectories]
+            elif isinstance(trajectories, types.GeneratorType):
+                trajectories = list(trajectories)
+
+            if prep_trajectories is None:
+                self.ptraj = metric.prepare_trajectory(self._concatenated)
+
+            self._traj_lengths = [len(traj) for traj in trajectories]
+
+        if not prep_trajectories is None:  # If they also provide trajectories
+            # that's fine, but we will use the prep_trajectories
+            prep_trajectories = np.array(prep_trajectories)
+            if len(prep_trajectories.shape) == 2: 
+                prep_trajectories = [prep_trajectories]
+            else:
+                # 3D means a list of prep_trajectories was input
+                prep_trajectories = list(prep_trajectories)
+            
+            if trajectories is None:
+                self._traj_lengths = [len(ptraj) for ptraj in prep_trajectories]
+
+            self.ptraj = prep_trajectories
+
+        if trajectories is None and prep_trajectories is None:
+            raise Exception("must provide at least one of trajectories and prep_trajectories")
 
         self._metric = metric
-        self._traj_lengths = [len(traj) for traj in trajectories]
-        self._concatenated = concatenate_trajectories(trajectories)
-        self.ptraj = metric.prepare_trajectory(self._concatenated)
+        
+        if trajectories is None:
+            self._concatenated = None
+        else:
+            self._concatenated = concatenate_trajectories(trajectories)
+
         self.num_frames = sum(self._traj_lengths)
 
         # All the actual Clusterer objects that subclass this base class
@@ -961,20 +988,40 @@ class BaseFlatClusterer(object):
 
         Returns
         -------
-        traj : msmbuilder.Trajectory
+        traj or ptraj : msmbuilder.Trajectory or np.ndarray
             a trajectory object where each frame is one of the
-            generators/medoids identified
-
+            generators/medoids identified. If trajectories was
+            not originally provided, then will only return the
+            prepared generators
+        
         """
         self._ensure_generators_computed()
 
-        output = empty_trajectory_like(self._concatenated)
-        output['XYZList'] = self._concatenated['XYZList'][self._generator_indices]
+        if self._concatenated is None:
+            output = self.ptraj[self._generator_indices]
+        else:
+            output = empty_trajectory_like(self._concatenated)
+            output['XYZList'] = self._concatenated['XYZList'][self._generator_indices]
+
         return output
+
+    def get_generator_indices(self):
+        """Get the generator indices corresponding to frames in
+        self.ptraj.
+
+        Returns
+        -------
+        gen_inds : np.ndarray
+            generator indices corresponding to the generators in
+            self.ptraj
+        """
+
+        return self._generator_indices
 
 
 class KCenters(BaseFlatClusterer):
-    def __init__(self, metric, trajectories, k=None, distance_cutoff=None, seed=0):
+    def __init__(self, metric, trajectories=None, prep_trajectories=None, 
+                 k=None, distance_cutoff=None, seed=0):
         """Run kcenters clustering algorithm.
 
         Terminates either when `k` clusters have been identified, or when every data
@@ -1003,7 +1050,7 @@ class KCenters(BaseFlatClusterer):
         .. [1] Beauchamp, MSMBuilder2
         """
 
-        super(KCenters, self).__init__(metric, trajectories)
+        super(KCenters, self).__init__(metric, trajectories, prep_trajectories)
 
         gi, asgn, dl = _kcenters(metric, self.ptraj, k, distance_cutoff, seed)
 
@@ -1018,7 +1065,8 @@ class KCenters(BaseFlatClusterer):
 
 
 class Clarans(BaseFlatClusterer):
-    def __init__(self, metric, trajectories, k, num_local_minima=10, max_neighbors=20, local_swap=False):
+    def __init__(self, metric, trajectories=None, prep_trajectories=None, k=None, 
+                 num_local_minima=10, max_neighbors=20, local_swap=False):
         """Run the CLARANS clustering algorithm on the frames in a trajectory
 
         Reference
@@ -1054,7 +1102,7 @@ class Clarans(BaseFlatClusterer):
         SubsampledClarans : random subsampling version (faster)
         """
 
-        super(Clarans, self).__init__(metric, trajectories)
+        super(Clarans, self).__init__(metric, trajectories, prep_trajectories)
 
         medoids, assignments, distances = _clarans(metric, self.ptraj, k, num_local_minima, max_neighbors, local_swap, initial_medoids='kcenters')
 
@@ -1064,7 +1112,8 @@ class Clarans(BaseFlatClusterer):
 
 
 class SubsampledClarans(BaseFlatClusterer):
-    def __init__(self, metric, trajectories, k, num_samples, shrink_multiple, num_local_minima=10,
+    def __init__(self, metric, trajectories=None, prep_trajectories=None, k=None, 
+                 num_samples=None, shrink_multiple=None, num_local_minima=10,
                  max_neighbors=20, local_swap=False, parallel=None):
         """ Run the CLARANS algorithm (see the Clarans class for more description) on
         multiple subsamples of the data drawn randomly.
@@ -1073,8 +1122,10 @@ class SubsampledClarans(BaseFlatClusterer):
         ----------
         metric : msmbuilder.metrics.AbstractDistanceMetric
             A metric capable of handling `ptraj`
-        trajectory : Trajectory or list of msmbuilder.Trajectory
+        trajectories : Trajectory or list of msmbuilder.Trajectory
             data to cluster
+        prep_trajectories : np.ndarray or None
+            prepared trajectories instead of msmbuilder.Trajectory
         k : int
             number of desired clusters
         num_samples : int
@@ -1098,7 +1149,7 @@ class SubsampledClarans(BaseFlatClusterer):
             are run independently
         """
 
-        super(SubsampledClarans, self).__init__(metric, trajectories)
+        super(SubsampledClarans, self).__init__(metric, trajectories, prep_trajectories)
 
         if parallel is None:
             mymap = map
@@ -1132,8 +1183,9 @@ class SubsampledClarans(BaseFlatClusterer):
 
 
 class HybridKMedoids(BaseFlatClusterer):
-    def __init__(self, metric, trajectories, k, distance_cutoff=None, local_num_iters=10,
-                       global_num_iters=0, norm_exponent=2.0, too_close_cutoff=.0001, ignore_max_objective=False):
+    def __init__(self, metric, trajectories=None, prep_trajectories=None, k=None, 
+                 distance_cutoff=None, local_num_iters=10, global_num_iters=0, 
+                 norm_exponent=2.0, too_close_cutoff=.0001, ignore_max_objective=False):
         """Run the hybrid kmedoids clustering algorithm on a set of trajectories
 
         Parameters
@@ -1170,7 +1222,7 @@ class HybridKMedoids(BaseFlatClusterer):
         Clarans : slightly more clever termination criterion
         """
 
-        super(HybridKMedoids, self).__init__(metric, trajectories)
+        super(HybridKMedoids, self).__init__(metric, trajectories, prep_trajectories)
 
 
         medoids, assignments, distances = _hybrid_kmedoids(metric, self.ptraj, k, distance_cutoff,
