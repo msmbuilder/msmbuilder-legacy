@@ -880,6 +880,8 @@ class BaseFlatClusterer(object):
             elif isinstance(trajectories, types.GeneratorType):
                 trajectories = list(trajectories)
 
+            self._concatenated = concatenate_trajectories(trajectories)
+
             if prep_trajectories is None:
                 self.ptraj = metric.prepare_trajectory(self._concatenated)
 
@@ -897,17 +899,14 @@ class BaseFlatClusterer(object):
             if trajectories is None:
                 self._traj_lengths = [len(ptraj) for ptraj in prep_trajectories]
 
-            self.ptraj = prep_trajectories
+            self._concatenated = None
+            self.ptraj = np.concatenate(prep_trajectories)
 
         if trajectories is None and prep_trajectories is None:
             raise Exception("must provide at least one of trajectories and prep_trajectories")
 
         self._metric = metric
         
-        if trajectories is None:
-            self._concatenated = None
-        else:
-            self._concatenated = concatenate_trajectories(trajectories)
 
         self.num_frames = sum(self._traj_lengths)
 
