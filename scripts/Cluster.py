@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 
+import IPython
 
 import sys, os
 import warnings
+import numpy as np
 from msmbuilder import arglib
 from msmbuilder import clustering
 from msmbuilder import Project
@@ -128,15 +130,15 @@ def load_prep_trajectories(project, stride, atom_indices, metric):
 
         ptraj = []
         for trj_chunk in Trajectory.enum_chunks_from_lhdf(project.traj_filename(i),
-                            stride=stride, atom_indices=atom_indices):
+                            Stride=stride, AtomIndices=atom_indices):
 
             ptrj_chunk = metric.prepare_trajectory(trj_chunk)
             ptraj.append(ptrj_chunk)
     
         ptraj = np.concatenate(ptraj)
         list_of_ptrajs.append(ptraj)
-    
-    return ptraj, which
+
+    return list_of_ptrajs, np.array(which)
 
 def load_trajectories(projectfn, stride, atom_indices):
     project = Project.load_from(projectfn)
@@ -236,15 +238,19 @@ could stride a little at the begining, but its not recommended.""")
 
     ptrajs, which = load_prep_trajectories(project, args.stride, atom_indices, metric)
 
-    logger.info('Loaded %d trajs', len(trajs))
+    num_frames = np.sum([len(p) for p in ptrajs])
+    if num_frames != len(which):
+        raise Exception("something went wrong in loading step (%d v %d)" % (num_frames, len(which)))
 
-    clusterer = cluster(metric, trajs, args, **extra_kwargs)
+    logger.info('Loaded %d trajs', len(ptrajs))
+
+    clusterer = cluster(metric, ptrajs, args, **extra_kwargs)
 
     if not isinstance(clusterer, clustering.Hierarchical):
 
-        gen_inds = clusterer.get_generator_inds()
+        gen_inds = clusterer.get_generator_indices()
 
-        generators = project.load_frame(which[:,0], which[:,1])
+        generators = project.load_frame(which[gen_inds,0], which[gen_inds,1])
         logger.info('Saving %s', generators_fn)
         generators.save_to_lhdf(generators_fn)
 
@@ -265,9 +271,3 @@ if __name__ == '__main__':
         dtm.start(main, args)
     else:
         main(args, metric)
-
-
-    
-    
-    
-        
