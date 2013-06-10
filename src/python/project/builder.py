@@ -254,7 +254,7 @@ class ProjectBuilder(object):
                         # need to skip the first frame because this is what the xtc reader would do
                         traj.save(self.project._traj_paths[old_ind])
                         # This does what we want it to do, because msmbuilder.io.saveh
-                        # deletes keys that already. However, this could be made more
+                        # deletes keys that exist already. However, this could be made more
                         # efficient by only updating the XYZList node since it's the
                         # only thing that changes
 
