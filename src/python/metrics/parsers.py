@@ -2,12 +2,13 @@
 import sys, os
 import pickle
 import numpy as np
+from msmbuilder import Trajectory
 import itertools
 from pkg_resources import iter_entry_points
 from msmbuilder.metrics import (RMSD, Dihedral, BooleanContact,
                                 AtomPairs, ContinuousContact,
                                 AbstractDistanceMetric, Vectorized,
-                                RedDimPNorm)
+                                RedDimPNorm, Positions)
 
 def add_argument(group, *args, **kwargs):
     if 'default' in kwargs:
@@ -94,6 +95,17 @@ def add_basic_metric_parsers(metric_subparser):
         help='which distance metric', choices=AtomPairs.allowable_scipy_metrics)
     metric_parser_list.append(atompairs)
 
+    positions = metric_subparser.add_parser('positions', description="""POSITIONS: For each frame
+        we represent the conformation as a vector of atom positions, where the atoms have been
+        aligned to a target structure.""")
+    add_argument(positions, '-t', dest='target', help='target structure (PDB) to align structures to.')
+    add_argument(positions, '-a', dest='pos_atom_indices', help='atom indices to include in the distances.')
+    add_argument(positions, '-i', dest='align_indices', help='atom indices to use when aligning to target.')
+    add_argument(positions, '-p', dest='positions_p', default=2, help='p used for metric=minkowski (otherwise ignored)')
+    add_argument(positions, '-m', dest='positions_metric', default='cityblock',
+        help='which distance metric', choices=Positions.allowable_scipy_metrics)
+    metric_parser_list.append(positions)
+
     picklemetric = metric_subparser.add_parser('custom', description="""CUSTOM: Use a custom
         distance metric. This requires defining your metric and saving it to a file using
         the pickle format, which can be done fron an interactive shell. This is an EXPERT FEATURE,
@@ -103,8 +115,8 @@ def add_basic_metric_parsers(metric_subparser):
     metric_parser_list.append(picklemetric)
     
     for add_parser in locate_metric_plugins('add_metric_parser'):
-        plugin_metric_parser = add_parser(metrics_parsers, add_argument)
-        parser.metric_parsers.append(plugin_metric_parser)
+        plugin_metric_parser = add_parser(metric_subparser, add_argument)
+        metric_parser_list.append(plugin_metric_parser)
     
     return metric_parser_list
 
@@ -194,6 +206,22 @@ def construct_basic_metric(metric_name, args):
 
         metric = AtomPairs(metric=args.atompairs_metric, p=args.atompairs_p,
             atom_pairs=pairs)
+
+    elif metric_name == 'positions':
+        target = Trajectory.load_from_pdb(args.target)
+        
+        if args.atom_indices != None:
+            atom_indices = np.loadtxt(args.pos_atom_indices, np.int)
+        else:
+            atom_indices = None
+
+        if args.align_indices != None:
+            align_indices = np.loadtxt(args.align_indices, np.int)
+        else:
+            align_indices = None
+        
+        metric = Positions(target, atom_indices=atom_indices, align_indices=align_indices,
+                           metric=args.positions_metric, p=args.positions_p)
              
     elif metric_name == 'custom':
         with open(args.picklemetric_input) as f:
