@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 
+import IPython
 
 import sys, os
 import warnings
+import numpy as np
 from msmbuilder import arglib
 from msmbuilder import clustering
 from msmbuilder import Project
@@ -112,6 +114,32 @@ for metric_parser in parser.metric_parser_list: # arglib stores the metric subpa
     add_argument(hier, '-m', default='ward', help='method. default=ward',
         choices=['single', 'complete', 'average', 'weighted', 'centroid', 'median', 'ward'], dest='hierarchical_method')
 
+
+def load_prep_trajectories(project, stride, atom_indices, metric):
+    """load the trajectories but prepare them during the load.
+    This is helpful for metrics that use dimensionality reduction
+    so you can use more frames without a MemoryError
+    """
+    list_of_ptrajs = []
+    which = []
+    for i in xrange(project.n_trajs):
+
+        which_frames = np.arange(0, project.traj_lengths[i], stride)
+    
+        which.extend(zip([i] * len(which_frames), which_frames))
+
+        ptraj = []
+        for trj_chunk in Trajectory.enum_chunks_from_lhdf(project.traj_filename(i),
+                            Stride=stride, AtomIndices=atom_indices):
+
+            ptrj_chunk = metric.prepare_trajectory(trj_chunk)
+            ptraj.append(ptrj_chunk)
+    
+        ptraj = np.concatenate(ptraj)
+        list_of_ptrajs.append(ptraj)
+
+    return list_of_ptrajs, np.array(which)
+
 def load_trajectories(projectfn, stride, atom_indices):
     project = Project.load_from(projectfn)
 
@@ -129,24 +157,28 @@ def load_trajectories(projectfn, stride, atom_indices):
     return list_of_trajs
 
     
-def cluster(metric, trajs, args, **kwargs):
+def cluster(metric, ptrajs, args, **kwargs):
     if args.alg == 'kcenters':
-        clusterer = clustering.KCenters(metric, trajs, k=args.kcenters_num_clusters,
+        clusterer = clustering.KCenters(metric, prep_trajectories=ptrajs, 
+            k=args.kcenters_num_clusters, 
             distance_cutoff=args.kcenters_distance_cutoff, seed=args.kcenters_seed)
     elif args.alg == 'hybrid':
-        clusterer = clustering.HybridKMedoids(metric, trajs, k=args.hybrid_num_clusters,
+        clusterer = clustering.HybridKMedoids(metric, prep_trajectories=ptrajs, 
+            k=args.hybrid_num_clusters,
             distance_cutoff=args.hybrid_distance_cutoff,
             local_num_iters=args.hybrid_local_num_iters,
             global_num_iters=args.hybrid_global_iters,
             too_close_cutoff=args.hybrid_too_close_cutoff,
             ignore_max_objective=args.hybrid_ignore_max_objective)
     elif args.alg == 'clarans':
-        clusterer = clustering.Clarans(metric, trajs, k=args.clarans_num_clusters,
+        clusterer = clustering.Clarans(metric, prep_trajectories=ptrajs, 
+            k=args.clarans_num_clusters,
             num_local_minima=args.clarans_num_local_minima,
             max_neighbors=args.clarans_max_neighbors,
             local_swap=args.clarans_local_swap)
     elif args.alg == 'sclarans':
-        clusterer = clustering.SubsampledClarans(metric, trajs, k=args.sclarans_num_clusters,
+        clusterer = clustering.SubsampledClarans(metric, prep_trajectories=ptrajs, 
+            k=args.sclarans_num_clusters,
             num_samples=args.sclarans_num_samples,
             shrink_multiple=args.sclarans_shrink_multiple,
             num_local_minima=args.sclarans_num_local_minima,
@@ -155,11 +187,12 @@ def cluster(metric, trajs, args, **kwargs):
             parallel=args.sclarans_parallel)
     elif args.alg == 'hierarchical':
         zmatrix_fn = kwargs['zmatrix_fn']
-        clusterer = clustering.Hierarchical(metric, trajs, method=args.hierarchical_method)
+        clusterer = clustering.Hierarchical(metric, prep_trajectories=ptrajs, 
+            method=args.hierarchical_method)
         clusterer.save_to_disk(zmatrix_fn)
         logger.info('ZMatrix saved to %s. Use AssignHierarchical.py to assign the data', zmatrix_fn)
     else:
-        raise ValueError('!')
+        raise ValueError('Unrecognized algorithm %s' % args.alg)
     
     return clusterer
     
@@ -201,15 +234,26 @@ could stride a little at the begining, but its not recommended.""")
             distances_fn = os.path.join(args.output_dir, 'Assignments.h5.distances')
             die_if_path_exists([assignments_fn, distances_fn])
         
-    trajs = load_trajectories(args.project, args.stride, atom_indices)
-    logger.info('Loaded %d trajs', len(trajs))
+    project = Project.load_from(args.project)
 
-    clusterer = cluster(metric, trajs, args, **extra_kwargs)
+    ptrajs, which = load_prep_trajectories(project, args.stride, atom_indices, metric)
+
+    num_frames = np.sum([len(p) for p in ptrajs])
+    if num_frames != len(which):
+        raise Exception("something went wrong in loading step (%d v %d)" % (num_frames, len(which)))
+
+    logger.info('Loaded %d trajs', len(ptrajs))
+
+    clusterer = cluster(metric, ptrajs, args, **extra_kwargs)
 
     if not isinstance(clusterer, clustering.Hierarchical):
-        generators = clusterer.get_generators_as_traj()
+
+        gen_inds = clusterer.get_generator_indices()
+
+        generators = project.load_frame(which[gen_inds,0], which[gen_inds,1])
         logger.info('Saving %s', generators_fn)
         generators.save_to_lhdf(generators_fn)
+
         if args.stride == 1:
             assignments = clusterer.get_assignments()
             distances = clusterer.get_distances()
@@ -227,9 +271,3 @@ if __name__ == '__main__':
         dtm.start(main, args)
     else:
         main(args, metric)
-
-
-    
-    
-    
-        
