@@ -253,7 +253,10 @@ class LPRMSD(AbstractDistanceMetric):
     
         else:
             for index, xyz in enumerate(trajectory['XYZList']):
-                xsel = xyz[np.array(self.atomindices), :]
+                if not self.atomindices is None:
+                    xsel = xyz[np.array(self.atomindices), :]
+                else:
+                    xsel = xyz
                 xyz -= xsel.mean(0)
                 T1['XYZList'][index] = xyz.copy()
                 
