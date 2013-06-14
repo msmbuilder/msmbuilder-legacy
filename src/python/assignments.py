@@ -91,12 +91,12 @@ def get_counts_from_traj(states, n_states=None, lag_time=1, sliding_window=True)
         n_states = states.max() + 1
 
     if sliding_window:
+        from_states = states
+        to_states = states.shift(-lag_time)
+    else:
         states = states[::lag_time]
         from_states = states
         to_states = states.shift(-1)
-    else:
-        from_states = states
-        to_states = states.shift(-lag_time)
 
     assert from_states.shape == to_states.shape
 
