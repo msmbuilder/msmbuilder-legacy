@@ -57,6 +57,44 @@ def concatenate_trajectories(trajectories):
     return result
 
 
+def concatenate_prep_trajectories(prep_trajectories, metric):
+    """Concatenate a list of prepared trajectories and
+    create a single prepared_trajectory.
+
+    This is non-trivial because the RMSD and LPRMSD prepared
+    trajectories are not np.ndarrays ...
+
+    Parameters
+    ----------
+    prep_trajectories : list
+        list of prepared trajectories
+    metric : msmbuilder.metrics.AbstractDistance metric subclass instance
+        metric used to prepare the trajectories. Needed for RMSD and LPRMSD
+        since concatenation requires recreating the prepared trajectory
+
+    Returns
+    -------
+    ptraj : prepared_trajectory
+        prepared trajectory instance, like that returned from 
+        metric.prepare_trajectory
+    """
+    if isinstance(prep_trajectories[0], np.ndarray):
+        ptraj = np.concatenate(prep_trajectories)
+
+    elif isinstance(prep_trajectories[0], RMSD.TheoData):
+        
+        xyz = np.concatenate([p.XYZData[:, :, :p.NumAtoms] for p in prep_trajectories])
+        xyz = xyz.transpose((0, 2, 1))
+        
+        ptraj = metric.TheoData(xyz)
+
+    else:
+        raise Exception("unrecognized prepared trajectory." 
+            "NOTE: LPRMSD currently unsupported. Email schwancr@stanford.edu")
+
+    return ptraj
+
+
 def unconcatenate_trajectory(trajectory, lengths):
     """Take a single trajectory that was created by concatenating seperate
     trajectories and unconcenatenate it, returning the original trajectories.
@@ -889,18 +927,22 @@ class BaseFlatClusterer(object):
 
         if not prep_trajectories is None:  # If they also provide trajectories
             # that's fine, but we will use the prep_trajectories
-            prep_trajectories = np.array(prep_trajectories)
-            if len(prep_trajectories.shape) == 2: 
-                prep_trajectories = [prep_trajectories]
-            else:
-                # 3D means a list of prep_trajectories was input
-                prep_trajectories = list(prep_trajectories)
+
+            if isinstance(prep_trajectories, np.ndarray) or  \
+                isinstance(prep_trajectories[0], np.ndarray):
+
+                prep_trajectories = np.array(prep_trajectories)
+                if len(prep_trajectories.shape) == 2: 
+                    prep_trajectories = [prep_trajectories]
+                else:
+                    # 3D means a list of prep_trajectories was input
+                    prep_trajectories = list(prep_trajectories)
             
             if trajectories is None:
                 self._traj_lengths = [len(ptraj) for ptraj in prep_trajectories]
 
             self._concatenated = None
-            self.ptraj = np.concatenate(prep_trajectories)
+            self.ptraj = concatenate_prep_trajectories(prep_trajectories, metric)
 
         if trajectories is None and prep_trajectories is None:
             raise Exception("must provide at least one of trajectories and prep_trajectories")
