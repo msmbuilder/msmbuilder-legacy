@@ -57,8 +57,8 @@ contains all the lag times.\n""")
     parser.add_argument('eigvals', help="""Number of slowest implied timescales to
         retrieve at each lag time. Note: an n-state model will have n-1
         implied timescales.""", default=10, type=int)
-    parser.add_argument('interval', help="""Number of times (intervals)
-        to calculate lagtimes for""", default=20, type=int)
+    parser.add_argument('interval', help="""Interval between times (intervals)
+        to calculate lagtimes for""", default=1, type=int)
     parser.add_argument('symmetrize', help="""Method by which to estimate a
         symmetric counts matrix. Symmetrization ensures reversibility, but may skew
         dynamics. We recommend maximum likelihood estimation (MLE) when tractable,
