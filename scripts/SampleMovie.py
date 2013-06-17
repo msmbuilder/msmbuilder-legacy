@@ -1,4 +1,3 @@
-import os
 import numpy as np
 from msmbuilder import io
 from msmbuilder import arglib
@@ -10,14 +9,11 @@ logger = logging.getLogger('msmbuilder.scripts.SampleMovie')
 DEBUG = True
 
 def main():
-    """Parse command line inputs, load up files, then call run() and save() to do
-    the real work"""
+    """Parse command line inputs, load up files, and build a movie."""
 
     parser = arglib.ArgumentParser(description="""
-Yank a number of randomly selected conformations from each state in a model.
-
-The conformations can either be saved in separate files (i.e. one PDB file per
-conformations), or in the same file.
+Create an MSM movie by sampling a sequence of states and sampling a 
+random conformation from each state in the sequence.  
 """)
     parser.add_argument('project')
     parser.add_argument('assignments', default='Data/Assignments.Fixed.h5')
