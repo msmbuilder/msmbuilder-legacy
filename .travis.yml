@@ -22,14 +22,15 @@ install:
     - sudo apt-get install -qq swig
     - sudo apt-get install -qq python-yaml
     
-# install later versions of pandas and statsmodels from the pythonXY PPA
-# which is recommended by https://github.com/pydata/pandas/blob/master/doc/source/install.rst
-    - sudo add-apt-repository --yes ppa:pythonxy/pythonxy-devel && sudo apt-get update
-    - sudo apt-get install python-patsy
+    
+    # get some stuff from http://neuro.debian.net/
+    - wget -O- http://neuro.debian.net/lists/precise.us-ca.full | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list
+    - sudo apt-key adv --recv-keys --keyserver pgp.mit.edu 2649A5A9
+    - sudo apt-get update    
     - sudo apt-get install python-pandas
     - sudo apt-get install python-statsmodels
+    
     - sudo easy_install fastcluster
-    - sudo rm -rf /dev/shm && sudo ln -s /run/shm /dev/shm     
 script:
     - sudo python setup.py install
     - nosetests -vv
