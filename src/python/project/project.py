@@ -19,6 +19,15 @@
 import os
 import numpy as np
 import yaml
+# if CLoader/CDumper are available (i.e. user has libyaml installed)
+#  then use them since they are much faster.
+try:
+    from yaml import CLoader as Loader
+    from yaml import CDumper as Dumper
+except ImportError:
+    from yaml import Loader
+    from yaml import Dumper
+
 from msmbuilder import Trajectory
 from msmbuilder import io
 from msmbuilder import MSMLib
@@ -141,7 +150,7 @@ class Project(object):
 
         if filename.endswith('.yaml'):
             with open(filename) as f:
-                ondisk = yaml.load(f)
+                ondisk = yaml.load(f, Loader=Loader)
                 records = {'conf_filename': ondisk['conf_filename'],
                            'traj_lengths': [],
                            'traj_paths': [],
@@ -212,7 +221,7 @@ class Project(object):
                                     'length': int(self._traj_lengths[i]),
                                     'errors': self._traj_errors[i]})
 
-        yaml.dump(records, handle)
+        yaml.dump(records, handle, Dumper=Dumper)
 
         if own_fid:
             handle.close()
