@@ -29,6 +29,7 @@ install:
     - sudo apt-get update    
     - sudo apt-get install python-pandas
     - sudo apt-get install python-statsmodels
+    - sudo rm -rf /dev/shm && sudo ln -s /run/shm /dev/shm 
     
     - sudo easy_install fastcluster
 script:
