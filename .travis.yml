@@ -29,6 +29,10 @@ install:
     - sudo apt-get update    
     - sudo apt-get install python-pandas
     - sudo apt-get install python-statsmodels
+    
+    # RMG is not really sure what this line does, but it's critical for multiprocessing 
+    # to work in python. see https://github.com/travis-ci/travis-cookbooks/issues/155 and
+    # https://github.com/SimTk/msmbuilder/issues/214
     - sudo rm -rf /dev/shm && sudo ln -s /run/shm /dev/shm 
     
     - sudo easy_install fastcluster
