@@ -237,7 +237,7 @@ could stride a little at the begining, but its not recommended.""")
         
     project = Project.load_from(args.project)
 
-    if isinstance(metric, metrics.RMSD):
+    if isinstance(metric, metrics.RMSD) or isinstance(metric, metrics.Hybrid):
         trajectories = load_trajectories(project, args.stride, atom_indices)       
         ptrajs = None
         which = None
@@ -257,7 +257,7 @@ could stride a little at the begining, but its not recommended.""")
 
     if not isinstance(clusterer, clustering.Hierarchical):
 
-        if isinstance(metric, metrics.RMSD):
+        if isinstance(metric, metrics.RMSD) or isinstance(metric, metrics.Hybrid):
             generators = clusterer.get_generators_as_traj()
         else:
             gen_inds = clusterer.get_generator_indices()
