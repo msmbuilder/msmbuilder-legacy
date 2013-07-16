@@ -19,8 +19,8 @@
 
 import os, sys
 from msmbuilder import arglib
-from msmbuilder import Trajectory, Serializer, Project
-from lprmsd.lprmsd import LPRMSD, ReadPermFile
+from msmbuilder import Trajectory, io, Project
+from lprmsd import LPRMSD, ReadPermFile
 from collections import defaultdict
 from msmbuilder.clustering import concatenate_trajectories
 import copy
@@ -38,14 +38,17 @@ def get_size(start_path = '.'):
             num_files += 1
     return num_files, total_size
 
+def get_file_size(fnm):
+    return os.path.getsize(fnm)
+
 def run(project, assignments, conformations_per_state, states, output_dir, gens_file, atom_indices, permute_indices, alt_indices, total_memory):
     if states == "all":
-        states = np.arange(assignments.max()+1)
+        states = np.arange(assignments['arr_0'].max()+1)
     # This is a dictionary: {generator : ((traj1, frame1), (traj1, frame3), (traj2, frame1), ... )}
     inverse_assignments = defaultdict(lambda: [])
-    for i in xrange(assignments.shape[0]):
-        for j in xrange(assignments.shape[1]):
-            inverse_assignments[assignments[i,j]].append((i,j))
+    for i in xrange(assignments['arr_0'].shape[0]):
+        for j in xrange(assignments['arr_0'].shape[1]):
+            inverse_assignments[assignments['arr_0'][i,j]].append((i,j))
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     print "Setting up the metric."
@@ -61,14 +64,14 @@ def run(project, assignments, conformations_per_state, states, output_dir, gens_
     
     formstr_xtc = '\"Cluster-%%0%ii.xtc\"' % digits
     print "Loading up the trajectories."
-    traj_nfiles, traj_bytes = get_size(project['TrajFilePath'])
+    traj_bytes = sum([get_file_size(project.traj_filename(i)) for i in range(project.n_trajs)])
     LoadAll = 0
     MaxMem = 0.0
     # LPW This is my hack that decides whether to load trajectories into memory, or to read them from disk.
     if (traj_bytes * 5) < total_memory * 1073741824: # It looks like the Python script uses roughly 5x the HDF file size in terms of memory.
         print "Loading all trajectories into memory."
         LoadAll = 1
-        AllTraj = [project.LoadTraj(i) for i in np.arange(project["NumTrajs"])]
+        AllTraj = [project.load_traj(i) for i in np.arange(project.n_trajs)]
         #print "After loading trajectories, memory usage is % .3f GB" % (float(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss) / 1048576)
     
     if not os.path.exists(gens_file):
@@ -85,7 +88,7 @@ def run(project, assignments, conformations_per_state, states, output_dir, gens_
         formstr_pdb = '\"Center-%%0%ii.pdb\"' % digits
         
     
-    cluster_traj = project.GetEmptyTrajectory()
+    cluster_traj = project.empty_traj()
     # Loop through the generators.
     for s in states:
         if len(inverse_assignments[s]) == 0:
@@ -105,14 +108,15 @@ def run(project, assignments, conformations_per_state, states, output_dir, gens_
         # Create a single trajectory corresponding to the frames that
         # belong to the current generator.
         if "XYZList" in cluster_traj:
-            cluster_traj.pop("XYZList")
+            cluster_traj["XYZList"] = None
+            #cluster_traj.pop("XYZList")
         print "Generator %i" % s,
         TrajNums = set([i[0] for i in confs])
         for i in TrajNums:
             if LoadAll:
                 T = AllTraj[i][np.array(FrameDict[i])]
             else:
-                T = project.LoadTraj(i)[np.array(FrameDict[i])]
+                T = project.load_traj(i)[np.array(FrameDict[i])]
             cluster_traj += T
         print " loaded %i conformations, aligning" % len(cluster_traj),
         # Prepare the trajectory, align to the generator, and reassign the coordinates.
@@ -177,8 +181,8 @@ to use GetRandomConfs.py""")
         args.conformations_per_state = 'all'
 
     atom_indices = np.loadtxt(args.lprmsd_atom_indices, np.int)
-    assignments = Serializer.LoadData(args.assignments)
-    project = Project.load_from_hdf(args.project)
+    assignments = io.loadh(args.assignments)
+    project = Project.load_from(args.project)
     
     if args.lprmsd_permute_atoms == 'None':
         permute_indices = None
