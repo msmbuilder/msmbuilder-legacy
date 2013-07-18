@@ -24,19 +24,21 @@ from matplotlib.pyplot import *
 import sys
 import msmbuilder.io
 
-print("Usage: python PlotDihedrals.py Filename")
-print("Filename should be the location of your Macrostate assignments file.")
+
+if len(sys.argv) != 2:
+	print("Usage: python PlotDihedrals.py Filename")
+	print("Where Filename is the location of the Dihedrals.h5 data file.")
+	sys.exit(0)
 Filename=sys.argv[1]
 
-#Load assigment, phi, and psi data.
-Ass=msmbuilder.io.loadh(Filename, "arr_0")
-dihedral_data = msmbuilder.io.loadh("./Dihedrals.h5")
+#Load data
+dihedral_data = msmbuilder.io.loadh(Filename)
 phi = dihedral_data['Phi']
 psi = dihedral_data['Psi']
 ind = dihedral_data['StateIndex']
 NumStates=len(ind)
 
-
+# Helper function to give the indices for a particular macrostate i
 def w(i, ind):
 	prev = sum(ind[:i])
 	return range(prev, prev+ind[i])

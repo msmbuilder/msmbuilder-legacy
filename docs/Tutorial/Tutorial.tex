@@ -205,10 +205,16 @@ PCCA.py -n 4 -a L1/Assignments.Fixed.h5 -t L1/tProb.mtx -o Macro4/ -A PCCA+
 
 \subsubsection{Examining the macrostate decomposition}
 
-It is known that the relevant degrees of freedom for alanine dipeptide are the phi and psi backbone angles.  Thus, it is useful to examine (phi,psi), which we have pre-calculated for you.
+It is known that the relevant degrees of freedom for alanine dipeptide are the phi and psi backbone angles.  Thus, it is useful to examine (phi,psi). This data has been pre-calculated and is stored in Dihedrals.h5, or you can compute it via
 
 \begin{verbatim}
-python PlotDihedrals.py Macro4/MacroAssignments.h5
+python GetDihedrals.py --pdb native.pdb -a Macro4/MacroAssignments.h5 -n 1000
+\end{verbatim}
+
+This will sample up to 1000 conformations from each macrostate. To sample all macrostates, use -n -1. We then visualize the data.
+
+\begin{verbatim}
+python PlotDihedrals.py Dihedrals.h5
 \end{verbatim}
 
 You should see something like the following graph (our clustering and PCCA+ code both perform randomized searches, so your plot may appear slightly different):
