@@ -30,34 +30,24 @@ Filename=sys.argv[1]
 
 #Load assigment, phi, and psi data.
 Ass=msmbuilder.io.loadh(Filename, "arr_0")
-phi=msmbuilder.io.loadh("./Phi.h5", "Data")
-psi=msmbuilder.io.loadh("./Psi.h5", "Data")
+dihedral_data = msmbuilder.io.loadh("./Dihedrals.h5")
+phi = dihedral_data['Phi']
+psi = dihedral_data['Psi']
+ind = dihedral_data['StateIndex']
+NumStates=len(ind)
 
-NumStates=Ass.max()+1
 
-"""
-hexbin(phi.flatten(),psi.flatten())
-title("Ramachandran plot of raw alanine dipeptide data.")
-xlabel(r"$\phi$")
-ylabel(r"$\psi$")
-axis([-180,180,-180,180])
-figure()
-"""
+def w(i, ind):
+	prev = sum(ind[:i])
+	return range(prev, prev+ind[i])
 
-w=lambda x: where(Ass==x)
+for i in xrange(NumStates):
+    plot(phi[w(i,ind)], psi[w(i,ind)], "x", label="State %d"%i)
+    axis([-180,180,-180,180])
+
+
 LabelList=[",",".",'o',"<","s","*","h","+","D"]
 ColorList=["b","g","r","c","m","y","k"]
-def PlotIthState(i,Separate=False):
-    if Separate==True:
-        figure()
-    plot(phi[w(i)],psi[w(i)],"x",label="State %d"%i)
-    axis([-180,180,-180,180])
-    print i, w(i)[0].shape
-
-for i in range(NumStates):
-    print(i)
-    PlotIthState(i)
-
 title("Alanine Dipeptide Macrostates")
 xlabel(r"$\phi$")
 ylabel(r"$\psi$")
