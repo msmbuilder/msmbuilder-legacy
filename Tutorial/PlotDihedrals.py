@@ -26,9 +26,9 @@ import msmbuilder.io
 
 
 if len(sys.argv) != 2:
-	print("Usage: python PlotDihedrals.py Filename")
-	print("Where Filename is the location of the Dihedrals.h5 data file.")
-	sys.exit(0)
+    print("Usage: python PlotDihedrals.py Filename")
+    print("Where Filename is the location of the Dihedrals.h5 data file.")
+    sys.exit(0)
 Filename=sys.argv[1]
 
 #Load data
@@ -40,8 +40,8 @@ NumStates=len(ind)
 
 # Helper function to give the indices for a particular macrostate i
 def w(i, ind):
-	prev = sum(ind[:i])
-	return range(prev, prev+ind[i])
+    prev = sum(ind[:i])
+    return range(prev, prev+ind[i])
 
 for i in xrange(NumStates):
     plot(phi[w(i,ind)], psi[w(i,ind)], "x", label="State %d"%i)
