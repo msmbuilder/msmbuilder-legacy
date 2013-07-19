@@ -158,11 +158,11 @@ to use GetRandomConfs.py""")
         is more efficient for this purpose), pass the integer -1.''')
 
     parser.add_argument('lprmsd_atom_indices', help='Regular atom indices', default='AtomIndices.dat')
+    parser.add_argument('lprmsd_alt_indices', default='None', help='Alternate atom indices')
     parser.add_argument('lprmsd_permute_atoms', default='None', help='''Atom labels to be permuted.
     Sets of indistinguishable atoms that can be permuted to minimize the RMSD. On disk this should be stored as
     a list of newline separated indices with a "--" separating the sets of indices if there are
     more than one set of indistinguishable atoms''')
-    parser.add_argument('lprmsd_alt_indices', default='None', help='Alternate atom indices')
     parser.add_argument('total_memory_gb', default=4, type=int, help='Available memory in GB; this determines whether to load all trajectories into memory or to read them one-by-one from disk.')
 
     parser.add_argument('generators', help='''Trajectory file containing
