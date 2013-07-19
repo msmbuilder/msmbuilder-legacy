@@ -557,6 +557,8 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
   double *MapAtoms_d;
   float *MapAtoms0_f;
   float *MapAtoms_f;
+  float *MapPadAtoms0_f;
+  float *MapPadAtoms_f;
   int Count=0;
   int AtomsInRMSD=0;
   double xcena, ycena, zcena, xcenb, ycenb, zcenb;
@@ -577,15 +579,17 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
   int *LPIndices_Global;
   double *AltAtoms_d;
   double *AltAtoms_Rot_d;
-  int nreal_map;
-  int npad_map;
-#pragma omp parallel for private(rot, msd, msdi, j, k, p, start, end, Idx, Old, New, Count, x1, x2, y1, y2, z1, z2, MapAtoms0_d, MapAtoms_d, MapAtoms0_f, MapAtoms_f, nreal_map, npad_map, G_map_d, G_map0_d, G_map_f, G_map0_f, AtomsInRMSD, xcena, ycena, zcena, xcenb, ycenb, zcenb, Displacement, D, LPAtoms_d, LPAtoms_IDRot_d, LPAtoms_IDRot_f, AllAtoms_d, AllAtoms_Rot_d, AllAtoms_Rot_Perm_d, LPIndices_Local, LPIndices_Global, AltAtoms_d, AltAtoms_Rot_d)
+  int nreal_map = na_lp;
+  int npad_map = na_lp+4-na_lp%4;
+#pragma omp parallel for private(rot, msd, msdi, j, k, p, start, end, Idx, Old, New, Count, x1, x2, y1, y2, z1, z2, MapAtoms0_d, MapAtoms_d, MapAtoms0_f, MapAtoms_f, MapPadAtoms0_f, MapPadAtoms_f, G_map_d, G_map0_d, G_map_f, G_map0_f, AtomsInRMSD, xcena, ycena, zcena, xcenb, ycenb, zcenb, Displacement, D, LPAtoms_d, LPAtoms_IDRot_d, LPAtoms_IDRot_f, AllAtoms_d, AllAtoms_Rot_d, AllAtoms_Rot_Perm_d, LPIndices_Local, LPIndices_Global, AltAtoms_d, AltAtoms_Rot_d)
   for (int i = 0; i < ns; i++) 
     {
       MapAtoms0_d = calloc(na_lp * 3, sizeof(double));
       MapAtoms0_f = calloc(na_lp * 3, sizeof(float));
       MapAtoms_d = calloc(na_lp * 3, sizeof(double));
       MapAtoms_f = calloc(na_lp * 3, sizeof(float));
+      MapPadAtoms0_f = calloc(npad_map * 3, sizeof(float));
+      MapPadAtoms_f = calloc(npad_map * 3, sizeof(float));
       
       LPAtoms_d = calloc(na_lp * 3, sizeof(double));
       LPAtoms_IDRot_d = calloc(na_lp * 3, sizeof(double));
@@ -701,18 +705,9 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
 	      MapAtoms0_d[1*na_lp + Count] = (double)LPAtoms0_f[1*na_lp + Old];
 	      MapAtoms0_d[2*na_lp + Count] = (double)LPAtoms0_f[2*na_lp + Old];
 
-	      /*
-	      Displacement  = (Y_lp_f[(i*3+0)*na_lp + New] - MapAtoms0_d[0*na_lp + Count]) * (Y_lp_f[(i*3+0)*na_lp + New] - MapAtoms0_d[0*na_lp + Count]);
-	      Displacement += (Y_lp_f[(i*3+1)*na_lp + New] - MapAtoms0_d[1*na_lp + Count]) * (Y_lp_f[(i*3+1)*na_lp + New] - MapAtoms0_d[1*na_lp + Count]);
-	      Displacement += (Y_lp_f[(i*3+2)*na_lp + New] - MapAtoms0_d[2*na_lp + Count]) * (Y_lp_f[(i*3+2)*na_lp + New] - MapAtoms0_d[2*na_lp + Count]);
-	      Displacement  = sqrtf(Displacement);
-	      printf("In the local array, MapAtoms0_d[%i] = %i MapAtoms_d[%i] = %i with Displacement = % .3f\n", Count, Old, Count, New, Displacement);
-	      */
-
 	      Count++;
 	      New = lp_idx[lp_starts[k] + *(LPIndices_Local+lp_starts[k]+p)];
 	      LPIndices_Global[lp_starts[k]+p] = New;
-	      //printf("In the global array, setting lp_all_glob[%i * %i + %i + %i] = %i\n", i, lplen, lp_starts[k], p, New);
 	    } else {
 	      LPIndices_Global[lp_starts[k]+p] = -1;
 	    }
@@ -722,8 +717,11 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
 	}
 
 	// This block computes the center of mass and the Theobald G-value.
-	nreal_map = Count;
-	npad_map = Count+4-Count%4;
+	// It looks like previously I had been trying to determine the sizes of the "mapatoms" dynamically.
+	// This was probably because of the "boundary problem".
+	// Disabling this so that we recover the original functionality.
+	//nreal_map = Count;
+	//npad_map = Count+4-Count%4;
 	xcena = 0.0;
 	ycena = 0.0;
 	zcena = 0.0;
@@ -779,18 +777,17 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
 	// Compress the arrays so they fit in npad_map.
 	for (D=0; D<3; D++) {
 	  for (k=0; k<nreal_map; k++) {
-	    MapAtoms_f[D*npad_map + k] = MapAtoms_f[D*na_lp + k];
-	    MapAtoms0_f[D*npad_map + k] = MapAtoms0_f[D*na_lp + k];
+	    MapPadAtoms_f[D*npad_map + k] = MapAtoms_f[D*na_lp + k];
+	    MapPadAtoms0_f[D*npad_map + k] = MapAtoms0_f[D*na_lp + k];
 	  }
 	  for (k=nreal_map; k<na_lp; k++) {
-	    MapAtoms_f[D*npad_map + k] = 0.0;
-	    MapAtoms0_f[D*npad_map + k] = 0.0;
+	    MapPadAtoms_f[D*npad_map + k] = 0.0;
+	    MapPadAtoms0_f[D*npad_map + k] = 0.0;
 	  }
 	}
-
 	start = get_time_precise();
 	// Perform alignment using the Mapped Indices; this sets the RMSD values and gets the rotation matrices
-	ls_rmsd2_aligned_T_g(nreal_map,npad_map,npad_map,MapAtoms_f,MapAtoms0_f,G_map_f,G_map0_f,&msd,1,rot);
+	ls_rmsd2_aligned_T_g(nreal_map,npad_map,npad_map,MapPadAtoms_f,MapPadAtoms0_f,G_map_f,G_map0_f,&msd,1,rot);
 	time_accumulate(&RMSD2Time,start);
 	
 	// Rotate the whole frame using the rotation matrix
@@ -875,6 +872,8 @@ static PyObject *_LPRMSD_Multipurpose(PyObject *self, PyObject *args) {
 	}
       }
 
+      free(MapPadAtoms0_f);
+      free(MapPadAtoms_f);
       free(MapAtoms0_d);
       free(MapAtoms0_f);
       free(MapAtoms_d);
