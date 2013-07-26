@@ -209,7 +209,7 @@ def construct_basic_metric(metric_name, args):
     elif metric_name == 'positions':
         target = Trajectory.load_from_pdb(args.target)
         
-        if args.atom_indices != None:
+        if args.pos_atom_indices != None:
             atom_indices = np.loadtxt(args.pos_atom_indices, np.int)
         else:
             atom_indices = None
