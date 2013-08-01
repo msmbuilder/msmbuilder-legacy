@@ -124,14 +124,14 @@ def estimate_transition_matrix(count_matrix):
         C = scipy.sparse.csr_matrix(count_matrix).asfptype()
         weights = np.asarray(C.sum(axis=1)).flatten()
         inv_weights = np.zeros(len(weights))
-        inv_weights[weights != 0] = 1.0 / weights[weights != 0]
+        inv_weights[weights > np.finfo(np.float32).tiny] = 1.0 / weights[weights > np.finfo(np.float32).tiny]
         D = scipy.sparse.dia_matrix((inv_weights, 0), C.shape).tocsr()
         tProb = D.dot(C)
     else:
         tProb = np.asarray(count_matrix.astype(float))  # astype creates a copy
         weights = tProb.sum(axis=1)
         inv_weights = np.zeros(len(weights))
-        inv_weights[weights != 0] = 1.0 / weights[weights != 0]
+        inv_weights[weights > np.finfo(np.float32).tiny] = 1.0 / weights[weights > np.finfo(np.float32).tiny]
         tProb = tProb * inv_weights.reshape((weights.shape[0], 1))
 
     return tProb
