@@ -248,8 +248,13 @@ def fast_cdist(XA, XB, metric='euclidean', p=2, V=None, VI=None):
     if not (XA.flags.contiguous and XB.flags.contiguous):
         raise Exception('Prepared trajectories need to be contiguous.')
 
-    if not XA.shape[1] == XB.shape[1]:
-        raise Exception('shape[1] mismatch')
+    if len(XA.shape) != 2:
+        raise ValueError('XA must be a 2-dimensional array.')
+    if len(XB.shape) != 2:
+        raise ValueError('XB must be a 2-dimensional array.')
+    if XA.shape[1] != XB.shape[1]:
+        raise ValueError('XA and XB must have the same number of columns '
+                         '(i.e. feature dimension.)')
     
     dm = np.empty((mA, mB), dtype=np.double)
     n = XA.shape[1]
