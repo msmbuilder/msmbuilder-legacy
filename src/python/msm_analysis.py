@@ -142,7 +142,7 @@ def get_eigenvectors(t_matrix, n_eigs, epsilon=.001, dense_cutoff=50, right=Fals
     return e_lambda, e_vectors
 
 
-def get_implied_timescales(assignments_fn, lag_times, n_implied_times=100, sliding_window=True, trimming=True, symmetrize=None, n_procs=1):
+def get_implied_timescales(assignments_fn, lag_times, n_implied_times=100, sliding_window=True, trimming=True, symmetrize=None, n_procs=1, use_mask=False):
     """Calculate implied timescales in parallel using multiprocessing library.  Does not work in interactive mode.
 
     Parameters
@@ -161,6 +161,9 @@ def get_implied_timescales(assignments_fn, lag_times, n_implied_times=100, slidi
         Symmetrization method
     nProc : int
         number of processes to use in parallel (multiprocessing
+    use_mask : bool, optional
+        Use mask argument to build only a cis or trans count matrix for CheY
+        Default: False
 
     Returns
     -------
@@ -180,7 +183,7 @@ def get_implied_timescales(assignments_fn, lag_times, n_implied_times=100, slidi
     # subtle bug possibility; uneven_zip will let strings be iterable, whicj
     # we dont want
     inputs = uneven_zip([assignments_fn], lag_times, n_implied_times,
-        sliding_window, trimming, [symmetrize])
+        sliding_window, trimming, [symmetrize], use_mask)
     result = pool.map_async(get_implied_timescales_helper, inputs)
     lags = result.get(999999)
 
@@ -219,6 +222,9 @@ def get_implied_timescales_helper(args):
         Use ergodic trimming
     symmetrize : {'MLE', 'Transpose', None}
         Symmetrization method
+    use_mask: bool, optional
+        Use mask argument to build only a cis or trans count matrix for CheY
+        Default: False
 
     Returns
     -------
@@ -232,7 +238,7 @@ def get_implied_timescales_helper(args):
     MSMLib.build_msm
     get_eigenvectors
     """
-    assignments_fn, lag_time, n_implied_times, sliding_window, trimming, symmetrize = args
+    assignments_fn, lag_time, n_implied_times, sliding_window, trimming, symmetrize, use_mask = args
     logger.info("Calculating implied timescales at lagtime %d" % lag_time)
 
     try:
@@ -244,7 +250,7 @@ def get_implied_timescales_helper(args):
         from msmbuilder import MSMLib
 
         counts = MSMLib.get_count_matrix_from_assignments(assignments, lag_time=lag_time,
-                                                          sliding_window=sliding_window)
+                                                          sliding_window=sliding_window, use_mask=use_mask)
         rev_counts, t_matrix, populations, mapping = MSMLib.build_msm(counts, symmetrize, trimming)
 
     except ValueError as e:

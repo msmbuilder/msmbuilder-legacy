@@ -27,7 +27,7 @@ logger = logging.getLogger('msmbuilder.scripts.CalculateImpliedTimescales')
 
 
 def run(MinLagtime, MaxLagtime, Interval, NumEigen, AssignmentsFn, trimming,
-        symmetrize, nProc):
+        symmetrize, nProc, use_mask):
 
     logger.info("Getting %d eigenvalues (timescales) for each lagtime...", NumEigen)
     lagTimes = range(MinLagtime, MaxLagtime + 1, Interval)
@@ -36,7 +36,7 @@ def run(MinLagtime, MaxLagtime, Interval, NumEigen, AssignmentsFn, trimming,
     # Get the implied timescales (eigenvalues)
     impTimes = msm_analysis.get_implied_timescales(AssignmentsFn, lagTimes,
         n_implied_times=NumEigen, sliding_window=True, trimming=trimming,
-        symmetrize=symmetrize, n_procs=nProc)
+        symmetrize=symmetrize, n_procs=nProc, use_mask=use_mask)
 
     return impTimes
 
@@ -68,6 +68,10 @@ contains all the lag times.\n""")
     parser.add_argument('trim', help="""Whether or not to apply an ergodic trim.
         If true, keeps only the largest observed ergodic subset of the data, if
         false, keeps everything. Default: True.""", default=True, type=bool)
+    parser.add_argument('use_mask', help="""Whether or not to use a mask to separate
+        cis and trans conformers. Useful for CheY to build separate count matrices for
+        cis and trans proline isomerization. Default: False.""", default=False, type=bool)
+        
     args = parser.parse_args()
     arglib.die_if_path_exists(args.output)
 
@@ -80,6 +84,6 @@ contains all the lag times.\n""")
         args.symmetrize = None
 
     impTimes = run(MinLagtime, MaxLagtime, args.interval, args.eigvals, args.assignments,
-        args.trim, args.symmetrize, args.procs)
+        args.trim, args.symmetrize, args.procs, args.use_mask)
     np.savetxt(args.output, impTimes)
     logger.info("Saved output to %s", args.output)

@@ -40,6 +40,7 @@ from collections import defaultdict
 from msmbuilder.utils import deprecated, check_assignment_array_input
 from msmbuilder import msm_analysis
 import logging
+import mask
 logger = logging.getLogger(__name__)
 
 
@@ -198,7 +199,7 @@ def build_msm(counts, symmetrize='MLE', ergodic_trimming=True):
     return rev_counts, t_matrix, populations, mapping
 
 
-def get_count_matrix_from_assignments(assignments, n_states=None, lag_time=1, sliding_window=True):
+def get_count_matrix_from_assignments(assignments, n_states=None, lag_time=1, sliding_window=True, use_mask=False):
     """
     Calculate counts matrix from `assignments`.
 
@@ -212,7 +213,8 @@ def get_count_matrix_from_assignments(assignments, n_states=None, lag_time=1, sl
         the LagTime with which to estimate the count matrix. Default: 1
     sliding_window: bool, optional
         Use a sliding window.  Default: True
-
+    use_mask: bool, optional
+        Use a mask object in computing the count matrix. Default: False
     Returns
     -------
     counts : sparse matrix
@@ -245,12 +247,16 @@ def get_count_matrix_from_assignments(assignments, n_states=None, lag_time=1, sl
         if len(FirstEntry) >= 1:
             FirstEntry = FirstEntry[0]
             A = A[FirstEntry:]
-            C = C + get_counts_from_traj(A, n_states, lag_time=lag_time, sliding_window=sliding_window)  # .tolil()
+            mask = None
+            if use_mask != False:
+                traj_num = np.where(assignments == A)[0][0]
+                mask = mask.get_dihedral_mask(traj_num)
+            C = C + get_counts_from_traj(A, n_states, lag_time=lag_time, sliding_window=sliding_window, mask=mask)  # .tolil()
 
     return C
 
 
-def get_counts_from_traj(states, n_states=None, lag_time=1, sliding_window=True):
+def get_counts_from_traj(states, n_states=None, lag_time=1, sliding_window=True, mask=None):
     """Computes the transition count matrix for a sequence of states (single trajectory).
 
     Parameters
@@ -265,6 +271,8 @@ def get_counts_from_traj(states, n_states=None, lag_time=1, sliding_window=True)
         The time delay over which transitions are counted
     sliding_window : bool, optional
         Use sliding window
+    mask : numpy array, optional
+        Use a mask to separate cis and trans protein conformations
 
     Returns
     -------
@@ -280,11 +288,22 @@ def get_counts_from_traj(states, n_states=None, lag_time=1, sliding_window=True)
     if sliding_window:
         from_states = states[: -lag_time: 1]
         to_states = states[lag_time:: 1]
+        if mask != None:
+            from_states = states[: -lag_time: 1]
+            to_states = states[lag_time:: 1]
     else:
         from_states = states[: -lag_time: lag_time]
         to_states = states[lag_time:: lag_time]
+        if mask != None:
+            from_states = states[: -lag_time: lag_time]
+            to_states = states[lag_time:: lag_time]
     assert from_states.shape == to_states.shape
 
+    if mask != None:
+        cis_check = np.logical_and(from_states_mask, to_states_mask)
+        from_states = from_states[cis_check]
+        to_states = to_states[cis_check]
+        
     transitions = np.row_stack((from_states, to_states))
     counts = np.ones(transitions.shape[1], dtype=int)
     try:

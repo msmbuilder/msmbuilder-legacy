@@ -448,7 +448,7 @@ def calculate_fluxes(sources, sinks, tprob, populations=None, committors=None):
 
     # check if we got the populations
     if populations is None:
-        eigens = msm_analysis.get_eigenvectors(tprob, 1)
+        eigens = msm_analysis.get_eigenvectors(tprob, 5) # Use a nnumber >= 5, otherwise could run into non-convergence issues
         if np.count_nonzero(np.imag(eigens[1][:, 0])) != 0:
             raise ValueError('First eigenvector has imaginary components')
         populations = np.real(eigens[1][:, 0])
