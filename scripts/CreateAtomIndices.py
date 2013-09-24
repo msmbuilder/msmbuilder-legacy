@@ -104,7 +104,9 @@ def run(PDBfn, atomtype):
 "NLE": ["N", "CA", "CB", "C", "O", "CG", "CD", "CE"],
 "CNLE": ["N", "CA", "CB", "C", "O", "CG", "CD", "CE"],
 "NNLE": ["N", "CA", "CB", "C", "O", "CG", "CD", "CE"],
-"SOL": []
+"SOL": [],
+"Cl-": [],
+"Na+": []
 }
 
   if atomtype == 'heavy': pass
