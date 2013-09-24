@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python
 import sys, os
 import pickle
@@ -90,7 +89,7 @@ def add_metric_parsers(parser):
     add_argument(atompairs, '-a', dest='atompairs_which',
         help='path to file with 2D array of which atompairs to use.', default='AtomPairs.dat')
     add_argument(atompairs, '-p', dest='atompairs_p', default=2, help='p used for metric=minkowski (otherwise ignored)')
-    add_argument(atompairs, '-m', dest='atompairs_metric', default='cityblock',
+    add_argument(atompairs, '-m', dest='atompairs_metric', default='euclidean',
         help='which distance metric', choices=AtomPairs.allowable_scipy_metrics)
     parser.metric_parsers.append(atompairs)
 
