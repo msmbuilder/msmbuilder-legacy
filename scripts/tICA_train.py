@@ -3,7 +3,7 @@
 from msmbuilder import arglib
 from msmbuilder import Project
 from msmbuilder import io
-from msmbuilder import tICA
+from msmbuilder.tICA import tICA
 import numpy as np
 import os, sys, re
 import scipy
@@ -21,9 +21,9 @@ def run(prep_metric, project, delta_time, atom_indices=None,
         raise Exception("Stride must be a divisor of delta_time.")
 
     if lag > 0: # Then we're doing tICA
-        cov_mat_obj = tICA.CovarianceMatrix(lag=lag, calc_cov_mat=True)
+        tica_obj = tICA(lag=lag, calc_cov_mat=True)
     else: # If lag is zero, this is equivalent to regular PCA
-        cov_mat_obj = tICA.CovarianceMatrix(lag=lag, calc_cov_mat=False)
+        tica_obj = tICA(lag=lag, calc_cov_mat=False)
     
     for i in xrange(project.n_trajs):
         logger.info("Working on trajectory %d" % i)
@@ -41,12 +41,12 @@ def run(prep_metric, project, delta_time, atom_indices=None,
         traj = project.load_traj(i, stride=stride, atom_indices=atom_indices)
         ptraj = prep_metric.prepare_trajectory(traj)
 
-        cov_mat_obj.train(ptraj)
+        tica_obj.train(ptraj)
 
     logger.info( "Diagonalizing the covariance matrix" )
     
     if lag > 0:
-        timelag_corr_mat, cov_mat = cov_mat_obj.get_current_estimate()
+        timelag_corr_mat, cov_mat = tica_obj.get_current_estimate()
         vals, vecs = scipy.linalg.eig(timelag_corr_mat, b=cov_mat) 
         # Note that we can't use eigh because b is positive SEMI-definite, 
         # but it would need to be positive definite...
@@ -69,7 +69,7 @@ def run(prep_metric, project, delta_time, atom_indices=None,
         io.saveh(output, vecs=vecs, vals=vals, cov_mat=cov_mat,
                  timelag_corr_mat=timelag_corr_mat)
     else:
-        cov_mat = cov_mat_obj.get_current_estimate()
+        cov_mat = tica_obj.get_current_estimate()
         vals, vecs = scipy.linalg.eigh(cov_mat) 
         # Get the right eigenvectors of the covariance matrix. 
         # It's hermitian so left=right e-vectors
@@ -79,6 +79,7 @@ def run(prep_metric, project, delta_time, atom_indices=None,
     logger.info("Saved output to %s", output)
 
     return
+
 
 if __name__ == '__main__':
     parser = arglib.ArgumentParser(get_basic_metric=True, 
@@ -119,6 +120,3 @@ if __name__ == '__main__':
 
     run(prep_metric, project, args.delta_time, atom_indices=atom_indices, 
         output=args.output, min_length=min_length, stride=args.stride)
-
-
-
