@@ -3,6 +3,8 @@ logger = logging.getLogger(__name__)
 from baseclasses import Vectorized, AbstractDistanceMetric
 from msmbuilder import Trajectory
 import numpy as np
+import lprmsd
+
 
 class Positions(Vectorized, AbstractDistanceMetric):
     """
@@ -38,11 +40,6 @@ class Positions(Vectorized, AbstractDistanceMetric):
             p-norm order, used for metric='minkowski'
 
         """
-
-        try:
-            import lprmsd
-        except ImportError:
-            raise Exception("need to install lprmsd to use this metric. See msmbuilder/Extras/LPRMSD")
 
         super(Positions, self).__init__(metric, p)
 
