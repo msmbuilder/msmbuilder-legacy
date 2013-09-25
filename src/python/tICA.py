@@ -7,9 +7,9 @@ import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-class CovarianceMatrix(object):
+class tICA(object):
     """
-    CovarianceMatrix is a class for calculating covariance matrices. It can be
+    tICA is a class for calculating covariance matrices. It can be
     used to calculate both the time-lag correlation matrix and covariance
     matrix. The advantage it has is that you can calculate the matrix for a 
     large dataset by "training" pieces of the dataset at a time. 
@@ -38,9 +38,9 @@ class CovarianceMatrix(object):
     C' = (C + C^T) / 2
      
     """
-    def __init__(self, lag, procs=1, calc_cov_mat=True, size=None):
+    def __init__(self, lag, calc_cov_mat=True, size=None):
         """
-        Create an empty CovarianceMatrix object.
+        Create an empty tICA object.
 
         To add data to the object, use the train method.
 
@@ -50,16 +50,12 @@ class CovarianceMatrix(object):
             The lag to use in calculating the time-lag correlation
             matrix. If zero, then only the covariance matrix is
             calculated
-        procs: int, optional
-            number of processors to use when training.
-            CURRENTLY NOT IMPLEMENTED
         calc_cov_mat: bool, optional
             if lag > 0, then will also calculate the covariance matrix
         size: int, optional
             the size is the number of coordinates for the vector
             representation of the protein. If None, then the first
             trained vector will be used to initialize it.
-        
         """
         
         self.corrs = None
@@ -69,7 +65,7 @@ class CovarianceMatrix(object):
         # calculate the time-lag correlation matrix as well as the
         # covariance matrix
 
-        self.coors_lag0 = None  # needed for calculating the covariance
+        self.corrs_lag0 = None  # needed for calculating the covariance
                                 # matrix       
         self.sum_all = None
 
@@ -90,8 +86,6 @@ class CovarianceMatrix(object):
         if not self.size is None:
             self.set_size(size)
             
-        self.procs=procs
-        # Currently not-used...
 
     def set_size(self, N):
         """
@@ -158,6 +152,7 @@ class CovarianceMatrix(object):
         logger.debug("Setup: %f, Corrs: %f" %(b-a, c-b))
         # Probably should just get rid of this..
 
+
     def get_current_estimate(self):
         """Calculate the current estimate of the time-lag correlation
         matrix and the covariance matrix (if asked for).
@@ -183,3 +178,4 @@ class CovarianceMatrix(object):
             return current_estimate, cov_mat
 
         return current_estimate
+
