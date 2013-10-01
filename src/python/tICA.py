@@ -9,10 +9,11 @@ logger.setLevel(logging.DEBUG)
 
 class tICA(object):
     """
-    tICA is a class for calculating covariance matrices. It can be
+    tICA is a class for calculating the matrices required to do time-structure
+    based independent component analysis (tICA). It can be
     used to calculate both the time-lag correlation matrix and covariance
     matrix. The advantage it has is that you can calculate the matrix for a 
-    large dataset by "training" pieces of the dataset at a time. 
+    large dataset by "training" smaller pieces of the dataset at a time. 
 
     Notes
     -----
@@ -37,7 +38,20 @@ class tICA(object):
 
     C' = (C + C^T) / 2
      
+    There is, in fact, an MLE estimator for ech matrix C, and S:
+
+    S = E[Outer(X[t], X[t])]
+
+    The MLE estimators are:
+
+    \mu = 1 / (2(N - lag)) \sum_{t=1}^{N - lag} X[t] + X[t + lag]
+
+    C = 1 / (2(N - lag)) * \sum_{t=1}^{N - lag} Outer(X[t] - \mu, X[t + lag] - \mu) + Outer(X[t + lag] - \mu, X[t] - \mu)
+
+    S = 1 / (2(N - lag)) * \sum_{t=1}^{N - lag} Outer(X[t] - \mu, X[t] - \mu) + Outer(X[t + lag] - \mu, X[t + lag] - \mu)
+
     """
+
     def __init__(self, lag, calc_cov_mat=True, size=None):
         """
         Create an empty tICA object.
