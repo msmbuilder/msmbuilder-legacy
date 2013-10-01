@@ -3,6 +3,7 @@ import numpy as np
 import re, sys, os
 from time import time
 import logging
+from msmbuilder import io
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -99,6 +100,14 @@ class tICA(object):
         self.size = size
         if not self.size is None:
             self.set_size(size)
+
+        # containers for the solutions:
+        self.timelag_corr_mat = None
+        self.cov_mat = None
+        self.vals = None
+        self.vecs = None
+    
+        self._sorted = False
             
 
     def set_size(self, N):
@@ -122,6 +131,7 @@ class tICA(object):
         if self.calc_cov_mat:
             self.corrs_lag0_t = np.zeros((N, N), dtype=float)
             self.corrs_lag0_t_dt = np.zeros((N, N), dtype=float)
+
 
     def train(self, data_vector):
         a=time()  # For debugging we are tracking the time each step takes
@@ -184,12 +194,165 @@ class tICA(object):
 
         current_estimate = time_lag_corr - outer_means
 
+        self.timelag_corr_mat = current_estimate
+
         if self.calc_cov_mat:
 
             cov_mat = (self.corrs_lag0_t + self.corrs_lag0_t_dt) / two_N
             cov_mat -= np.outer(mle_mean, mle_mean)
 
-            return current_estimate, cov_mat
+            return timelag_corr_mat, cov_mat
 
-        return current_estimate
+            self.cov_mat = cov_mat
 
+        return timelag_corr_mat
+
+    
+    def _sort(self):
+        """
+        sort the eigenvectors by their eigenvalues.
+        """
+        if self.vals is None:
+            self.solve()
+
+        ind = np.argsort(self.vals)[::-1] 
+        # in order of decreasing value
+        self.vals = self.vals[ind]
+        self.vecs = self.vecs[:, ind]
+
+        self._sorted = True
+
+
+    def solve(self, pca_cutoff=0):
+        """
+        Solve the eigenvalue problem. We can translate into the
+        PCA space and remove directions that have zero variance.
+        
+        If there are directions with zero variance, then the tICA
+        eigenvalues will be complex or greater than one.
+
+        Parameters:
+        -----------
+        pca_cutoff : float, optional
+            pca_cutoff to throw out PCs with variance less than this
+            cutoff. Default is zero, but you should really check
+            your covariance matrix to see if you need this.
+
+        """
+        
+        if self.timelag_corr_mat is None or self.cov_mat is None:
+            self.get_current_estimate()
+
+        # should really add check if we're just doing PCA, but I
+        # don't know why anyone would use this class to do PCA...
+        # maybe I should just remove that ability...
+
+        if pca_cutoff <= 0:
+            lhs = self.timelag_corr_mat
+            rhs = self.cov_mat
+
+        else:
+            pca_vals, pca_vecs = np.linalg.eigh(self.cov_mat)
+
+            good_ind = np.where(pca_vals > pca_cutoff)[0]
+
+            pca_vals = pca_vals[good_ind]
+            pca_vecs = pca_vecs[:, good_ind]
+
+            lhs = pca_vecs.T.dot(self.timelag_corr_mat).dot(pca_vecs)
+            rhs = pca_vecs.T.dot(self.cov_mat).dot(pca_vecs)
+
+        vals, vecs = scipy.linalg.eig(lhs, b=rhs)
+
+        if pca_cutoff <= 0:
+            self.vals = vals
+            self.vecs = pca_vecs.dot(vecs)
+
+        else:
+            self.vals = vals
+            self.vecs = vecs
+
+        if np.abs(self.vals.imag).max() > 1E-10:
+            logger.warn("you have non-real eigenvalues. This usually means "
+                        "you need to throw out some coordinates by doing tICA "
+                        "in PCA space.")
+
+        else:
+            self.vals = self.vals.real
+
+        if np.abs(self.vecs.imag).max() > 1E-10:
+            logger.warn("you have non-real eigenvector entries...")
+
+        else:
+            self.vecs = self.vecs.real
+        
+        self._sort()
+
+
+    def project(self, trajectory=None, prep_trajectory=None, which=None):
+        """
+        project a trajectory (or prepared trajectory) onto a subset of
+        the tICA eigenvectors.
+
+        Parameters:
+        -----------
+        trajectory : msmbuilder.Trajectory, optional
+            trajectory object (can also pass a prepared trajectory instead)
+        prep_trajectory : np.ndarray, optional
+            prepared trajectory
+        which : np.ndarray
+            which eigenvectors to project onto
+
+        Returns:
+        --------
+        proj_trajectory : np.ndarray
+            projected trajectory (n_points, n_tICs)
+        """
+        if not self._sorted():
+            self._sort()
+
+        if prep_trajectory is None:
+            if trajectory is None:
+                raise Exception("must pass one of trajectory or prep_trajectory")
+            prep_trajectory = self.metric.prepare_trajectory(trajectory)
+
+        if which is None:
+            raise Exception("must pass 'which' to indicate which tICs to project onto")
+        
+        which = np.array(which).flatten().astype(int)
+
+        proj_trajectory = prep_trajectory.dot(self.vecs[:, which])
+    
+        return proj_trajectory
+
+
+def load(tica_fn, metric):
+    """
+    load a tICA solution to use in projecting data.
+
+    Parameters:
+    -----------
+    tica_fn : str
+        filename pointing to tICA solutions
+    metric : metrics.Vectorized subclass instance
+        metric used to prepare trajectories
+
+    """
+    
+    # the only variables we need to save are the two matrices
+    # and the eigenvectors / values
+    
+    f = io.loadh(tica_fn)
+
+    tica_obj = tICA(f['dt'])
+
+    tica_obj.timelag_corr_mat = f['timelag_corr_mat']
+    tica_obj.cov_mat = f['cov_mat']
+
+    tica_obj.vals = f['vals']
+    tica_obj.vecs = f['vecs']
+
+    tica_obj._sort()
+
+    return tica_obj
+    
