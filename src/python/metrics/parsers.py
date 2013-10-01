@@ -28,7 +28,6 @@ def locate_metric_plugins(name):
     eps = iter_entry_points(group='msmbuilder.metrics', name=name)
     return itertools.imap(lambda ep: ep.load(), eps)
 
-
 def add_basic_metric_parsers(metric_subparser):
 
     metric_parser_list = []
@@ -174,10 +173,10 @@ def construct_basic_metric(metric_name, args):
         metric = RMSD(atom_indices)#, omp_parallel=args.rmsd_omp_parallel)
 
     elif metric_name == 'dihedral':
-        metric = metrics.Dihedral(metric=args.dihedral_metric,
+        metric = Dihedral(metric=args.dihedral_metric,
             p=args.dihedral_p, angles=args.dihedral_angles,
             userfilename=args.dihedral_userfilename)
-             
+    
     elif metric_name == 'contact':
         if args.contact_which != 'all':
             contact_which = np.loadtxt(args.contact_which,np.int)
