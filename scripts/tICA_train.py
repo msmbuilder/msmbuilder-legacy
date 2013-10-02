@@ -42,6 +42,10 @@ def run(prep_metric, project, delta_time, atom_indices=None,
 
         tica_obj.train(trajectory=traj)
 
+    tica_obj.solve()
+    tica_obj.save(output)
+    logger.info("Saved output to %s", output)
+
     return tica_obj
 
 
@@ -86,5 +90,3 @@ if __name__ == '__main__':
     tica_obj = run(prep_metric, project, args.delta_time, atom_indices=atom_indices, 
         output=args.output, min_length=min_length, stride=args.stride)
 
-    tica_obj.save(output)
-    logger.info("Saved output to %s", output)
