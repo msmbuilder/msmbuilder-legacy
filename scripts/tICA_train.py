@@ -21,9 +21,9 @@ def run(prep_metric, project, delta_time, atom_indices=None,
         raise Exception("Stride must be a divisor of delta_time.")
 
     if lag > 0: # Then we're doing tICA
-        tica_obj = tICA(lag=lag, calc_cov_mat=True)
+        tica_obj = tICA(lag=lag, calc_cov_mat=True, prep_metric=prep_metric)
     else: # If lag is zero, this is equivalent to regular PCA
-        tica_obj = tICA(lag=lag, calc_cov_mat=False)
+        tica_obj = tICA(lag=lag, calc_cov_mat=False, prep_metric=prep_metric)
     
     for i in xrange(project.n_trajs):
         logger.info("Working on trajectory %d" % i)
@@ -39,46 +39,10 @@ def run(prep_metric, project, delta_time, atom_indices=None,
             continue
 
         traj = project.load_traj(i, stride=stride, atom_indices=atom_indices)
-        ptraj = prep_metric.prepare_trajectory(traj)
 
-        tica_obj.train(ptraj)
+        tica_obj.train(trajectory=traj)
 
-    logger.info( "Diagonalizing the covariance matrix" )
-    
-    if lag > 0:
-        timelag_corr_mat, cov_mat = tica_obj.get_current_estimate()
-        vals, vecs = scipy.linalg.eig(timelag_corr_mat, b=cov_mat) 
-        # Note that we can't use eigh because b is positive SEMI-definite, 
-        # but it would need to be positive definite...
-        
-        if np.abs(vals.imag).max() > 1E-8:
-            logger.warn("""Non-real eigenvalues. This probably means you do
-                        not have enough data to accurately calculate the 
-                        covariance matrix, and so it has zero-eigenvalues.""")
-        else:
-            vals = vals.real
-    
-        inc_vals_ind = np.argsort(vals) 
-        # Note if these are complex then it will probably be the absolute 
-        # value that's sorted. But if they are complex there are other issues.
-
-        # get the variances for each projection
-        vec_norms = np.array([vec.dot(cov_mat).dot(vec) 
-                              for vec, val in zip(vecs.T, vals) ]) 
-        vecs /= np.sqrt(vec_norms)
-        io.saveh(output, vecs=vecs, vals=vals, cov_mat=cov_mat,
-                 timelag_corr_mat=timelag_corr_mat)
-    else:
-        cov_mat = tica_obj.get_current_estimate()
-        vals, vecs = scipy.linalg.eigh(cov_mat) 
-        # Get the right eigenvectors of the covariance matrix. 
-        # It's hermitian so left=right e-vectors
-
-        io.saveh(output, vecs=vecs, vals=vals, cov_mat=cov_mat)
-
-    logger.info("Saved output to %s", output)
-
-    return
+    return tica_obj
 
 
 if __name__ == '__main__':
@@ -119,5 +83,8 @@ if __name__ == '__main__':
     # need to convert to float first because int can't 
     # convert a string that is '1E3' for example...weird.
 
-    run(prep_metric, project, args.delta_time, atom_indices=atom_indices, 
+    tica_obj = run(prep_metric, project, args.delta_time, atom_indices=atom_indices, 
         output=args.output, min_length=min_length, stride=args.stride)
+
+    tica_obj.save(output)
+    logger.info("Saved output to %s", output)
