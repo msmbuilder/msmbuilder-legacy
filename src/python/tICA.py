@@ -106,7 +106,7 @@ class tICA(object):
         if prep_metric is None:
             self.prep_metric = None
             logger.warn("no metric specified, you must pass prepared"
-                " trajectories to the train method.")
+                " trajectories to the train and project methods")
 
         else:
             if not isinstance(prep_metric, Vectorized):
@@ -397,7 +397,7 @@ def load(tica_fn, metric):
 
     """
     # the only variables we need to save are the two matrices
-    # and the eigenvectors / values
+    # and the eigenvectors / values as well as the lag time
     
     f = io.loadh(tica_fn)
 
