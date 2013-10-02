@@ -3,7 +3,7 @@
 from msmbuilder import arglib
 from msmbuilder import Project
 from msmbuilder import io
-from msmbuilder.tICA import tICA
+from msmbuilder.reduce.tICA import tICA
 import numpy as np
 import os, sys, re
 import scipy

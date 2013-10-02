@@ -5,7 +5,7 @@ import numpy as np
 from msmbuilder import Trajectory
 import itertools
 from pkg_resources import iter_entry_points
-from msmbuilder import tICA
+from msmbuilder.reduce import tICA
 from msmbuilder.metrics import (RMSD, Dihedral, BooleanContact,
                                 AtomPairs, ContinuousContact,
                                 AbstractDistanceMetric, Vectorized,

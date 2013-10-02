@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-import IPython
-
 import sys, os
 import warnings
 import numpy as np

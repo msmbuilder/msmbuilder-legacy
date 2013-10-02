@@ -1,4 +1,3 @@
-
 import numpy as np
 import scipy.linalg
 import re, sys, os
@@ -10,7 +9,7 @@ from msmbuilder.metrics import Vectorized
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-class tICA(object):
+class tICA(AbstractDimReduction):
     """
     tICA is a class for calculating the matrices required to do time-structure
     based independent component analysis (tICA). It can be
