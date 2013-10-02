@@ -165,7 +165,6 @@ def assign_with_checkpoint(metric, project, generators, assignments_path,
             logger.info('Skipping trajectory %s -- already assigned', i)
             continue
         if fh_a.root.completed_trajs[i] or fh_d.root.completed_trajs[i]:
-            #raise RuntimeError('Corruption detected')
             logger.warn("Re-assigning trajectory even though some data is"
                         " available...")
             fh_a.root.completed_trajs[i] = False

@@ -65,9 +65,25 @@ class Positions(Vectorized, AbstractDistanceMetric):
 
     def prepare_trajectory(self, trajectory, return_dist=False):
         """
-        prepare a trajectory by first aligning it to the target with LPRMSD
+        Prepare a trajectory by first aligning it to the target with LPRMSD
         then returning a reshaped array corresponding to the correct atom positions
         flattened into a vector
+        
+        Parameters:
+        -----------
+        trajectory : msmbuilder.Trajectory instance
+            trajectory to prepare
+        return_dist : bool, optional
+            this will align the frames in trajectory to self.target,
+            if you want the aligned distances, then pass return_dist=True
+
+        Returns
+        -------
+        prep_trajectory : np.ndarray
+            prepared trajectory
+        aligned_distances : np.ndarray
+            only returned if return_dist==True. Distance to the target
+            after alignment for each frame in trajectory
         """
 
         lp_prep_trajectory = self.lprmsd.prepare_trajectory(trajectory)        
