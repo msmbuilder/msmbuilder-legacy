@@ -89,8 +89,8 @@ if __name__ == '__main__':
         have a maximal autocorrelation function.
         
         For more details see:
-        Schwantes, CR and Pande, VS. J. Chem. Theory Comput., 2013, 9 (4), 
-            pp 2000–2009. DOI: 10.1021/ct300878a
+        Schwantes, CR and Pande, VS. J. Chem. Theory Comput., 2013, 9 (4),
+            pp 2000-2009. DOI: 10.1021/ct300878a
         """)
     parser.add_argument('project')
     parser.add_argument('stride', type=int, default=1, 
