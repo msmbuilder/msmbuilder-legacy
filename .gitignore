@@ -38,6 +38,7 @@ pip-log.txt
 #Mr Developer
 .mr.developer.cfg
 
-#tICA latex
-tICA.aux
-tICA.out
+#latex
+*.aux
+*.log
+*.out

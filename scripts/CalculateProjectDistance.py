@@ -40,8 +40,8 @@ def run(project, pdb, metric, traj_fn = None):
             d = metric.one_to_all(ppdb, ptraj, 0)
             distances[i, 0:len(d)] = d
     else:
-        traj = Trajectory.load_trajectory_file( traj_fn )
-        ptraj = metric.prepare_trajectory( traj )
+        traj = Trajectory.load_trajectory_file(traj_fn, Conf=pdb)
+        ptraj = metric.prepare_trajectory(traj)
 
         distances = metric.one_to_all(ppdb, ptraj, 0)
 

@@ -1,15 +1,13 @@
-
 #!/usr/bin/env python
 import sys, os
 import pickle
 import numpy as np
 from msmbuilder import Trajectory
-from msmbuilder.metrics.baseclasses import Vectorized
 import itertools
 from pkg_resources import iter_entry_points
 from msmbuilder.metrics import (RMSD, Dihedral, BooleanContact,
                                 AtomPairs, ContinuousContact,
-                                AbstractDistanceMetric,
+                                AbstractDistanceMetric, Vectorized,
                                 RedDimPNorm, Positions)
 
 def add_argument(group, *args, **kwargs):
@@ -55,7 +53,8 @@ def add_basic_metric_parsers(metric_subparser):
         (cityblock, etc). This code is executed in parallel on multiple cores (but
         not multiple boxes) using OMP. ''') 
     add_argument(dihedral, '-a', dest='dihedral_angles', default='phi/psi',
-        help='which dihedrals. Choose from phi, psi, chi. To choose multiple, seperate them with a slash')
+        help='which dihedrals. Choose from phi, psi, chi (to choose multiple, seperate them with a slash), or user')
+    add_argument(dihedral, '-f', dest='dihedral_userfilename', default='DihedralIndices.dat', help='filename for dihedral indices, N lines of 4 space-separated indices (otherwise ignored)')
     add_argument(dihedral, '-p', dest='dihedral_p', default=2, help='p used for metric=minkowski (otherwise ignored)')
     add_argument(dihedral, '-m', dest='dihedral_metric', default='euclidean',
         help='which distance metric', choices=Dihedral.allowable_scipy_metrics)
@@ -91,7 +90,7 @@ def add_basic_metric_parsers(metric_subparser):
     add_argument(atompairs, '-a', dest='atompairs_which',
         help='path to file with 2D array of which atompairs to use.', default='AtomPairs.dat')
     add_argument(atompairs, '-p', dest='atompairs_p', default=2, help='p used for metric=minkowski (otherwise ignored)')
-    add_argument(atompairs, '-m', dest='atompairs_metric', default='cityblock',
+    add_argument(atompairs, '-m', dest='atompairs_metric', default='euclidean',
         help='which distance metric', choices=AtomPairs.allowable_scipy_metrics)
     metric_parser_list.append(atompairs)
 
@@ -175,7 +174,8 @@ def construct_basic_metric(metric_name, args):
 
     elif metric_name == 'dihedral':
         metric = Dihedral(metric=args.dihedral_metric,
-            p=args.dihedral_p, angles=args.dihedral_angles)
+            p=args.dihedral_p, angles=args.dihedral_angles,
+            userfilename=args.dihedral_userfilename)
     
     elif metric_name == 'contact':
         if args.contact_which != 'all':

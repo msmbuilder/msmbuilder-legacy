@@ -17,4 +17,5 @@ from dihedral import Dihedral
 from contact import BooleanContact, AtomPairs, ContinuousContact
 from projection import RedDimPNorm
 from hybrid import Hybrid, HybridPNorm
+from projection import RedDimPNorm
 from positions import Positions
