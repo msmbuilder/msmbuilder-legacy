@@ -233,9 +233,9 @@ class tICA(object):
         
         time_lag_corr = (self.corrs + self.corrs.T) / two_N
 
-        current_estimate = time_lag_corr - outer_means
+        timelag_corr_mat = time_lag_corr - outer_means
 
-        self.timelag_corr_mat = current_estimate
+        self.timelag_corr_mat = timelag_corr_mat
 
         if self.calc_cov_mat:
 
