@@ -5,6 +5,7 @@ from time import time
 import logging
 from msmbuilder import io
 from msmbuilder.metrics import Vectorized
+from msmbuilder.reduce import AbstractDimReduction
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)

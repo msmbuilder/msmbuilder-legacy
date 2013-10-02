@@ -158,6 +158,9 @@ def configuration(parent_package='',top_path=None):
     config.add_subpackage('lumping',
                           subpackage_path='src/python/lumping')
 
+    config.add_subpackage('reduce',
+                          subpackage_path='src/python/reduce')
+
     # add asa extension
     # note this is wrapped using f2py, which
 	# is a little different that the other modules,
