@@ -3,7 +3,10 @@ logger = logging.getLogger(__name__)
 from baseclasses import Vectorized, AbstractDistanceMetric
 from msmbuilder import Trajectory
 import numpy as np
-import lprmsd
+try:
+    import lprmsd
+except:
+    RuntimeError("Unable to import lprmsd. See msmbuilder/Extras/lprmsd for directions on installing")
 
 
 class Positions(Vectorized, AbstractDistanceMetric):
