@@ -1,9 +1,11 @@
 
 import numpy as np
+import scipy.linalg
 import re, sys, os
 from time import time
 import logging
 from msmbuilder import io
+from msmbuilder.metrics import Vectorized
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -167,10 +169,10 @@ class tICA(object):
         """
 
         if not prep_trajectory is None:
-            data_vector = self.prep_metric.prepare_trajectory(trajectory)
+            data_vector = prep_trajectory
 
         elif not trajectory is None:
-            data_vector = prep_trajectory
+            data_vector = self.prep_metric.prepare_trajectory(trajectory)
 
         else:
             raise Exception("need to input one of trajectory or prep_trajectory")
@@ -242,9 +244,9 @@ class tICA(object):
             cov_mat = (self.corrs_lag0_t + self.corrs_lag0_t_dt) / two_N
             cov_mat -= np.outer(mle_mean, mle_mean)
 
-            return timelag_corr_mat, cov_mat
-
             self.cov_mat = cov_mat
+
+            return timelag_corr_mat, cov_mat
 
         return timelag_corr_mat
 
@@ -307,11 +309,11 @@ class tICA(object):
 
         if pca_cutoff <= 0:
             self.vals = vals
-            self.vecs = pca_vecs.dot(vecs)
+            self.vecs = vecs
 
         else:
             self.vals = vals
-            self.vecs = vecs
+            self.vecs = pca_vecs.dot(vecs)
 
         if np.abs(self.vals.imag).max() > 1E-10:
             logger.warn("you have non-real eigenvalues. This usually means "
@@ -349,13 +351,13 @@ class tICA(object):
         proj_trajectory : np.ndarray
             projected trajectory (n_points, n_tICs)
         """
-        if not self._sorted():
+        if not self._sorted:
             self._sort()
 
         if prep_trajectory is None:
             if trajectory is None:
                 raise Exception("must pass one of trajectory or prep_trajectory")
-            prep_trajectory = self.metric.prepare_trajectory(trajectory)
+            prep_trajectory = self.prep_metric.prepare_trajectory(trajectory)
 
         if which is None:
             raise Exception("must pass 'which' to indicate which tICs to project onto")
@@ -367,7 +369,7 @@ class tICA(object):
         return proj_trajectory
 
 
-    def save(output):
+    def save(self, output):
         """
         save the results to file
         
@@ -375,11 +377,10 @@ class tICA(object):
         -----------
         output : str
             output filename (.h5)
-
         """
         
-        io.saveh(args.output, timelag_corr_mat=self.timelag_corr_mat,
-            cov_mat=self.cov_mat, lag=self.lag, vals=self.vals,
+        io.saveh(output, timelag_corr_mat=self.timelag_corr_mat,
+            cov_mat=self.cov_mat, lag=np.array([self.lag]), vals=self.vals,
             vecs=self.vecs)
 
 
@@ -400,7 +401,8 @@ def load(tica_fn, metric):
     
     f = io.loadh(tica_fn)
 
-    tica_obj = tICA(f['lag'])
+    tica_obj = tICA(f['lag'][0], prep_metric=metric)
+    # lag entry is an array... with a single item
 
     tica_obj.timelag_corr_mat = f['timelag_corr_mat']
     tica_obj.cov_mat = f['cov_mat']

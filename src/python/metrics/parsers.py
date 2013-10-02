@@ -5,6 +5,7 @@ import numpy as np
 from msmbuilder import Trajectory
 import itertools
 from pkg_resources import iter_entry_points
+from msmbuilder import tICA
 from msmbuilder.metrics import (RMSD, Dihedral, BooleanContact,
                                 AtomPairs, ContinuousContact,
                                 AbstractDistanceMetric, Vectorized,
@@ -129,23 +130,29 @@ def add_layer_metric_parsers(metric_subparser):
 
     tica = metric_subparser.add_parser( 'tica', description='''
         TICA: This metric is based on a variation of PCA which looks for the slowest d.o.f.
-        in the simulation data. See (Schwantes, C.R., Pande, V.S. In Prep.) for details. Or
-        contact Christian at schwancr@stanford.edu for an explanation. In addition to these 
-        You must provide an additional metric you used to prepare the trajectories in the
-        training step.''')
+        in the simulation data. See (Schwantes, C.R., Pande, V.S. JCTC 2013, 9 (4), 2000-09.)
+        for more details. In addition to these options, you must provide an additional 
+        metric you used to prepare the trajectories in the training step.''')
 
     required = tica.add_argument_group('required')
     choose_one = tica.add_argument_group('selecting projection vectors (choose_one)')
 
-    add_argument(tica,'-p',dest='p',help='p value for p-norm')
-    add_argument(tica,'-m',dest='projected_metric',help='metric to use in the projected space',
-        choices= Vectorized.allowable_scipy_metrics, default='euclidean' )
-    add_argument(required, '--po','--projection', dest='proj_object', help='tICA Object which was prepared by tICA_train.py')
-    add_argument(choose_one, '--nv', dest='num_vecs', help='Choose the top <-n> eigenvectors based on their eigenvalues')
-    add_argument(choose_one, '--ab',dest='abs_min', help='Choose all eigenvectors with eigenvalues grater than <--ab>.') 
-    add_argument(choose_one, '--ev',dest='expl_var', help='Choose eigenvectors so that their eigenvalues account for <--ev> percent of the total "variance". Note that this really only makes sense when doing PCA, where the total variance is the sum of the eigenvalues.') 
+    add_argument(tica,'-p', dest='p', help='p value for p-norm')
+    add_argument(tica,'-m', dest='projected_metric', help='metric to use in the projected space',
+        choices=Vectorized.allowable_scipy_metrics, default='euclidean')
+    add_argument(required, '-f', dest='tica_fn', 
+        help='tICA Object which was prepared by tICA_train.py')
+    add_argument(choose_one, '-w', dest='which', help='file containing indices of eigenvectors to use.')
+    add_argument(choose_one, '--nv', dest='num_vecs', type=int,
+        help='Choose the top <-n> eigenvectors based on their eigenvalues')
+    add_argument(choose_one, '--ab',dest='abs_min', type=float,
+        help='Choose all eigenvectors with eigenvalues grater than <--ab>.') 
+    add_argument(choose_one, '--ev',dest='expl_var', type=float,
+        help='Choose eigenvectors so that their eigenvalues account for <--ev> percent '
+             'of the total "variance". Note that this really only makes sense when doing '
+             'PCA, where the total variance is the sum of the eigenvalues.') 
     tica.metric_parser_list = []
-    tica_subparsers = tica.add_subparsers( dest='sub_metric', description='''  
+    tica_subparsers = tica.add_subparsers(dest='sub_metric', description='''  
         Available metrics to use in preparing the trajectory before projecting.''' )
     tica.metric_parser_list = add_basic_metric_parsers(tica_subparsers)
 
@@ -155,12 +162,12 @@ def add_metric_parsers(parser, add_layer_metrics=False):
 
     metric_parser_list = []
 
-    metric_subparser = parser.add_subparsers( dest='metric', description ='Available metrics to use.' )
+    metric_subparser = parser.add_subparsers(dest='metric', description ='Available metrics to use.')
 
     if add_layer_metrics:
-        metric_parser_list.extend( add_layer_metric_parsers(metric_subparser) )
+        metric_parser_list.extend(add_layer_metric_parsers(metric_subparser))
 
-    metric_parser_list.extend( add_basic_metric_parsers(metric_subparser) )
+    metric_parser_list.extend(add_basic_metric_parsers(metric_subparser))
 
     return metric_parser_list
 
@@ -179,11 +186,11 @@ def construct_basic_metric(metric_name, args):
     
     elif metric_name == 'contact':
         if args.contact_which != 'all':
-            contact_which = np.loadtxt(args.contact_which,np.int)
+            contact_which = np.loadtxt(args.contact_which, np.int)
         else:
             contact_which = 'all'
 
-        if args.contact_cutoff_file != None: #getattr(args, 'contact_cutoff_file'):
+        if args.contact_cutoff_file != None: 
             contact_cutoff = np.loadtxt(args.contact_cutoff_file, np.float)            
         elif args.contact_cutoff != None:
             contact_cutoff = float( args.contact_cutoff )
@@ -245,14 +252,24 @@ def construct_basic_metric(metric_name, args):
 
     return metric
 
-def construct_layer_metric(metric_name, args ):
+def construct_layer_metric(metric_name, args):
     if metric_name == 'tica':
-        sub_metric = construct_basic_metric( args.sub_metric, args )
+        sub_metric = construct_basic_metric(args.sub_metric, args)
+        
+        tica_obj = tICA.load(args.tica_fn, sub_metric)
 
-        return RedDimPNorm( args.proj_object, prep_with = sub_metric, num_vecs = args.num_vecs, abs_min = args.abs_min, metric = args.projected_metric, p = args.p )
+        if args.which is None:
+            which = None
+        else:
+            which = np.loadtxt(args.which).astype(int)
+
+        return RedDimPNorm(tica_obj, num_vecs=args.num_vecs, abs_min=args.abs_min,
+                           expl_var=args.expl_var, which=which, 
+                           metric=args.projected_metric, p=args.p)
+
 
 def construct_metric( args ):
-    if hasattr( args, 'sub_metric' ):
-        return construct_layer_metric( args.metric, args )
+    if hasattr(args, 'sub_metric'):
+        return construct_layer_metric(args.metric, args)
     else:
-        return construct_basic_metric( args.metric, args )
+        return construct_basic_metric(args.metric, args)
