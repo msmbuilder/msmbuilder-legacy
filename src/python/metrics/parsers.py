@@ -124,12 +124,8 @@ def add_basic_metric_parsers(metric_subparser):
 
 def add_layer_metric_parsers(metric_subparser):
 
-    #layer_metrics = parser.add_subparsers( description='''Available Hierarchical Metrics to use. Note, 
-    #    you must also specify a basic metric to prepare the trajectory with. For example if you used
-    #    tICA on dihedrals you would do something like "tica --pca PCAObject.h5 --nv 10 dihedral -a phi/psi"''')
-
     tica = metric_subparser.add_parser( 'tica', description='''
-        TICA: This metric is based on a variation of PCA which looks for the slowest d.o.f.
+        tICA: This metric is based on a variation of PCA which looks for the slowest d.o.f.
         in the simulation data. See (Schwantes, C.R., Pande, V.S. JCTC 2013, 9 (4), 2000-09.)
         for more details. In addition to these options, you must provide an additional 
         metric you used to prepare the trajectories in the training step.''')
@@ -142,15 +138,8 @@ def add_layer_metric_parsers(metric_subparser):
         choices=Vectorized.allowable_scipy_metrics, default='euclidean')
     add_argument(required, '-f', dest='tica_fn', 
         help='tICA Object which was prepared by tICA_train.py')
-    add_argument(choose_one, '-w', dest='which', help='file containing indices of eigenvectors to use.')
-    add_argument(choose_one, '--nv', dest='num_vecs', type=int,
+    add_argument(choose_one, '-n', dest='num_vecs', type=int,
         help='Choose the top <-n> eigenvectors based on their eigenvalues')
-    add_argument(choose_one, '--ab',dest='abs_min', type=float,
-        help='Choose all eigenvectors with eigenvalues grater than <--ab>.') 
-    add_argument(choose_one, '--ev',dest='expl_var', type=float,
-        help='Choose eigenvectors so that their eigenvalues account for <--ev> percent '
-             'of the total "variance". Note that this really only makes sense when doing '
-             'PCA, where the total variance is the sum of the eigenvalues.') 
     tica.metric_parser_list = []
     tica_subparsers = tica.add_subparsers(dest='sub_metric', description='''  
         Available metrics to use in preparing the trajectory before projecting.''' )
@@ -252,20 +241,18 @@ def construct_basic_metric(metric_name, args):
 
     return metric
 
+
 def construct_layer_metric(metric_name, args):
     if metric_name == 'tica':
         sub_metric = construct_basic_metric(args.sub_metric, args)
         
         tica_obj = tICA.load(args.tica_fn, sub_metric)
 
-        if args.which is None:
-            which = None
-        else:
-            which = np.loadtxt(args.which).astype(int)
-
-        return RedDimPNorm(tica_obj, num_vecs=args.num_vecs, abs_min=args.abs_min,
-                           expl_var=args.expl_var, which=which, 
+        return RedDimPNorm(tica_obj, num_vecs=args.num_vecs, 
                            metric=args.projected_metric, p=args.p)
+
+    else:
+        raise Exception("do not know how to construct metric (%s)")
 
 
 def construct_metric( args ):
