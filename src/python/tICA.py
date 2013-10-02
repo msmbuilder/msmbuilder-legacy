@@ -53,7 +53,7 @@ class tICA(object):
 
     """
 
-    def __init__(self, lag, calc_cov_mat=True, size=None):
+    def __init__(self, lag, calc_cov_mat=True, prep_metric=None, size=None):
         """
         Create an empty tICA object.
 
@@ -67,6 +67,10 @@ class tICA(object):
             calculated
         calc_cov_mat: bool, optional
             if lag > 0, then will also calculate the covariance matrix
+        prep_metric: msmbuilder.metrics.Vectorized subclass instance, optional
+            metric to use to prepare trajectories. If not specified, then
+            you must pass prepared trajectories to the train method, via
+            the kwarg "prep_trajectory"
         size: int, optional
             the size is the number of coordinates for the vector
             representation of the protein. If None, then the first
@@ -96,6 +100,18 @@ class tICA(object):
             self.calc_cov_mat = False
         else:
             self.calc_cov_mat = calc_cov_mat
+
+        if prep_metric is None:
+            self.prep_metric = None
+            logger.warn("no metric specified, you must pass prepared"
+                " trajectories to the train method.")
+
+        else:
+            if not isinstance(prep_metric, Vectorized):
+                raise Exception("prep_metric must be an instance of a "
+                    "subclass of msmbuilder.metrics.Vectorized")
+
+            self.prep_metric = prep_metric
 
         self.size = size
         if not self.size is None:
@@ -133,7 +149,32 @@ class tICA(object):
             self.corrs_lag0_t_dt = np.zeros((N, N), dtype=float)
 
 
-    def train(self, data_vector):
+    def train(self, trajectory=None, prep_trajectory=None):
+        """
+        add a trajectory to the calculation
+
+        Parameters:
+        -----------
+        trajectory: msmbuilder.Trajectory, optional
+            trajectory object
+        prep_trajectory: np.ndarray, optional
+            prepared trajectory object
+
+        Remarks:
+        --------
+        must input one of trajectory or prep_trajectory (if both
+        are given, then prep_trajectory is used.)
+        """
+
+        if not prep_trajectory is None:
+            data_vector = self.prep_metric.prepare_trajectory(trajectory)
+
+        elif not trajectory is None:
+            data_vector = prep_trajectory
+
+        else:
+            raise Exception("need to input one of trajectory or prep_trajectory")
+
         a=time()  # For debugging we are tracking the time each step takes
 
         if self.size is None:  
@@ -326,6 +367,22 @@ class tICA(object):
         return proj_trajectory
 
 
+    def save(output):
+        """
+        save the results to file
+        
+        Parameters:
+        -----------
+        output : str
+            output filename (.h5)
+
+        """
+        
+        io.saveh(args.output, timelag_corr_mat=self.timelag_corr_mat,
+            cov_mat=self.cov_mat, lag=self.lag, vals=self.vals,
+            vecs=self.vecs)
+
+
 def load(tica_fn, metric):
     """
     load a tICA solution to use in projecting data.
@@ -338,13 +395,12 @@ def load(tica_fn, metric):
         metric used to prepare trajectories
 
     """
-    
     # the only variables we need to save are the two matrices
     # and the eigenvectors / values
     
     f = io.loadh(tica_fn)
 
-    tica_obj = tICA(f['dt'])
+    tica_obj = tICA(f['lag'])
 
     tica_obj.timelag_corr_mat = f['timelag_corr_mat']
     tica_obj.cov_mat = f['cov_mat']
