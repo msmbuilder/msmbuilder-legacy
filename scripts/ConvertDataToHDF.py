@@ -103,10 +103,13 @@ functionality.
         containing subdirectories with MD (.xtc/.dcd) data. See the description above
         for the appropriate formatting for directory architecture.''')
     parser.add_argument('source', help='''Data source: "file", "file_dcd" or
-        "fah". This is the style of trajectory data that gets fed into MSMBuilder.
-        If a file, then it requires each trajectory be housed in a separate directory
-        like (PROJECT/TRAJ*/frame*.xtc). If 'fah', then standard FAH-style directory
-        architecture is required.''', default='file', choices=['fah', 'file', 'file_dcd'])
+        "fah". For "file" & "file_dcd" formats, each of the trajectories needs to be
+        in a different directory. For example, if you supply input_dir='XTC', then
+        it is expected that the directory 'XTC' contains a set of subdirectories, each
+        of which contains one or more files of a single MD trajectory that will be concatenated
+        together. The glob pattern used would be XTC/*/*.xtc'. If 'fah', then standard
+        folding@home-style directory architecture is required.''',
+        default='file', choices=['fah', 'file', 'file_dcd'])
     parser.add_argument('min_length', help='''Minimum number of frames per trajectory
         required to include data in Project.  Used to discard extremely short
         trajectories.''', default=0, type=int)

@@ -24,40 +24,32 @@ from matplotlib.pyplot import *
 import sys
 import msmbuilder.io
 
-print("Usage: python PlotDihedrals.py Filename")
-print("Filename should be the location of your Macrostate assignments file.")
+
+if len(sys.argv) != 2:
+    print("Usage: python PlotDihedrals.py Filename")
+    print("Where Filename is the location of the Dihedrals.h5 data file.")
+    sys.exit(0)
 Filename=sys.argv[1]
 
-#Load assigment, phi, and psi data.
-Ass=msmbuilder.io.loadh(Filename, "arr_0")
-phi=msmbuilder.io.loadh("./Phi.h5", "Data")
-psi=msmbuilder.io.loadh("./Psi.h5", "Data")
+#Load data
+dihedral_data = msmbuilder.io.loadh(Filename)
+phi = dihedral_data['Phi']
+psi = dihedral_data['Psi']
+ind = dihedral_data['StateIndex']
+NumStates=len(ind)
 
-NumStates=Ass.max()+1
+# Helper function to give the indices for a particular macrostate i
+def w(i, ind):
+    prev = sum(ind[:i])
+    return range(prev, prev+ind[i])
 
-"""
-hexbin(phi.flatten(),psi.flatten())
-title("Ramachandran plot of raw alanine dipeptide data.")
-xlabel(r"$\phi$")
-ylabel(r"$\psi$")
-axis([-180,180,-180,180])
-figure()
-"""
+for i in xrange(NumStates):
+    plot(phi[w(i,ind)], psi[w(i,ind)], "x", label="State %d"%i)
+    axis([-180,180,-180,180])
 
-w=lambda x: where(Ass==x)
+
 LabelList=[",",".",'o',"<","s","*","h","+","D"]
 ColorList=["b","g","r","c","m","y","k"]
-def PlotIthState(i,Separate=False):
-    if Separate==True:
-        figure()
-    plot(phi[w(i)],psi[w(i)],"x",label="State %d"%i)
-    axis([-180,180,-180,180])
-    print i, w(i)[0].shape
-
-for i in range(NumStates):
-    print(i)
-    PlotIthState(i)
-
 title("Alanine Dipeptide Macrostates")
 xlabel(r"$\phi$")
 ylabel(r"$\psi$")
