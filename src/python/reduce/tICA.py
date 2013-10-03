@@ -117,7 +117,7 @@ class tICA(AbstractDimReduction):
 
         self.size = size
         if not self.size is None:
-            self.set_size(size)
+            self.initialze(size)
 
         # containers for the solutions:
         self.timelag_corr_mat = None
@@ -128,27 +128,26 @@ class tICA(AbstractDimReduction):
         self._sorted = False
             
 
-    def set_size(self, N):
+    def initialize(self, size):
         """
-        Set the size of the matrix.
+        initialize the containers for the calculation
 
         Parameters
         ----------
-        N : int
-            The size of the square matrix will be (N, N)
-
+        size : int
+            The size of the square matrix will be (size, size)
         """
 
-        self.size = N
+        self.size = size
 
-        self.corrs = np.zeros((N,N), dtype=float)
-        self.sum_t = np.zeros(N, dtype=float)
-        self.sum_t_dt = np.zeros(N, dtype=float)
-        self.sum_all = np.zeros(N, dtype=float)
+        self.corrs = np.zeros((size, size), dtype=float)
+        self.sum_t = np.zeros(size, dtype=float)
+        self.sum_t_dt = np.zeros(size, dtype=float)
+        self.sum_all = np.zeros(size, dtype=float)
 
         if self.calc_cov_mat:
-            self.corrs_lag0_t = np.zeros((N, N), dtype=float)
-            self.corrs_lag0_t_dt = np.zeros((N, N), dtype=float)
+            self.corrs_lag0_t = np.zeros((size, size), dtype=float)
+            self.corrs_lag0_t_dt = np.zeros((size, size), dtype=float)
 
 
     def train(self, trajectory=None, prep_trajectory=None):
@@ -181,7 +180,7 @@ class tICA(AbstractDimReduction):
 
         if self.size is None:  
         # then we haven't started yet, so set up the containers
-            self.set_size(data_vector.shape[1])
+            self.initialize(size=data_vector.shape[1])
 
         if data_vector.shape[1] != self.size:
             raise Exception("Input vector is not the right size. axis=1 should "
@@ -224,9 +223,18 @@ class tICA(AbstractDimReduction):
         """Calculate the current estimate of the time-lag correlation
         matrix and the covariance matrix (if asked for).
 
-        Currently, this is done by symmetrizing the sample time-lag
-        correlation matrix, which can cause problems!
-        
+        These estimates come from an MLE argument assuming that the data {X_t, X_t+dt}
+        are distributed as a multivariate normal. Of course, this assumption 
+        is not very true, but this is merely one way to enforce that the 
+        timelag correlation matrix is symmetric. 
+
+        The MLE has nice properties, as well, such as the eigenvalues that result
+        from solving the tICA equation are always bounded between -1 and 1, which
+        is not the case when one merely symmetrizes the timelag correlation matrix
+        while estimating the covariance matrix and mean in the usual manner.
+
+        See Shukla, D et. al. In Preparation for details, or email Christian
+        Schwantes (schwancr@stanford.edu).
         """
         two_N = 2. * float(self.trained_frames)
         # ^^ denominator in all of these expressions...
@@ -399,6 +407,8 @@ def load(tica_fn, metric):
     # the only variables we need to save are the two matrices
     # and the eigenvectors / values as well as the lag time
     
+    logger.warn("NOTE: You can only use the tICA solution, you will "
+                "not be able to continue adding data")
     f = io.loadh(tica_fn)
 
     tica_obj = tICA(f['lag'][0], prep_metric=metric)
