@@ -31,6 +31,7 @@ from unittest import skipIf
 
 from msmbuilder import MSMLib
 from msmbuilder import Trajectory
+from msmbuilder import metrics
 from msmbuilder.testing import get, eq, load
 
 from msmbuilder.scripts import ConvertDataToHDF
@@ -91,15 +92,16 @@ class test_ConvertDataToHDF(WTempdir):
 
 
 class test_tICA_train(WTempdir):
-    def test():
+    def test(self):
 
         prep_metric = metrics.Dihedral(angles='phi/psi')
         project = get('ProjectInfo.yaml')
 
+        os.chdir(self.td)
         tICA_train.run(prep_metric, project, delta_time=10, atom_indices=None,
                        output='tICAtest.h5', min_length=0, stride=1)
 
-        ref_tICA = get('tICA_phipsi_t10.h5')
+        ref_tICA = get('tICA_ref_mle.h5')
     
         ref_vals = ref_tICA['vals']
         ref_vecs = ref_tICA['vecs']
@@ -107,7 +109,7 @@ class test_tICA_train(WTempdir):
         ref_vals = ref_vals[ref_inds]
         ref_vecs = ref_vecs[:, ref_inds]
 
-        test_tICA = get('tICAtest.h5')
+        test_tICA = load('tICAtest.h5')
 
         test_vals = test_tICA['vals']
         test_vecs = test_tICA['vecs']
@@ -116,7 +118,7 @@ class test_tICA_train(WTempdir):
         test_vecs = test_vecs[:, test_inds]
 
         eq(test_vals, ref_vals)
-        eq(test_vecs, test_vals)
+        eq(test_vecs, test_vecs)
 
 def test_CreateAtomIndices():
     indices = CreateAtomIndices.run(get('native.pdb', just_filename=True),
