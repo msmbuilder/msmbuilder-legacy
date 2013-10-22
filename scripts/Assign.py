@@ -38,6 +38,11 @@ parser.add_argument( 'output_dir' )
 def main(args, metric):
     assignments_path = os.path.join(args.output_dir, "Assignments.h5")
     distances_path = os.path.join(args.output_dir, "Assignments.h5.distances")
+
+    #arglib.die_if_path_exists(args.output_dir)
+    if not os.path.exists(args.output_dir):
+        os.mkdir(args.output_dir)
+
     project = Project.load_from(args.project)
     gens = Trajectory.load_trajectory_file(args.generators)
     

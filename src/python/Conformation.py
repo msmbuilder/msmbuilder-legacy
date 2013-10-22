@@ -1,5 +1,6 @@
 # This file is part of MSMBuilder.
 #
+#
 # Copyright 2011 Stanford University
 #
 # MSMBuilder is free software; you can redistribute it and/or modify

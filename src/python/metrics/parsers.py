@@ -2,11 +2,14 @@
 import sys, os
 import pickle
 import numpy as np
+from msmbuilder import Trajectory
 import itertools
 from pkg_resources import iter_entry_points
+from msmbuilder.reduce import tICA
 from msmbuilder.metrics import (RMSD, Dihedral, BooleanContact,
                                 AtomPairs, ContinuousContact,
-                                AbstractDistanceMetric)
+                                AbstractDistanceMetric, Vectorized,
+                                RedDimPNorm, Positions)
 
 def add_argument(group, *args, **kwargs):
     if 'default' in kwargs:
@@ -26,11 +29,12 @@ def locate_metric_plugins(name):
     eps = iter_entry_points(group='msmbuilder.metrics', name=name)
     return itertools.imap(lambda ep: ep.load(), eps)
 
+def add_basic_metric_parsers(metric_subparser):
 
-def add_metric_parsers(parser):
+    metric_parser_list = []
 
-    metrics_parsers = parser.add_subparsers(description='Available metrics to use.',dest='metric')
-    rmsd = metrics_parsers.add_parser('rmsd',
+    #metrics_parsers = parser.add_subparsers(description='Available metrics to use.',dest='metric')
+    rmsd = metric_subparser.add_parser('rmsd',
         description='''RMSD: Root mean square deviation over a set of user defined atoms
         (typically backbone heavy atoms or alpha carbons). To evaluate the distance
         between two structures, first they are rotated and translated with respect
@@ -38,9 +42,9 @@ def add_metric_parsers(parser):
         on multiple cores (but not multiple boxes) using OMP.''')
     add_argument(rmsd, '-a', dest='rmsd_atom_indices', help='Atom indices to use in RMSD calculation. Pass "all" to use all atoms.', 
         default='AtomIndices.dat')
-    parser.metric_parsers.append(rmsd)
+    metric_parser_list.append(rmsd)
 
-    dihedral = metrics_parsers.add_parser('dihedral',
+    dihedral = metric_subparser.add_parser('dihedral',
         description='''DIHEDRAL: For each frame in the simulation data, we extract the
         torsion angles for the class of angles that you request (phi/psi is recommended,
         but chi angles are available as well). Each frame is then reprented by a vector
@@ -55,10 +59,9 @@ def add_metric_parsers(parser):
     add_argument(dihedral, '-p', dest='dihedral_p', default=2, help='p used for metric=minkowski (otherwise ignored)')
     add_argument(dihedral, '-m', dest='dihedral_metric', default='euclidean',
         help='which distance metric', choices=Dihedral.allowable_scipy_metrics)
-    parser.metric_parsers.append(dihedral)
+    metric_parser_list.append(dihedral)
 
-
-    contact = metrics_parsers.add_parser('contact',
+    contact = metric_subparser.add_parser('contact',
         description='''CONTACT: For each frame in the simulation data, we extract the
         contact map (presence or absense of "contacts")  between residues. Each frame is then
         represented as a boolean valued vector containing information between the presence or
@@ -79,10 +82,9 @@ def add_metric_parsers(parser):
     add_argument(contact, '-f', dest='contact_cutoff_file', help='File containing residue specific cutoff distances (supercedes the scalar cutoff distance if present).',default=None)
     add_argument(contact, '-s', dest='contact_scheme', default='closest-heavy', help='contact scheme.',
         choices=['CA', 'closest', 'closest-heavy'])
-    parser.metric_parsers.append(contact)
+    metric_parser_list.append(contact)
 
-    
-    atompairs = metrics_parsers.add_parser('atompairs',description='''ATOMPAIRS: For each frame, we
+    atompairs = metric_subparser.add_parser('atompairs',description='''ATOMPAIRS: For each frame, we
         represent the conformation as a vector of particular atom-atom distances. Then the distance
         between frames is calculated using a specified norm on these vectors. This code is executed in
         parallel (but not multiple boxes) using OMP.''') 
@@ -91,42 +93,93 @@ def add_metric_parsers(parser):
     add_argument(atompairs, '-p', dest='atompairs_p', default=2, help='p used for metric=minkowski (otherwise ignored)')
     add_argument(atompairs, '-m', dest='atompairs_metric', default='euclidean',
         help='which distance metric', choices=AtomPairs.allowable_scipy_metrics)
-    parser.metric_parsers.append(atompairs)
+    metric_parser_list.append(atompairs)
 
-    
-    picklemetric = metrics_parsers.add_parser('custom', description="""CUSTOM: Use a custom
+    positions = metric_subparser.add_parser('positions', description="""POSITIONS: For each frame
+        we represent the conformation as a vector of atom positions, where the atoms have been
+        aligned to a target structure.""")
+    add_argument(positions, '-t', dest='target', help='target structure (PDB) to align structures to.')
+    add_argument(positions, '-a', dest='pos_atom_indices', help='atom indices to include in the distances.')
+    add_argument(positions, '-i', dest='align_indices', help='atom indices to use when aligning to target.')
+    add_argument(positions, '-p', dest='positions_p', default=2, help='p used for metric=minkowski (otherwise ignored)')
+    add_argument(positions, '-m', dest='positions_metric', default='euclidean',
+        help='which distance metric', choices=Positions.allowable_scipy_metrics)
+    metric_parser_list.append(positions)
+
+    picklemetric = metric_subparser.add_parser('custom', description="""CUSTOM: Use a custom
         distance metric. This requires defining your metric and saving it to a file using
         the pickle format, which can be done fron an interactive shell. This is an EXPERT FEATURE,
         and requires significant knowledge of the source code's architecture to pull off.""")
     add_argument(picklemetric, '-i', dest='picklemetric_input', required=True,
         help="Path to pickle file for the metric")
-    parser.metric_parsers.append(picklemetric)
+    metric_parser_list.append(picklemetric)
     
     for add_parser in locate_metric_plugins('add_metric_parser'):
-        plugin_metric_parser = add_parser(metrics_parsers, add_argument)
-        parser.metric_parsers.append(plugin_metric_parser)
+        plugin_metric_parser = add_parser(metric_subparser, add_argument)
+        metric_parser_list.append(plugin_metric_parser)
     
+    return metric_parser_list
+
     ################################################################################
-    
-def construct_metric(args):
-    if args.metric == 'rmsd':
+
+def add_layer_metric_parsers(metric_subparser):
+
+    tica = metric_subparser.add_parser( 'tica', description='''
+        tICA: This metric is based on a variation of PCA which looks for the slowest d.o.f.
+        in the simulation data. See (Schwantes, C.R., Pande, V.S. JCTC 2013, 9 (4), 2000-09.)
+        for more details. In addition to these options, you must provide an additional 
+        metric you used to prepare the trajectories in the training step.''')
+
+    required = tica.add_argument_group('required')
+    choose_one = tica.add_argument_group('selecting projection vectors (choose_one)')
+
+    add_argument(tica,'-p', dest='p', help='p value for p-norm')
+    add_argument(tica,'-m', dest='projected_metric', help='metric to use in the projected space',
+        choices=Vectorized.allowable_scipy_metrics, default='euclidean')
+    add_argument(required, '-f', dest='tica_fn', 
+        help='tICA Object which was prepared by tICA_train.py')
+    add_argument(choose_one, '-n', dest='num_vecs', type=int,
+        help='Choose the top <-n> eigenvectors based on their eigenvalues')
+    tica.metric_parser_list = []
+    tica_subparsers = tica.add_subparsers(dest='sub_metric', description='''  
+        Available metrics to use in preparing the trajectory before projecting.''' )
+    tica.metric_parser_list = add_basic_metric_parsers(tica_subparsers)
+
+    return tica.metric_parser_list
+
+def add_metric_parsers(parser, add_layer_metrics=False):
+
+    metric_parser_list = []
+
+    metric_subparser = parser.add_subparsers(dest='metric', description ='Available metrics to use.')
+
+    if add_layer_metrics:
+        metric_parser_list.extend(add_layer_metric_parsers(metric_subparser))
+
+    metric_parser_list.extend(add_basic_metric_parsers(metric_subparser))
+
+    return metric_parser_list
+
+def construct_basic_metric(metric_name, args):
+    if metric_name == 'rmsd':
         if args.rmsd_atom_indices != 'all':
             atom_indices = np.loadtxt(args.rmsd_atom_indices, np.int)
         else:
             atom_indices = None
         metric = RMSD(atom_indices)#, omp_parallel=args.rmsd_omp_parallel)
 
-    elif args.metric == 'dihedral':
+    elif metric_name == 'dihedral':
         metric = Dihedral(metric=args.dihedral_metric,
-            p=args.dihedral_p, angles=args.dihedral_angles, userfilename=args.dihedral_userfilename)
+            p=args.dihedral_p, angles=args.dihedral_angles,
+            userfilename=args.dihedral_userfilename)
     
-    elif args.metric == 'contact':
+    elif metric_name == 'contact':
         if args.contact_which != 'all':
-            contact_which = np.loadtxt(args.contact_which,np.int)
+            contact_which = np.loadtxt(args.contact_which, np.int)
         else:
             contact_which = 'all'
 
-        if args.contact_cutoff_file != None: #getattr(args, 'contact_cutoff_file'):
+        if args.contact_cutoff_file != None: 
             contact_cutoff = np.loadtxt(args.contact_cutoff_file, np.float)            
         elif args.contact_cutoff != None:
             contact_cutoff = float( args.contact_cutoff )
@@ -140,7 +193,7 @@ def construct_metric(args):
             metric = BooleanContact(contacts=contact_which,
                 cutoff=contact_cutoff, scheme=args.contact_scheme)
      
-    elif args.metric == 'atompairs':
+    elif metric_name == 'atompairs':
         if args.atompairs_which != None:
             pairs = np.loadtxt(args.atompairs_which, np.int)
         else:
@@ -148,8 +201,24 @@ def construct_metric(args):
 
         metric = AtomPairs(metric=args.atompairs_metric, p=args.atompairs_p,
             atom_pairs=pairs)
+
+    elif metric_name == 'positions':
+        target = Trajectory.load_from_pdb(args.target)
+        
+        if args.pos_atom_indices != None:
+            atom_indices = np.loadtxt(args.pos_atom_indices, np.int)
+        else:
+            atom_indices = None
+
+        if args.align_indices != None:
+            align_indices = np.loadtxt(args.align_indices, np.int)
+        else:
+            align_indices = None
+        
+        metric = Positions(target, atom_indices=atom_indices, align_indices=align_indices,
+                           metric=args.positions_metric, p=args.positions_p)
              
-    elif args.metric == 'custom':
+    elif metric_name == 'custom':
         with open(args.picklemetric_input) as f:
             metric = pickle.load(f)
             print '#'*80
@@ -171,3 +240,23 @@ def construct_metric(args):
         return ValueError("%s is not a AbstractDistanceMetric" % metric)
 
     return metric
+
+
+def construct_layer_metric(metric_name, args):
+    if metric_name == 'tica':
+        sub_metric = construct_basic_metric(args.sub_metric, args)
+        
+        tica_obj = tICA.load(args.tica_fn, sub_metric)
+
+        return RedDimPNorm(tica_obj, num_vecs=args.num_vecs, 
+                           metric=args.projected_metric, p=args.p)
+
+    else:
+        raise Exception("do not know how to construct metric (%s)")
+
+
+def construct_metric( args ):
+    if hasattr(args, 'sub_metric'):
+        return construct_layer_metric(args.metric, args)
+    else:
+        return construct_basic_metric(args.metric, args)
