@@ -37,3 +37,8 @@ pip-log.txt
 
 #Mr Developer
 .mr.developer.cfg
+
+#latex
+*.aux
+*.log
+*.out
