@@ -257,7 +257,7 @@ could stride a little at the begining, but its not recommended.""")
 
     if not isinstance(clusterer, clustering.Hierarchical):
 
-        if isinstance(metric, Vectorized):
+        if isinstance(metric, metrics.Vectorized):
             gen_inds = clusterer.get_generator_indices()
             generators = project.load_frame(which[gen_inds,0], which[gen_inds,1])
         else:
