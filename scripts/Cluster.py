@@ -187,7 +187,7 @@ def cluster(metric, trajectories, ptrajs, args, **kwargs):
     elif args.alg == 'hierarchical':
         zmatrix_fn = kwargs['zmatrix_fn']
         clusterer = clustering.Hierarchical(metric, trajectories=trajectories,
-            prep_trajectories=ptrajs, method=args.hierarchical_method)
+            method=args.hierarchical_method)
         clusterer.save_to_disk(zmatrix_fn)
         logger.info('ZMatrix saved to %s. Use AssignHierarchical.py to assign the data', zmatrix_fn)
     else:
@@ -235,8 +235,10 @@ could stride a little at the begining, but its not recommended.""")
         
     project = Project.load_from(args.project)
 
-    if isinstance(metric, metrics.Vectorized): # if the metric is vectorized then
-        # we can load prepared trajectories which may allow for better memory
+    if isinstance(metric, metrics.Vectorized) and not args.alg == 'hierarchical': 
+        # if the metric is vectorized then
+        # we can load prepared trajectories 
+        # which may allow for better memory
         # efficiency
         ptrajs, which = load_prep_trajectories(project, args.stride, atom_indices, metric)
         trajectories = None
