@@ -187,7 +187,7 @@ def cluster(metric, trajectories, ptrajs, args, **kwargs):
     elif args.alg == 'hierarchical':
         zmatrix_fn = kwargs['zmatrix_fn']
         clusterer = clustering.Hierarchical(metric, trajectories=trajectories,
-            prep_trajectories=ptrajs, method=args.hierarchical_method)
+            method=args.hierarchical_method)
         clusterer.save_to_disk(zmatrix_fn)
         logger.info('ZMatrix saved to %s. Use AssignHierarchical.py to assign the data', zmatrix_fn)
     else:
@@ -235,12 +235,11 @@ could stride a little at the begining, but its not recommended.""")
         
     project = Project.load_from(args.project)
 
-    if isinstance(metric, metrics.RMSD) or isinstance(metric, metrics.Hybrid):
-        trajectories = load_trajectories(project, args.stride, atom_indices)       
-        ptrajs = None
-        which = None
-        n_trajs = len(trajectories)
-    else:
+    if isinstance(metric, metrics.Vectorized) and not args.alg == 'hierarchical': 
+        # if the metric is vectorized then
+        # we can load prepared trajectories 
+        # which may allow for better memory
+        # efficiency
         ptrajs, which = load_prep_trajectories(project, args.stride, atom_indices, metric)
         trajectories = None
         n_trajs = len(ptrajs)
@@ -248,6 +247,11 @@ could stride a little at the begining, but its not recommended.""")
         num_frames = np.sum([len(p) for p in ptrajs])
         if num_frames != len(which):
             raise Exception("something went wrong in loading step (%d v %d)" % (num_frames, len(which)))
+    else:
+        trajectories = load_trajectories(project, args.stride, atom_indices)       
+        ptrajs = None
+        which = None
+        n_trajs = len(trajectories)
 
     logger.info('Loaded %d trajs', n_trajs)
 
@@ -255,11 +259,11 @@ could stride a little at the begining, but its not recommended.""")
 
     if not isinstance(clusterer, clustering.Hierarchical):
 
-        if isinstance(metric, metrics.RMSD) or isinstance(metric, metrics.Hybrid):
-            generators = clusterer.get_generators_as_traj()
-        else:
+        if isinstance(metric, metrics.Vectorized):
             gen_inds = clusterer.get_generator_indices()
             generators = project.load_frame(which[gen_inds,0], which[gen_inds,1])
+        else:
+            generators = clusterer.get_generators_as_traj()
         
         logger.info('Saving %s', generators_fn)
         generators.save_to_lhdf(generators_fn)
