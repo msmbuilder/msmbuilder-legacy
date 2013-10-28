@@ -28,7 +28,7 @@ logger = logging.getLogger('msmbuilder.scripts.BuildMSM')
 def str2bool(v):
   return v.lower() in ("yes", "y", "true", "t", "1")
 
-def run(lagtime, assignments, symmetrize='MLE', input_mapping="None", trim=False, out_dir="./Data/"):
+def run(lagtime, assignments, symmetrize='MLE', input_mapping="None", trim=True, out_dir="./Data/"):
 
     # set the filenames for output
     FnTProb = os.path.join(out_dir, "tProb.mtx")
