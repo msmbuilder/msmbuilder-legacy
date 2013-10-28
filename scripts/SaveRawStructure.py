@@ -7,9 +7,9 @@ from msmbuilder import arglib
 from msmbuilder import Project
 
 
-parser = arglib.ArgumentParser('''Yank randomly selected conformations
-from each state in a model by going back to the original XTC files from
-which the project was built.
+parser = arglib.ArgumentParser(description='''
+Yank randomly selected conformations from each state in a model by going
+back to the original XTC files from which the project was built.
 
 For example, if ConvertDataToHDF.py was used to strip the waters from the
 XTC files, SaveStructures.py will output the PDBs *without* the water,
