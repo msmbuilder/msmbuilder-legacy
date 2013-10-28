@@ -25,9 +25,10 @@ import msmbuilder.io
 from msmbuilder import MSMLib
 import logging
 logger = logging.getLogger('msmbuilder.scripts.BuildMSM')
+def str2bool(v):
+  return v.lower() in ("yes", "y", "true", "t", "1")
 
-
-def run(lagtime, assignments, symmetrize='MLE', input_mapping="None", out_dir="./Data/"):
+def run(lagtime, assignments, symmetrize='MLE', input_mapping="None", trim=True, out_dir="./Data/"):
 
     # set the filenames for output
     FnTProb = os.path.join(out_dir, "tProb.mtx")
@@ -48,18 +49,19 @@ def run(lagtime, assignments, symmetrize='MLE', input_mapping="None", out_dir=".
 
     counts = MSMLib.get_count_matrix_from_assignments(assignments, lag_time=lagtime, sliding_window=True)
 
-    rev_counts, t_matrix, populations, mapping = MSMLib.build_msm(counts, symmetrize=symmetrize, ergodic_trimming=True)
-
-    MSMLib.apply_mapping_to_assignments(assignments, mapping)
-    n_assigns_after_trim = len(np.where(assignments.flatten() != -1)[0])
-
-    # if had input mapping, then update it
-    if input_mapping != "None":
-        mapping = mapping[input_mapping]
-
-    # Print a statement showing how much data was discarded in trimming
-    percent = (1.0 - float(n_assigns_after_trim) / float(n_assigns_before_trim)) * 100.0
-    logger.warning("Ergodic trimming discarded: %f percent of your data", percent)
+    rev_counts, t_matrix, populations, mapping = MSMLib.build_msm(counts, symmetrize=symmetrize, ergodic_trimming=trim)
+    
+    if trim:
+        MSMLib.apply_mapping_to_assignments(assignments, mapping)
+        n_assigns_after_trim = len(np.where(assignments.flatten() != -1)[0])
+        # if had input mapping, then update it
+        if input_mapping != "None":
+            mapping = mapping[input_mapping]
+        # Print a statement showing how much data was discarded in trimming
+        percent = (1.0 - float(n_assigns_after_trim) / float(n_assigns_before_trim)) * 100.0
+        logger.warning("Ergodic trimming discarded: %f percent of your data", percent)
+    else:
+        logger.warning("No ergodic trimming applied")
 
     # Save all output
     np.savetxt(FnPops, populations)
@@ -93,7 +95,12 @@ if __name__ == "__main__":
     parser.add_argument('lagtime', help='''Lag time to use in model (in
         number of snapshots. EG, if you have snapshots every 200ps, and set the
         lagtime=50, you'll get a model with a lagtime of 10ns)''', type=int)
-    parser.add_argument('mapping', help='''Mapping, EG from microstates to macrostates. If given, this mapping will be applied to the specified assignments before creating an MSM.''', default="None")
+    parser.add_argument('mapping', help='''Mapping, EG from microstates to macrostates.
+        If given, this mapping will be applied to the specified assignments before
+        creating an MSM.''', default="None")
+    parser.add_argument('trim', help="""Whether or not to apply an ergodic trim.
+        If true, keeps only the largest observed ergodic subset of the data, if
+        false, keeps everything. Default: True.""", default=True, type=str2bool)
     parser.add_argument('output_dir')
     args = parser.parse_args()
 
@@ -105,4 +112,4 @@ if __name__ == "__main__":
     if args.mapping != "None":
         args.mapping = np.array(np.loadtxt(args.mapping), dtype=int)
 
-    run(args.lagtime, assignments, args.symmetrize, args.mapping, args.output_dir)
+    run(args.lagtime, assignments, args.symmetrize, args.mapping, args.trim, args.output_dir)
