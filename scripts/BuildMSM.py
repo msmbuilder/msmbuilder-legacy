@@ -25,7 +25,8 @@ import msmbuilder.io
 from msmbuilder import MSMLib
 import logging
 logger = logging.getLogger('msmbuilder.scripts.BuildMSM')
-
+def str2bool(v):
+  return v.lower() in ("yes", "y", "true", "t", "1")
 
 def run(lagtime, assignments, symmetrize='MLE', input_mapping="None", trim=False, out_dir="./Data/"):
 
@@ -60,7 +61,7 @@ def run(lagtime, assignments, symmetrize='MLE', input_mapping="None", trim=False
         percent = (1.0 - float(n_assigns_after_trim) / float(n_assigns_before_trim)) * 100.0
         logger.warning("Ergodic trimming discarded: %f percent of your data", percent)
     else:
-        logger.warnings("No ergodic trimming applied")
+        logger.warning("No ergodic trimming applied")
 
     # Save all output
     np.savetxt(FnPops, populations)
@@ -99,7 +100,7 @@ if __name__ == "__main__":
         creating an MSM.''', default="None")
     parser.add_argument('trim', help="""Whether or not to apply an ergodic trim.
         If true, keeps only the largest observed ergodic subset of the data, if
-        false, keeps everything. Default: True.""", default=True, type=bool)
+        false, keeps everything. Default: True.""", default=True, type=str2bool)
     parser.add_argument('output_dir')
     args = parser.parse_args()
 
