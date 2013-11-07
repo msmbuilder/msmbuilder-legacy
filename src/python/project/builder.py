@@ -5,7 +5,6 @@ from glob import glob
 from msmbuilder.utils import keynat
 from msmbuilder import Trajectory
 from msmbuilder.utils import keynat
-import IPython
 import numpy as np
 
 from project import Project
@@ -329,8 +328,6 @@ class ProjectBuilder(object):
                                 'traj_converted_from': self.traj_converted_from})
 
         self.updated_project = True
-
-        #IPython.embed()
 
 
     def _input_trajs(self):
