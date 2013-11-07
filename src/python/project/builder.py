@@ -56,6 +56,7 @@ class ProjectBuilder(object):
         if self.input_traj_ext[0] != '.':
             self.input_traj_ext = '.%s' % self.input_traj_ext
         self.conf_filename = conf_filename.strip()
+        self.conf = Trajectory.load_trajectory_file(self.conf_filename)
 
         self.output_traj_ext = output_traj_ext.strip()
         if self.output_traj_ext[0] != '.':
@@ -356,10 +357,10 @@ class ProjectBuilder(object):
         """
 
         if self.input_traj_ext == '.xtc':
-            traj = Trajectory.load_from_xtc(file_list, PDBFilename=self.conf_filename,
+            traj = Trajectory.load_from_xtc(file_list, Conf=self.conf,
                         discard_overlapping_frames=True)
         elif self.input_traj_ext == '.dcd':
-            traj = Trajectory.load_from_dcd(file_list, PDBFilename=self.conf_filename)
+            traj = Trajectory.load_from_dcd(file_list, Conf=self.conf)
         else:
             raise ValueError()
         # return the number of files loaded, which in this case is all or
