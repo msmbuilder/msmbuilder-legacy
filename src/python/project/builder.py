@@ -181,9 +181,9 @@ class ProjectBuilder(object):
 
         num_files = len(file_list)
         try:
-            traj = self._load_traj(file_list)
+            traj, n_loaded = self._load_traj(file_list)
             traj["XYZList"] = traj["XYZList"][::self.stride]
-        except TypeError as e:
+        except RuntimeError as e:
             #traj_errors.append(e)
             logger.warning('Could not convert %d files from %s (%s)', num_files, traj_loc, e)
         else:
@@ -197,7 +197,7 @@ class ProjectBuilder(object):
             traj.save(lh5_fn)
             self.traj_lengths.append(len(traj["XYZList"]))
             self.traj_paths.append(lh5_fn)
-            self.traj_converted_from.append(file_list)
+            self.traj_converted_from.append(file_list[:n_loaded])
             
             error = None
             try:
@@ -235,8 +235,8 @@ class ProjectBuilder(object):
         elif old_num_files < len(file_list):
             # Need to update the trajectory
             try:
-                extended_traj = self._load_traj(file_list[old_num_files:])
-            except TypeError as e:
+                extended_traj, n_loaded = self._load_traj(file_list[old_num_files:])
+            except RuntimeError as e:
                 logger.warning('Could not convert: %s (%s)', file_list[old_num_files:], e)
             else:
                 # assume that the first <old_num_files> are the same
@@ -250,7 +250,7 @@ class ProjectBuilder(object):
                 # efficient by only updating the XYZList node since it's the
                 # only thing that changes
 
-                new_traj_locs = np.concatenate((old_locs, file_list[old_num_files:]))
+                new_traj_locs = np.concatenate((old_locs, file_list[old_num_files:old_num_files + n_loaded]))
                 self.project._traj_converted_from[old_ind] = list(new_traj_locs)
                 self.project._traj_lengths[old_ind] = len(traj['XYZList'])
                 # _errors updated later, saved to the same place, so traj_filename is the same
@@ -362,7 +362,10 @@ class ProjectBuilder(object):
             traj = Trajectory.load_from_dcd(file_list, PDBFilename=self.conf_filename)
         else:
             raise ValueError()
-        return traj
+        # return the number of files loaded, which in this case is all or
+        # nothing, since an error is raised if the Trajectory.load_from_<ext> 
+        # doesn't work
+        return traj, len(file_list)
 
 
 class FahProjectBuilder(ProjectBuilder):
@@ -426,9 +429,9 @@ class FahProjectBuilder(ProjectBuilder):
     
     def _load_traj(self, file_list):
         traj = None
-        
+        n_corrupted = 0
         try:
-            traj = super(FahProjectBuilder, self)._load_traj(file_list)
+            traj, n_loaded = super(FahProjectBuilder, self)._load_traj(file_list)
         except IOError as e:
             if e.errno == 2: # Then the pdb filename doesn't exist
                 raise e
@@ -437,8 +440,11 @@ class FahProjectBuilder(ProjectBuilder):
             logger.error("Some files appear to be corrupted")
             while corrupted_files:
                 logger.error("Trying to recover by discarding the %d-th-to-last file", n_corrupted)
+                if len(file_list[:-n_corrupted]) == 0:
+                    traj = None
+                    break
                 try:
-                    traj = super(FahProjectBuilder, self)._load_traj(file_list[:-n_corrupted])
+                    traj, n_loaded = super(FahProjectBuilder, self)._load_traj(file_list[:-n_corrupted])
                 except IOError:
                     n_corrupted += 1
                 else:
@@ -448,6 +454,4 @@ class FahProjectBuilder(ProjectBuilder):
         if traj is None:
             raise RuntimeError("Corrupted frames in %s, recovery impossible" % file_list)
             
-        return traj
-    
-
+        return traj, (len(file_list) - n_corrupted)
