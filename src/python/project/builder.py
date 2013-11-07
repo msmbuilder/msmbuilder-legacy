@@ -292,6 +292,12 @@ class ProjectBuilder(object):
         if not self.project is None:
             old_traj_locs = ['/'.join([d for d in os.path.relpath(file_list[0]).split('/') if not d in ['.','..']][:-1]) for file_list in self.project._traj_converted_from]
             # ^^^ haha, @rmcgibbo, is this acceptable?
+            # basically we want to turn something like:
+            #   ../../PROJXXXX/RUN0/CLONE195/frame0.xtc
+            # into:
+            #   PROJXXXX/RUN0/CLONE195
+            # and we use this label to see if we've already included the 
+            # trajectory in the old project
         else:
             old_traj_locs = []
         old_traj_locs = np.array(old_traj_locs)
