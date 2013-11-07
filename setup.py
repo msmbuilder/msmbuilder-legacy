@@ -270,7 +270,7 @@ def configuration(parent_package='',top_path=None):
 
     for ext in [dist, dihedral, contact, rg]:
         ext.extra_compile_args = compiler_args
-        ext.extra_link_args = compiler_libraries
+        ext.libraries = compiler_libraries
         ext.include_dirs = [numpy.get_include()]
         config.ext_modules.append(ext)
     
