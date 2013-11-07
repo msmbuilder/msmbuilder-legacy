@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class ProjectBuilder(object):
     def __init__(self, input_traj_dir, input_traj_ext, conf_filename, 
         stride=1, project=None, validators=[], output_traj_dir='Trajectories',
-        output_traj_ext='lh5', output_traj_basename='trj'):
+        output_traj_ext='.lh5', output_traj_basename='trj'):
         """
         Build an MSMBuilder project from a set of trajectories
 
@@ -52,16 +52,20 @@ class ProjectBuilder(object):
         >>> pb = ProjectBuilder('XTC', '.xtc', 'native.pdb')
         >>> pb.project.save('ProjectInfo.yaml')
         """
-        self.input_traj_dir = input_traj_dir
-        self.input_traj_ext = input_traj_ext
-        self.conf_filename = conf_filename
+        self.input_traj_dir = input_traj_dir.strip()
+        self.input_traj_ext = input_traj_ext.strip()
+        if self.input_traj_ext[0] != '.':
+            self.input_traj_ext = '.%s' % self.input_traj_ext
+        self.conf_filename = conf_filename.strip()
 
-        self.output_traj_ext = output_ext
+        self.output_traj_ext = output_traj_ext.strip()
+        if self.output_traj_ext[0] != '.':
+            self.output_traj_ext = '.%s' % self.output_traj_ext
         self.project = project
 
         if self.project is None:
-            self.output_traj_basename = output_traj_basename
-            self.output_traj_dir = output_dir_basename
+            self.output_traj_basename = output_traj_basename.strip()
+            self.output_traj_dir = output_traj_dir.strip()
         else:
             logger.info("using project data to determine trajectory basename/location/extension")
             self.output_traj_dir = os.path.relpath(os.path.dirname(self.project.traj_filename(0)))
@@ -77,6 +81,12 @@ class ProjectBuilder(object):
         self.stride = int(stride)
         self.project_updated = False
         # Keep track of when we've updated everything
+
+        # setup containers for all of the metadata
+        self.traj_lengths = []
+        self.traj_errors = []
+        self.traj_converted_from = []
+        self.traj_paths = []
 
         self._validators = []
         for e in validators:
@@ -170,6 +180,7 @@ class ProjectBuilder(object):
         load a new trajectory specified by a list of input files.
         """
 
+        num_files = len(file_list)
         try:
             traj = self._load_traj(file_list)
             traj["XYZList"] = traj["XYZList"][::self.stride]
@@ -189,6 +200,7 @@ class ProjectBuilder(object):
             self.traj_paths.append(lh5_fn)
             self.traj_converted_from.append(file_list)
             
+            error = None
             try:
                 self._validate_traj(traj)
                 logger.info("%s (%d files), length %d, converted to %s", 
@@ -214,12 +226,13 @@ class ProjectBuilder(object):
         # way to do this...
         old_locs = self.project._traj_converted_from[old_ind]
         old_num_files = len(old_locs)
+        num_files = len(file_list)
 
         if old_num_files == len(file_list):
             # Just assume if it is the same number of files then they are the
             # same. We should change this eventually
             logger.info("%s no change, did nothing for %s", traj_loc, self.project._traj_paths[old_ind])
-            continue
+
         elif old_num_files < len(file_list):
             # Need to update the trajectory
             try:
@@ -262,9 +275,7 @@ class ProjectBuilder(object):
                         self.project._traj_errors[old_ind] = [self.project._traj_errors[old_ind], error]
 
         else:
-            # Somehow lost some frames...
             logger.warn('Fewer frames found than currently have. Skipping. (%s)' % traj_loc)
-                        continue
 
 
     def convert(self):
@@ -277,11 +288,6 @@ class ProjectBuilder(object):
         project : msmbuilder.projec
             The project object, summarizing the conversion
         """
-
-        traj_lengths = []
-        traj_paths = []
-        traj_errors = []
-        traj_converted_from = []
 
         if not self.project is None:
             old_traj_locs = ['/'.join([d for d in os.path.relpath(file_list[0]).split('/') if not d in ['.','..']][:-1]) for file_list in self.project._traj_converted_from]
@@ -305,22 +311,22 @@ class ProjectBuilder(object):
                 old_ind = np.where(old_traj_locs == traj_loc)[0][0]
                 self._update_traj(old_ind, file_list, traj_loc)
 
-        if len(traj_paths) == 0 and self.project is None:
+        if len(self.traj_paths) == 0 and self.project is None:
             os.rmdir(self.output_traj_dir)
             raise RuntimeError('No conversion jobs found!')
 
         if not self.project is None:
-            traj_lengths = list(self.project._traj_lengths) + traj_lengths
-            traj_paths = list(self.project._traj_paths) + traj_paths
-            traj_errors = list(self.project._traj_errors) + traj_errors
-            traj_converted_from = list(self.project._traj_converted_from) + traj_converted_from
-            traj_converted_from = [[str(i) for i in l] for l in traj_converted_from]
+            self.traj_lengths = list(self.project._traj_lengths) + self.traj_lengths
+            self.traj_paths = list(self.project._traj_paths) + self.traj_paths
+            self.traj_errors = list(self.project._traj_errors) + self.traj_errors
+            self.traj_converted_from = list(self.project._traj_converted_from) + self.traj_converted_from
+            self.traj_converted_from = [[str(i) for i in l] for l in self.traj_converted_from]
 
         self.project = Project({'conf_filename': self.conf_filename,
-                                'traj_lengths': traj_lengths,
-                                'traj_paths': traj_paths,
-                                'traj_errors': traj_errors,
-                                'traj_converted_from': traj_converted_from})
+                                'traj_lengths': self.traj_lengths,
+                                'traj_paths': self.traj_paths,
+                                'traj_errors': self.traj_errors,
+                                'traj_converted_from': self.traj_converted_from})
 
         self.updated_project = True
 
