@@ -4,6 +4,9 @@ setup.py: Install msmbuilder.
 import os, sys
 from glob import glob
 import subprocess
+import shutil
+import tempfile
+from distutils.ccompiler import new_compiler
 
 VERSION = "2.7.dev"
 ISRELEASED = False
@@ -26,6 +29,54 @@ is a library that provides tools for analyzing molecular dynamics
 simulations, particularly through the construction
 of Markov state models for conformational dynamics."""}
 
+def hasfunction(cc, funcname, include=None, extra_postargs=None):
+    # From http://stackoverflow.com/questions/
+    #            7018879/disabling-output-when-compiling-with-distutils
+    tmpdir = tempfile.mkdtemp(prefix='hasfunction-')
+    devnull = oldstderr = None
+    try:
+        try:
+            fname = os.path.join(tmpdir, 'funcname.c')
+            f = open(fname, 'w')
+            if include is not None:
+                f.write('#include %s\n' % include)
+            f.write('int main(void) {\n')
+            f.write('    %s;\n' % funcname)
+            f.write('}\n')
+            f.close()
+            devnull = open(os.devnull, 'w')
+            oldstderr = os.dup(sys.stderr.fileno())
+            os.dup2(devnull.fileno(), sys.stderr.fileno())
+            objects = cc.compile([fname], output_dir=tmpdir,
+                                 extra_postargs=extra_postargs)
+            cc.link_executable(objects, os.path.join(tmpdir, 'a.out'))
+        except Exception as e:
+            return False
+        return True
+    finally:
+        if oldstderr is not None:
+            os.dup2(oldstderr, sys.stderr.fileno())
+        if devnull is not None:
+            devnull.close()
+        shutil.rmtree(tmpdir)
+
+
+def detect_openmp():
+    "Does this compiler support OpenMP parallelization?"
+    compiler = new_compiler()
+    print 'Attempting to autodetect OpenMP support...', 
+    hasopenmp = hasfunction(compiler, 'omp_get_num_threads()')
+    needs_gomp = hasopenmp
+    if not hasopenmp:
+        compiler.add_library('gomp')
+        hasopenmp = hasfunction(compiler, 'omp_get_num_threads()')
+        needs_gomp = hasopenmp
+    print
+    if hasopenmp:
+        print 'Compiler supports OpenMP'
+    else:
+        print 'Did not detect OpenMP support; parallel RMSD disabled'
+    return hasopenmp, needs_gomp
 
 # Return the git revision as a string
 # copied from numpy setup.py
@@ -161,14 +212,25 @@ def configuration(parent_package='',top_path=None):
     config.add_subpackage('reduce',
                           subpackage_path='src/python/reduce')
 
+    openmp_enabled, needs_gomp = detect_openmp()
+    compiler_args = ['-O3', '-funroll-loops']
+    if new_compiler().compiler_type == 'msvc':
+        compiler_args.append('/arch:SSE2')
+
+    if openmp_enabled:
+        compiler_args.append('-fopenmp')
+    compiler_libraries = ['gomp'] if needs_gomp else []
+    #compiler_defs = [('USE_OPENMP', None)] if openmp_enabled else []
+
+
     # add asa extension
     # note this is wrapped using f2py, which
 	# is a little different that the other modules,
     # but actually a lot more convenient and less error prone
     asa = Extension('msmbuilder._asa',
-                    sources = ['src/ext/asa/asa.pyf', 'src/ext/asa/asa.c'],
-                    extra_link_args = ['-lgomp'],
-                    extra_compile_args = ['-fopenmp'])
+                    sources=['src/ext/asa/asa.pyf', 'src/ext/asa/asa.c'],
+                    libraries=compiler_libraries,
+                    extra_compile_args=compiler_args)
 
     
     # add metrics subpackage
@@ -188,12 +250,13 @@ def configuration(parent_package='',top_path=None):
                     libraries=['m'],
                     include_dirs = ["src/ext/molfile_plugin/include/",
                                     "src/ext/molfile_plugin"])
+
     # rmsd
     rmsd = Extension('msmbuilder._rmsdcalc',
                      sources=glob('src/ext/IRMSD/*.c'),
                      extra_compile_args = ["-std=c99","-O2",
-                                           "-msse2","-msse3","-fopenmp"],
-                     extra_link_args = ['-lgomp'],
+                                           "-msse2","-msse3"] + compiler_args,
+                     libraries=compiler_libraries,
                      include_dirs = [numpy.get_include(), os.path.join(numpy.get_include(), 'numpy')])
 
     for e in [asa, xtc, dcd, rmsd]:
@@ -206,8 +269,8 @@ def configuration(parent_package='',top_path=None):
     rg = Extension('msmbuilder._rg_wrap', sources=glob('src/ext/rg/*.c'))
 
     for ext in [dist, dihedral, contact, rg]:
-        ext.extra_compile_args = ["-O3", "-fopenmp", "-Wall"]
-        ext.extra_link_args = ['-lgomp']
+        ext.extra_compile_args = compiler_args
+        ext.libraries = compiler_libraries
         ext.include_dirs = [numpy.get_include()]
         config.ext_modules.append(ext)
     

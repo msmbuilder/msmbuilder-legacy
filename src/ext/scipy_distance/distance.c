@@ -40,8 +40,9 @@
 #include <stdlib.h>
 #include "common.h"
 #include "distance.h"
+#ifdef _OPENMP
 #include <omp.h>
-
+#endif
 static NPY_INLINE double euclidean_distance(const double *u, const double *v, int n) {
   int i = 0;
   double s = 0.0, d;
