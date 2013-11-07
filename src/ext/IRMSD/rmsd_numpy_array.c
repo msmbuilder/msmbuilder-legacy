@@ -23,8 +23,9 @@
 #include <stdint.h>
 #include <stdio.h>
 #include "theobald_rmsd.h"
+#ifdef _OPENMP
 #include <omp.h>
-
+#endif
 
 #define CHECKARRAYTYPE(ary,name) if (PyArray_TYPE(ary) != NPY_FLOAT32) {\
                                      PyErr_SetString(PyExc_ValueError,name" was not of type float32");\
