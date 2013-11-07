@@ -13,7 +13,9 @@ from validators import ValidationError
 logger = logging.getLogger(__name__)
 
 class ProjectBuilder(object):
-    def __init__(self, input_traj_dir, input_traj_ext, conf_filename, **kwargs):
+    def __init__(self, input_traj_dir, input_traj_ext, conf_filename, 
+        stride=1, project=None, validators=[], output_traj_dir='Trajectories',
+        output_traj_ext='lh5', output_traj_basename='trj'):
         """
         Build an MSMBuilder project from a set of trajectories
 
@@ -27,14 +29,18 @@ class ProjectBuilder(object):
         conf_filename : str 
             path to a pdb
             this will be used to load xtc's and other trajectories
-
-        Additional Parameters
-        ---------------------
-        stride : int
+        stride : int, optional
             Stride the input data at this frequency
-        validators : [msmbuilder.project.Validator]
-        project : msmbuilder.Project
+        validators : list, optional
+            list of validators
+        project : msmbuilder.Project or None
             project instance that we are updating
+        output_traj_dir : str, optional
+            output directory to save trajectories
+        output_traj_ext : str, optional
+            output extension for trajectories
+        output_traj_basename : str, optional
+            output trajectory basename
 
         Attributes
         ----------
@@ -50,13 +56,14 @@ class ProjectBuilder(object):
         self.input_traj_ext = input_traj_ext
         self.conf_filename = conf_filename
 
-        self.output_traj_ext = '.lh5'
-        self.project = kwargs.pop('project', None)
+        self.output_traj_ext = output_ext
+        self.project = project
 
         if self.project is None:
-            self.output_traj_basename = kwargs.pop('output_traj_basename', 'trj')
-            self.output_traj_dir = kwargs.pop('output_traj_dir', 'Trajectories')
+            self.output_traj_basename = output_traj_basename
+            self.output_traj_dir = output_dir_basename
         else:
+            logger.info("using project data to determine trajectory basename/location/extension")
             self.output_traj_dir = os.path.relpath(os.path.dirname(self.project.traj_filename(0)))
 
             trj_name = os.path.basename(self.project._traj_paths[0])
@@ -67,16 +74,14 @@ class ProjectBuilder(object):
                 logger.warning("could not parse %s, defaulting to traj basename 'trj'", trj_name)
                 self.output_traj_basename = 'trj'
 
-        self.stride = kwargs.pop('stride', 1)
+        self.stride = int(stride)
         self.project_updated = False
         # Keep track of when we've updated everything
 
         self._validators = []
-        for e in kwargs.pop('validators', []):
+        for e in validators:
             self.add_validator(e)
 
-        if len(kwargs) > 0:
-            raise ValueError('Unsupported arguments %s' % kwargs.keys())
         if input_traj_ext not in ['.xtc', '.dcd']:
             raise ValueError("Unsupported format")
 
@@ -159,6 +164,109 @@ class ProjectBuilder(object):
                # trajectories
             pass
 
+
+    def _load_new_files(self, file_list, traj_loc):
+        """
+        load a new trajectory specified by a list of input files.
+        """
+
+        try:
+            traj = self._load_traj(file_list)
+            traj["XYZList"] = traj["XYZList"][::self.stride]
+        except TypeError as e:
+            #traj_errors.append(e)
+            logger.warning('Could not convert %d files from %s (%s)', num_files, traj_loc, e)
+        else:
+            if self.project is None:
+                next_ind = len(self.traj_lengths)
+            else:
+                next_ind = len(self.traj_lengths) + len(self.project._traj_lengths)
+
+            lh5_fn = os.path.join(self.output_traj_dir, 
+                (self.output_traj_basename + str(next_ind) + self.output_traj_ext))
+            traj.save(lh5_fn)
+            self.traj_lengths.append(len(traj["XYZList"]))
+            self.traj_paths.append(lh5_fn)
+            self.traj_converted_from.append(file_list)
+            
+            try:
+                self._validate_traj(traj)
+                logger.info("%s (%d files), length %d, converted to %s", 
+                            traj_loc, num_files, self.traj_lengths[-1], lh5_fn)
+            except ValidationError as e:
+                error = e
+                logger.error("%s (%d files), length %d, converted to %s with error '%s'", 
+                             traj_loc, num_files, self.traj_lengths[-1], lh5_fn, e)
+
+            self.traj_errors.append(error)
+
+
+    def _update_traj(self, old_ind, file_list, traj_loc):
+        """
+        update a trajectory that we already had in the old project.
+        """
+        # This trajectory has been seen before, and so we need to 
+        # either extend it or skip it 
+        # This procedure would ideally be done using EArrays and we 
+        # use pyTables to actually extend the trajectory. Currently,
+        # the XYZList is a CArray, and so at some point we have to load
+        # the old array into memory, which is not the most efficient
+        # way to do this...
+        old_locs = self.project._traj_converted_from[old_ind]
+        old_num_files = len(old_locs)
+
+        if old_num_files == len(file_list):
+            # Just assume if it is the same number of files then they are the
+            # same. We should change this eventually
+            logger.info("%s no change, did nothing for %s", traj_loc, self.project._traj_paths[old_ind])
+            continue
+        elif old_num_files < len(file_list):
+            # Need to update the trajectory
+            try:
+                extended_traj = self._load_traj(file_list[old_num_files:])
+            except TypeError as e:
+                logger.warning('Could not convert: %s (%s)', file_list[old_num_files:], e)
+            else:
+                # assume that the first <old_num_files> are the same
+                # ^^^ This should be modified, but I want to get it working first
+                traj = self.project.load_traj(old_ind)
+                traj['XYZList'] = np.concatenate((traj['XYZList'], extended_traj['XYZList'][1:]))
+                # need to skip the first frame because this is what the xtc reader would do
+                traj.save(self.project._traj_paths[old_ind])
+                # This does what we want it to do, because msmbuilder.io.saveh
+                # deletes keys that exist already. However, this could be made more
+                # efficient by only updating the XYZList node since it's the
+                # only thing that changes
+
+                new_traj_locs = np.concatenate((old_locs, file_list[old_num_files:]))
+                self.project._traj_converted_from[old_ind] = list(new_traj_locs)
+                self.project._traj_lengths[old_ind] = len(traj['XYZList'])
+                # _errors updated later, saved to the same place, so traj_filename is the same
+                
+                try:
+                    self._validate_traj(traj)
+                    logger.info("%s (%d files), length %d, UPDATED %s",
+                                traj_loc, num_files, self.project._traj_lengths[old_ind], 
+                                self.project._traj_paths[old_ind])
+                except ValidationError as e:
+                    error = e
+                    logger.info("%s (%d files), length %d, UPDATED %s",
+                                traj_loc, num_files, self.project._traj_lengths[old_ind], 
+                                self.project._traj_paths[old_ind])
+
+                    if self.project._traj_errors[old_ind] is None:
+                        self.project._traj_errors[old_ind] = error
+                    elif isinstance(self.project._traj_errors[old_ind], list):
+                        self.project._traj_errors[old_ind].append(error)
+                    else:
+                        self.project._traj_errors[old_ind] = [self.project._traj_errors[old_ind], error]
+
+        else:
+            # Somehow lost some frames...
+            logger.warn('Fewer frames found than currently have. Skipping. (%s)' % traj_loc)
+                        continue
+
+
     def convert(self):
         """
         Main method for this class. Convert all of the trajectories into
@@ -189,102 +297,13 @@ class ProjectBuilder(object):
             num_orig_trajs = len(self.project._traj_paths)
     
         for file_list in self._input_trajs():
-
-            i = num_orig_trajs + num_trajs_added 
-            # index for a new trajectory file is total we currently have (since it's zero-indexed)
-
-            error = None
-
             traj_loc = '/'.join([d for d in os.path.relpath(file_list[0]).split('/') if not d in ['.', '..']][:-1])
             num_files = len(file_list)
             if not traj_loc in old_traj_locs:
-                try:
-                    traj = self._load_traj(file_list)
-                    traj["XYZList"] = traj["XYZList"][::self.stride]
-                except TypeError as e:
-                    #traj_errors.append(e)
-                    logger.warning('Could not convert %d files from %s (%s)', num_files, traj_loc, e)
-                else:
-                    num_trajs_added += 1
-                    lh5_fn = os.path.join(self.output_traj_dir, 
-                                      (self.output_traj_basename + str(i) + self.output_traj_ext))
-                    traj.save(lh5_fn)
-                    traj_lengths.append(len(traj["XYZList"]))
-                    traj_paths.append(lh5_fn)
-                    traj_converted_from.append(file_list)
-            
-                    try:
-                        self._validate_traj(traj)
-                        logger.info("%s (%d files), length %d, converted to %s", 
-                                traj_loc, num_files, traj_lengths[-1], lh5_fn)
-                    except ValidationError as e:
-                        error = e
-                        logger.error("%s (%d files), length %d, converted to %s with error '%s'", 
-                                     traj_loc, num_files, traj_lengths[-1], lh5_fn, e)
-
-                    traj_errors.append(error)
-
-            else:  # Then this trajectory has been seen before, and so we need to 
-                   # either extend it or skip it 
-                   # This procedure would ideally be done using EArrays and we 
-                   # use pyTables to actually extend the trajectory. Currently,
-                   # the XYZList is a CArray, and so at some point we have to load
-                   # the old array into memory, which is not the most efficient
-                   # way to do this...
+                self._load_new_files(file_list, traj_loc)
+            else: 
                 old_ind = np.where(old_traj_locs == traj_loc)[0][0]
-                old_locs = self.project._traj_converted_from[old_ind]
-                old_num_files = len(old_locs)
-
-                if old_num_files == len(file_list):
-                    # Just assume if it is the same number of files then they are the
-                    # same. We should change this eventually
-                    logger.info("%s no change, did nothing for %s", traj_loc, self.project._traj_paths[old_ind])
-                    continue
-                elif old_num_files < len(file_list):
-                    # Need to update the trajectory
-                    try:
-                        extended_traj = self._load_traj(file_list[old_num_files:])
-                    except TypeError as e:
-                        logger.warning('Could not convert: %s (%s)', file_list[old_num_files:], e)
-                    else:
-                        # assume that the first <old_num_files> are the same
-                        # ^^^ This should be modified, but I want to get it working first
-                        traj = self.project.load_traj(old_ind)
-                        traj['XYZList'] = np.concatenate((traj['XYZList'], extended_traj['XYZList'][1:]))
-                        # need to skip the first frame because this is what the xtc reader would do
-                        traj.save(self.project._traj_paths[old_ind])
-                        # This does what we want it to do, because msmbuilder.io.saveh
-                        # deletes keys that exist already. However, this could be made more
-                        # efficient by only updating the XYZList node since it's the
-                        # only thing that changes
-
-                        new_traj_locs = np.concatenate((old_locs, file_list[old_num_files:]))
-                        self.project._traj_converted_from[old_ind] = list(new_traj_locs)
-                        self.project._traj_lengths[old_ind] = len(traj['XYZList'])
-                        # _errors updated later, saved to the same place, so traj_filename is the same
-                        
-                        try:
-                            self._validate_traj(traj)
-                            logger.info("%s (%d files), length %d, UPDATED %s",
-                                        traj_loc, num_files, self.project._traj_lengths[old_ind], 
-                                        self.project._traj_paths[old_ind])
-                        except ValidationError as e:
-                            error = e
-                            logger.info("%s (%d files), length %d, UPDATED %s",
-                                        traj_loc, num_files, self.project._traj_lengths[old_ind], 
-                                        self.project._traj_paths[old_ind])
-
-                            if self.project._traj_errors[old_ind] is None:
-                                self.project._traj_errors[old_ind] = error
-                            elif isinstance(self.project._traj_errors[old_ind], list):
-                                self.project._traj_errors[old_ind].append(error)
-                            else:
-                                self.project._traj_errors[old_ind] = [self.project._traj_errors[old_ind], error]
-
-                else:
-                    # Somehow lost some frames...
-                    logger.warn('Fewer frames found than currently have. Skipping. (%s)' % traj_loc)
-                    continue
+                self._update_traj(old_ind, file_list, traj_loc)
 
         if len(traj_paths) == 0 and self.project is None:
             os.rmdir(self.output_traj_dir)
