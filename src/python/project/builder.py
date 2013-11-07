@@ -204,7 +204,7 @@ class ProjectBuilder(object):
             try:
                 self._validate_traj(traj)
                 logger.info("%s (%d files), length %d, converted to %s", 
-                            traj_loc, num_files, self.traj_lengths[-1], lh5_fn)
+                            traj_loc, n_loaded, self.traj_lengths[-1], lh5_fn)
             except ValidationError as e:
                 error = e
                 logger.error("%s (%d files), length %d, converted to %s with error '%s'", 
@@ -430,7 +430,7 @@ class FahProjectBuilder(ProjectBuilder):
     
     def _load_traj(self, file_list):
         traj = None
-        n_corrupted = 0
+
         try:
             traj, n_loaded = super(FahProjectBuilder, self)._load_traj(file_list)
         except IOError as e:
@@ -455,4 +455,4 @@ class FahProjectBuilder(ProjectBuilder):
         if traj is None:
             raise RuntimeError("Corrupted frames in %s, recovery impossible" % file_list)
             
-        return traj, (len(file_list) - n_corrupted)
+        return traj, n_loaded
