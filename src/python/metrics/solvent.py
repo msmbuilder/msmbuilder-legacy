@@ -8,6 +8,11 @@ class SolventFp(Vectorized):
     solvent signature as in Gu et al. BMC Bioinformatics 2013, 14(Suppl 2):S8.
     """
 
+    allowable_scipy_metrics = ['braycurtis', 'canberra', 'chebyshev',
+                               'cityblock', 'correlation', 'cosine',
+                               'euclidean', 'minkowski', 'sqeuclidean',
+                               'seuclidean', 'mahalanobis', 'sqmahalanobis']
+
     def __init__(self, solute_indices, solvent_indices, sigma,
                  metric='euclidean', p=2, V=None, VI=None):
         """Create a distance metric to capture solvent degrees of freedom
