@@ -4,7 +4,6 @@ import logging
 from glob import glob
 from msmbuilder.utils import keynat
 from msmbuilder import Trajectory
-from msmbuilder.utils import keynat
 import numpy as np
 
 from project import Project
@@ -71,7 +70,7 @@ class ProjectBuilder(object):
             self.output_traj_dir = os.path.relpath(os.path.dirname(self.project.traj_filename(0)))
 
             trj_name = os.path.basename(self.project._traj_paths[0])
-            match_obj = re.search('(\w+)\d+\.lh5$', trj_name)
+            match_obj = re.search('(\w+)\d+\.%s$' % self.output_traj_ext[1:], trj_name)
             if match_obj:
                 self.output_traj_basename = match_obj.group(1)
             else:
@@ -97,6 +96,7 @@ class ProjectBuilder(object):
 
         self._check_out_dir()
 
+
     def _validate_traj(self, traj):
         """
         Run the registered validators on  the trajectory
@@ -113,6 +113,7 @@ class ProjectBuilder(object):
 
         for validator in self._validators:
             validator(traj)
+
 
     def add_validator(self, validator):
         """
@@ -135,7 +136,7 @@ class ProjectBuilder(object):
         a ValidationError -- that is, an error which subclasses
         msmbuilder.project.validators.ValidationError. When the ProjectBuilder
         detects a ValidationError, the error will be recorded in the project
-        file, but the execution will procdede as normal and the trajectory will
+        file, but the execution will procede as normal and the trajectory will
         still be saved to disk. It will just be marked specially as "in error".
         
         In the current Project implementation, trajectories that are "in error"
@@ -146,6 +147,7 @@ class ProjectBuilder(object):
         if not hasattr(validator, '__call__'):
             raise TypeError('Validator must be callable: %s' % validator)
         self._validators.append(validator)
+
 
     def get_project(self):
         """
@@ -163,6 +165,7 @@ class ProjectBuilder(object):
         if not self.project_updated:
             self.convert()
         return self.project
+
 
     def _check_out_dir(self):
         "Create self.output_traj_dir, or throw an error if it already exists"
@@ -285,7 +288,7 @@ class ProjectBuilder(object):
 
         Returns
         -------
-        project : msmbuilder.projec
+        project : msmbuilder.project
             The project object, summarizing the conversion
         """
 
