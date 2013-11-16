@@ -2,6 +2,7 @@ import logging
 logger = logging.getLogger(__name__)
 import numpy as np
 from baseclasses import Vectorized
+from msmbuilder import io
 
 class SolventFp(Vectorized):
     """Distance metric for calculating distances between frames based on their
@@ -70,11 +71,12 @@ class SolventFp(Vectorized):
         traj = trajectory['XYZList']
 
         # The result vector
-        fingerprints = np.zeros(len(prot_indices))
-
-        for i, prot_i in enumerate(prot_indices):
-            for water_j in water_indices:
-                fingerprints[i] += _kernel(traj[prot_i], traj[water_j], sigma)
+        fingerprints = np.zeros((len(traj), len(prot_indices)))
+        
+        for frame_t in xrange(len(traj)):
+            for i, prot_i in enumerate(prot_indices):
+                for water_j in water_indices:
+                    fingerprints[frame_t, i] += _kernel(traj[frame_t][prot_i], traj[frame_t][water_j], sigma)
 
         return fingerprints
 
@@ -95,5 +97,52 @@ def _check_indices(indices, name):
             raise ValueError('%s indices must contain ints' % name)
     else:
         raise ValueError('%s indices must be specified' % name)
+
+class OuterProductAssignment(object):
+    """Class to facilitate taking the outer product of the result of
+    two clusterings."""
+
+    def __init__(self, ass1_fn, ass2_fn):
+        """Create the object
+
+        the ass_fn's should point to an hdf5 assignments file.
+        """
+        self.ass1 = io.loadh(ass1_fn, 'arr_0')
+        self.ass2 = io.loadh(ass2_fn, 'arr_0')
+
+    def get_product_assignments(self):
+        assert self.ass1.shape == self.ass2.shape, """Assignments must be
+            for the same set of trajectories."""
+        new_ass = -1 * np.ones_like(self.ass1, dtype=np.int)
+
+        nstates1 = np.max(self.ass1) + 1
+        nstates2 = np.max(self.ass2) + 1
+
+        translations = np.reshape(np.arange(nstates1 * nstates2),
+                                  (nstates1, nstates2))
+
+        ass_shape = self.ass1.shape
+        for i in xrange(ass_shape[0]):
+            for j in xrange(ass_shape[1]):
+                if self.ass1[i, j] == -1:
+                    # No assignment here
+                    assert self.ass2[i, j] == -1, """Assignments must be for
+                        the same set of trajectories."""
+
+                new_ass[i, j] = translations[self.ass1[i, j], self.ass2[i, j]]
+
+        return new_ass
+
+
+
+
+
+
+
+
+
+
+
+
 
 
