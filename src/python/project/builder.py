@@ -246,6 +246,11 @@ class ProjectBuilder(object):
                 # assume that the first <old_num_files> are the same
                 # ^^^ This should be modified, but I want to get it working first
                 traj = self.project.load_traj(old_ind)
+
+                last_old_frame = traj['XYZList'][-1]
+                first_new_frame = extended_traj['XYZList'][0]
+                
+
                 traj['XYZList'] = np.concatenate((traj['XYZList'], extended_traj['XYZList'][1:]))
                 # need to skip the first frame because this is what the xtc reader would do
                 traj.save(self.project._traj_paths[old_ind])
@@ -369,7 +374,8 @@ class ProjectBuilder(object):
             traj = Trajectory.load_from_xtc(file_list, Conf=self.conf,
                         discard_overlapping_frames=True)
         elif self.input_traj_ext == '.dcd':
-            traj = Trajectory.load_from_dcd(file_list, Conf=self.conf)
+            traj = Trajectory.load_from_dcd(file_list, Conf=self.conf,
+                        discard_overlapping_frames=True)
         else:
             raise ValueError()
         # return the number of files loaded, which in this case is all or
