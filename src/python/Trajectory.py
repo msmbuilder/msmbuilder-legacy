@@ -381,13 +381,14 @@ class Trajectory(ConformationBaseClass):
                 # skipcont=False means the xtc reader does NOT skip the first frame of 
                 # successive XTC files
                 # check to see if we have redundant frames as we load them up
+                add_frame = True
                 if discard_overlapping_frames:
                     if i > 0:
                         if np.sum(np.abs(c.coords - A["XYZList"][-1])) < 1E-8:
                             num_redundant += 1
-                    #A["XYZList"].append(np.array(c.coords).copy())
+                            add_frame = False
 
-                else:
+                if add_frame:
                     A["XYZList"].append(np.array(c.coords).copy())
 
             A["XYZList"] = np.array(A["XYZList"])
@@ -427,13 +428,14 @@ class Trajectory(ConformationBaseClass):
                 # skipcont=False means the xtc reader does NOT skip the first frame of 
                 # successive XTC files
                 # check to see if we have redundant frames as we load them up
+                add_frame = True
                 if discard_overlapping_frames:
                     if i > 0:
                         if np.sum(np.abs(c.coords - A["XYZList"][-1])) < 1E-8:
                             num_redundant += 1
-                    #A["XYZList"].append(np.array(c.coords).copy())
+                            add_frame = False
 
-                else:
+                if add_frame:
                     A["XYZList"].append(np.array(c.coords).copy())
 
             A["XYZList"] = np.array(A["XYZList"])
