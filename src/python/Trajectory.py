@@ -337,7 +337,7 @@ class Trajectory(ConformationBaseClass):
 
     @classmethod
     def load_from_xtc(cls, XTCFilenameList, PDBFilename=None, Conf=None, PreAllocate=True,
-                    JustInspect=False, discard_overlapping_frames=False):
+                    JustInspect=False, discard_overlapping_frames=True):
         """Create a Trajectory from a collection of XTC files
 
         Parameters
@@ -383,9 +383,9 @@ class Trajectory(ConformationBaseClass):
                 # check to see if we have redundant frames as we load them up
                 if discard_overlapping_frames:
                     if i > 0:
-                        if np.sum(np.abs(c.coords - A["XYZList"][-1])) < 10. ** -8:
+                        if np.sum(np.abs(c.coords - A["XYZList"][-1])) < 1E-8:
                             num_redundant += 1
-                    A["XYZList"].append(np.array(c.coords).copy())
+                    #A["XYZList"].append(np.array(c.coords).copy())
 
                 else:
                     A["XYZList"].append(np.array(c.coords).copy())
@@ -410,7 +410,8 @@ class Trajectory(ConformationBaseClass):
         return(A)
 
     @classmethod
-    def load_from_dcd(cls, FilenameList, PDBFilename=None, Conf=None, PreAllocate=True, JustInspect=False):
+    def load_from_dcd(cls, FilenameList, PDBFilename=None, Conf=None, 
+        PreAllocate=True, JustInspect=False, discard_overlapping_frames=True):
         """Create a Trajectory from a Filename."""
 
         if PDBFilename != None:
@@ -422,8 +423,19 @@ class Trajectory(ConformationBaseClass):
 
         if not JustInspect:
             A["XYZList"] = []
-            for c in dcd.DCDReader(FilenameList):
-                A["XYZList"].append(c.copy())
+            for i, c in enumerate(dcd.DCDReader(FilenameList, skipcont=False)):
+                # skipcont=False means the xtc reader does NOT skip the first frame of 
+                # successive XTC files
+                # check to see if we have redundant frames as we load them up
+                if discard_overlapping_frames:
+                    if i > 0:
+                        if np.sum(np.abs(c.coords - A["XYZList"][-1])) < 1E-8:
+                            num_redundant += 1
+                    #A["XYZList"].append(np.array(c.coords).copy())
+
+                else:
+                    A["XYZList"].append(np.array(c.coords).copy())
+
             A["XYZList"] = np.array(A["XYZList"])
 
             if A["XYZList"].shape[1] != A['AtomNames'].shape[0]:
