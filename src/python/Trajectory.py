@@ -377,7 +377,9 @@ class Trajectory(ConformationBaseClass):
             A["XYZList"] = []
             num_redundant = 0
 
-            for i, c in enumerate(xtc.XTCReader(XTCFilenameList)):
+            for i, c in enumerate(xtc.XTCReader(XTCFilenameList, skipcont=False)):
+                # skipcont=False means the xtc reader does NOT skip the first frame of 
+                # successive XTC files
                 # check to see if we have redundant frames as we load them up
                 if discard_overlapping_frames:
                     if i > 0:
