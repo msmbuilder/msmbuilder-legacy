@@ -247,12 +247,12 @@ class ProjectBuilder(object):
                 # ^^^ This should be modified, but I want to get it working first
                 traj = self.project.load_traj(old_ind)
 
-                last_old_frame = traj['XYZList'][-1]
-                first_new_frame = extended_traj['XYZList'][0]
-                
+                # remove the redundant first frame if it is actually redundant
+                if np.abs(traj['XYZList'][-1] - extended_traj['XYZList'][0]).sum() < 1E-8:
+                    extended_traj = extended_traj[1:]
 
-                traj['XYZList'] = np.concatenate((traj['XYZList'], extended_traj['XYZList'][1:]))
-                # need to skip the first frame because this is what the xtc reader would do
+                traj['XYZList'] = np.concatenate((traj['XYZList'], extended_traj['XYZList']))
+
                 traj.save(self.project._traj_paths[old_ind])
                 # This does what we want it to do, because msmbuilder.io.saveh
                 # deletes keys that exist already. However, this could be made more
