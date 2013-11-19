@@ -178,7 +178,7 @@ class test_Assign(WTempdir):
 
 def test_AssignHierarchical():
     asgn = AssignHierarchical.main(k=100, d=None,
-        zmatrix_fn=get('ZMatrix.h5', just_filename=True))
+        zmatrix_fn=get('ZMatrix.h5', just_filename=True), stride=10)
 
     eq(asgn, get('WardAssignments.h5')['Data'])
 
