@@ -102,7 +102,7 @@ def add_basic_metric_parsers(metric_subparser):
     add_argument(solventfp, '-v', dest='solventfp_proti', default='ProteinIndices.dat',
                  help='Indices of the solute (protein) atoms')
     add_argument(solventfp, '-s', dest='solventfp_sigma', default=0.5,
-                 help='std. dev. of gaussian kernel')
+                 type=float, help='std. dev. of gaussian kernel')
     add_argument(solventfp, '-p', dest='solventfp_p', default=2, help='p used for metric=minkowski (otherwise ignored)')
     add_argument(solventfp, '-m', dest='solventfp_metric', default='euclidean',
         help='which distance metric', choices=SolventFp.allowable_scipy_metrics)
