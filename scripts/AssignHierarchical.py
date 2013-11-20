@@ -19,22 +19,31 @@
 
 import sys, os
 from msmbuilder import io
+from msmbuilder import Project
 from msmbuilder.clustering import Hierarchical
 from msmbuilder import arglib
+import numpy as np
 import logging
+
 logger = logging.getLogger('msmbuilder.scripts.AssignHierarchical')
 
 parser = arglib.ArgumentParser(description='Assign data using a hierarchical clustering')
 parser.add_argument('hierarchical_clustering_zmatrix', default='./Data/ZMatrix.h5',
     help='Path to hierarchical clustering zmatrix' )
+parser.add_argument('stride', type=int, help='stride used when generating ZMatrix.h5')
+parser.add_argument('project')
 parser.add_argument('num_states', help='Number of States', default='none')
 parser.add_argument('cutoff_distance', help='Maximum cophenetic distance', default='none')
 parser.add_argument('assignments', type=str)
 
-def main(k, d, zmatrix_fn):
+def main(k, d, zmatrix_fn, stride, project):
     hierarchical = Hierarchical.load_from_disk(zmatrix_fn)
     assignments = hierarchical.get_assignments(k=k, cutoff_distance=d)
-    return assignments
+
+    new_assignments = np.ones((project.n_trajs, project.traj_lengths.max()), dtype=np.int) * -1
+    new_assignments[:, ::stride] = assignments
+
+    return new_assignments
     
 if __name__ == "__main__":
     args = parser.parse_args()
@@ -44,7 +53,9 @@ if __name__ == "__main__":
     if k is None and d is None:
         logger.error('You need to supply either a number of states or a cutoff distance')
         sys.exit(1)
+
+    project = Project.load_from(args.project)
     
-    assignments = main(k, d, args.hierarchical_clustering_zmatrix)
+    assignments = main(k, d, args.hierarchical_clustering_zmatrix, stride, project)
     io.saveh(args.assignments, assignments)
     logger.info('Saved assignments to %s', args.assignments)

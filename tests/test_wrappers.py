@@ -177,10 +177,11 @@ class test_Assign(WTempdir):
 
 
 def test_AssignHierarchical():
+    project = get('ProjectInfo.yaml')
     asgn = AssignHierarchical.main(k=100, d=None,
-        zmatrix_fn=get('ZMatrix.h5', just_filename=True))
+        zmatrix_fn=get('ZMatrix.h5', just_filename=True), stride=10, project=project)
 
-    eq(asgn, get('WardAssignments.h5')['Data'])
+    eq(asgn, get('WardAssignments.h5')['arr_0'])
 
 
 class test_BuildMSM(WTempdir):
