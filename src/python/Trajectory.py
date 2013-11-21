@@ -424,19 +424,19 @@ class Trajectory(ConformationBaseClass):
 
         if not JustInspect:
             A["XYZList"] = []
-            for i, c in enumerate(dcd.DCDReader(FilenameList, skipcont=False)):
+            for i, coords in enumerate(dcd.DCDReader(FilenameList, skipcont=False)):
                 # skipcont=False means the xtc reader does NOT skip the first frame of 
                 # successive XTC files
                 # check to see if we have redundant frames as we load them up
                 add_frame = True
                 if discard_overlapping_frames:
                     if i > 0:
-                        if np.sum(np.abs(c.coords - A["XYZList"][-1])) < 1E-8:
+                        if np.sum(np.abs(coords - A["XYZList"][-1])) < 1E-8:
                             num_redundant += 1
                             add_frame = False
 
                 if add_frame:
-                    A["XYZList"].append(np.array(c.coords).copy())
+                    A["XYZList"].append(np.array(coords).copy())
 
             A["XYZList"] = np.array(A["XYZList"])
 
