@@ -1,5 +1,6 @@
 # methods to support testing
 import os
+import re
 import functools
 import numpy as np
 from numpy.testing import (assert_allclose, assert_almost_equal,
@@ -73,7 +74,7 @@ def load(filename):
         val = np.loadtxt(filename)
     
     # short circuit opening ProjectInfo
-    elif ('ProjectInfo.yaml' in filename) or ('ProjectInfo.h5' in filename):
+    elif ('ProjectInfo.yaml' in filename) or ('ProjectInfo.h5' in filename) or (re.search('ProjectInfo.*\.yaml', filename)):
         val = Project.load_from(filename)
         
     # load with serializer files that end with .h5, .hdf or .h5.distances
