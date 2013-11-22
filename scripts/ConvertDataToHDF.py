@@ -27,7 +27,7 @@ from msmbuilder import Trajectory
 import logging
 logger = logging.getLogger('msmbuilder.scripts.ConvertDataToHDF')
 
-def run(projectfn, conf_filename, InputDir, source, min_length, stride, rmsd_cutoff):
+def run(projectfn, conf_filename, input_dir, source, min_length, stride, rmsd_cutoff):
     
     # # check if we are doing an update or a fresh run
     # if os.path.exists(projectfn):

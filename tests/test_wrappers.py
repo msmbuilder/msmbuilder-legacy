@@ -81,8 +81,8 @@ class test_ConvertDataToHDF(WTempdir):
         # mode to that directory
         os.chdir(self.td)
         ConvertDataToHDF.run(projectfn=outfn,
-                             PDBfn=get('native.pdb', just_filename=True),
-                             InputDir=pjoin(self.td, 'XTC'),
+                             conf_filename=get('native.pdb', just_filename=True),
+                             input_dir=pjoin(self.td, 'XTC'),
                              source='file',
                              min_length=0,
                              stride=1,
