@@ -1,0 +1,22 @@
+conf_filename: ./PROJXXXX/native.pdb
+trajs:
+- converted_from: [PROJXXXX/RUN0/CLONE0/frame0.xtc, PROJXXXX/RUN0/CLONE0/frame1.xtc]
+  errors: null
+  id: 0
+  length: 1002
+  path: ./Trajectories/trj0.lh5
+- converted_from: [PROJXXXX/RUN1/CLONE0/frame0.xtc]
+  errors: null
+  id: 1
+  length: 501
+  path: ./Trajectories/trj1.lh5
+- converted_from: [PROJXXXX/RUN2/CLONE0/frame0.xtc, PROJXXXX/RUN2/CLONE0/frame2.xtc]
+  errors: null
+  id: 2
+  length: 1002
+  path: ./Trajectories/trj2.lh5
+- converted_from: [PROJXXXX/RUN0/CLONE1/frame0.xtc, PROJXXXX/RUN0/CLONE1/frame1.xtc]
+  errors: null
+  id: 3
+  length: 1002
+  path: ./Trajectories/trj3.lh5
