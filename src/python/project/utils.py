@@ -49,10 +49,10 @@ def get_project_object(traj_directory, conf_filename, out_filename=None):
 
         if traj_filename.split('.')[-1] in ['hdf', 'h5', 'lh5']:
             with tables.openFile(traj_filename) as f:
-                traj_lengths.append(f.root.xyzlist.shape[0])
+                traj_lengths.append(f.root.coordinates.shape[0])
 
         else:
-            traj_lengths.append(md.load(traj_filename).shape[0]) 
+            traj_lengths.append(md.load(traj_filename).n_frames) 
 
     project = Project({'conf_filename': conf_filename,
                        'traj_lengths': traj_lengths,
