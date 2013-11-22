@@ -1,8 +1,13 @@
 import logging
-logger = logging.getLogger(__name__)
-import numpy as np
-from baseclasses import Vectorized
+
 from msmbuilder import io
+from msmbuilder.geometry import contact
+
+from baseclasses import Vectorized
+import numpy as np
+
+
+logger = logging.getLogger(__name__)
 
 class SolventFp(Vectorized):
     """Distance metric for calculating distances between frames based on their
@@ -52,7 +57,7 @@ class SolventFp(Vectorized):
                 % (self.metric, self.p, self.sigma))
 
     def prepare_trajectory(self, trajectory):
-        """lalalala
+        """Calculate solvent fingerprints
         Parameters
         ----------
         trajectory : msmbuilder.Trajectory
@@ -60,8 +65,9 @@ class SolventFp(Vectorized):
 
         Returns
         -------
-        lalal : ndarray
-            A 2D array of lalala
+        fingerprints : ndarray
+            A 2D array of fingerprint vectors of
+            shape (traj_length, protein_atom)
         """
 
         # Give shorter names to these things
@@ -72,19 +78,22 @@ class SolventFp(Vectorized):
 
         # The result vector
         fingerprints = np.zeros((len(traj), len(prot_indices)))
-        
-        for frame_t in xrange(len(traj)):
-            for i, prot_i in enumerate(prot_indices):
-                for water_j in water_indices:
-                    fingerprints[frame_t, i] += _kernel(traj[frame_t][prot_i], traj[frame_t][water_j], sigma)
+
+        for i, prot_i in enumerate(prot_indices):
+            # For each protein atom, calculate distance to all water
+            # molecules
+            atom_contacts = np.empty((len(water_indices), 2))
+            atom_contacts[:, 0] = prot_i
+            atom_contacts[:, 1] = water_indices
+            # Get a traj_length x n_water_indices vector of distances
+            distances = contact.atom_distances(traj, atom_contacts)
+            # Calculate guassian kernel
+            distances = np.exp(-distances / (2 * sigma * sigma))
+
+            # Sum over water atoms for all frames
+            fingerprints[:, i] = np.sum(distances, axis=1)
 
         return fingerprints
-
-def _kernel(x, y, sigma):
-    """Gaussian kernel K(x, y)."""
-    diff = x - y
-    dot = np.dot(diff, diff)
-    return np.exp(-dot / (2.0 * sigma * sigma))
 
 def _check_indices(indices, name):
     """Validate input indices."""
