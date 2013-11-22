@@ -3,8 +3,8 @@ import re
 import logging
 from glob import glob
 from msmbuilder.utils import keynat
-from msmbuilder import Trajectory
 import numpy as np
+import mdtraj as md
 
 from project import Project
 from validators import ValidationError
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class ProjectBuilder(object):
     def __init__(self, input_traj_dir, input_traj_ext, conf_filename, 
         stride=1, project=None, validators=[], output_traj_dir='Trajectories',
-        output_traj_ext='.lh5', output_traj_basename='trj'):
+        output_traj_ext='.h5', output_traj_basename='trj'):
         """
         Build an MSMBuilder project from a set of trajectories
 
@@ -55,7 +55,7 @@ class ProjectBuilder(object):
         if self.input_traj_ext[0] != '.':
             self.input_traj_ext = '.%s' % self.input_traj_ext
         self.conf_filename = conf_filename.strip()
-        self.conf = Trajectory.load_trajectory_file(self.conf_filename)
+        self.conf = md.load(self.conf_filename)
 
         self.output_traj_ext = output_traj_ext.strip()
         if self.output_traj_ext[0] != '.':
@@ -103,7 +103,7 @@ class ProjectBuilder(object):
 
         Parameters
         ----------
-        traj : msmbuilder.Trajectory
+        traj : mdtraj.Trajectory
 
         Raises
         ------
@@ -186,7 +186,7 @@ class ProjectBuilder(object):
         num_files = len(file_list)
         try:
             traj, n_loaded = self._load_traj(file_list)
-            traj["XYZList"] = traj["XYZList"][::self.stride]
+            traj.xyz = traj.xyz[::self.stride]
         except RuntimeError as e:
             #traj_errors.append(e)
             logger.warning('Could not convert %d files from %s (%s)', num_files, traj_loc, e)
@@ -196,22 +196,22 @@ class ProjectBuilder(object):
             else:
                 next_ind = len(self.traj_lengths) + len(self.project._traj_lengths)
 
-            lh5_fn = os.path.join(self.output_traj_dir, 
+            out_fn = os.path.join(self.output_traj_dir, 
                 (self.output_traj_basename + str(next_ind) + self.output_traj_ext))
-            traj.save(lh5_fn)
-            self.traj_lengths.append(len(traj["XYZList"]))
-            self.traj_paths.append(lh5_fn)
+            traj.save(out_fn)
+            self.traj_lengths.append(traj.n_frames)
+            self.traj_paths.append(out_fn)
             self.traj_converted_from.append(file_list[:n_loaded])
             
             error = None
             try:
                 self._validate_traj(traj)
                 logger.info("%s (%d files), length %d, converted to %s", 
-                            traj_loc, n_loaded, self.traj_lengths[-1], lh5_fn)
+                            traj_loc, n_loaded, self.traj_lengths[-1], out_fn)
             except ValidationError as e:
                 error = e
                 logger.error("%s (%d files), length %d, converted to %s with error '%s'", 
-                             traj_loc, num_files, self.traj_lengths[-1], lh5_fn, e)
+                             traj_loc, num_files, self.traj_lengths[-1], out_fn, e)
 
             self.traj_errors.append(error)
 
@@ -248,10 +248,10 @@ class ProjectBuilder(object):
                 traj = self.project.load_traj(old_ind)
 
                 # remove the redundant first frame if it is actually redundant
-                if np.abs(traj['XYZList'][-1] - extended_traj['XYZList'][0]).sum() < 1E-8:
+                if np.abs(traj.xyz[-1] - extended_traj.xyz[0]).sum() < 1E-8:
                     extended_traj = extended_traj[1:]
 
-                traj['XYZList'] = np.concatenate((traj['XYZList'], extended_traj['XYZList']))
+                traj.xyz = np.concatenate((traj.xyz, extended_traj.xyz))
 
                 traj.save(self.project._traj_paths[old_ind])
                 # This does what we want it to do, because msmbuilder.io.saveh
@@ -261,7 +261,7 @@ class ProjectBuilder(object):
 
                 new_traj_locs = np.concatenate((old_locs, file_list[old_num_files:old_num_files + n_loaded]))
                 self.project._traj_converted_from[old_ind] = list(new_traj_locs)
-                self.project._traj_lengths[old_ind] = len(traj['XYZList'])
+                self.project._traj_lengths[old_ind] = traj.n_frames
                 # _errors updated later, saved to the same place, so traj_filename is the same
                 
                 try:
@@ -367,17 +367,11 @@ class ProjectBuilder(object):
 
         Returns
         -------
-        traj : msmbuilder.Trajectory
+        traj : mdtraj.Trajectory
         """
 
-        if self.input_traj_ext == '.xtc':
-            traj = Trajectory.load_from_xtc(file_list, Conf=self.conf,
-                        discard_overlapping_frames=True)
-        elif self.input_traj_ext == '.dcd':
-            traj = Trajectory.load_from_dcd(file_list, Conf=self.conf,
-                        discard_overlapping_frames=True)
-        else:
-            raise ValueError()
+        traj = md.load(file_list, discard_overlapping_frames=True,
+            top=self.conf)
         # return the number of files loaded, which in this case is all or
         # nothing, since an error is raised if the Trajectory.load_from_<ext> 
         # doesn't work
