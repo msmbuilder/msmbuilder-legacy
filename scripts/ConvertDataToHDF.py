@@ -36,7 +36,7 @@ def run(projectfn, conf_filename, input_dir, source, min_length, stride, rmsd_cu
     # else:
     #     update = False
     # 
-    # logger.info("Looking for %s style data in %s", source, InputDir)
+    # logger.info("Looking for %s style data in %s", source, input_dir)
     # if update:
     #     raise NotImplementedError("Ack! Update mode is not yet ready yet.")
     
@@ -53,10 +53,10 @@ def run(projectfn, conf_filename, input_dir, source, min_length, stride, rmsd_cu
 
     if source.startswith('file'):
         itype = '.dcd' if 'dcd' in source else '.xtc'
-        pb = ProjectBuilder(InputDir, input_traj_ext=itype, conf_filename=conf_filename, 
+        pb = ProjectBuilder(input_dir, input_traj_ext=itype, conf_filename=conf_filename, 
                             stride=stride, project=project)
     elif source == 'fah':
-        pb = FahProjectBuilder(InputDir, input_traj_ext='.xtc', conf_filename=conf_filename, 
+        pb = FahProjectBuilder(input_dir, input_traj_ext='.xtc', conf_filename=conf_filename, 
                             stride=stride, project=project)
     else:
         raise ValueError("Invalid argument for source: %s" % source)
@@ -67,7 +67,7 @@ def run(projectfn, conf_filename, input_dir, source, min_length, stride, rmsd_cu
     if rmsd_cutoff is not None:
         # TODO: this is going to use ALL of the atom_indices, including hydrogen. This is
         # probably not the desired functionality
-        validator = validators.RMSDExplosionValidator(pdb, max_rmsd=rmsd_cutoff, atom_indices=None)
+        validator = validators.RMSDExplosionValidator(conf_filename, max_rmsd=rmsd_cutoff, atom_indices=None)
         pb.add_validator(validator)
     
     # Only accept trajectories with more snapshots than min_length.

@@ -64,6 +64,7 @@ def pjoin(*args):
 class WTempdir(object):
     def setup(self):
         self.td = tempfile.mkdtemp()
+        os.chdir(self.td)
 
     def teardown(self):
         shutil.rmtree(self.td)
@@ -78,7 +79,7 @@ class test_ConvertDataToHDF(WTempdir):
         fh.close()
 
         outfn = pjoin(self.td, 'ProjectInfo.yaml')
-        # mode to that directory
+        # move to that directory
         os.chdir(self.td)
         ConvertDataToHDF.run(projectfn=outfn,
                              conf_filename=get('native.pdb', just_filename=True),
@@ -176,12 +177,13 @@ class test_Assign(WTempdir):
            get('assign/Assignments.h5.distances'))
 
 
-def test_AssignHierarchical():
-    project = get('ProjectInfo.yaml')
-    asgn = AssignHierarchical.main(k=100, d=None,
-        zmatrix_fn=get('ZMatrix.h5', just_filename=True), stride=10, project=project)
+class test_AssignHierarchical(WTempdir):
+    def test(self):
+        project = get('ProjectInfo.yaml')
+        asgn = AssignHierarchical.main(k=100, d=None,
+            zmatrix_fn=get('ZMatrix.h5', just_filename=True), stride=10, project=project)
 
-    eq(asgn, get('WardAssignments.h5')['arr_0'])
+        eq(asgn, get('WardAssignments.h5')['arr_0'])
 
 
 class test_BuildMSM(WTempdir):
@@ -279,6 +281,8 @@ class test_PCCA(WTempdir):
 class test_SaveStructures(WTempdir):
     def test(self):
         from msmbuilder.scripts.SaveStructures import save
+
+        os.chdir(self.td)
 
         project = get('ProjectInfo.yaml')
         assignments = get('Assignments.h5')['arr_0']
