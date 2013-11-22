@@ -83,37 +83,6 @@ def test_FahProjectBuilder2():
     os.chdir(cd)
     shutil.rmtree(td)
 
-
-#def test_FahProjectBuilder():
-#    cd = os.getcwd()
-#    td = tempfile.mkdtemp()
-#    os.chdir(td)
-
-#    traj_dir = get("project_reference/project.builder/fah_style_data_orig", just_filename=True)
-#    conf_filename = os.path.join(traj_dir, 'native.pdb')
-
-#    os.copy(traj_dir, 'PROJXXXX')
-#    os.copy(conf_filename, '.')
-    
-#    pb = FahProjectBuilder(traj_dir, '.xtc', 'native.pdb')
-#    project = pb.get_project()
-#    eq_(project.n_trajs, 4)
-#    npt.assert_array_equal(project.traj_lengths, [1002, 1002, 501, 1002])
-
-#    traj_dir = get("project_reference/project.builder/fah_style_data", just_filename=True)
-#    conf_filename = os.path.join(traj_dir, 'native.pdb')
-
-#    shutil.rmtree('PROJXXXX')
-#    os.copy(traj_dir, 'PROJXXXX')
-#    pb = FahProjectBuilder(traj_dir, '.xtc', 'native.pdb', project)
-#    project = pb.get_project()
-#    eq_(project.n_trajs, 4)
-#    npt.assert_array_equal(project.traj_lengths, [1002, 1002, 501, 1002])
-
-#    os.chdir(cd)    
-#    shutil.rmtree(td)
-
-    
-    
 if __name__ == '__main__':
-    test_FahProjectBuilder()
+    test_FahProjectBuilder1()
+    test_FahProjectBuilder2()
