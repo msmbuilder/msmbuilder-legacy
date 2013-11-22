@@ -28,9 +28,9 @@ except ImportError:
     from yaml import Loader
     from yaml import Dumper
 
-from msmbuilder import Trajectory
 from msmbuilder import io
 from msmbuilder import MSMLib
+import mdtraj as md
 import logging
 from msmbuilder.utils import keynat
 logger = logging.getLogger(__name__)
@@ -78,7 +78,7 @@ class Project(object):
 
         Notes
         -----
-        This method is generally internally. To load projects from disk,
+        This method is generally used internally. To load projects from disk,
         use `Project.load_from`
 
         `records` should be a dict with 'conf_filename`, 'traj_lengths`,
@@ -344,8 +344,8 @@ class Project(object):
     def load_traj(self, trj_index, stride=1, atom_indices=None):
         "Load the a trajectory from disk"
         filename = self.traj_filename(trj_index)
-        return Trajectory.load_trajectory_file(filename, Stride=stride, 
-                                               AtomIndices=atom_indices)
+        return md.load(filename, stride=stride, atom_indices=atom_indices)
+
         
     def load_frame(self, traj_index, frame_index):
         """Load one or more specified frames.
