@@ -70,7 +70,7 @@ def test_FahProjectBuilder2():
     conv_traj_dir = get("project_reference/project.builder/Trajectories", just_filename=True)
     shutil.copytree(traj_dir, 'PROJXXXX')
     shutil.copytree(conv_traj_dir, 'Trajectories')
-    shutil.copy2(get("project_reference/project.builder/ProjectInfo.yaml"), just_filename=True, 'ProjectInfo.yaml')
+    shutil.copy2(get("project_reference/project.builder/ProjectInfo.yaml", just_filename=True), 'ProjectInfo.yaml')
     project_orig = Project.load_from('ProjectInfo.yaml')
     # made up project data
 
