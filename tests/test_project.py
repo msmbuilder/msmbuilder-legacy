@@ -36,22 +36,53 @@ def test_project_2():
     proj = Project(records, validate=False)
 
 
-def test_FahProjectBuilder():
+def test_FahProjectBuilder1():
     cd = os.getcwd()
     td = tempfile.mkdtemp()
     os.chdir(td)
 
+    # check that we can build a new project:
     traj_dir = get("project_reference/project.builder/fah_style_data", just_filename=True)
-    conf_filename = os.path.join(traj_dir, 'native.pdb')
-    
-    pb = FahProjectBuilder(traj_dir, '.xtc', conf_filename)
+
+    shutil.copytree(traj_dir, 'PROJXXXX')
+    shutil.rmtree('PROJXXXX/RUN0/CLONE1')
+    os.remove('PROJXXXX/RUN2/CLONE0/frame2.xtc')
+    # made up project data
+
+    pb = FahProjectBuilder('PROJXXXX', '.xtc', 'PROJXXXX/native.pdb')
     project = pb.get_project()
-    eq_(project.n_trajs, 4)
-    npt.assert_array_equal(project.traj_lengths, [1001, 1001, 501, 1001])
-    os.chdir(cd)    
+    project_ref = get("project_reference/project.builder/ProjectInfo.yaml")
+
+    print project == project_ref
+    assert project == project_ref
+
+    os.chdir(cd)
     shutil.rmtree(td)
 
-    
-    
+
+def test_FahProjectBuilder2():
+    cd = os.getcwd()
+    td = tempfile.mkdtemp()
+    os.chdir(td)
+
+    # check that we can build a new project:
+    traj_dir = get("project_reference/project.builder/fah_style_data", just_filename=True)
+    conv_traj_dir = get("project_reference/project.builder/Trajectories", just_filename=True)
+    shutil.copytree(traj_dir, 'PROJXXXX')
+    shutil.copytree(conv_traj_dir, 'Trajectories')
+    shutil.copy2(get("project_reference/project.builder/ProjectInfo.yaml", just_filename=True), 'ProjectInfo.yaml')
+    project_orig = Project.load_from('ProjectInfo.yaml')
+    # made up project data
+
+    pb = FahProjectBuilder('PROJXXXX', '.xtc', 'PROJXXXX/native.pdb', project=project_orig)
+    project = pb.get_project()
+    project_ref = get("project_reference/project.builder/ProjectInfo_final.yaml")
+
+    assert project == project_ref
+
+    os.chdir(cd)
+    shutil.rmtree(td)
+
 if __name__ == '__main__':
-    test_FahProjectBuilder()
+    test_FahProjectBuilder1()
+    test_FahProjectBuilder2()
