@@ -30,6 +30,7 @@ except ImportError:
 
 from msmbuilder import io
 from msmbuilder import MSMLib
+import tables
 import mdtraj as md
 import logging
 from msmbuilder.utils import keynat
