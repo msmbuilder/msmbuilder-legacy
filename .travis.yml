@@ -36,6 +36,7 @@ install:
     - sudo rm -rf /dev/shm && sudo ln -s /run/shm /dev/shm 
     
     - sudo easy_install fastcluster
+    - sudo easy_install mdtraj
 script:
     - sudo python setup.py install
     - nosetests -vv
