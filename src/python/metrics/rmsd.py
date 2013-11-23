@@ -145,7 +145,7 @@ class RMSD(AbstractDistanceMetric):
 
         Parameters
         ----------
-        trajectory : msmbuilder.Trajectory
+        trajectory : mdtraj.Trajectory
             Molecular dynamics trajectory
 
         Returns
@@ -156,8 +156,8 @@ class RMSD(AbstractDistanceMetric):
         """
 
         if self.atomindices is not None:
-            return self.TheoData(trajectory['XYZList'][:,self.atomindices])
-        return self.TheoData(trajectory['XYZList'])
+            return self.TheoData(trajectory.xyz[:,self.atomindices])
+        return self.TheoData(trajectory.xyz)
 
     def one_to_many(self, prepared_traj1, prepared_traj2, index1, indices2):
         """Calculate a vector of distances from one frame of the first trajectory
