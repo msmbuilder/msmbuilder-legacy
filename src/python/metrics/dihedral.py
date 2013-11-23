@@ -2,7 +2,7 @@ import logging
 logger = logging.getLogger(__name__)
 import numpy as np
 from baseclasses import Vectorized, AbstractDistanceMetric
-from msmbuilder.geometry import dihedral as _dihedralcalc
+from mdtraj.geometry import dihedral as _dihedralcalc
 
 class Dihedral(Vectorized, AbstractDistanceMetric):
     """Distance metric for calculating distances between frames based on their
@@ -97,7 +97,7 @@ class Dihedral(Vectorized, AbstractDistanceMetric):
             else:
                 indices = self.indices
 
-        dihedrals = _dihedralcalc.compute_dihedrals(trajectory, indices, degrees=False)
+        dihedrals = _dihedralcalc.compute_dihedrals(trajectory, indices)
 
         # these dihedrals go between -pi and pi but obviously because of the
         # periodicity, when we take distances we want the distance between -179

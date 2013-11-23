@@ -6,57 +6,6 @@ import numpy as np
 from msmbuilder import _contact_wrap
 import warnings
 
-def atom_distances(xyzlist, atom_contacts):
-    '''
-    For each frame in xyzlist, compute the (euclidean) distance between
-    pairs of atoms whos indices are given in contacts.
-    
-    xyzlist should be a traj_length x num_atoms x num_dims array
-    of type float32
-    
-    contacts should be a num_contacts x 2 array where each row
-    gives the indices of 2 atoms whos distance you care to monitor.
-    
-    Returns: traj_length x num_contacts array of euclidean distances
-    
-    Note:
-    For nice wrappers around this, see the prepare_trajectory method
-    of various metrics in metrics.py
-    '''
-    
-    # check shapes
-    traj_length, num_atoms, num_dims = xyzlist.shape
-    if not num_dims == 3:
-        raise ValueError("xyzlist must be an n x m x 3 array")
-    try: 
-        num_contacts, width = atom_contacts.shape
-        assert width is 2
-    except (AttributeError, ValueError, AssertionError):
-        raise ValueError('contacts must be an n x 2 array')
-        
-    if not np.all(np.unique(atom_contacts) < num_atoms):
-        raise ValueError('Atom contacts goes larger than num_atoms')
-    
-    # check type
-    if xyzlist.dtype != np.float32:
-        xyzlist = np.float32(xyzlist)
-    if atom_contacts.dtype != np.int32:
-        atom_contacts = np.int32(atom_contacts)
-    
-    # make sure contiguous
-    if not xyzlist.flags.contiguous:
-        warnings.warn("xyzlist is not contiguous: copying", RuntimeWarning)
-        xyzlist = np.copy(xyzlist)
-    if not atom_contacts.flags.contiguous:
-        warnings.warn("contacts is not contiguous: copying", RuntimeWarning)
-        atom_contacts = np.copy(atom_contacts)
-    
-    results = np.zeros((traj_length, num_contacts), dtype=np.float32)
-    
-    _contact_wrap.atomic_contact_wrap(xyzlist, atom_contacts, results)
-    
-    return results
-
 
 def residue_distances(xyzlist, residue_membership, residue_contacts):
     '''

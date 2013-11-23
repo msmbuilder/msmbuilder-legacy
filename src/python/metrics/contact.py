@@ -2,7 +2,8 @@ import numpy as np
 import itertools
 from numbers import Number
 from baseclasses import Vectorized, AbstractDistanceMetric
-from msmbuilder.geometry import contact as _contactcalc
+from msmbuilder.geometry import contact as _contactcalc # cannot remove
+from mdtraj.geometry import distance
 
 
 class ContinuousContact(Vectorized, AbstractDistanceMetric):
@@ -120,7 +121,7 @@ class ContinuousContact(Vectorized, AbstractDistanceMetric):
             # print 'residue_to_alpja', residue_to_alpha
             atom_contacts = residue_to_alpha[contacts]
             # print 'atom_contacts', atom_contacts
-            output = _contactcalc.atom_distances(xyzlist, atom_contacts)
+            output = distance.compute_distances(trajectory, atom_contacts)
 
         elif self.scheme in ['closest', 'closest-heavy']:
             if self.scheme == 'closest':
@@ -277,5 +278,5 @@ class AtomPairs(Vectorized, AbstractDistanceMetric):
         self.atom_pairs = np.int32(atom_pairs)
 
     def prepare_trajectory(self, trajectory):
-        ptraj = _contactcalc.atom_distances(trajectory.xyz, self.atom_pairs)
+        ptraj = distance.compute_distances(trajectory, self.atom_pairs)
         return np.double(ptraj)
