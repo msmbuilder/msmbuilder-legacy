@@ -19,8 +19,8 @@ trajectories will be returned, and project.n_trajs will only count
 the valid trajectories.
 """
 import numpy as np
-from msmbuilder import Trajectory
 from msmbuilder.metrics import RMSD
+import mdtraj as md
 
 
 class ValidationError(Exception):
@@ -37,7 +37,7 @@ class TooLittleDataError(ValidationError):
     pass
     
     
-# All of the validators must be callables. they should raise an ValidationError
+# All of the validators must be callables. they should raise a ValidationError
 # when they fail, or else return None
 
 
@@ -61,10 +61,10 @@ class ExplosionValidator(object):
             will be thrown
         """
 
-        if isinstance(structure_or_filename, Trajectory):
+        if isinstance(structure_or_filename, md.Trajectory):
             conf = structure_or_filename
         elif isinstance(structure_or_filename, basestring):
-            conf = Trajectory.load_trajectory_file(structure_or_filename)
+            conf = md.load(structure_or_filename)
 
         self.max_distance = max_distance
         self.metric = metric
@@ -133,7 +133,6 @@ class MinLengthValidator(object):
                 raise TooLittleDataError('trajectory shorter than requested cutoff: %f' % self.min_length)
         
         
-        
 class TrajCenterer(object):
     def __call__(self, traj):
-        RMSD.TheoData.centerConformations(traj["XYZList"])
+        RMSD.TheoData.centerConformations(traj.xyz)
