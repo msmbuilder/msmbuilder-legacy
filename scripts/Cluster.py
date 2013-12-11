@@ -10,6 +10,7 @@ from msmbuilder import io
 from msmbuilder import metrics
 from msmbuilder.arglib import die_if_path_exists
 from msmbuilder.utils import highlight
+from mdtraj.trajectory import HDF5TrajectoryFile
 import logging
 logger = logging.getLogger('msmbuilder.scripts.Cluster')
 
@@ -126,12 +127,13 @@ def load_prep_trajectories(project, stride, atom_indices, metric):
         which.extend(zip([i] * len(which_frames), which_frames))
 
         ptraj = []
+        with HDF5TrajectoryFile(project.traj_filename(i)) as h5:
         #TODO: implement enum_chunks_from_lhdj
-        for trj_chunk in Trajectory.enum_chunks_from_lhdf(project.traj_filename(i),
-                            Stride=stride, AtomIndices=atom_indices):
-
-            ptrj_chunk = metric.prepare_trajectory(trj_chunk)
-            ptraj.append(ptrj_chunk)
+#         for trj_chunk in project.load_chunked_traj(i, stride=stride,
+#                                                    atom_indices=atom_indices):
+            for trj_chunk in h5.read_chunks():
+                ptrj_chunk = metric.prepare_trajectory(trj_chunk)
+                ptraj.append(ptrj_chunk)
     
         ptraj = np.concatenate(ptraj)
         list_of_ptrajs.append(ptraj)

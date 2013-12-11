@@ -32,6 +32,7 @@ from msmbuilder import io
 from msmbuilder import MSMLib
 import tables
 import mdtraj as md
+from mdtraj.trajectory import HDF5TrajectoryFile
 import logging
 from msmbuilder.utils import keynat
 logger = logging.getLogger(__name__)
@@ -346,6 +347,11 @@ class Project(object):
         "Load the a trajectory from disk"
         filename = self.traj_filename(trj_index)
         return md.load(filename, stride=stride, atom_indices=atom_indices)
+    
+
+    def load_chunked_traj(self, trj_index, chunk_size=50000, stride=1, atom_indices=None):
+        with HDF5TrajectoryFile(self.traj_filename(trj_index)) as h5:
+            return h5.read_chunks(chunk_size=chunk_size)
 
         
     def load_frame(self, traj_index, frame_index):
