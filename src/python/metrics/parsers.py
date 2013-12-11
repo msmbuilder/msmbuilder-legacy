@@ -2,7 +2,7 @@
 import sys, os
 import pickle
 import numpy as np
-from msmbuilder import Trajectory
+import mdtraj as md
 import itertools
 from pkg_resources import iter_entry_points
 from msmbuilder.reduce import tICA
@@ -203,7 +203,7 @@ def construct_basic_metric(metric_name, args):
             atom_pairs=pairs)
 
     elif metric_name == 'positions':
-        target = Trajectory.load_from_pdb(args.target)
+        target = md.load(args.target)
         
         if args.pos_atom_indices != None:
             atom_indices = np.loadtxt(args.pos_atom_indices, np.int)

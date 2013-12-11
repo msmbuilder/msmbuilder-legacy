@@ -347,7 +347,7 @@ class tICA(AbstractDimReduction):
 
         Parameters:
         -----------
-        trajectory : msmbuilder.Trajectory, optional
+        trajectory : mdtraj.Trajectory, optional
             trajectory object (can also pass a prepared trajectory instead)
         prep_trajectory : np.ndarray, optional
             prepared trajectory

@@ -1,7 +1,7 @@
 import logging
 logger = logging.getLogger(__name__)
 from baseclasses import Vectorized, AbstractDistanceMetric
-from msmbuilder import Trajectory
+import mdtraj as md
 import numpy as np
 try:
     import lprmsd
@@ -14,21 +14,21 @@ class Positions(Vectorized, AbstractDistanceMetric):
     This metric will calculate distances based on some vector norm while
     doing only a single alignment to a target structure.
 
-    This is NOT the RMSD since the structures are not pair-wise aligned, 
+    This is NOT the RMSD since the structures are not pair-wise aligned,
     they are aligned to a single structure at the beginning.
     """
     allowable_scipy_metrics = ['braycurtis', 'canberra', 'chebyshev', 'cityblock',
                                'correlation', 'cosine', 'euclidean', 'minkowski',
                                'sqeuclidean', 'seuclidean', 'mahalanobis']
 
-    def __init__(self, target, align_indices=None, atom_indices=None, 
+    def __init__(self, target, align_indices=None, atom_indices=None,
         metric='euclidean', p=2):
-        
+
         """Create a distance metric to act on absolute atom positions
-        
+
         Parameters
         ----------
-        target : msmbuilder.Trajectory 
+        target : mdtraj.Trajectory
             structure to align each conformation to
         align_indices : np.ndarray or None
             atom indices to use in the alignment step
@@ -46,9 +46,9 @@ class Positions(Vectorized, AbstractDistanceMetric):
 
         super(Positions, self).__init__(metric, p)
 
-        if not isinstance(target, Trajectory):
-            raise ValueError("target must be msmbuilder.Trajectory instance")
-        
+        if not isinstance(target, md.Trajectory):
+            raise ValueError("target must be mdtraj.Trajectory instance")
+
         if isinstance(align_indices, list) or isinstance(align_indices, np.ndarray):
             self.align_indices = np.array(align_indices).astype(int).flatten()
         else:
@@ -59,22 +59,22 @@ class Positions(Vectorized, AbstractDistanceMetric):
         else:
             self.atom_indices = None
 
-        self.lprmsd = lprmsd.LPRMSD(atomindices=self.atom_indices, 
+        self.lprmsd = lprmsd.LPRMSD(atomindices=self.atom_indices,
                                     altindices=self.align_indices)
 
         self.target = target
         self.prep_target = self.lprmsd.prepare_trajectory(self.target)
-     
+
 
     def prepare_trajectory(self, trajectory, return_dist=False):
         """
         Prepare a trajectory by first aligning it to the target with LPRMSD
         then returning a reshaped array corresponding to the correct atom positions
         flattened into a vector
-        
+
         Parameters:
         -----------
-        trajectory : msmbuilder.Trajectory instance
+        trajectory : mdtraj.Trajectory instance
             trajectory to prepare
         return_dist : bool, optional
             this will align the frames in trajectory to self.target,
@@ -89,7 +89,8 @@ class Positions(Vectorized, AbstractDistanceMetric):
             after alignment for each frame in trajectory
         """
 
-        lp_prep_trajectory = self.lprmsd.prepare_trajectory(trajectory)        
+        # TODO: This method hasn't been updated yet (2013-11-22 mph)
+        lp_prep_trajectory = self.lprmsd.prepare_trajectory(trajectory)
         aligned_distances, prep_trajectory = self.lprmsd._compute_one_to_all(self.prep_target, lp_prep_trajectory, 0, b_xyzout=True)
 
         if not self.atom_indices is None:
@@ -98,6 +99,6 @@ class Positions(Vectorized, AbstractDistanceMetric):
 
         if return_dist:
             return prep_trajectory, aligned_distances
-        else:    
+        else:
             return prep_trajectory
 

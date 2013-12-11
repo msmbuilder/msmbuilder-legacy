@@ -7,10 +7,10 @@ from msmbuilder import arglib
 from msmbuilder import clustering
 from msmbuilder import Project
 from msmbuilder import io
-from msmbuilder import Trajectory
 from msmbuilder import metrics
 from msmbuilder.arglib import die_if_path_exists
 from msmbuilder.utils import highlight
+from mdtraj.trajectory import HDF5TrajectoryFile
 import logging
 logger = logging.getLogger('msmbuilder.scripts.Cluster')
 
@@ -46,7 +46,7 @@ parser.add_argument('output_dir', help='''Output directory to save clustering da
     (2) Assignments.h5.distances (If clustering is not hierarchical and stride=1):
         Contains the distance to the generator according to the distance
         metric that was employed
-    (3) Gens.lh5 (If clustering is not hierarchical): 
+    (3) Gens.h5 (If clustering is not hierarchical): 
         Trajectory object representing the generators for each state
     (4) ZMatrix.h5 (If clustering is hierarchical):
         This is the ZMatrix corresponding to the result of hierarchical clustering.
@@ -127,11 +127,13 @@ def load_prep_trajectories(project, stride, atom_indices, metric):
         which.extend(zip([i] * len(which_frames), which_frames))
 
         ptraj = []
-        for trj_chunk in Trajectory.enum_chunks_from_lhdf(project.traj_filename(i),
-                            Stride=stride, AtomIndices=atom_indices):
-
-            ptrj_chunk = metric.prepare_trajectory(trj_chunk)
-            ptraj.append(ptrj_chunk)
+        with HDF5TrajectoryFile(project.traj_filename(i)) as h5:
+        #TODO: implement enum_chunks_from_lhdj
+#         for trj_chunk in project.load_chunked_traj(i, stride=stride,
+#                                                    atom_indices=atom_indices):
+            for trj_chunk in h5.read_chunks():
+                ptrj_chunk = metric.prepare_trajectory(trj_chunk)
+                ptraj.append(ptrj_chunk)
     
         ptraj = np.concatenate(ptraj)
         list_of_ptrajs.append(ptraj)
@@ -147,7 +149,7 @@ def load_trajectories(project, stride, atom_indices):
         traj = project.load_traj(i, stride=stride, atom_indices=atom_indices)
         
         if atom_indices != None:
-            assert len(atom_indices) == traj['XYZList'].shape[1]
+            assert len(atom_indices) == traj.n_atoms
         
         list_of_trajs.append(traj)
 
@@ -226,7 +228,7 @@ could stride a little at the begining, but its not recommended.""")
         die_if_path_exists(zmatrix_fn)
         extra_kwargs['zmatrix_fn'] = zmatrix_fn
     else:
-        generators_fn = os.path.join(args.output_dir, 'Gens.lh5') 
+        generators_fn = os.path.join(args.output_dir, 'Gens.h5') 
         die_if_path_exists(generators_fn)
         if args.stride == 1:
             assignments_fn = os.path.join(args.output_dir, 'Assignments.h5') 
@@ -266,7 +268,7 @@ could stride a little at the begining, but its not recommended.""")
             generators = clusterer.get_generators_as_traj()
         
         logger.info('Saving %s', generators_fn)
-        generators.save_to_lhdf(generators_fn)
+        generators.save(generators_fn)
 
         if args.stride == 1:
             assignments = clusterer.get_assignments()

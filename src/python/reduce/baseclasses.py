@@ -18,7 +18,7 @@ class AbstractDimReduction(object):
 
         Parameters:
         -----------
-        trajectory: msmbuilder.Trajectory instance, optional
+        trajectory: mdtraj.Trajectory instance, optional
         prep_trajectory: prepared msmbuilder.Trajectory instance, optional
             prepared trajectory
         which: np.ndarray
