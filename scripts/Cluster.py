@@ -7,7 +7,6 @@ from msmbuilder import arglib
 from msmbuilder import clustering
 from msmbuilder import Project
 from msmbuilder import io
-from msmbuilder import Trajectory
 from msmbuilder import metrics
 from msmbuilder.arglib import die_if_path_exists
 from msmbuilder.utils import highlight
@@ -127,6 +126,7 @@ def load_prep_trajectories(project, stride, atom_indices, metric):
         which.extend(zip([i] * len(which_frames), which_frames))
 
         ptraj = []
+        #TODO: implement enum_chunks_from_lhdj
         for trj_chunk in Trajectory.enum_chunks_from_lhdf(project.traj_filename(i),
                             Stride=stride, AtomIndices=atom_indices):
 
