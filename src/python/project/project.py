@@ -396,7 +396,7 @@ class Project(object):
                 raise ValueError('traj %d too short (%d) to contain a frame %d' % (i, self.traj_lengths[i], j))
 
             filename = self.traj_filename(i)
-            if filename.split('.') in ['h5', 'lh5', 'hdf5']:
+            if filename.split('.')[-1] in ['h5', 'lh5', 'hdf5']:
                 with tables.openFile(filename) as filehandler:
                     xyz = filehandler.root.coordinates[j]
 
@@ -414,6 +414,7 @@ class Project(object):
 
         conf = self.load_conf()
         conf.xyz = xyzlist
+        conf.time = [1 for _ in xyzlist]
 
         return conf
 
