@@ -137,8 +137,8 @@ class OuterProductAssignment(object):
                     # No assignment here
                     assert self.ass2[i, j] == -1, """Assignments must be for
                         the same set of trajectories."""
-
-                new_ass[i, j] = translations[self.ass1[i, j], self.ass2[i, j]]
+                else:
+                    new_ass[i, j] = translations[self.ass1[i, j], self.ass2[i, j]]
 
         return new_ass
 
