@@ -424,6 +424,7 @@ class Trajectory(ConformationBaseClass):
 
         if not JustInspect:
             A["XYZList"] = []
+            num_redundant = 0
             for i, coords in enumerate(dcd.DCDReader(FilenameList, skipcont=False)):
                 # skipcont=False means the xtc reader does NOT skip the first frame of 
                 # successive XTC files
