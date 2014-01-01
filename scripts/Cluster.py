@@ -3,10 +3,10 @@
 import sys, os
 import warnings
 import numpy as np
+from mdtraj import io
 from msmbuilder import arglib
 from msmbuilder import clustering
 from msmbuilder import Project
-from msmbuilder import io
 from msmbuilder import metrics
 from msmbuilder.arglib import die_if_path_exists
 from msmbuilder.utils import highlight
@@ -127,7 +127,7 @@ def load_prep_trajectories(project, stride, atom_indices, metric):
         which.extend(zip([i] * len(which_frames), which_frames))
 
         ptraj = []
-        with HDF5TrajectoryFile(project.traj_filename(i)) as h5:
+#        with HDF5TrajectoryFile(project.traj_filename(i)) as h5:
         #TODO: implement enum_chunks_from_lhdj
 #         for trj_chunk in project.load_chunked_traj(i, stride=stride,
 #                                                    atom_indices=atom_indices):

@@ -19,15 +19,15 @@
 
 #TJL 2011, PANDE GROUP
 
+import os
 import sys
 import numpy as np
-import os
+import logging
 import scipy.io
 
+from mdtraj import io
 from msmbuilder import tpt
-import msmbuilder.io 
 from msmbuilder import arglib
-import logging
 logger = logging.getLogger('msmbuilder.scripts.FindPaths')
 
 def run(tprob, A, B, n):
