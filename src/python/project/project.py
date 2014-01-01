@@ -28,10 +28,10 @@ except ImportError:
     from yaml import Loader
     from yaml import Dumper
 
-from msmbuilder import io
 from msmbuilder import MSMLib
 import tables
 import mdtraj as md
+from mdtraj import io
 from mdtraj.trajectory import HDF5TrajectoryFile
 import logging
 from msmbuilder.utils import keynat
