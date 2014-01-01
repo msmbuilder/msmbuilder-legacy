@@ -10,6 +10,7 @@ from numpy.testing import (assert_allclose, assert_almost_equal,
 from nose.tools import ok_, eq_, raises
 from nose import SkipTest
 import mdtraj as md
+from mdtraj import io
 
 from pkg_resources import resource_filename
 
@@ -97,7 +98,6 @@ def load(filename):
 
 
 def eq(o1, o2, decimal=6):
-    from msmbuilder import io
     from scipy.sparse import isspmatrix
 
     assert (type(o1) is type(o2)), 'o1 and o2 not the same type: %s %s' % (type(o1), type(o2))
