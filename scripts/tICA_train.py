@@ -2,8 +2,7 @@
  
 from msmbuilder import arglib
 from msmbuilder import Project
-from msmbuilder import Trajectory
-from msmbuilder import io
+from mdtraj import io
 from msmbuilder.reduce.tICA import tICA
 import numpy as np
 import os, sys, re
@@ -39,10 +38,10 @@ def run(prep_metric, project, delta_time, atom_indices=None,
                         "(%d vs %d)", project.traj_lengths[i], min_length)
             continue
 
-        for traj_chunk in Trajectory.enum_chunks_from_lhdf(project.traj_filename(i),
-                Stride=stride, AtomIndices=atom_indices):
-
-            tica_obj.train(trajectory=traj_chunk)
+        # it would be more memory efficient if we trained incrementally
+        # at least for long trajectories
+        traj_chunk = md.load(project.traj_filename(i), stride=stride, atom_indices=atom_indices)
+        tica_obj.train(trajectory=traj_chunk)
 
     tica_obj.solve()
     tica_obj.save(output)

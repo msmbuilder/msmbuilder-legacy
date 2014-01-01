@@ -23,7 +23,6 @@ import os
 from msmbuilder.project import validators, ProjectBuilder, FahProjectBuilder
 from msmbuilder import Project
 from msmbuilder.arglib import ArgumentParser, die_if_path_exists
-from msmbuilder import Trajectory
 import logging
 logger = logging.getLogger('msmbuilder.scripts.ConvertDataToHDF')
 

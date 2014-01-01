@@ -13,7 +13,7 @@ import scipy.cluster.hierarchy
 import mdtraj as md
 
 from msmbuilder import metrics
-from msmbuilder import io
+from mdtraj import io
 from msmbuilder.utils import uneven_zip, deprecated
 
 from multiprocessing import Pool

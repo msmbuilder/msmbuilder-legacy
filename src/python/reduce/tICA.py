@@ -3,7 +3,7 @@ import scipy.linalg
 import re, sys, os
 from time import time
 import logging
-from msmbuilder import io
+from mdtraj import io
 from msmbuilder.metrics import Vectorized
 from msmbuilder.reduce import AbstractDimReduction
 

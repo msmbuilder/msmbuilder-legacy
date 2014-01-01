@@ -1,7 +1,6 @@
 import nose
 import functools
 import numpy as np
-from msmbuilder import Trajectory
 from nose.tools import eq_, ok_, raises
 from numpy.testing import dec
 
