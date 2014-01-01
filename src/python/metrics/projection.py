@@ -2,7 +2,7 @@ import abc
 import re
 import numpy as np
 import warnings
-from msmbuilder import io
+from mdtraj import io
 from msmbuilder.metrics.baseclasses import AbstractDistanceMetric, Vectorized
 import inspect
 

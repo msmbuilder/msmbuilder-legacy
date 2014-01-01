@@ -23,7 +23,7 @@ import scipy
 import numpy as np
 import multiprocessing
 import warnings
-from msmbuilder import io
+from mdtraj import io
 from msmbuilder.utils import uneven_zip
 import logging
 logger = logging.getLogger(__name__)
