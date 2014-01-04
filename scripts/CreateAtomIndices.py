@@ -123,14 +123,14 @@ def run(PDBfn, atomtype):
         logger.error("Cannot understand atom type: %s", atomtype)
         sys.exit(1)
 
-    pdb = md.load(PDBFn)
+    pdb = md.load(PDBfn)
 
     if atomtype != "all":
         indices = [a.index for a in pdb.topology.atoms if a.residue.name in toKeepDict and a.name in toKeepDict[a.residue.name]]
     else:
         indices = [a.index for a in pdb]
 
-    return indices
+    return np.array(indices)
 
 
 if __name__ == "__main__":

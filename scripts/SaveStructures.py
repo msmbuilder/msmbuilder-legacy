@@ -1,6 +1,6 @@
 import os
 import numpy as np
-from msmbuilder import io
+from mdtraj import io
 from msmbuilder import arglib
 from msmbuilder import Project
 from msmbuilder import MSMLib

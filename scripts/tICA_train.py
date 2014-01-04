@@ -2,6 +2,7 @@
  
 from msmbuilder import arglib
 from msmbuilder import Project
+import mdtraj as md
 from mdtraj import io
 from msmbuilder.reduce.tICA import tICA
 import numpy as np
