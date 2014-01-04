@@ -19,7 +19,7 @@
 
 import numpy as np
 from msmbuilder import arglib
-import msmbuilder.io
+import mdtraj.io
 from msmbuilder.MSMLib import invert_assignments
 import logging
 logger = logging.getLogger('msmbuilder.scripts.CalculateClusterRadii')
@@ -79,11 +79,11 @@ generator, measured by what ever distance metric was used in assigning.""")
     arglib.die_if_path_exists(args.output)
     
     try:
-        assignments = msmbuilder.io.loadh(args.assignments, 'arr_0')
-        distances =  msmbuilder.io.loadh(args.distances, 'arr_0')
+        assignments = mdtraj.io.loadh(args.assignments, 'arr_0')
+        distances =  mdtraj.io.loadh(args.distances, 'arr_0')
     except KeyError:
-        assignments = msmbuilder.io.loadh(args.assignments, 'Data')
-        distances =  msmbuilder.io.loadh(args.distances, 'Data')
+        assignments = mdtraj.io.loadh(args.assignments, 'Data')
+        distances =  mdtraj.io.loadh(args.distances, 'Data')
         
     
     radii = main(assignments, distances)

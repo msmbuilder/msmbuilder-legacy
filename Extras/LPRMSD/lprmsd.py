@@ -11,7 +11,6 @@ Sniffy
 from msmbuilder.metrics import AbstractDistanceMetric
 from msmbuilder.metrics import RMSD
 import _lprmsd
-from msmbuilder.Trajectory import Trajectory  # TODO: Remove
 import mdtraj as md
 
 import numpy as np

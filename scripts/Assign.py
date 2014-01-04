@@ -4,12 +4,12 @@ import numpy as np
 
 #from msmbuilder import arglib
 import argparse
-from msmbuilder import Trajectory
 from msmbuilder import arglib
 from msmbuilder.assigning import assign_with_checkpoint
 from msmbuilder import metrics
 from msmbuilder import Project
 import logging
+import mdtraj as md
 logger = logging.getLogger('msmbuilder.scripts.Assign')
 
 parser = arglib.ArgumentParser(description="""
@@ -44,7 +44,7 @@ def main(args, metric):
         os.mkdir(args.output_dir)
 
     project = Project.load_from(args.project)
-    gens = Trajectory.load_trajectory_file(args.generators)
+    gens = md.load(args.generators)
     
     if isinstance(metric, metrics.RMSD):
         # this is really bad design, and we're going to fix it soon in

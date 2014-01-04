@@ -21,7 +21,7 @@ import os
 import scipy.io
 import numpy as np
 
-import msmbuilder.io
+import mdtraj.io
 from msmbuilder import MSMLib
 from msmbuilder import lumping
 from msmbuilder import arglib
@@ -80,9 +80,9 @@ Output: MacroAssignments.h5, a new assignments HDF file, for the Macro MSM.""")
 
     # load args
     try:
-        assignments = msmbuilder.io.loadh(args.assignments, 'arr_0')
+        assignments = mdtraj.io.loadh(args.assignments, 'arr_0')
     except KeyError:
-        assignments = msmbuilder.io.loadh(args.assignments, 'Data')
+        assignments = mdtraj.io.loadh(args.assignments, 'Data')
 
     tProb = scipy.io.mmread(args.tProb)
     
@@ -99,7 +99,7 @@ Output: MacroAssignments.h5, a new assignments HDF file, for the Macro MSM.""")
         MAP, assignments = run_pcca(args.num_macrostates, assignments, tProb)
 
         np.savetxt(MacroMapFn, MAP, "%d")
-        msmbuilder.io.saveh(MacroAssignmentsFn, assignments)
+        mdtraj.io.saveh(MacroAssignmentsFn, assignments)
         logger.info("Saved output to: %s, %s", MacroAssignmentsFn, MacroMapFn)
         
     elif args.algorithm == 'PCCA+':
@@ -117,7 +117,7 @@ Output: MacroAssignments.h5, a new assignments HDF file, for the Macro MSM.""")
         np.savetxt(ChiFn, chi)
         np.savetxt(AFn, A)
         np.savetxt(MacroMapFn, MAP,"%d")
-        msmbuilder.io.saveh(MacroAssignmentsFn, assignments)
+        mdtraj.io.saveh(MacroAssignmentsFn, assignments)
         logger.info('Saved output to: %s, %s, %s, %s', ChiFn, AFn, MacroMapFn, MacroAssignmentsFn)
     else:
         raise Exception()

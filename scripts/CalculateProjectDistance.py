@@ -20,8 +20,8 @@
 import os, sys
 import numpy as np
 from msmbuilder import Project
-from msmbuilder import Trajectory
-from msmbuilder import io
+import mdtraj as md
+from mdtraj import io
 from msmbuilder import arglib
 
 import logging
@@ -40,7 +40,7 @@ def run(project, pdb, metric, traj_fn = None):
             d = metric.one_to_all(ppdb, ptraj, 0)
             distances[i, 0:len(d)] = d
     else:
-        traj = Trajectory.load_trajectory_file(traj_fn, Conf=pdb)
+        traj = md.load(traj_fn, top=pdb)
         ptraj = metric.prepare_trajectory(traj)
 
         distances = metric.one_to_all(ppdb, ptraj, 0)

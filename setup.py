@@ -220,8 +220,6 @@ def configuration(parent_package='',top_path=None):
     if openmp_enabled:
         compiler_args.append('-fopenmp')
     compiler_libraries = ['gomp'] if needs_gomp else []
-    #compiler_defs = [('USE_OPENMP', None)] if openmp_enabled else []
-
 
     # add asa extension
     # note this is wrapped using f2py, which
@@ -231,49 +229,19 @@ def configuration(parent_package='',top_path=None):
                     sources=['src/ext/asa/asa.pyf', 'src/ext/asa/asa.c'],
                     libraries=compiler_libraries,
                     extra_compile_args=compiler_args)
-
     
     # add metrics subpackage
     config.add_subpackage('metrics',
                           subpackage_path='src/python/metrics')
 
-    #xtc reader
-    xtc = Extension('msmbuilder.libxdrfile',
-                    sources = ['src/ext/xdrfile-1.1b/src/xdrfile.c',
-                               'src/ext/xdrfile-1.1b/src/trr2xtc.c',
-                               'src/ext/xdrfile-1.1b/src/xdrfile_trr.c',
-                               'src/ext/xdrfile-1.1b/src/xdrfile_xtc.c'],
-                    include_dirs = ["src/ext/xdrfile-1.1b/include/"])
-    # dcd reader
-    dcd = Extension('msmbuilder.dcdplugin_s',
-                    sources = ["src/ext/molfile_plugin/dcdplugin_s.c"],
-                    libraries=['m'],
-                    include_dirs = ["src/ext/molfile_plugin/include/",
-                                    "src/ext/molfile_plugin"])
-
-    # rmsd
-    rmsd = Extension('msmbuilder._rmsdcalc',
-                     sources=glob('src/ext/IRMSD/*.c'),
-                     extra_compile_args = ["-std=c99","-O2",
-                                           "-msse2","-msse3"] + compiler_args,
-                     libraries=compiler_libraries,
-                     include_dirs = [numpy.get_include(), os.path.join(numpy.get_include(), 'numpy')])
-
-    for e in [asa, xtc, dcd, rmsd]:
-        config.ext_modules.append(e)
-        
     # add all of the distance metrics with the same compile_args, link_args, etc
-    dist = Extension('msmbuilder._distance_wrap', sources=glob('src/ext/scipy_distance/*.c'))
-    dihedral = Extension('msmbuilder._dihedral_wrap', sources=glob('src/ext/dihedral/*.c'))
-    contact = Extension('msmbuilder._contact_wrap', sources=glob('src/ext/contact/*.c'))
-    rg = Extension('msmbuilder._rg_wrap', sources=glob('src/ext/rg/*.c'))
+    dist = Extension('msmbuilder._distance_wrap', sources=glob('src/ext/scipy_distance/*.c'),
+                     extra_compile_args=compiler_args, include_dirs = [numpy.get_include()])
+    contact = Extension('msmbuilder._contact_wrap', sources=glob('src/ext/contact/*.c'),
+                        extra_compile_args=compiler_args, include_dirs = [numpy.get_include()])
+    config.ext_modules.append(dist)
+    config.ext_modules.append(contact)
 
-    for ext in [dist, dihedral, contact, rg]:
-        ext.extra_compile_args = compiler_args
-        ext.libraries = compiler_libraries
-        ext.include_dirs = [numpy.get_include()]
-        config.ext_modules.append(ext)
-    
     return config
 
 if __name__ == '__main__':

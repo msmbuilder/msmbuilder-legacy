@@ -18,7 +18,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 import sys, os
-from msmbuilder import io
+from mdtraj import io
 from msmbuilder import Project
 from msmbuilder.clustering import Hierarchical
 from msmbuilder import arglib

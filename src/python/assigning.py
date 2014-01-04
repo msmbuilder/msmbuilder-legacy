@@ -2,8 +2,7 @@ import os
 import numpy as np
 import tables
 import warnings
-from msmbuilder import io
-from msmbuilder import Trajectory
+from mdtraj import io
 import logging
 logger = logging.getLogger(__name__)
 
