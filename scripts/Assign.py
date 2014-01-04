@@ -56,7 +56,7 @@ def main(args, metric):
         # the trajectories on disk, but we need to NOT perform a restricted
         # load of the gens.lh5 file. (By restricted load, I mean loading
         # only a subset of the data in the file)
-        if gens['XYZList'].shape[1] != len(metric.atomindices):
+        if gens.xyz.shape[1] != len(metric.atomindices):
             msg = ('Using RMSD clustering/assignment, this script expects '
                    'that the Cluster.py script saves a generators file that '
                    'only contains the indices of the atoms of interest, and '
@@ -64,7 +64,7 @@ def main(args, metric):
                    'not used for clustering. But you supplied %d cluster '
                    'centers each containg %d atoms. Your atom indices file '
                    'on the other hand contains %d atoms') \
-                    % (gens['XYZList'].shape[0], gens['XYZList'].shape[1],
+                    % (gens.xyz.shape[0], gens.xyz.shape[1],
                        len(metric.atomindices))
             raise ValueError(msg)
 

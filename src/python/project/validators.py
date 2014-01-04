@@ -135,4 +135,4 @@ class MinLengthValidator(object):
         
 class TrajCenterer(object):
     def __call__(self, traj):
-        RMSD.TheoData.centerConformations(traj.xyz)
+        traj.center_coordinates()

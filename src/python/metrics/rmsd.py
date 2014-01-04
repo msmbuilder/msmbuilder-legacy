@@ -138,7 +138,7 @@ class RMSD(AbstractDistanceMetric):
         If the omp_parallel optional argument is True, we use shared-memory
         parallelization in C to do this faster.
         """
-        return md.rmsd(prepared_traj1, prepared_traj2, index1, parallel=self.omp_parallel, precomputed=True)
+        return md.rmsd(prepared_traj2, prepared_traj1, index1, parallel=self.omp_parallel, precomputed=True)
 
     def _square_all_pairwise(self, prepared_traj):
         """Reference implementation of all_pairwise"""

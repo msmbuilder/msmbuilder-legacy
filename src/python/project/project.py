@@ -395,8 +395,8 @@ class Project(object):
         for i,j in zip(traj_index, frame_index):
             if j >= self.traj_lengths[i]:
                 raise ValueError('traj %d too short (%d) to contain a frame %d' % (i, self.traj_lengths[i], j))
-
-            xyzlist.append(md.load_frame(self.traj_filename(i), j, top=conf).xyz)
+                
+            xyzlist.append(md.load_frame(self.traj_filename(i), j).xyz)
 
         conf.xyz = np.concatenate(xyzlist)
         conf.time = [1 for _ in xyzlist]
