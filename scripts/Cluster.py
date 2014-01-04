@@ -123,18 +123,14 @@ def load_prep_trajectories(project, stride, atom_indices, metric):
     for i in xrange(project.n_trajs):
 
         which_frames = np.arange(0, project.traj_lengths[i], stride)
-    
+
         which.extend(zip([i] * len(which_frames), which_frames))
 
         ptraj = []
-#        with HDF5TrajectoryFile(project.traj_filename(i)) as h5:
-        #TODO: implement enum_chunks_from_lhdj
-#         for trj_chunk in project.load_chunked_traj(i, stride=stride,
-#                                                    atom_indices=atom_indices):
-            for trj_chunk in h5.read_chunks():
-                ptrj_chunk = metric.prepare_trajectory(trj_chunk)
-                ptraj.append(ptrj_chunk)
-    
+        for chunk in md.iterload(project.traj_filename(i), stride=stride, atom_indices=atom_indices):
+            ptrj_chunk = metric.prepare_trajectory(chunk)
+            ptraj.append(ptrj_chunk)
+
         ptraj = np.concatenate(ptraj)
         list_of_ptrajs.append(ptraj)
 

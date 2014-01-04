@@ -21,7 +21,7 @@ import os
 import numpy as np
 import scipy.io
 from msmbuilder import arglib
-import msmbuilder.io
+import mdtraj.io
 from msmbuilder import MSMLib
 import logging
 logger = logging.getLogger('msmbuilder.scripts.BuildMSM')
@@ -68,7 +68,7 @@ def run(lagtime, assignments, symmetrize='MLE', input_mapping="None", trim=True,
     np.savetxt(FnMap, mapping, "%d")
     scipy.io.mmwrite(str(FnTProb), t_matrix)
     scipy.io.mmwrite(str(FnTCounts), rev_counts)
-    msmbuilder.io.saveh(FnAss, assignments)
+    mdtraj.io.saveh(FnAss, assignments)
 
     for output in outputlist:
         logger.info("Wrote: %s", output)
@@ -105,9 +105,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     try:
-        assignments = msmbuilder.io.loadh(args.assignments, 'arr_0')
+        assignments = mdtraj.io.loadh(args.assignments, 'arr_0')
     except KeyError:
-        assignments = msmbuilder.io.loadh(args.assignments, 'Data')
+        assignments = mdtraj.io.loadh(args.assignments, 'Data')
 
     if args.mapping != "None":
         args.mapping = np.array(np.loadtxt(args.mapping), dtype=int)

@@ -18,7 +18,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 import numpy as np
-from msmbuilder import Trajectory
+import mdtraj as md
 from msmbuilder.metrics import RMSD
 from msmbuilder import arglib
 import logging
@@ -59,9 +59,9 @@ Please use CalculateProjectDistance.py
     
     arglib.die_if_path_exists(args.output)
 
-    pdb = Trajectory.load_trajectory_file( args.pdb )
+    pdb = md.load(args.pdb)
     atom_indices = np.loadtxt( args.atom_indices ).astype(int)
-    traj = Trajectory.load_trajectory_file(args.input, Conf=pdb)
+    traj = md.load(args.input, top=pdb)
 
     distances = run(pdb, traj, atom_indices)
     np.savetxt(args.output, distances)
