@@ -1,4 +1,5 @@
 import os
+import mdtraj as md
 import numpy as np
 import tables
 import warnings
@@ -176,10 +177,9 @@ def assign_with_checkpoint(metric, project, generators, assignments_path,
         start_index = 0
 
         filename = project.traj_filename(i)
-        chunkiter = Trajectory.enum_chunks_from_lhdf(filename,
-                ChunkSize=chunk_size, AtomIndices=atom_indices_to_load)
+        chunkiter = md.iterload(filename, chunk=chunk_size, atom_indices=atom_indices_to_load)
         for tchunk in chunkiter:
-            if tchunk['XYZList'].shape[1] != generators['XYZList'].shape[1]:
+            if tchunk.n_atoms != generators.n_atoms:
                 msg = ("Number of atoms in generators does not match "
                        "traj we're trying to assign! Maybe check atom indices?")
                 raise ValueError(msg)

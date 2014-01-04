@@ -735,13 +735,13 @@ class Hierarchical(object):
             raise TypeError('%s is not an abstract distance metric' % metric)
         if not method in self.allowable_methods:
             raise ValueError("%s not in %s" % (method, str(self.allowable_methods)))
-        if 'XYZList' in trajectories:
+        if isinstance(trajectories, md.Trajectory):
             trajectories = [trajectories]
         elif isinstance(trajectories, types.GeneratorType):
             trajectories = list(trajectories)
 
 
-        self.traj_lengths = np.array([len(traj['XYZList']) for traj in trajectories])
+        self.traj_lengths = np.array([len(t) for t in trajectories])
         # self.ptrajs = [self.metric.prepare_trajectory(traj) for traj in self.trajectories]
 
         logger.info('Preparing...')

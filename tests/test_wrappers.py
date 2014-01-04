@@ -297,7 +297,6 @@ class test_SaveStructures(WTempdir):
         for t in list_of_trajs:
             eq(len(t), 2)
 
-        print list_of_trajs[0].keys()
         # sep, tps, one
         save(list_of_trajs, which_states, style='sep', format='lh5', outdir=self.td)
         save(list_of_trajs, which_states, style='tps', format='lh5', outdir=self.td)

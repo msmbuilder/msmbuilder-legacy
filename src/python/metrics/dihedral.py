@@ -91,13 +91,13 @@ class Dihedral(Vectorized, AbstractDistanceMetric):
 
         if self.angles == 'user':
             indices = self.read_dihedral_indices(self.userfilename)
+            dihedrals = _dihedralcalc.compute_dihedrals(trajectory, indices)
         else:
             if self.indices is None:
-                indices = _dihedralcalc.get_indices(trajectory, self.angles)
+                dihedrals = np.hstack(getattr(_dihedralcalc, 'compute_%s' % e)(trajectory)[1] for e in self.angles.split('/'))
             else:
-                indices = self.indices
+                dihedrals = _dihedralcalc.compute_dihedrals(trajectory, self.indices)
 
-        dihedrals = _dihedralcalc.compute_dihedrals(trajectory, indices)
 
         # these dihedrals go between -pi and pi but obviously because of the
         # periodicity, when we take distances we want the distance between -179
