@@ -390,31 +390,17 @@ class Project(object):
         if not (traj_index.ndim == 1 and np.all(traj_index.shape == frame_index.shape)):
             raise ValueError('traj_index and frame_index must be 1D and have the same length')
 
+        conf = self.load_conf()
         xyzlist = []
         for i,j in zip(traj_index, frame_index):
             if j >= self.traj_lengths[i]:
                 raise ValueError('traj %d too short (%d) to contain a frame %d' % (i, self.traj_lengths[i], j))
 
-            filename = self.traj_filename(i)
-            if filename.split('.')[-1] in ['h5', 'lh5', 'hdf5']:
-                with tables.openFile(filename) as filehandler:
-                    xyz = filehandler.root.coordinates[j]
+            xyzlist.append(md.load_frame(self.traj_filename(i), j, top=conf).xyz)
 
-                if filename.split('.') == 'lh5':
-                    xyz = np.array(xyz, dtype=np.float32) / 1000.
-
-            else:
-                traj = md.load(filename, stride=j)
-                xyz = traj[1] # stride by the frame index, so that second frame is the one
-                # we want. this will leverage any memory management that we can do in mdtraj
-
-            xyzlist.append(xyz)
-
-        xyzlist = np.array(xyzlist)
-
-        conf = self.load_conf()
-        conf.xyz = xyzlist
+        conf.xyz = np.concatenate(xyzlist)
         conf.time = [1 for _ in xyzlist]
+        conf.unitcell_vectors = None
 
         return conf
 
