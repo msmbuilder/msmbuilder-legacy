@@ -112,8 +112,8 @@ def run(PDBfn, atomtype):
     if atomtype == 'heavy':
         pass
     elif atomtype == 'minimal':
-        for key in toKeepDict.keys():
-            toKeepDict[key] = ["N", "CA", "CB", "C", "O"]
+        for key,value in toKeepDict.items():
+            toKeepDict[key] = set(value).intersection(["N", "CA", "CB", "C", "O"])
     elif atomtype == 'alpha':
         for key in toKeepDict.keys():
             toKeepDict[key] = ["CA"]
@@ -125,11 +125,11 @@ def run(PDBfn, atomtype):
 
     pdb = md.load(PDBfn)
 
+    selector = lambda a : True
     if atomtype != "all":
-        indices = [a.index for a in pdb.topology.atoms if a.residue.name in toKeepDict and a.name in toKeepDict[a.residue.name]]
-    else:
-        indices = [a.index for a in pdb]
+        selector = lambda a : (a.residue.name in toKeepDict) and a.name in toKeepDict[a.residue.name]
 
+    indices = [a.index for a in pdb.topology.atoms if selector(a)]
     return np.array(indices)
 
 
