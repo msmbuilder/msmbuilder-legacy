@@ -21,7 +21,6 @@ parser = argparse.ArgumentParser(description=__doc__, usage='msmb [subcommand]')
 # Code
 ##############################################################################
 
-
 def main():
     subparsers = parser.add_subparsers(dest="subparser_name")
     scriptfiles = {}
@@ -57,8 +56,9 @@ def main():
     if not os.path.exists(scriptfile):
         raise IOError('Script not found')
 
-    execfile(scriptfile)
-
+    return scriptfile
 
 if __name__ == '__main__':
-    main()
+    __scriptfile__ = main()
+    with open(__scriptfile__, "r") as __fh__:
+        exec(__fh__.read(), globals(), locals())
