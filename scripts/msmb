@@ -15,7 +15,7 @@ import argparse
 from mdtraj.utils import import_
 from msmbuilder import scripts
 
-parser = argparse.ArgumentParser(description=__doc__)
+parser = argparse.ArgumentParser(description=__doc__, usage='msmb [subcommand]')
 
 ##############################################################################
 # Code
@@ -26,6 +26,8 @@ def main():
     subparsers = parser.add_subparsers(dest="subparser_name")
     scriptfiles = {}
     argv = sys.argv[:]
+    if len(argv) == 1:
+        argv.append('-h')
 
     for scriptname in scripts.__all__:
         # get the name and first sentence of the description from each of the

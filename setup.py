@@ -8,7 +8,7 @@ import shutil
 import tempfile
 from distutils.ccompiler import new_compiler
 
-VERSION = "2.7.dev"
+VERSION = "2.8"
 ISRELEASED = False
 __author__ = "MSMBuilder Team"
 __version__ = VERSION
