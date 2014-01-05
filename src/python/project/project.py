@@ -441,7 +441,10 @@ class Project(object):
             filename = self.traj_filename(i)
             if filename.split('.')[-1] in ['h5', 'lh5', 'hdf5']:
                 with tables.openFile(filename) as filehandler:
-                    shape = filehandler.root.coordinates.shape
+                    try:
+                        shape = filehandler.root.coordinates.shape
+                    except:
+                        shape = filehandler.root.XYZList.shape
 
             else:
                 traj = md.load(filename)
