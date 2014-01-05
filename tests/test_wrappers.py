@@ -48,9 +48,6 @@ from msmbuilder.scripts import FindPaths
 from msmbuilder.scripts import CalculateClusterRadii
 from msmbuilder.scripts import CalculateMFPTs
 
-# are we keeping these?
-from msmbuilder.scripts import CalculateRMSD
-#from msmbuilder.scripts import CalculateProjectRMSD deprecated in 2.7
 from msmbuilder.scripts import CalculateProjectDistance
 
 
