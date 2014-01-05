@@ -25,6 +25,23 @@ import mdtraj as md
 logger = logging.getLogger('msmbuilder.scripts.CreateAtomIndices')
 
 
+parser = arglib.ArgumentParser(
+    description="Creates an atom indices file for RMSD from a PDB.")
+parser.add_argument('pdb')
+parser.add_argument('output', default='AtomIndices.dat')
+parser.add_argument('atom_type', help='''Atoms to include in index file.
+    One of four options: (1) minimal (CA, CB, C, N, O, recommended), (2) heavy,
+    (3) alpha (carbons), or (4) all.  Use "all" in cases where protein
+    nomenclature may be inapproprate, although you may want to define your own
+    indices in such situations.  Note that "heavy" keeps all heavy atoms that
+    are not symmetry equivalent.  By symmetry equivalent, we mean atoms
+    identical under an exchange of labels.  For example, heavy will exclude
+    the two pairs of equivalent carbons (CD, CE) in a PHE ring.    
+    Note that AtomIndices.dat should be zero-indexed--that is, a 0 
+    in AtomIndices.dat corresponds to the first atom in your PDB''',
+                    choices=['minimal', 'heavy', 'alpha', 'all'], default='minimal')
+
+
 def run(PDBfn, atomtype):
     # dictionaries with residue types as keys and list of atoms to keep for
     # given residue as entries
@@ -112,8 +129,9 @@ def run(PDBfn, atomtype):
     if atomtype == 'heavy':
         pass
     elif atomtype == 'minimal':
-        for key,value in toKeepDict.items():
-            toKeepDict[key] = set(value).intersection(["N", "CA", "CB", "C", "O"])
+        for key, value in toKeepDict.items():
+            toKeepDict[key] = set(value).intersection(
+                ["N", "CA", "CB", "C", "O"])
     elif atomtype == 'alpha':
         for key in toKeepDict.keys():
             toKeepDict[key] = ["CA"]
@@ -125,34 +143,19 @@ def run(PDBfn, atomtype):
 
     pdb = md.load(PDBfn)
 
-    selector = lambda a : True
+    selector = lambda a: True
     if atomtype != "all":
-        selector = lambda a : (a.residue.name in toKeepDict) and a.name in toKeepDict[a.residue.name]
+        selector = lambda a: (
+            a.residue.name in toKeepDict) and a.name in toKeepDict[a.residue.name]
 
     indices = [a.index for a in pdb.topology.atoms if selector(a)]
     return np.array(indices)
 
 
 if __name__ == "__main__":
-    parser = arglib.ArgumentParser(
-        description="Creates an atom indices file from a PDB.")
-    parser.add_argument('pdb')
-    parser.add_argument('output', default='AtomIndices.dat')
-    parser.add_argument('atom_type', help='''Atoms to include in index file.
-    One of four options: (1) minimal (CA, CB, C, N, O, recommended), (2) heavy,
-    (3) alpha (carbons), or (4) all.  Use "all" in cases where protein
-    nomenclature may be inapproprate, although you may want to define your own
-    indices in such situations.  Note that "heavy" keeps all heavy atoms that
-    are not symmetry equivalent.  By symmetry equivalent, we mean atoms
-    identical under an exchange of labels.  For example, heavy will exclude
-    the two pairs of equivalent carbons (CD, CE) in a PHE ring.    
-    Note that AtomIndices.dat should be zero-indexed--that is, a 0 
-    in AtomIndices.dat corresponds to the first atom in your PDB''',
-                        choices=['minimal', 'heavy', 'alpha', 'all'], default='minimal')
+    print sys.argv
     args = parser.parse_args()
     arglib.die_if_path_exists(args.output)
-
     indices = run(args.pdb, args.atom_type)
-
     np.savetxt(args.output, indices, '%d')
     logger.info('Saved output to %s', args.output)

@@ -18,15 +18,25 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 import os
+import logging
 import numpy as np
 import scipy.io
-
 from msmbuilder import tpt
 from msmbuilder import arglib
-
-import logging
-
 logger = logging.getLogger('msmbuilder.scripts.CalculateMFPTs')
+
+
+parser = arglib.ArgumentParser(description="""
+Calculates the mean first passage times (MFPTs) to one or all states.
+Returns: MFPTs_X.dat or PairwiseMFPTs.dat, where X is the state ID.
+
+Note: PairwiseMFPTs.dat is written if state=-1.  Otherwise, MFPTs_X.dat
+is written.
+""")
+parser.add_argument('tProb')
+parser.add_argument(
+    'state', help='''ID of state to which we calculate MFPT.  If state=-1, then calculate all pairwise MFPTs.''', default="-1", type=int)
+parser.add_argument('output_dir', default='.')
 
 
 def run(T, state):
@@ -43,17 +53,6 @@ def run(T, state):
 
 
 if __name__ == "__main__":
-    parser = arglib.ArgumentParser(description="""
-    Calculates the mean first passage times (MFPTs) to one or all states.
-    Returns: MFPTs_X.dat or PairwiseMFPTs.dat, where X is the state ID.
-    
-    Note: PairwiseMFPTs.dat is written if state=-1.  Otherwise, MFPTs_X.dat
-    is written.
-    """)
-
-    parser.add_argument('tProb')
-    parser.add_argument('state', help='''ID of state to which we calculate MFPT.  If state=-1, then calculate all pairwise MFPTs.''', default="-1",type=int)
-    parser.add_argument('output_dir', default='.')
     args = parser.parse_args()
 
     T = scipy.io.mmread(args.tProb)
