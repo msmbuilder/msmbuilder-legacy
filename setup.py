@@ -193,25 +193,18 @@ def configuration(parent_package='',top_path=None):
     config.add_data_dir('reference')
     
     # add the scipts, so they can be called from the command line
-    config.add_scripts([e for e in glob('scripts/*.py') if not e.endswith('__.py')])
+    scripts = [e for e in glob('scripts/*.py') if not e.endswith('__.py')]
+    scripts.append('scripts/msmb')
+    config.add_scripts(scripts)
     
     # add scripts as a subpackage (so they can be imported from other scripts)
-    config.add_subpackage('scripts',
-                          subpackage_path=None)
-
-    # add geometry subpackage
-    config.add_subpackage('geometry',
-                          subpackage_path='src/python/geometry')
-
-    config.add_subpackage('project',
-                          subpackage_path='src/python/project')
-
-    config.add_subpackage('lumping',
-                          subpackage_path='src/python/lumping')
-
-    config.add_subpackage('reduce',
-                          subpackage_path='src/python/reduce')
-
+    config.add_subpackage('scripts', subpackage_path=None)
+    # and the others
+    config.add_subpackage('geometry', subpackage_path='src/python/geometry')
+    config.add_subpackage('project', subpackage_path='src/python/project')
+    config.add_subpackage('lumping', subpackage_path='src/python/lumping')
+    config.add_subpackage('reduce', subpackage_path='src/python/reduce')
+                          
     openmp_enabled, needs_gomp = detect_openmp()
     compiler_args = ['-O3', '-funroll-loops']
     if new_compiler().compiler_type == 'msvc':

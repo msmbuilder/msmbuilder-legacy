@@ -10,7 +10,6 @@ from msmbuilder import Project
 from msmbuilder import metrics
 from msmbuilder.arglib import die_if_path_exists
 from msmbuilder.utils import highlight
-from mdtraj.trajectory import HDF5TrajectoryFile
 import logging
 logger = logging.getLogger('msmbuilder.scripts.Cluster')
 
@@ -26,7 +25,7 @@ def add_argument(group, *args, **kwargs):
 ################################################################################
 
 parser = arglib.ArgumentParser(description='''
-    Cluster.py: Cluster MD trajectories into microstates
+    Cluster MD trajectories into microstates using a geometric criterion.
     
     Output: Assignments.h5, and other files depending on your choice of distance
     metric and/or clustering algorithm.

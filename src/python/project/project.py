@@ -341,19 +341,15 @@ class Project(object):
                                                 frame_inds[random_conf_inds]))
         
         return random_confs
-        
 
     def load_traj(self, trj_index, stride=1, atom_indices=None):
         "Load the a trajectory from disk"
         filename = self.traj_filename(trj_index)
         return md.load(filename, stride=stride, atom_indices=atom_indices)
-    
 
     def load_chunked_traj(self, trj_index, chunk_size=50000, stride=1, atom_indices=None):
-        with HDF5TrajectoryFile(self.traj_filename(trj_index)) as h5:
-            return h5.read_chunks(chunk_size=chunk_size)
+        return md.iterload(self.traj_filename(trj_index), chunk=chunk_size, stride=stride, atom_indices=atom_indices)
 
-        
     def load_frame(self, traj_index, frame_index):
         """Load one or more specified frames.
 
