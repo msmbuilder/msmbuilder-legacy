@@ -437,20 +437,8 @@ class Project(object):
         n_atoms = np.zeros(self.n_trajs)
         conf = self.load_conf()
         for i in xrange(self.n_trajs):
-
             filename = self.traj_filename(i)
-            if filename.split('.')[-1] in ['h5', 'lh5', 'hdf5']:
-                with tables.openFile(filename) as filehandler:
-                    try:
-                        shape = filehandler.root.coordinates.shape
-                    except:
-                        shape = filehandler.root.XYZList.shape
-
-            else:
-                traj = md.load(filename)
-                shape = traj.shape
-
-            lengths[i] = shape[0]
-            n_atoms[i] = shape[1]
-
+            with md.open(filename) as f:
+                lengths[i] = len(f)
+            n_atoms[i] = md.load_frame(filename, 0).n_atoms
         return lengths, n_atoms
