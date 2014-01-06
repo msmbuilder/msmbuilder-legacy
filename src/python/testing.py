@@ -63,7 +63,7 @@ def load(filename):
     ext = os.path.splitext(filename)[1]
 
     # load trajectories
-    if ext != '.h5' and ext in md.trajectory._LoaderRegistry.keys():
+    if ext != '.h5' and ext in md._FormatRegistry.loaders.keys():
         val = md.load(filename)
 
     # load flat text files
