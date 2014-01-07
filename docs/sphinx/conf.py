@@ -12,7 +12,7 @@
 # serve to show the default.
 
 import sys, os
-#import msmbuilder.version
+import msmbuilder.version
 sys.path.append(os.path.abspath('sphinxext'))
 try:
     import sphinx_rtd_theme
