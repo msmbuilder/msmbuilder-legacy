@@ -3,6 +3,7 @@
 import sys, os
 import warnings
 import numpy as np
+import mdtraj as md
 from mdtraj import io
 from msmbuilder import arglib
 from msmbuilder import clustering
