@@ -105,6 +105,7 @@ def run(PDBfn, atomtype):
 "CNLE": ["N", "CA", "CB", "C", "O", "CG", "CD", "CE"],
 "NNLE": ["N", "CA", "CB", "C", "O", "CG", "CD", "CE"],
 "SOL": [],
+"HOH": [],
 "Cl-": [],
 "Na+": []
 }
@@ -118,6 +119,12 @@ def run(PDBfn, atomtype):
   elif atomtype == 'alpha':
     for key in toKeepDict.keys():
       toKeepDict[key] = ["CA"]
+  elif atomtype == 'water':
+    for key in toKeepDict.keys():
+      if key == "SOL" or key == 'HOH':
+        toKeepDict[key] = ["O"]
+      else:
+        toKeepDict[key] = []            
   elif atomtype == "all":
     pass
   else:
@@ -157,7 +164,7 @@ if __name__ == "__main__":
     the two pairs of equivalent carbons (CD, CE) in a PHE ring.    
     Note that AtomIndices.dat should be zero-indexed--that is, a 0 
     in AtomIndices.dat corresponds to the first atom in your PDB''', 
-    choices=['minimal', 'heavy', 'alpha', 'all'], default='minimal')
+    choices=['minimal', 'heavy', 'alpha', 'water','all'], default='minimal')
   args = parser.parse_args()
   arglib.die_if_path_exists(args.output)
 
