@@ -1,17 +1,3 @@
-
-import time
-
-import numpy as np
-import scipy
-import scipy.optimize
-import scipy.weave
-import matplotlib.pyplot as plt
-
-from msmbuilder import MSMLib
-from msmbuilder import tpt
-from msmbuilder.msm_analysis import get_eigenvectors
-from msmbuilder.geometry.contact import atom_distances
-
 """
 Code for computing cut-based free energy profiles, and optimal reaction coordinates
 within that framework.
@@ -25,6 +11,21 @@ To Do
 > Choose best search method in `optimize`
 > Add functionality for saving/loading the state of VariableCoordinate
 """
+
+import itertools
+import time
+
+import numpy as np
+import scipy
+import scipy.optimize
+import scipy.weave
+import matplotlib.pyplot as plt
+
+import mdtraj.geometry
+from msmbuilder import MSMLib
+from msmbuilder import tpt
+from msmbuilder.msm_analysis import get_eigenvectors
+
 
 TIME = False
 
@@ -54,14 +55,10 @@ def contact_reaction_coordinate(trajectory, weights):
     if TIME: starttime = time.clock()
 
     # make an array of all pairwise C-alpha indices
-    C_alphas = np.where( trajectory['AtomNames'] == 'CA' )[0] # indices of the Ca atoms
-    n_residues = len(C_alphas)
-    atom_contacts = np.zeros(( n_residues**2, 2 ))
-    atom_contacts[:,0] = np.repeat( C_alphas, n_residues )
-    atom_contacts[:,1] = np.tile( C_alphas, n_residues )
+    C_alpha_pairs = np.array(list(itertools.combinations([a.index for a in t.topology.atoms if a.name == 'CA'])))
 
     # calculate the distance between all of those pairs
-    distance_array = atom_distances(trajectory['XYZList'], atom_contacts)
+    distance_array = md.geometry.compute_distances(trajectory, C_alpha_pairs)
     rc_value = np.sum( distance_array * weights.T, axis=1 )
 
     if TIME:
@@ -549,8 +546,6 @@ class VariableCoordinate(CutCoordinate):
 
 
 def test():
-
-    from msmbuilder import Trajectory
     from scipy import io
 
     print "Testing cfep code...."

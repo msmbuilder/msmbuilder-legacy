@@ -1,10 +1,13 @@
-.. currentmodule:: msmbuilder
-
-.. _changes_2_6:
-
 What's New
 ==========
 
+2.8 Changelog
+-------------
+   - Ported code to use MDTraj. This eliminates the need for MSMBuilder to
+     directly handle the loading and saving of trajectories, and gives us
+     much more cross-format support.
+   - New sphinx documentation
+   
 2.6 Changelog
 -------------
 

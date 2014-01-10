@@ -1,8 +1,8 @@
-This is pdfTeX, Version 3.1415926-2.3-1.40.12 (TeX Live 2011) (format=pdflatex 2011.7.3)  18 JUL 2013 15:40
+This is pdfTeX, Version 3.1415926-2.3-1.40.12 (TeX Live 2011) (format=pdflatex 2011.7.3)  5 JAN 2014 22:55
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
-**Tutorial
+**Tutorial.tex
 (./Tutorial.tex
 LaTeX2e <2009/09/24>
 Babel <v3.8l> and hyphenation patterns for english, dumylang, nohyphenation, ge
@@ -521,172 +521,195 @@ LaTeX Font Warning: Font shape `OMS/pplx/m/n' undefined
 (Font)              using `OMS/cmsy/m/n' instead
 (Font)              for symbol `textbullet' on input line 34.
 
-[2]
-Overfull \hbox (11.3752pt too wide) in paragraph at lines 62--62
-[]\OT1/cmtt/m/n/12 sudo apt-get install libhdf5-serial-dev python-dev python-nu
-mpy \[] 
+LaTeX Font Info:    Font shape `OT1/pplx/bx/n' in size <12> not available
+(Font)              Font shape `OT1/pplx/b/n' tried instead on input line 34.
+
+Overfull \hbox (2.44464pt too wide) in paragraph at lines 55--56
+[]\OT1/pplx/m/n/12 Two com-pa-nies, En-thought and Con-tin-uum An-a-lyt-ics, pr
+o-duce python
  []
 
-[3] [4]
-LaTeX Font Info:    Font shape `OT1/pplx/bx/n' in size <12> not available
-(Font)              Font shape `OT1/pplx/b/n' tried instead on input line 99.
- [5]
-Overfull \hbox (22.3527pt too wide) in paragraph at lines 138--139
+[2]
+Overfull \hbox (23.7252pt too wide) in paragraph at lines 69--69
+[]\OT1/cmtt/m/n/12 $ sudo apt-get install libhdf5-serial-dev python-dev python-
+numpy \[] 
+ []
+
+[3] [4] [5] [6]
+Overfull \hbox (22.3527pt too wide) in paragraph at lines 152--153
 []\OT1/pplx/m/n/12 The as-sign-ments of each con-for-ma-tion are stored as Data
 /Assignments.h5.
  []
 
 
-Overfull \hbox (9.85992pt too wide) in paragraph at lines 140--141
+Overfull \hbox (9.85992pt too wide) in paragraph at lines 154--155
 \OT1/pplx/m/n/12 mIndices.py. Be-cause ala-nine dipep-tide con-tains non-standa
 rd atom names,
  []
 
 
-Overfull \hbox (13.4277pt too wide) in paragraph at lines 147--148
+Overfull \hbox (13.4277pt too wide) in paragraph at lines 161--162
 \OT1/pplx/m/n/12 We cal-cu-late the re-lax-ation timescales for a se-quence of 
 lag-times $\OMS/zplm/m/n/12 f\OT1/pplx/m/n/12 1, 2, ..., 25\OMS/zplm/m/n/12 g$\
 OT1/pplx/m/n/12 : 
  []
 
 
-Overfull \hbox (54.60022pt too wide) in paragraph at lines 150--150
-[]\OT1/cmtt/m/n/12 CalculateImpliedTimescales.py -l 1,25 -i 1 -o Data/ImpliedTi
-mescales.dat[] 
+Overfull \hbox (79.30023pt too wide) in paragraph at lines 164--164
+[]\OT1/cmtt/m/n/12 $ msmb CalculateImpliedTimescales -l 1,25 -i 1 -o Data/Impli
+edTimescales.dat[] 
  []
 
-<figures/microstate_timescales.pdf, id=194, 587.19376pt x 442.65375pt>
+
+Overfull \hbox (5.2002pt too wide) in paragraph at lines 170--170
+[]\OT1/cmtt/m/n/12 $ msmb PlotImpliedTimescales -d 1. -i Data/ImpliedTimescales
+.dat[] 
+ []
+
+<figures/microstate_timescales.pdf, id=202, 587.19376pt x 442.65375pt>
 File: figures/microstate_timescales.pdf Graphic file (type pdf)
 
 <use figures/microstate_timescales.pdf>
 Package pdftex.def Info: figures/microstate_timescales.pdf used on input line 1
-60.
+74.
 (pdftex.def)             Requested size: 332.89716pt x 250.95087pt.
- [6] [7 <./figures/microstate_timescales.pdf>]
-Overfull \hbox (0.38075pt too wide) in paragraph at lines 184--185
+ [7] [8 <./figures/microstate_timescales.pdf>]
+Overfull \hbox (0.38075pt too wide) in paragraph at lines 198--199
 []\OT1/pplx/m/n/12 tProb.mtx con-tains the max-i-mum like-li-hood es-ti-mated t
 ran-si-tion prob-
  []
 
 
-Overfull \hbox (0.38074pt too wide) in paragraph at lines 188--189
+Overfull \hbox (0.38074pt too wide) in paragraph at lines 202--203
 []\OT1/pplx/m/n/12 Populations.dat con-tains the max-i-mum like-li-hood es-ti-m
 ated re-versible
  []
 
 
-Overfull \hbox (73.12523pt too wide) in paragraph at lines 204--204
-[]\OT1/cmtt/m/n/12 PCCA.py -n 4 -a L1/Assignments.Fixed.h5 -t L1/tProb.mtx -o M
-acro4/ -A PCCA+[] 
+Overfull \hbox (97.82524pt too wide) in paragraph at lines 218--218
+[]\OT1/cmtt/m/n/12 $ msmb PCCA -n 4 -a L1/Assignments.Fixed.h5 -t L1/tProb.mtx 
+-o Macro4/ -A PCCA+[] 
  []
 
 
-Overfull \hbox (85.47523pt too wide) in paragraph at lines 212--212
-[]\OT1/cmtt/m/n/12 python GetDihedrals.py --pdb native.pdb -a Macro4/MacroAssig
-nments.h5 -n 1000[] 
+Overfull \hbox (97.82524pt too wide) in paragraph at lines 226--226
+[]\OT1/cmtt/m/n/12 $ python GetDihedrals.py --pdb native.pdb -a Macro4/MacroAss
+ignments.h5 -n 1000[] 
  []
 
-[8] <figures/Macro4.pdf, id=247, 578.16pt x 433.62pt>
+[9] <figures/Macro4.pdf, id=256, 578.16pt x 433.62pt>
 File: figures/Macro4.pdf Graphic file (type pdf)
  <use figures/Macro4.pdf>
-Package pdftex.def Info: figures/Macro4.pdf used on input line 223.
+Package pdftex.def Info: figures/Macro4.pdf used on input line 237.
 (pdftex.def)             Requested size: 332.89716pt x 249.67361pt.
 
-<figures/Macro5.pdf, id=249, 578.16pt x 433.62pt>
+<figures/Macro5.pdf, id=258, 578.16pt x 433.62pt>
 File: figures/Macro5.pdf Graphic file (type pdf)
  <use figures/Macro5.pdf>
-Package pdftex.def Info: figures/Macro5.pdf used on input line 231.
+Package pdftex.def Info: figures/Macro5.pdf used on input line 245.
 (pdftex.def)             Requested size: 332.89716pt x 249.67361pt.
 
-[9 <./figures/Macro4.pdf>]
-Overfull \hbox (17.5502pt too wide) in paragraph at lines 244--244
+[10 <./figures/Macro4.pdf>]
+Overfull \hbox (17.5502pt too wide) in paragraph at lines 258--258
 []\OT1/cmtt/m/n/12 -o Macro4/ImpliedTimescales.dat -a Macro4/MacroAssignments.h
 5 -e 3[] 
  []
 
-[10 <./figures/Macro5.pdf>]
-Overfull \hbox (12.5507pt too wide) in paragraph at lines 257--258
+
+Overfull \hbox (11.3752pt too wide) in paragraph at lines 258--258
+[]\OT1/cmtt/m/n/12 $ msmb PlotImpliedTimescales -i Macro4/ImpliedTimescales.dat
+ -d 1[] 
+ []
+
+[11 <./figures/Macro5.pdf>]
+Overfull \hbox (12.5507pt too wide) in paragraph at lines 271--272
 \OT1/pplx/m/n/12 not be metastable be-cause sig-nif-i-cant dy-nam-ics oc-curs o
 n the timescale
  []
 
 
-Overfull \hbox (23.7252pt too wide) in paragraph at lines 273--273
-[]\OT1/cmtt/m/n/12 SaveStructures.py -s -1 -f pdb -S sep -a Macro4/MacroAssignm
-ents.h5[] 
+Overfull \hbox (48.42522pt too wide) in paragraph at lines 287--287
+[]\OT1/cmtt/m/n/12 $ msmb SaveStructures -s -1 -f pdb -S sep -a Macro4/MacroAss
+ignments.h5[] 
  []
 
 
-Overfull \hbox (85.47523pt too wide) in paragraph at lines 273--273
+Overfull \hbox (85.47523pt too wide) in paragraph at lines 287--287
 []\OT1/cmtt/m/n/12 pymol PDBs/State0-0.pdb PDBs/State1-0.pdb PDBs/State2-0.pdb 
 PDBs/State3-0.pdb[] 
  []
 
-<figures/ala.png, id=346, 1204.5pt x 1204.5pt>
+<figures/ala.png, id=355, 1204.5pt x 1204.5pt>
 File: figures/ala.png Graphic file (type png)
  <use figures/ala.png>
-Package pdftex.def Info: figures/ala.png used on input line 277.
+Package pdftex.def Info: figures/ala.png used on input line 291.
 (pdftex.def)             Requested size: 256.0748pt x 256.07692pt.
- [11]
-[12 <./figures/ala.png>] [13] [14] [15]
-Overfull \hbox (16.35468pt too wide) in paragraph at lines 362--363
+ [12]
+[13 <./figures/ala.png>] [14] [15] [16]
+Overfull \hbox (16.35468pt too wide) in paragraph at lines 374--375
 []\OT1/pplx/m/n/12 You can dis-card eigen-vec-tors based on their equi-lib-rium
  flux (fPCCA+). 
  []
 
-[16]
-Overfull \hbox (73.12523pt too wide) in paragraph at lines 384--384
+[17]
+Overfull \hbox (73.12523pt too wide) in paragraph at lines 396--396
 [] \OT1/cmtt/m/n/12 #004: H5Z.c line 1095 in H5Z_pipeline(): required filter is
  not registered[] 
  []
 
-[17]
-Overfull \hbox (79.30023pt too wide) in paragraph at lines 430--430
+[18]
+Overfull \hbox (79.30023pt too wide) in paragraph at lines 442--442
 [] \OT1/cmtt/m/n/12 ***********************************************************
 ****************[] 
  []
 
 
-Overfull \hbox (73.12523pt too wide) in paragraph at lines 430--430
+Overfull \hbox (73.12523pt too wide) in paragraph at lines 442--442
 []\OT1/cmtt/m/n/12 ************************************************************
 ***************[] 
  []
 
-[18]
-Overfull \hbox (66.95023pt too wide) in paragraph at lines 456--456
+[19]
+Overfull \hbox (66.95023pt too wide) in paragraph at lines 468--468
 []\OT1/cmtt/m/n/12 ComplexWarning: Casting complex values to real discards the 
 imaginary part[] 
  []
 
 
-Overfull \hbox (3.7322pt too wide) in paragraph at lines 470--471
+Overfull \hbox (3.7322pt too wide) in paragraph at lines 482--483
 \OT1/pplx/m/n/12 (see []$\OT1/cmtt/m/n/12 https : / / discussions . apple . com
  / thread / 3786045 ? start = 0&tstart =
  []
 
-[19] (./Tutorial.bbl [20])
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 479.
- [21]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 479.
+[20] (./Tutorial.bbl [21])
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 491.
+ [22]
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 491.
  (./Tutorial.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 479.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 479.
-Package rerunfilecheck Info: File `Tutorial.out' has not changed.
-(rerunfilecheck)             Checksum: D309BCFE68773100CB7162D6D782770A;2932.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 491.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 491.
 
+
+Package rerunfilecheck Warning: File `Tutorial.out' has changed.
+(rerunfilecheck)                Rerun to get outlines right
+(rerunfilecheck)                or use package `bookmark'.
+
+Package rerunfilecheck Info: Checksums for `Tutorial.out':
+(rerunfilecheck)             Before: B3228187BBBAE681AE21E97E63F4FA3E;3010
+(rerunfilecheck)             After:  2372F4D56D12A2B919EC8E4D4B98CF55;3011.
 
 LaTeX Font Warning: Some font shapes were not available, defaults substituted.
 
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 479.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 491.
  ) 
 Here is how much of TeX's memory you used:
- 5627 strings out of 493633
- 82276 string characters out of 3143378
+ 5630 strings out of 493633
+ 82313 string characters out of 3143378
  157715 words of memory out of 3000000
- 8745 multiletter control sequences out of 15000+200000
+ 8746 multiletter control sequences out of 15000+200000
  28728 words of font info for 75 fonts, out of 3000000 for 9000
  831 hyphenation exceptions out of 8191
- 29i,6n,28p,546b,433s stack positions out of 5000i,500n,10000p,200000b,50000s
+ 29i,6n,28p,550b,433s stack positions out of 5000i,500n,10000p,200000b,50000s
 {/usr/local/texlive/2011/texmf-dist/fonts/enc/dvips/base/8r.enc}</usr/local/t
 exlive/2011/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/local/tex
 live/2011/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texl
@@ -695,10 +718,10 @@ ve/2011/texmf-dist/fonts/type1/public/mathpazo/fplmri.pfb></usr/local/texlive/2
 011/texmf-dist/fonts/type1/urw/palatino/uplb8a.pfb></usr/local/texlive/2011/tex
 mf-dist/fonts/type1/urw/palatino/uplr8a.pfb></usr/local/texlive/2011/texmf-dist
 /fonts/type1/urw/palatino/uplri8a.pfb>
-Output written on Tutorial.pdf (21 pages, 1261271 bytes).
+Output written on Tutorial.pdf (22 pages, 1262769 bytes).
 PDF statistics:
- 482 PDF objects out of 1000 (max. 8388607)
- 352 compressed objects within 4 object streams
- 107 named destinations out of 1000 (max. 500000)
- 317 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 493 PDF objects out of 1000 (max. 8388607)
+ 362 compressed objects within 4 object streams
+ 109 named destinations out of 1000 (max. 500000)
+ 325 words of extra memory for PDF output out of 10000 (max. 10000000)
 

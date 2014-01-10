@@ -29,8 +29,8 @@ import os
 import tarfile
 from unittest import skipIf
 
+import mdtraj as md
 from msmbuilder import MSMLib
-from msmbuilder import Trajectory
 from msmbuilder import metrics
 from msmbuilder.testing import get, eq, load
 
@@ -48,9 +48,6 @@ from msmbuilder.scripts import FindPaths
 from msmbuilder.scripts import CalculateClusterRadii
 from msmbuilder.scripts import CalculateMFPTs
 
-# are we keeping these?
-from msmbuilder.scripts import CalculateRMSD
-#from msmbuilder.scripts import CalculateProjectRMSD deprecated in 2.7
 from msmbuilder.scripts import CalculateProjectDistance
 
 
@@ -292,12 +289,11 @@ class test_SaveStructures(WTempdir):
             random=np.random.RandomState(42))
 
         assert isinstance(list_of_trajs, list)
-        assert isinstance(list_of_trajs[0], Trajectory)
+        assert isinstance(list_of_trajs[0], md.Trajectory)
         eq(len(list_of_trajs), len(which_states))
         for t in list_of_trajs:
             eq(len(t), 2)
 
-        print list_of_trajs[0].keys()
         # sep, tps, one
         save(list_of_trajs, which_states, style='sep', format='lh5', outdir=self.td)
         save(list_of_trajs, which_states, style='tps', format='lh5', outdir=self.td)
@@ -308,5 +304,5 @@ class test_SaveStructures(WTempdir):
                 'State2.lh5']
 
         for name in names:
-            t = Trajectory.load_trajectory_file(pjoin(self.td, name))
+            t = md.load(pjoin(self.td, name))
             eq(t, get('save_structures/' + name))

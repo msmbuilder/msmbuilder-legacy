@@ -10,10 +10,10 @@ except ImportError:
     pass
 import scipy.cluster.hierarchy
 
+import mdtraj as md
 
 from msmbuilder import metrics
-from msmbuilder import Trajectory
-from msmbuilder import io
+from mdtraj import io
 from msmbuilder.utils import uneven_zip, deprecated
 
 from multiprocessing import Pool
@@ -38,23 +38,22 @@ def concatenate_trajectories(trajectories):
     Parameters
     ----------
     trajectories : list
-        list of msmbuilder.Trajectory object
+        list of mdtraj.Trajectory object
 
     Returns
     -------
-    longtraj : msmbuilder.Trajectory
+    concat_traj : mdtraj.Trajectory
 
     """
-    #traj_lengths = [len(traj) for traj in trajectories]
-    num_atoms = np.array([traj['XYZList'].shape[1] for traj in trajectories])
-    if not np.all(num_atoms == num_atoms[0]):
-        raise Exception('Not all same # atoms')
 
-    result = empty_trajectory_like(trajectories[0])
+    assert len(trajectories) > 0, 'Please supply a list of trajectories'
 
-    #result['XYZList'] = np.empty((sum(traj_lengths), num_atoms, 3) dtype='float32')
-    result['XYZList'] = np.vstack([traj['XYZList'] for traj in trajectories])
-    return result
+    concat_traj = trajectories[0]
+    for i in xrange(1, len(trajectories)):
+        # Use mdtraj operator overloading
+        concat_traj += trajectories[i]
+
+    return concat_traj
 
 
 def concatenate_prep_trajectories(prep_trajectories, metric):
@@ -75,21 +74,21 @@ def concatenate_prep_trajectories(prep_trajectories, metric):
     Returns
     -------
     ptraj : prepared_trajectory
-        prepared trajectory instance, like that returned from 
+        prepared trajectory instance, like that returned from
         metric.prepare_trajectory
     """
     if isinstance(prep_trajectories[0], np.ndarray):
         ptraj = np.concatenate(prep_trajectories)
 
     elif isinstance(prep_trajectories[0], RMSD.TheoData):
-        
+
         xyz = np.concatenate([p.XYZData[:, :, :p.NumAtoms] for p in prep_trajectories])
         xyz = xyz.transpose((0, 2, 1))
-        
+
         ptraj = metric.TheoData(xyz)
 
     else:
-        raise Exception("unrecognized prepared trajectory." 
+        raise Exception("unrecognized prepared trajectory."
             "NOTE: LPRMSD currently unsupported. Email schwancr@stanford.edu")
 
     return ptraj
@@ -103,7 +102,7 @@ def unconcatenate_trajectory(trajectory, lengths):
 
     Parameters
     ----------
-    trajectory : msmbuilder.Trajectory
+    trajectory : mdtraj.Trajectory
         Long trajectory to be split
     lengths : array_like
         list of lengths to split the long trajectory into
@@ -112,15 +111,8 @@ def unconcatenate_trajectory(trajectory, lengths):
     -------
     A list of trajectories
     """
-    assert sum(lengths) == len(trajectory)
 
-    xyzlist = trajectory.pop('XYZList')
-    empty = empty_trajectory_like(trajectory)
-    output = [copy.deepcopy(empty) for length in lengths]
-    xyzlists = split(xyzlist, lengths)
-    for i, xyz in enumerate(xyzlists):
-        output[i]['XYZList'] = xyz
-    return output
+    return split(trajectory, lengths)
 
 
 def split(longlist, lengths):
@@ -155,7 +147,7 @@ def stochastic_subsample(trajectories, shrink_multiple):
 
     Parameters
     ----------
-    trajectories : list of msmbuilder.Trajectory
+    trajectories : list of mdtraj.Trajectory
         list of trajectories to sample from
     shrink_multiple : int
         fraction to shrint by
@@ -168,30 +160,28 @@ def stochastic_subsample(trajectories, shrink_multiple):
     if shrink_multiple < 1:
         raise ValueError('Shrink multiple should be an integer greater than 1. You supplied %s' % shrink_multiple)
     elif shrink_multiple == 1:
-        #if isinstance(trajectories, Trajectory):
+        # if isinstance(trajectories, Trajectory):
         #    return trajectories
-        #return concatenate_trajectories(trajectories)
+        # return concatenate_trajectories(trajectories)
         return trajectories
 
-    if isinstance(trajectories, Trajectory):
+    if isinstance(trajectories, md.Trajectory):
         traj = trajectories
-        length = len(traj['XYZList'])
+        length = traj.n_frames
         new_length = int(length / shrink_multiple)
         if new_length <= 0:
             return None
 
         indices = np.array(random.sample(range(length), new_length))
-        new_xyzlist = traj['XYZList'][indices, :, :]
+        new_traj = traj[indices, :, :]
 
-        new_traj = empty_trajectory_like(traj)
-        new_traj['XYZList'] = new_xyzlist
         return new_traj
 
     else:
         # assume we have a list of trajectories
 
         # check that all trajectories have the same number of atoms
-        num_atoms = np.array([traj['XYZList'].shape[1] for traj in trajectories])
+        num_atoms = np.array([traj.n_atoms for traj in trajectories])
         if not np.all(num_atoms == num_atoms[0]):
             raise Exception('Not all same # atoms')
 
@@ -212,7 +202,7 @@ def deterministic_subsample(trajectories, stride, start=0):
 
     Parameters
     ----------
-    trajectories : list of msmbuilder.Trajectory
+    trajectories : list of mdtraj.Trajectory
         trajectories to subsample from
     stride : int
         freq to subsample at
@@ -221,7 +211,7 @@ def deterministic_subsample(trajectories, stride, start=0):
 
     Returns
     -------
-    trajectory : msmbuilder.trajectory
+    trajectory : mdtraj.trajectory
         shortened trajectory
     """
 
@@ -229,50 +219,26 @@ def deterministic_subsample(trajectories, stride, start=0):
     if stride < 1:
         raise ValueError('stride should be an integer greater than 1. You supplied %s' % stride)
     elif stride == 1:
-        #if isinstance(trajectories, Trajectory):
+        # if isinstance(trajectories, Trajectory):
         #    return trajectories
-        #return concatenate_trajectories(trajectories)
+        # return concatenate_trajectories(trajectories)
         return trajectories
 
     if isinstance(trajectories, Trajectory):
         traj = trajectories
-        traj['XYZList'] = traj['XYZList'][start::stride]
+        traj = traj[start::stride]
         return traj
     else:
         # assume we have a list of trajectories
 
         # check that all trajectories have the same number of atoms
-        num_atoms = np.array([traj['XYZList'].shape[1] for traj in trajectories])
+        num_atoms = np.array([traj.n_atoms for traj in trajectories])
         if not np.all(num_atoms == num_atoms[0]):
             raise Exception('Not all same # atoms')
 
         # shrink each trajectory
         strided = [deterministic_subsample(traj, stride, start) for traj in trajectories]
         return concatenate_trajectories(strided)
-
-
-
-def empty_trajectory_like(traj):
-    """Get a trajectory with the right metadata, but no xyz coordinates
-
-    The same residue ids and stuff as traj, but NO xyzlist
-
-    Parameters
-    ----------
-    traj : msmbuilder.Trajectory
-        trajectory you want to clone
-
-    Returns
-    -------
-    empty_traj : msmbuilder.Trajectory
-        new empty trajectory
-
-    """
-    xyzlist = traj.pop('XYZList')
-    new_traj = copy.deepcopy(traj)
-    new_traj['XYZList'] = None
-    traj['XYZList'] = xyzlist
-    return new_traj
 
 
 def p_norm(data, p=2):
@@ -296,7 +262,7 @@ def p_norm(data, p=2):
     else:
         p = float(p)
         n = float(data.shape[0])
-        return ((data**p).sum()/n)**(1.0/p)
+        return ((data ** p).sum() / n) ** (1.0 / p)
 
 
 #####################################################################
@@ -521,7 +487,7 @@ def _clarans(metric, ptraj, k, num_local_minima, max_neighbors, local_swap=True,
         optimal_assignments = initial_assignments
         optimal_distances = initial_distance
 
-        #loop over neighbors
+        # loop over neighbors
         j = 0
         while j < max_neighbors:
             medoid_i = np.random.randint(k)
@@ -769,14 +735,14 @@ class Hierarchical(object):
             raise TypeError('%s is not an abstract distance metric' % metric)
         if not method in self.allowable_methods:
             raise ValueError("%s not in %s" % (method, str(self.allowable_methods)))
-        if 'XYZList' in trajectories:
+        if isinstance(trajectories, md.Trajectory):
             trajectories = [trajectories]
         elif isinstance(trajectories, types.GeneratorType):
             trajectories = list(trajectories)
 
 
-        self.traj_lengths = np.array([len(traj['XYZList']) for traj in trajectories])
-        #self.ptrajs = [self.metric.prepare_trajectory(traj) for traj in self.trajectories]
+        self.traj_lengths = np.array([len(t) for t in trajectories])
+        # self.ptrajs = [self.metric.prepare_trajectory(traj) for traj in self.trajectories]
 
         logger.info('Preparing...')
         flat_trajectory = concatenate_trajectories(trajectories)
@@ -787,7 +753,7 @@ class Hierarchical(object):
         logger.info('Done with all2all')
         self.Z = fastcluster.linkage(dmat, method=method, preserve_input=False)
         logger.info('Got Z matrix')
-        #self.Z = scipy.cluster.hierarchy.linkage(dmat, method=method)
+        # self.Z = scipy.cluster.hierarchy.linkage(dmat, method=method)
 
     def _oneD_assignments(self, k=None, cutoff_distance=None):
         """Assign the frames into clusters.
@@ -866,7 +832,7 @@ class Hierarchical(object):
         Exception if something already exists at `filename`
         """
         io.saveh(filename, z_matrix=self.Z, traj_lengths=self.traj_lengths)
-    
+
     @classmethod
     def load_from_disk(cls, filename):
         """Load up a clusterer from disk
@@ -885,8 +851,8 @@ class Hierarchical(object):
         """
         data = io.loadh(filename, deferred=False)
         Z, traj_lengths = data['z_matrix'], data['traj_lengths']
-        #Next two lines are a hack to fix Serializer bug. KAB
-        if np.rank(traj_lengths)==0:
+        # Next two lines are a hack to fix Serializer bug. KAB
+        if np.rank(traj_lengths) == 0:
             traj_lengths = [traj_lengths]
         return cls(None, None, precomputed_values=(Z, traj_lengths))
 
@@ -913,7 +879,7 @@ class BaseFlatClusterer(object):
         # if we got a single trajectory instead a list of trajectories, make it a
         # list
         if not trajectories is None:
-            if 'XYZList' in trajectories:
+            if isinstance(trajectories, md.Trajectory):
                 trajectories = [trajectories]
             elif isinstance(trajectories, types.GeneratorType):
                 trajectories = list(trajectories)
@@ -932,12 +898,12 @@ class BaseFlatClusterer(object):
                 isinstance(prep_trajectories[0], np.ndarray):
 
                 prep_trajectories = np.array(prep_trajectories)
-                if len(prep_trajectories.shape) == 2: 
+                if len(prep_trajectories.shape) == 2:
                     prep_trajectories = [prep_trajectories]
                 else:
                     # 3D means a list of prep_trajectories was input
                     prep_trajectories = list(prep_trajectories)
-            
+
             if trajectories is None:
                 self._traj_lengths = [len(ptraj) for ptraj in prep_trajectories]
 
@@ -948,7 +914,7 @@ class BaseFlatClusterer(object):
             raise Exception("must provide at least one of trajectories and prep_trajectories")
 
         self._metric = metric
-        
+
 
         self.num_frames = sum(self._traj_lengths)
 
@@ -999,7 +965,7 @@ class BaseFlatClusterer(object):
         # put twoD into a rectangular array
         output = -1 * np.ones((len(self._traj_lengths), max(self._traj_lengths)), dtype=np.int32)
         for i, traj_assign in enumerate(twoD):
-            output[i,0:len(traj_assign)] = ptraj_index_to_gens_traj_index[traj_assign]
+            output[i, 0:len(traj_assign)] = ptraj_index_to_gens_traj_index[traj_assign]
 
         return output
 
@@ -1034,15 +1000,14 @@ class BaseFlatClusterer(object):
             generators/medoids identified. If trajectories was
             not originally provided, then will only return the
             prepared generators
-        
+
         """
         self._ensure_generators_computed()
 
         if self._concatenated is None:
             output = self.ptraj[self._generator_indices]
         else:
-            output = empty_trajectory_like(self._concatenated)
-            output['XYZList'] = self._concatenated['XYZList'][self._generator_indices]
+            output = self._concatenated[self._generator_indices]
 
         return output
 
@@ -1061,7 +1026,7 @@ class BaseFlatClusterer(object):
 
 
 class KCenters(BaseFlatClusterer):
-    def __init__(self, metric, trajectories=None, prep_trajectories=None, 
+    def __init__(self, metric, trajectories=None, prep_trajectories=None,
                  k=None, distance_cutoff=None, seed=0):
         """Run kcenters clustering algorithm.
 
@@ -1106,7 +1071,7 @@ class KCenters(BaseFlatClusterer):
 
 
 class Clarans(BaseFlatClusterer):
-    def __init__(self, metric, trajectories=None, prep_trajectories=None, k=None, 
+    def __init__(self, metric, trajectories=None, prep_trajectories=None, k=None,
                  num_local_minima=10, max_neighbors=20, local_swap=False):
         """Run the CLARANS clustering algorithm on the frames in a trajectory
 
@@ -1145,7 +1110,8 @@ class Clarans(BaseFlatClusterer):
 
         super(Clarans, self).__init__(metric, trajectories, prep_trajectories)
 
-        medoids, assignments, distances = _clarans(metric, self.ptraj, k, num_local_minima, max_neighbors, local_swap, initial_medoids='kcenters')
+        medoids, assignments, distances = _clarans(metric, self.ptraj, k,
+            num_local_minima, max_neighbors, local_swap, initial_medoids='kcenters')
 
         self._generator_indices = medoids
         self._assignments = assignments
@@ -1153,7 +1119,7 @@ class Clarans(BaseFlatClusterer):
 
 
 class SubsampledClarans(BaseFlatClusterer):
-    def __init__(self, metric, trajectories=None, prep_trajectories=None, k=None, 
+    def __init__(self, metric, trajectories=None, prep_trajectories=None, k=None,
                  num_samples=None, shrink_multiple=None, num_local_minima=10,
                  max_neighbors=20, local_swap=False, parallel=None):
         """ Run the CLARANS algorithm (see the Clarans class for more description) on
@@ -1204,28 +1170,28 @@ class SubsampledClarans(BaseFlatClusterer):
 
         # function that returns a list of random indices
         gen_sub_indices = lambda: np.array(random.sample(range(self.num_frames), self.num_frames / shrink_multiple))
-        #gen_sub_indices = lambda: np.arange(self.num_frames)
+        # gen_sub_indices = lambda: np.arange(self.num_frames)
 
         sub_indices = [gen_sub_indices() for i in range(num_samples)]
         ptrajs = [self.ptraj[sub_indices[i]] for i in range(num_samples)]
 
         clarans_args = uneven_zip(metric, ptrajs, k, num_local_minima, max_neighbors, local_swap, ['kcenters'], None, None, False)
 
-        results =  mymap(_clarans_helper, clarans_args)
+        results = mymap(_clarans_helper, clarans_args)
         medoids_list, assignments_list, distances_list = zip(*results)
         best_i = np.argmin([np.sum(d) for d in distances_list])
 
-        #print 'best i', best_i
-        #print 'best medoids (relative to subindices)', medoids_list[best_i]
-        #print 'sub indices', sub_indices[best_i]
-        #print 'best_medoids', sub_indices[best_i][medoids_list[best_i]]
+        # print 'best i', best_i
+        # print 'best medoids (relative to subindices)', medoids_list[best_i]
+        # print 'sub indices', sub_indices[best_i]
+        # print 'best_medoids', sub_indices[best_i][medoids_list[best_i]]
         self._generator_indices = sub_indices[best_i][medoids_list[best_i]]
 
 
 
 class HybridKMedoids(BaseFlatClusterer):
-    def __init__(self, metric, trajectories=None, prep_trajectories=None, k=None, 
-                 distance_cutoff=None, local_num_iters=10, global_num_iters=0, 
+    def __init__(self, metric, trajectories=None, prep_trajectories=None, k=None,
+                 distance_cutoff=None, local_num_iters=10, global_num_iters=0,
                  norm_exponent=2.0, too_close_cutoff=.0001, ignore_max_objective=False):
         """Run the hybrid kmedoids clustering algorithm on a set of trajectories
 
@@ -1280,7 +1246,7 @@ class HybridKMedoids(BaseFlatClusterer):
         self._assignments = assignments
         self._distances = distances
 
-#class KMeans(object):
+# class KMeans(object):
 #    def __init__(self, metric, trajectories, k, num_iters=1):
 #        if not isinstance(metric, metrics.Vectorized):
 #            raise TypeError('KMeans can only be used with Vectorized metrics')

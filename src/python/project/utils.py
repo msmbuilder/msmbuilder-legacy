@@ -2,14 +2,14 @@ import os
 import logging
 from glob import glob
 from msmbuilder.utils import keynat
-from msmbuilder import Trajectory
 from msmbuilder.utils import keynat
+import mdtraj as md
 
 from project import Project
 from validators import ValidationError
 logger = logging.getLogger(__name__)
 
-def get_project_object( traj_directory, conf_filename, out_filename=None ):
+def get_project_object(traj_directory, conf_filename, out_filename=None):
     """
     This function constructs a msmbuilder.Project object 
     given a directory of trajectories saved as .lh5's. 
@@ -39,15 +39,20 @@ def get_project_object( traj_directory, conf_filename, out_filename=None ):
         your project.
     """
 
-    traj_paths = sorted( os.listdir( traj_directory ), key=keynat ) # relative to the traj_directory
-    traj_paths = [ os.path.join( traj_directory, filename ) for filename in traj_paths ] # relative to current directory
+    traj_paths = sorted(os.listdir(traj_directory), key=keynat) # relative to the traj_directory
+    traj_paths = [os.path.join(traj_directory, filename) for filename in traj_paths] # relative to current directory
 
     traj_lengths = []
 
     for traj_filename in traj_paths: # Get the length of each trajectory
-        logger.info( traj_filename )
-        traj_lengths.append( Trajectory.load_from_lhdf( traj_filename, JustInspect=True )[0] ) 
-        # With JustInspect=True this just returns the shape of the XYZList
+        logger.info(traj_filename)
+
+        if traj_filename.split('.')[-1] in ['hdf', 'h5', 'lh5']:
+            with tables.openFile(traj_filename) as f:
+                traj_lengths.append(f.root.coordinates.shape[0])
+
+        else:
+            traj_lengths.append(md.load(traj_filename).n_frames) 
 
     project = Project({'conf_filename': conf_filename,
                        'traj_lengths': traj_lengths,
