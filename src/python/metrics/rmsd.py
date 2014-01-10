@@ -2,7 +2,7 @@ import warnings
 import numpy as np
 from collections import namedtuple
 from baseclasses import AbstractDistanceMetric
-from msmbuilder import _rmsdcalc
+import mdtraj as md
 
 
 class RMSD(AbstractDistanceMetric):
@@ -15,94 +15,7 @@ class RMSD(AbstractDistanceMetric):
     .. [1] Theobald, D. L. Acta. Crystallogr., Sect. A 2005, 61, 478-480.
 
     """
-
-    class TheoData(object):
-        """Stores temporary data required during Theobald RMSD calculation.
-
-        Notes:
-        Storing temporary data allows us to avoid re-calculating the G-Values
-        repeatedly. Also avoids re-centering the coordinates."""
-
-        Theoslice = namedtuple('TheoSlice', ('xyz', 'G'))
-        
-        def __init__(self, XYZData, NumAtoms=None, G=None):
-            """Create a container for intermediate values during RMSD Calculation.
-
-            Notes:
-            1.  We remove center of mass.
-            2.  We pre-calculate matrix magnitudes (ConfG)"""
-
-            if NumAtoms is None or G is None:
-                NumConfs = len(XYZData)
-                NumAtoms = XYZData.shape[1]
-
-                self.centerConformations(XYZData)
-
-                NumAtomsWithPadding = 4 + NumAtoms - NumAtoms % 4
-
-                # Load data and generators into aligned arrays
-                XYZData2 = np.zeros((NumConfs, 3, NumAtomsWithPadding), dtype=np.float32)
-                for i in range(NumConfs):
-                    XYZData2[i, 0:3, 0:NumAtoms] = XYZData[i].transpose()
-
-                #Precalculate matrix magnitudes
-                ConfG = np.zeros((NumConfs,),dtype=np.float32)
-                for i in xrange(NumConfs):
-                    ConfG[i] = self.calcGvalue(XYZData[i, :, :])
-
-                self.XYZData = XYZData2
-                self.G = ConfG
-                self.NumAtoms = NumAtoms
-                self.NumAtomsWithPadding = NumAtomsWithPadding
-                self.CheckCentered()
-            else:
-                self.XYZData = XYZData
-                self.G = G
-                self.NumAtoms = NumAtoms
-                self.NumAtomsWithPadding = XYZData.shape[2]
-
-        def __getitem__(self, key):
-            # to keep the dimensions right, we make everything a slice
-            if isinstance(key, int):
-                key = slice(key, key+1)
-            return RMSD.TheoData(self.XYZData[key], NumAtoms=self.NumAtoms, G=self.G[key])
-
-        def __setitem__(self, key, value):
-            self.XYZData[key] = value.XYZData
-            self.G[key] = value.G
-
-        def CheckCentered(self, Epsilon=1E-5):
-            """Raise an exception if XYZAtomMajor has nonnzero center of mass(CM)."""
-
-            XYZ = self.XYZData.transpose(0, 2, 1)
-            x = np.array([max(abs(XYZ[i].mean(0))) for i in xrange(len(XYZ))]).max()
-            if x > Epsilon:
-                raise Exception("The coordinate data does not appear to have been centered correctly.")
-
-        @staticmethod
-        def centerConformations(XYZList):
-            """Remove the center of mass from conformations.  Inplace to minimize mem. use."""
-
-            for ci in xrange(XYZList.shape[0]):
-                X = XYZList[ci].astype('float64')  # To improve the accuracy of RMSD, it can help to do certain calculations in double precision.
-                X -= X.mean(0)
-                XYZList[ci] = X.astype('float32')
-            return
-
-        @staticmethod
-        def calcGvalue(XYZ):
-            """Calculate the sum of squares of the key matrix G.  A necessary component of Theobold RMSD algorithm."""
-
-            conf=XYZ.astype('float64')  # Doing this operation in double significantly improves numerical precision of RMSD
-            G = 0
-            G += np.dot(conf[:, 0], conf[:, 0])
-            G += np.dot(conf[:, 1], conf[:, 1])
-            G += np.dot(conf[:, 2], conf[:, 2])
-            return G
-
-        def __len__(self):
-            return len(self.XYZData)
-
+    
     def __init__(self, atomindices=None, omp_parallel=True):
         """Initalize an RMSD calculator
 
@@ -145,7 +58,7 @@ class RMSD(AbstractDistanceMetric):
 
         Parameters
         ----------
-        trajectory : msmbuilder.Trajectory
+        trajectory : mdtraj.Trajectory
             Molecular dynamics trajectory
 
         Returns
@@ -154,10 +67,19 @@ class RMSD(AbstractDistanceMetric):
             A msmbuilder.metrics.TheoData object, which contains some preprocessed
             calculations for the RMSD calculation
         """
-
+        
         if self.atomindices is not None:
-            return self.TheoData(trajectory['XYZList'][:,self.atomindices])
-        return self.TheoData(trajectory['XYZList'])
+            if trajectory.topology is not None:
+                topology = trajectory.topology.copy()
+            else:
+                topology = None
+            t = md.Trajectory(xyz=trajectory.xyz.copy(), topology=topology)
+            t.restrict_atoms(self.atomindices)
+        else:
+            t = trajectory
+
+        t.center_coordinates()
+        return t
 
     def one_to_many(self, prepared_traj1, prepared_traj2, index1, indices2):
         """Calculate a vector of distances from one frame of the first trajectory
@@ -189,26 +111,7 @@ class RMSD(AbstractDistanceMetric):
         algorithm (say via mpi) at a different
         level.
         """
-
-        if isinstance(indices2, list):
-            indices2 = np.array(indices2)
-        if not isinstance(prepared_traj1, RMSD.TheoData):
-            raise TypeError('Theodata required')
-        if not isinstance(prepared_traj2, RMSD.TheoData):
-            raise TypeError('Theodata required')
-
-        if self.omp_parallel:
-            return _rmsdcalc.getMultipleRMSDs_aligned_T_g_at_indices(
-                      prepared_traj1.NumAtoms, prepared_traj1.NumAtomsWithPadding,
-                      prepared_traj1.NumAtomsWithPadding, prepared_traj2.XYZData,
-                      prepared_traj1.XYZData[index1], prepared_traj2.G,
-                      prepared_traj1.G[index1], indices2)
-        else:
-            return _rmsdcalc.getMultipleRMSDs_aligned_T_g_at_indices_serial(
-                      prepared_traj1.NumAtoms, prepared_traj1.NumAtomsWithPadding,
-                      prepared_traj1.NumAtomsWithPadding, prepared_traj2.XYZData,
-                      prepared_traj1.XYZData[index1], prepared_traj2.G,
-                      prepared_traj1.G[index1], indices2)
+        return md.rmsd(prepared_traj1, prepared_traj2, index1, parallel=self.omp_parallel, precomputed=True)[indices2]
 
     def one_to_all(self, prepared_traj1, prepared_traj2, index1):
         """Calculate a vector of distances from one frame of the first trajectory
@@ -235,25 +138,12 @@ class RMSD(AbstractDistanceMetric):
         If the omp_parallel optional argument is True, we use shared-memory
         parallelization in C to do this faster.
         """
-
-        if self.omp_parallel:
-            return _rmsdcalc.getMultipleRMSDs_aligned_T_g(
-                prepared_traj1.NumAtoms, prepared_traj1.NumAtomsWithPadding,
-                prepared_traj1.NumAtomsWithPadding, prepared_traj2.XYZData,
-                prepared_traj1.XYZData[index1], prepared_traj2.G,
-                prepared_traj1.G[index1])
-        else:
-            return _rmsdcalc.getMultipleRMSDs_aligned_T_g_serial(
-                    prepared_traj1.NumAtoms, prepared_traj1.NumAtomsWithPadding,
-                    prepared_traj1.NumAtomsWithPadding, prepared_traj2.XYZData,
-                    prepared_traj1.XYZData[index1], prepared_traj2.G,
-                    prepared_traj1.G[index1])
+        return md.rmsd(prepared_traj2, prepared_traj1, index1, parallel=self.omp_parallel, precomputed=True)
 
     def _square_all_pairwise(self, prepared_traj):
         """Reference implementation of all_pairwise"""
         warnings.warn('This is HORRIBLY inefficient. This operation really needs to be done directly in C')
-        traj_length = prepared_traj.XYZData.shape[0]
-        output = np.empty((traj_length, traj_length))
-        for i in xrange(traj_length):
+        output = np.empty((prepared_traj.n_frames, prepared_traj.n_frames))
+        for i in xrange(prepared_traj.n_frames):
             output[i] = self.one_to_all(prepared_traj, prepared_traj, i)
         return output

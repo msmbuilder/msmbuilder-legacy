@@ -9,6 +9,8 @@ from numpy.testing import (assert_allclose, assert_almost_equal,
   assert_raises, assert_string_equal, assert_warns)
 from nose.tools import ok_, eq_, raises
 from nose import SkipTest
+import mdtraj as md
+from mdtraj import io
 
 from pkg_resources import resource_filename
 
@@ -55,14 +57,14 @@ def load(filename):
     # delay these imports, since this module is loaded in a bunch
     # of places but not necessarily used
     import scipy.io
-    from msmbuilder import Trajectory, io, Project
+    from msmbuilder import Project
     
     # the filename extension
     ext = os.path.splitext(filename)[1]
 
     # load trajectories
-    if ext in ['.lh5', '.pdb']:
-        val = Trajectory.load_trajectory_file(filename)
+    if ext != '.h5' and ext in md._FormatRegistry.loaders.keys():
+        val = md.load(filename)
 
     # load flat text files
     elif 'AtomIndices.dat' in filename:
@@ -96,7 +98,6 @@ def load(filename):
 
 
 def eq(o1, o2, decimal=6):
-    from msmbuilder import io
     from scipy.sparse import isspmatrix
 
     assert (type(o1) is type(o2)), 'o1 and o2 not the same type: %s %s' % (type(o1), type(o2))
@@ -170,7 +171,6 @@ def assert_sparse_matrix_equal(m1, m2, decimal=6):
 
     assert_array_equal(xi1, xi2)
     assert_array_equal(yi1, yi2)
-#    assert_array_almost_equal(np.abs(m1 - m2).sum(), 0, decimal=decimal)
     assert_array_almost_equal(m1.data, m2.data, decimal=decimal)
 
 # decorator to mark tests as expected failure

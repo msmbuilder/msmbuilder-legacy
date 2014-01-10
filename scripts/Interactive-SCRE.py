@@ -4,13 +4,18 @@
 
 import os, sys
 import scipy.io
-import msmbuilder.io
+from mdtraj import io
 from msmbuilder import MSMLib, SCRE, arglib
 import numpy as np
 import string
 import matplotlib
 import logging
 logger = logging.getLogger('msmbuilder.scripts.Interactive-SCRE')
+
+parser = arglib.ArgumentParser(description=__doc__)
+parser.add_argument('output_dir')
+parser.add_argument('assignments')
+
 
 def interactive_scre(assignments):
     Counts = MSMLib.get_count_matrix_from_assignments(assignments, lag_time=1)
@@ -84,15 +89,12 @@ def scre_iteration(assignments,K0,lagtime_list,M,X,populations):
 run = interactive_scre
 
 if __name__ == "__main__":
-    parser = arglib.ArgumentParser(description=__doc__)
-    parser.add_argument('output_dir')
-    parser.add_argument('assignments')
     args = parser.parse_args()
 
     try:
-        assignments = msmbuilder.io.loadh(args.assignments, 'arr_0')
+        assignments = io.loadh(args.assignments, 'arr_0')
     except KeyError:
-        assignments = msmbuilder.io.loadh(args.assignments, 'Data')
+        assignments = io.loadh(args.assignments, 'Data')
 
     K = run(assignments)
 

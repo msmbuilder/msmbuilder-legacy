@@ -3,7 +3,7 @@ import scipy.linalg
 import re, sys, os
 from time import time
 import logging
-from msmbuilder import io
+from mdtraj import io
 from msmbuilder.metrics import Vectorized
 from msmbuilder.reduce import AbstractDimReduction
 
@@ -347,7 +347,7 @@ class tICA(AbstractDimReduction):
 
         Parameters:
         -----------
-        trajectory : msmbuilder.Trajectory, optional
+        trajectory : mdtraj.Trajectory, optional
             trajectory object (can also pass a prepared trajectory instead)
         prep_trajectory : np.ndarray, optional
             prepared trajectory

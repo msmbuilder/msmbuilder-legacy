@@ -6,10 +6,9 @@ import numpy.testing as npt
 import scipy.sparse
 import scipy.io
 
+from mdtraj import io
 from msmbuilder import tpt
-from msmbuilder import io
 from msmbuilder.scripts import FindPaths
-
 from msmbuilder.testing import get
 
 def tpt_get(filename):

@@ -50,14 +50,14 @@ def test_FahProjectBuilder1():
     # made up project data
 
     pb = FahProjectBuilder('PROJXXXX', '.xtc', 'PROJXXXX/native.pdb')
-    project = pb.get_project()
+    project = pb.get_project()    
     project_ref = get("project_reference/project.builder/ProjectInfo.yaml")
-
-    print project == project_ref
     assert project == project_ref
 
     os.chdir(cd)
     shutil.rmtree(td)
+
+test_FahProjectBuilder1()
 
 
 def test_FahProjectBuilder2():

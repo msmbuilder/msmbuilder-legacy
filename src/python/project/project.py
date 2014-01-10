@@ -28,9 +28,11 @@ except ImportError:
     from yaml import Loader
     from yaml import Dumper
 
-from msmbuilder import Trajectory
-from msmbuilder import io
 from msmbuilder import MSMLib
+import tables
+import mdtraj as md
+from mdtraj import io
+from mdtraj.trajectory import HDF5TrajectoryFile
 import logging
 from msmbuilder.utils import keynat
 logger = logging.getLogger(__name__)
@@ -78,7 +80,7 @@ class Project(object):
 
         Notes
         -----
-        This method is generally internally. To load projects from disk,
+        This method is generally used internally. To load projects from disk,
         use `Project.load_from`
 
         `records` should be a dict with 'conf_filename`, 'traj_lengths`,
@@ -339,14 +341,15 @@ class Project(object):
                                                 frame_inds[random_conf_inds]))
         
         return random_confs
-        
 
     def load_traj(self, trj_index, stride=1, atom_indices=None):
         "Load the a trajectory from disk"
         filename = self.traj_filename(trj_index)
-        return Trajectory.load_trajectory_file(filename, Stride=stride, 
-                                               AtomIndices=atom_indices)
-        
+        return md.load(filename, stride=stride, atom_indices=atom_indices)
+
+    def load_chunked_traj(self, trj_index, chunk_size=50000, stride=1, atom_indices=None):
+        return md.iterload(self.traj_filename(trj_index), chunk=chunk_size, stride=stride, atom_indices=atom_indices)
+
     def load_frame(self, traj_index, frame_index):
         """Load one or more specified frames.
 
@@ -372,33 +375,34 @@ class Project(object):
             A trajectory object containing the requested frame(s).
         """
 
-        if np.isscalar(traj_index) and np.isscalar(frame_index):
-            xyz = Trajectory.read_frame(TrajFilename=self.traj_filename(traj_index),
-                WhichFrame=frame_index)
-            xyzlist = np.array([xyz])
-        else:
-            traj_index = np.array(traj_index)
-            frame_index = np.array(frame_index)
-            if not (traj_index.ndim == 1 and np.all(traj_index.shape == frame_index.shape)):
-                raise ValueError('traj_index and frame_index must be 1D and have the same length')
+        if np.isscalar(traj_index):
+            traj_index = np.array([traj_index])
+        if np.isscalar(frame_index):
+            frame_index = np.array([frame_index])
 
-            xyzlist = []
-            for i,j in zip(traj_index, frame_index):
-                if j >= self.traj_lengths[i]:
-                    raise ValueError('traj %d too short (%d) to contain a frame %d' % (i, self.traj_lengths[i], j))
-                xyz = Trajectory.read_frame(TrajFilename=self.traj_filename(i),
-                    WhichFrame=j)
-                xyzlist.append(xyz)
-            xyzlist = np.array(xyzlist)
+        traj_index = np.array(traj_index)
+        frame_index = np.array(frame_index)
+
+        if not (traj_index.ndim == 1 and np.all(traj_index.shape == frame_index.shape)):
+            raise ValueError('traj_index and frame_index must be 1D and have the same length')
 
         conf = self.load_conf()
-        conf['XYZList'] = xyzlist
+        xyzlist = []
+        for i,j in zip(traj_index, frame_index):
+            if j >= self.traj_lengths[i]:
+                raise ValueError('traj %d too short (%d) to contain a frame %d' % (i, self.traj_lengths[i], j))
+                
+            xyzlist.append(md.load_frame(self.traj_filename(i), j).xyz)
+
+        conf.xyz = np.concatenate(xyzlist)
+        conf.time = [1 for _ in xyzlist]
+        conf.unitcell_vectors = None
 
         return conf
 
     def load_conf(self):
         "Load the PDB associated with this project from disk"
-        return Trajectory.load_trajectory_file(self.conf_filename)
+        return md.load(self.conf_filename)
 
     def traj_filename(self, traj_index):
         "Get the filename of one of the trajs on disk"
@@ -425,7 +429,7 @@ class Project(object):
 
     def empty_traj(self):
         traj = self.load_conf()
-        traj['XYZList'] = None
+        traj.xyz = None
         return traj
 
     def _eval_traj_shapes(self):
@@ -433,7 +437,8 @@ class Project(object):
         n_atoms = np.zeros(self.n_trajs)
         conf = self.load_conf()
         for i in xrange(self.n_trajs):
-            shape = Trajectory.load_trajectory_file(self.traj_filename(i), JustInspect=True, Conf=conf)
-            lengths[i] = shape[0]
-            n_atoms[i] = shape[1]
+            filename = self.traj_filename(i)
+            with md.open(filename) as f:
+                lengths[i] = len(f)
+            n_atoms[i] = md.load_frame(filename, 0).n_atoms
         return lengths, n_atoms
