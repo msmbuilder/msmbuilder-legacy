@@ -111,7 +111,7 @@ class RMSD(AbstractDistanceMetric):
         algorithm (say via mpi) at a different
         level.
         """
-        return md.rmsd(prepared_traj1, prepared_traj2, index1, parallel=self.omp_parallel, precomputed=True)[indices2]
+        return md.rmsd(prepared_traj1, prepared_traj2, index1, parallel=self.omp_parallel, precentered=True)[indices2]
 
     def one_to_all(self, prepared_traj1, prepared_traj2, index1):
         """Calculate a vector of distances from one frame of the first trajectory
@@ -138,7 +138,7 @@ class RMSD(AbstractDistanceMetric):
         If the omp_parallel optional argument is True, we use shared-memory
         parallelization in C to do this faster.
         """
-        return md.rmsd(prepared_traj2, prepared_traj1, index1, parallel=self.omp_parallel, precomputed=True)
+        return md.rmsd(prepared_traj2, prepared_traj1, index1, parallel=self.omp_parallel, precentered=True)
 
     def _square_all_pairwise(self, prepared_traj):
         """Reference implementation of all_pairwise"""
