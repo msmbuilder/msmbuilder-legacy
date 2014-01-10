@@ -187,7 +187,7 @@ class ProjectBuilder(object):
         num_files = len(file_list)
         try:
             traj, n_loaded = self._load_traj(file_list)
-            traj.xyz = traj.xyz[::self.stride]
+            traj = traj[::self.stride]
         except RuntimeError as e:
             #traj_errors.append(e)
             logger.warning('Could not convert %d files from %s (%s)', num_files, traj_loc, e)
