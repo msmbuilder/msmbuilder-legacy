@@ -47,10 +47,9 @@ parser.add_argument('symmetrize', help="""Method by which to estimate a
     else try Transpose. It is strongly recommended you read the documentation
     surrounding this choice.""", default='MLE',
                     choices=['MLE', 'Transpose', 'None'])
-parser.add_argument('trim', help="""Whether or not to apply an ergodic trim.
-    If true, keeps only the largest observed ergodic subset of the data, if
-    false, keeps everything. Default: True.""", default=True, type=bool)
-
+parser.add_argument('notrim', help="""Do not apply an ergodic trim.
+    By default, we keep only the largest observed ergodic subset of the data.
+    supplied, keeps everything.""", action='store_true')
 
 def run(MinLagtime, MaxLagtime, Interval, NumEigen, AssignmentsFn, trimming,
         symmetrize, nProc):
@@ -61,10 +60,9 @@ def run(MinLagtime, MaxLagtime, Interval, NumEigen, AssignmentsFn, trimming,
     logger.info("Building MSMs at the following lag times: %s", lagTimes)
 
     # Get the implied timescales (eigenvalues)
-    impTimes = msm_analysis.get_implied_timescales(AssignmentsFn, lagTimes,
-                                                   n_implied_times=NumEigen, sliding_window=True, trimming=trimming,
-                                                   symmetrize=symmetrize, n_procs=nProc)
-
+    impTimes = run(
+        MinLagtime, MaxLagtime, args.interval, args.eigvals, args.assignments,
+        (not args.notrim), args.symmetrize, args.procs)
     return impTimes
 
 
@@ -82,6 +80,6 @@ if __name__ == "__main__":
 
     impTimes = run(
         MinLagtime, MaxLagtime, args.interval, args.eigvals, args.assignments,
-        args.trim, args.symmetrize, args.procs)
+        (not args.notrim), args.symmetrize, args.procs)
     np.savetxt(args.output, impTimes)
     logger.info("Saved output to %s", args.output)
