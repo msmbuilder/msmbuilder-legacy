@@ -28,6 +28,7 @@ import shutil
 import os
 import tarfile
 from unittest import skipIf
+import nose
 
 import mdtraj as md
 from msmbuilder import MSMLib
@@ -145,6 +146,11 @@ class test_Cluster_kcenters(WTempdir):
 @skipIf(os.environ.get('TRAVIS', None) == 'true', "This test uses RMSD, which doesn't work on travis-ci?")
 class test_Cluster_hierarchical(WTempdir):
     def test(self):
+        try:
+            import fastcluster
+        except ImportError:
+            raise nose.SkipTest("Cannot find fastcluster, so skipping hierarchical clustering test.")
+            
         args, metric = Cluster.parser.parse_args([
             '-p', get('ProjectInfo.yaml', just_filename=True),
             '-s', '10',
