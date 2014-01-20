@@ -177,7 +177,7 @@ class test_Assign(WTempdir):
         eq(load(pjoin(self.td, 'Assignments.h5')),
            get('assign/Assignments.h5'))
         eq(load(pjoin(self.td, 'Assignments.h5.distances')),
-           get('assign/Assignments.h5.distances'))
+           get('assign/Assignments.h5.distances'), decimal=5)
 
 
 class test_AssignHierarchical(WTempdir):
