@@ -86,9 +86,8 @@ class test_ConvertDataToHDF(WTempdir):
                              min_length=0,
                              stride=1,
                              rmsd_cutoff=np.inf)
-        p0 = load(outfn)
-        p1 = get('ProjectInfo.yaml')        
-        eq(p0, p1)
+        
+        eq(load(outfn), get('ProjectInfo.yaml'))
 
 
 class test_tICA_train(WTempdir):
