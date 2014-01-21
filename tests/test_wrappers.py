@@ -171,7 +171,7 @@ class test_Assign(WTempdir):
             '-p', get('ProjectInfo.yaml', just_filename=True),
             '-g', get('Gens.lh5', just_filename=True),
             '-o', self.td,
-            'rmsd', '-a', get('AtomIndices.dat', just_filename=True)],
+            'rmsd', '-a', get('OldAtomIndices.dat', just_filename=True)],
             print_banner=False)
         Assign.main(args, metric)
 
