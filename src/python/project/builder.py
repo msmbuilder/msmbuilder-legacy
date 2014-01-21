@@ -443,9 +443,11 @@ class FahProjectBuilder(ProjectBuilder):
 
         try:
             traj, n_loaded = super(FahProjectBuilder, self)._load_traj(file_list)
-        except IOError as e:
-            if e.errno == 2: # Then the pdb filename doesn't exist
+        except (RuntimeError, IOError) as e:
+            
+            if hasattr(e, "errno") and e.errno == 2: # Then the pdb filename doesn't exist
                 raise e
+            
             corrupted_files = True
             n_corrupted = 1
             logger.error("Some files appear to be corrupted")
