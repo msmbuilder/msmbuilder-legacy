@@ -170,7 +170,7 @@ def build_msm(counts, symmetrize='MLE', ergodic_trimming=True):
 
     Parameters
     ----------
-    counts : matrix
+    counts : scipy.sparse.csr_matrix
         the MSM counts matrix
     symmetrize : {'MLE', 'Transpose', None}
         symmetrization scheme so that we have reversible counts
@@ -493,7 +493,7 @@ def tarjan(graph):
 
     Parameters
     ----------
-    graph : dict
+    graph : scipy.sparse.csr_matrix
         mapping from node names to lists of successor nodes.
 
     Returns
