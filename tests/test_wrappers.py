@@ -130,18 +130,19 @@ class test_Cluster_kcenters(WTempdir):
     # this one tests kcenters
     def test(self):
         args, metric = Cluster.parser.parse_args([
-            '-p', get('ProjectInfo.yaml', just_filename=True),
+            '-p', get('points_on_cube/ProjectInfo.yaml', just_filename=True),
             '-o', self.td,
-            'rmsd', '-a', get('AtomIndices.dat', just_filename=True),
-            'kcenters', '-k', '100'], print_banner=False)
+            'rmsd', '-a', get('points_on_cube/AtomIndices.dat', just_filename=True),
+            'kcenters', '-k', '4'], print_banner=False)
         Cluster.main(args, metric)
 
-        eq(load(pjoin(self.td, 'Assignments.h5')),
-           get('Assignments.h5'))
-        eq(load(pjoin(self.td, 'Assignments.h5.distances')),
-           get('Assignments.h5.distances'))
-        eq(load(pjoin(self.td, 'Gens.lh5')),
-           get('Gens.lh5'))
+        assignments = load(pjoin(self.td, 'Assignments.h5'))["arr_0"]
+        assignment_counts = np.bincount(assignments.flatten())
+        eq(assignment_counts, np.array([2, 2, 2, 2]))
+        
+        distances = load(pjoin(self.td, 'Assignments.h5.distances'))["arr_0"]
+        eq(distances, np.zeros((1,8)))
+
 
 @skipIf(os.environ.get('TRAVIS', None) == 'true', "This test uses RMSD, which doesn't work on travis-ci?")
 class test_Cluster_hierarchical(WTempdir):
