@@ -78,7 +78,7 @@ class test_ConvertDataToHDF(WTempdir):
 
         outfn = pjoin(self.td, 'ProjectInfo.yaml')
         # move to that directory
-        #os.chdir(self.td)
+        os.chdir(self.td)
         ConvertDataToHDF.run(projectfn=outfn,
                              conf_filename=get('native.pdb', just_filename=True),
                              input_dir=pjoin(self.td, 'XTC'),
