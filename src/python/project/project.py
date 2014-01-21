@@ -429,7 +429,7 @@ class Project(object):
 
     def empty_traj(self):
         traj = self.load_conf()
-        traj.xyz = None
+        traj.xyz = np.empty((0, traj.n_atoms, 3))
         return traj
 
     def _eval_traj_shapes(self):
