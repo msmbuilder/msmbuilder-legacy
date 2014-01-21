@@ -88,12 +88,7 @@ class test_ConvertDataToHDF(WTempdir):
                              rmsd_cutoff=np.inf)
         p0 = load(outfn)
         p1 = get('ProjectInfo.yaml')        
-        # So something fishy was going on with the relative vs. full paths in the project, which 
-        # prevents us from doing eq(p0, p1) against the old reference data.
-        #eq(p0, pq)
-        eq(p0.conf_filename, p1.conf_filename)
-        eq(p0.n_trajs, p1.n_trajs)
-        eq(p0.traj_lengths, p1.traj_lengths)
+        eq(p0, p1)
 
 
 class test_tICA_train(WTempdir):
