@@ -19,10 +19,8 @@
 import os
 import numpy as np
 
-from msmbuilder import MSMLib
 import mdtraj as md
 import logging
-from msmbuilder.utils import keynat
 
 logger = logging.getLogger(__name__)
 
