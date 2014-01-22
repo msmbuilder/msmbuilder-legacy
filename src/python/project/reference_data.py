@@ -34,11 +34,24 @@ def randomize_coordinates(template_traj, traj_len):
 class FAHReferenceData(object):
     """Generate a test case for FAH project building.
     
+    Parameters
+    ----------
+    traj : mdtraj.Trajectory
+        traj will be the template for randomly generated coordinate data.
+        traj WILL BE MODIFIED inplace.
+    path : path where generated FAH-style project will be placed
+    run_clone_gen : dict 
+        "run_clone_gen[run, clone] = gen" means that `gen` trajectories
+        will be generated for that run, clone pair.
+    traj_len : int
+        This is the length of each trajectory (generator) to be generated.
+    
     Notes
     -----
     
-    This will generate a directory with 
-    [/RUN%d/CLONE%d/frame%d.xtc % (i, j, k)]
+    This will generate a directory with the following structure
+    [%s/RUN%d/CLONE%d/frame%d.xtc % (path, run, clone, k)]
+    where (run, clone) are the keys of run_clone_gen and k is in range(run_clone_gen[run, clone].
 
     """
     def __init__(self, traj, path, run_clone_gen, traj_len):
