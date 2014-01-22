@@ -11,7 +11,6 @@ import mdtraj as md
 import numpy as np
 import numpy.testing as npt
 import tempfile, shutil
-from unittest import skipIf
 
 from msmbuilder.testing import *
 
