@@ -429,6 +429,7 @@ class FahProjectBuilder(ProjectBuilder):
         
         for run_dir in run_dirs:
             clone_dirs = glob(os.path.join(run_dir, "CLONE*"))
+            clone_dirs.sort(key=keynat)
             logger.info("%s: Found %d CLONE dirs", run_dir, len(clone_dirs))
 
             for clone_dir in clone_dirs:
