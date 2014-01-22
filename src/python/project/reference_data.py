@@ -25,6 +25,18 @@ import logging
 logger = logging.getLogger(__name__)
 
 def randomize_coordinates(template_traj, traj_len):
+    """Randomize the coordinates in an input trajectory.
+
+    Parameters
+    ----------
+    template_traj : mdtraj.Trajectory
+        template_traj will be the template for randomly generated coordinate data.
+        template_traj WILL BE MODIFIED inplace.
+    traj_len : int
+        This is the length of each trajectory (generator) to be generated.
+
+    
+    """
     template_traj.xyz = np.random.normal(size=(traj_len, template_traj.n_atoms, 3))
     template_traj.time = np.arange(traj_len)
     
