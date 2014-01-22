@@ -4,7 +4,11 @@ import os
 
 from msmbuilder.project import FahProjectBuilder
 from msmbuilder import Project
+from msmbuilder.project import reference_data
 
+import mdtraj as md
+
+import numpy as np
 import numpy.testing as npt
 import tempfile, shutil
 
@@ -36,53 +40,31 @@ def test_project_2():
     proj = Project(records, validate=False)
 
 
-def test_FahProjectBuilder1():
+def test_FahProjectBuilder_new1():
     cd = os.getcwd()
-    td = tempfile.mkdtemp()
-    os.chdir(td)
+    
+    native_filename = get("native.pdb", just_filename=True)
+    frames_per_gen = 10
+    
+    traj = md.load(native_filename)
+    
+    fah_path = tempfile.mkdtemp()
+    msmb_path = tempfile.mkdtemp()
+    
+    run_clone_gen = {(0, 0):5, (0, 1):6, (0, 2):7, (1, 0):20}
+    reference_traj_lengths = np.array([5, 6, 7, 20]) * frames_per_gen
 
-    # check that we can build a new project:
-    traj_dir = get("project_reference/project.builder/fah_style_data", just_filename=True)
-
-    shutil.copytree(traj_dir, 'PROJXXXX')
-    shutil.rmtree('PROJXXXX/RUN0/CLONE1')
-    os.remove('PROJXXXX/RUN2/CLONE0/frame2.xtc')
-    # made up project data
-
-    pb = FahProjectBuilder('PROJXXXX', '.xtc', 'PROJXXXX/native.pdb')
-    project = pb.get_project()    
-    project_ref = get("project_reference/project.builder/ProjectInfo.yaml")
-    assert project == project_ref
-
-    os.chdir(cd)
-    shutil.rmtree(td)
-
-test_FahProjectBuilder1()
-
-
-def test_FahProjectBuilder2():
-    cd = os.getcwd()
-    td = tempfile.mkdtemp()
-    os.chdir(td)
-
-    # check that we can build a new project:
-    traj_dir = get("project_reference/project.builder/fah_style_data", just_filename=True)
-    conv_traj_dir = get("project_reference/project.builder/Trajectories", just_filename=True)
-    shutil.copytree(traj_dir, 'PROJXXXX')
-    shutil.copytree(conv_traj_dir, 'Trajectories')
-    shutil.copy2(get("project_reference/project.builder/ProjectInfo.yaml", just_filename=True), 'ProjectInfo.yaml')
-    project_orig = Project.load_from('ProjectInfo.yaml')
-    # made up project data
-
-    pb = FahProjectBuilder('PROJXXXX', '.xtc', 'PROJXXXX/native.pdb', project=project_orig)
+    ref = reference_data.FAHReferenceData(traj, fah_path, run_clone_gen, frames_per_gen)
+    
+    os.chdir(msmb_path)
+    
+    pb = FahProjectBuilder(fah_path, '.xtc', native_filename)
     project = pb.get_project()
-    project_ref = get("project_reference/project.builder/ProjectInfo_final.yaml")
-
-    assert project == project_ref
-
+    
+    eq(project.conf_filename, native_filename)
+    eq(project.traj_lengths, reference_traj_lengths)
+    
     os.chdir(cd)
-    shutil.rmtree(td)
+    shutil.rmtree(fah_path)
+    shutil.rmtree(msmb_path)
 
-if __name__ == '__main__':
-    test_FahProjectBuilder1()
-    test_FahProjectBuilder2()
