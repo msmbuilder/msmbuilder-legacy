@@ -42,7 +42,7 @@ class ProjectBuilder(object):
             output trajectory basename
         atom_indices : np.ndarray
             Select only these atom indices when loading trajectories and PDBs
-            (Zero index).  If None, selected all atoms.
+            (Zero-based index).  If None, selected all atoms.
 
         Attributes
         ----------
