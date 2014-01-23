@@ -64,7 +64,7 @@ class ProjectBuilder(object):
         if self.atom_indices is None:
             self.conf_filename_final = self.conf_filename
         else:
-            filename_pieces = list(os.path.splitext("native.pdb"))
+            filename_pieces = list(os.path.splitext(self.conf_filename))
             filename_pieces.insert(-1, ".subset")
             self.conf_filename_final = "".join(filename_pieces)
             subset_conf = md.load(self.conf_filename, atom_indices=atom_indices)
