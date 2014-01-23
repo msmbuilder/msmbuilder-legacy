@@ -23,6 +23,8 @@ import logging
 from msmbuilder.project import validators, ProjectBuilder, FahProjectBuilder
 from msmbuilder import Project
 from msmbuilder.arglib import ArgumentParser, die_if_path_exists
+from mdtraj.utils import ensure_type
+
 logger = logging.getLogger('msmbuilder.scripts.ConvertDataToHDF')
 
 
@@ -69,9 +71,13 @@ parser.add_argument('rmsd_cutoff', help='''A safe-guard that discards any
     structure with and RMSD higher than the specified value (in nanometers,
     with respect to the input PDB file). Pass -1 to disable this feature''',
                     default=-1, type=float)
+parser.add_argument('atom_indices', help='''If specified, load atom indices
+    using np.loadtxt() and pass along to the converter.  This allows you to 
+    extract only a subset of atoms during the file conversion process.''',
+                    default="", type=str)                    
 
 
-def run(projectfn, conf_filename, input_dir, source, min_length, stride, rmsd_cutoff):
+def run(projectfn, conf_filename, input_dir, source, min_length, stride, rmsd_cutoff, atom_indices):
 
     # check if we are doing an update or a fresh run
     # if os.path.exists(projectfn):
@@ -99,11 +105,11 @@ def run(projectfn, conf_filename, input_dir, source, min_length, stride, rmsd_cu
         itype = '.dcd' if 'dcd' in source else '.xtc'
         pb = ProjectBuilder(
             input_dir, input_traj_ext=itype, conf_filename=conf_filename,
-            stride=stride, project=project)
+            stride=stride, project=project, atom_indices=atom_indices)
     elif source == 'fah':
         pb = FahProjectBuilder(
             input_dir, input_traj_ext='.xtc', conf_filename=conf_filename,
-            stride=stride, project=project)
+            stride=stride, project=project, atom_indices=atom_indices)
     else:
         raise ValueError("Invalid argument for source: %s" % source)
 
@@ -113,8 +119,9 @@ def run(projectfn, conf_filename, input_dir, source, min_length, stride, rmsd_cu
     if rmsd_cutoff is not None:
         # TODO: this is going to use ALL of the atom_indices, including hydrogen. This is
         # probably not the desired functionality
+        # KAB:
         validator = validators.RMSDExplosionValidator(
-            conf_filename, max_rmsd=rmsd_cutoff, atom_indices=None)
+            conf_filename, max_rmsd=rmsd_cutoff, atom_indices=atom_indices)
         pb.add_validator(validator)
 
     # Only accept trajectories with more snapshots than min_length.
@@ -142,5 +149,11 @@ if __name__ == "__main__":
         logger.warning(
             "Will discard any frame that is %f nm from the PDB conformation...", rmsd_cutoff)
 
+    if args.atom_indices == "":
+        atom_indices = None
+    else:
+        atom_indices = np.loadtxt(args.atom_indices)
+        atom_indices = ensure_type(atom_indices, 'int', 1, "atom_indices")
+
     run(args.project, args.pdb, args.input_dir, args.source,
-        args.min_length, args.stride, rmsd_cutoff)
+        args.min_length, args.stride, rmsd_cutoff, atom_indices)

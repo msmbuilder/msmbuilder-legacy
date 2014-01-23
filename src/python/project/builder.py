@@ -42,7 +42,8 @@ class ProjectBuilder(object):
             output trajectory basename
         atom_indices : np.ndarray
             Select only these atom indices when loading trajectories and PDBs
-            (Zero-based index).  If None, selected all atoms.
+            (Zero-based index).  If None, selected all atoms.  This also will
+            cause a new PDB to be written with name conf_filename.subset.pdb
 
         Attributes
         ----------
@@ -61,9 +62,12 @@ class ProjectBuilder(object):
             self.input_traj_ext = '.%s' % self.input_traj_ext
         self.conf_filename = conf_filename.strip()
         
-        if self.atom_indices is None:
+        if self.atom_indices is None:  # If not using atom_indices, we work exclusively with the original conf_filename
             self.conf_filename_final = self.conf_filename
         else:
+            # If we are selecting atom subsets, we need to generate 
+            # a new PDB file with the desired atoms, which will be called 
+            # conf_filename.subset.pdb
             filename_pieces = list(os.path.splitext(self.conf_filename))
             filename_pieces.insert(-1, ".subset")
             self.conf_filename_final = "".join(filename_pieces)
@@ -110,8 +114,6 @@ class ProjectBuilder(object):
             raise ValueError("Unsupported format")
 
         self._check_out_dir()
-        
-        #self.conf = md.load(self.conf_filename_final)  # After done processing, reload the conf containing only the desired atom indices.
 
 
     def _validate_traj(self, traj):
