@@ -487,7 +487,7 @@ def renumber_states(assignments):
     mapping = np.array(unique, dtype=int)
     return mapping
 
-
+@deprecated(None, '2.8')
 def tarjan(graph):
     """Find the strongly connected components in a graph using Tarjan's algorithm.
 
@@ -578,7 +578,7 @@ def tarjan(graph):
     return(components)
 
 
-def ergodic_trim(counts, assignments=None):
+def ergodic_trim(counts):
     """Use Tarjan's Algorithm to find maximal strongly connected subgraph.
 
     Parameters
@@ -597,43 +597,9 @@ def ergodic_trim(counts, assignments=None):
     Tarjan
 
     """
-
-    # -------------------------------------------------------------------------
-    # TJL sez:
-    # This function could be simply replaced by the following code at a date
-    # in the not-so-distant future:
-    #
-    # states_to_trim = ergodic_trim_indices(counts)
-    # trimmed_counts = trim_states(states_to_trim, counts, assignments=None)
-    # return trimmed_counts
-    #
-    # -------------------------------------------------------------------------
-
-    NZ = np.array(counts.nonzero()).transpose()
-
-    ConnectedComponents = tarjan(counts)
-    PiSym = np.array(counts.sum(0)).flatten()
-    ComponentPops = np.array([sum(PiSym[np.array(x)]) for x in ConnectedComponents])
-    ComponentInd = np.argmax(ComponentPops)
-
-    logger.info("Selected component %d with population %f", ComponentInd, ComponentPops[ComponentInd] / ComponentPops.sum())
-
-    GoodComponent = np.unique(ConnectedComponents[ComponentInd])
-
-    Mapping = np.zeros(counts.shape[0], dtype='int') - 1
-    for i, x in enumerate(GoodComponent):
-        Mapping[x] = i
-
-    NZ[:, 0] = Mapping[NZ[:, 0]]
-    NZ[:, 1] = Mapping[NZ[:, 1]]
-
-    Ind = np.where(NZ.min(1) != -1)
-    X = scipy.sparse.csr_matrix((counts.data[Ind], NZ[Ind].transpose()))
-
-    if assignments is not None:
-        apply_mapping_to_assignments(assignments, Mapping)
-
-    return (X, Mapping)
+    states_to_trim = ergodic_trim_indices(counts)
+    trimmed_counts = trim_states(states_to_trim, counts, assignments=None)
+    return trimmed_counts
 
 
 def ergodic_trim_indices(counts):
@@ -656,15 +622,15 @@ def ergodic_trim_indices(counts):
     trim_states : func
     """
 
-    ConnectedComponents = tarjan(counts)
-    PiSym = np.array(counts.sum(0)).flatten()
-    ComponentPops = np.array([sum(PiSym[np.array(x)]) for x in ConnectedComponents])
-    ComponentInd = np.argmax(ComponentPops)
 
-    logger.info("Selected component %d with population %f", ComponentInd, ComponentPops[ComponentInd] / ComponentPops.sum())
+    n_components, component_assignments = scipy.sparse.csgraph.connected_components(counts, connection="strong")
+    populations_symmetrized = np.array(counts.sum(0)).flatten()
+    component_pops = np.array([populations_symmetrized[component_assignments == i].sum() for i in range(n_components)])
+    which_component = component_pops.argmax()
 
-    states_to_keep = np.unique(ConnectedComponents[ComponentInd])
-    states_to_trim = np.setdiff1d(np.arange(counts.shape[0]), states_to_keep)
+    logger.info("Selected component %d with population %f", which_component, component_pops[which_component] / component_pops.sum())
+
+    states_to_trim = np.arange(counts.shape[0])[component_assignments != which_component]
 
     return states_to_trim
 
@@ -672,7 +638,7 @@ def ergodic_trim_indices(counts):
 def trim_states(states_to_trim, counts, assignments=None):
     """
     Performs the necessary operations to reduce an MSM to a subset of the
-    orignial states -- effectively trimming those states out.
+    original states -- effectively trimming those states out.
 
     Parameters
     ----------
