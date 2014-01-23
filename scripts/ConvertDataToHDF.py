@@ -20,6 +20,8 @@
 import os
 import sys
 import logging
+import numpy as np
+
 from msmbuilder.project import validators, ProjectBuilder, FahProjectBuilder
 from msmbuilder import Project
 from msmbuilder.arglib import ArgumentParser, die_if_path_exists
