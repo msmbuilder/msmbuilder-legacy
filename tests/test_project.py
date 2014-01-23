@@ -68,3 +68,36 @@ def test_FahProjectBuilder_new1():
     shutil.rmtree(fah_path)
     shutil.rmtree(msmb_path)
 
+
+def test_FahProjectBuilder_subset():
+    cd = os.getcwd()
+    
+    native_filename = get("native.pdb", just_filename=True)
+    frames_per_gen = 10
+    
+    traj = md.load(native_filename)
+    
+    fah_path = tempfile.mkdtemp()
+    msmb_path = tempfile.mkdtemp()
+    
+    run_clone_gen = {(0, 0):5, (0, 1):6, (0, 2):7, (1, 0):20}
+    reference_traj_lengths = np.array([5, 6, 7, 20]) * frames_per_gen
+    
+    atom_indices = np.arange(5)
+
+    ref = reference_data.FAHReferenceData(traj, fah_path, run_clone_gen, frames_per_gen)
+    
+    os.chdir(msmb_path)
+    
+    pb = FahProjectBuilder(fah_path, '.xtc', native_filename, atom_indices=atom_indices)
+    project = pb.get_project()
+    
+    new_traj = project.load_conf()
+    
+    eq(new_traj.n_atoms, 5)
+    eq(project.traj_lengths, reference_traj_lengths)
+    
+    os.chdir(cd)
+    shutil.rmtree(fah_path)
+    shutil.rmtree(msmb_path)
+
