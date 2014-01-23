@@ -89,7 +89,10 @@ def test_FahProjectBuilder_subset():
     
     os.chdir(msmb_path)
     
-    pb = FahProjectBuilder(fah_path, '.xtc', native_filename, atom_indices=atom_indices)
+    new_native_filename = msmb_path + "/" + os.path.split(native_filename)[1]
+    shutil.copy(native_filename, new_native_filename)  # Necessary on travis because we lack write permission in native.pdb directory
+    
+    pb = FahProjectBuilder(fah_path, '.xtc', new_native_filename, atom_indices=atom_indices)
     project = pb.get_project()
     
     new_traj = project.load_conf()
