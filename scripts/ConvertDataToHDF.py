@@ -121,7 +121,7 @@ def run(projectfn, conf_filename, input_dir, source, min_length, stride, rmsd_cu
     if rmsd_cutoff is not None:
         # TODO: this is going to use ALL of the atom_indices, including hydrogen. This is
         # probably not the desired functionality
-        # KAB:
+        # KAB: Apparently needed to use correctly subsetted atom_indices here to avoid an error
         validator = validators.RMSDExplosionValidator(
             conf_filename, max_rmsd=rmsd_cutoff, atom_indices=atom_indices)
         pb.add_validator(validator)
