@@ -55,14 +55,14 @@ parser.add_argument('pdb')
 parser.add_argument('input_dir', help='''Path to the parent directory
     containing subdirectories with MD (.xtc/.dcd) data. See the description above
     for the appropriate formatting for directory architecture.''')
-parser.add_argument('source', help='''Data source: "file", "file_dcd" or
-    "fah". For "file" & "file_dcd" formats, each of the trajectories needs to be
+parser.add_argument('source', help='''Data source: "file", or
+    "fah". For "file" format, each of the trajectories needs to be
     in a different directory. For example, if you supply input_dir='XTC', then
     it is expected that the directory 'XTC' contains a set of subdirectories, each
     of which contains one or more files of a single MD trajectory that will be concatenated
     together. The glob pattern used would be XTC/*/*.xtc'. If 'fah', then standard
     folding@home-style directory architecture is required.''',
-                    default='file', choices=['fah', 'file', 'file_dcd'])
+                    default='file', choices=['fah', 'file'])
 parser.add_argument('min_length', help='''Minimum number of frames per trajectory
     required to include data in Project.  Used to discard extremely short
     trajectories.''', default=0, type=int)
@@ -77,9 +77,11 @@ parser.add_argument('atom_indices', help='''If specified, load atom indices
     using np.loadtxt() and pass along to the converter.  This allows you to 
     extract only a subset of atoms during the file conversion process.''',
                     default="", type=str)                    
+parser.add_argument('iext', help='''The file extension of input trajectory
+    files.  Must be a filetype that mdtraj.load() can recognize.''',
+                    default=".xtc", type=str)
 
-
-def run(projectfn, conf_filename, input_dir, source, min_length, stride, rmsd_cutoff, atom_indices):
+def run(projectfn, conf_filename, input_dir, source, min_length, stride, rmsd_cutoff, atom_indices, iext):
 
     # check if we are doing an update or a fresh run
     # if os.path.exists(projectfn):
@@ -104,13 +106,12 @@ def run(projectfn, conf_filename, input_dir, source, min_length, stride, rmsd_cu
         project = None
 
     if source.startswith('file'):
-        itype = '.dcd' if 'dcd' in source else '.xtc'
         pb = ProjectBuilder(
-            input_dir, input_traj_ext=itype, conf_filename=conf_filename,
+            input_dir, input_traj_ext=iext, conf_filename=conf_filename,
             stride=stride, project=project, atom_indices=atom_indices)
     elif source == 'fah':
         pb = FahProjectBuilder(
-            input_dir, input_traj_ext='.xtc', conf_filename=conf_filename,
+            input_dir, input_traj_ext=iext, conf_filename=conf_filename,
             stride=stride, project=project, atom_indices=atom_indices)
     else:
         raise ValueError("Invalid argument for source: %s" % source)
@@ -158,4 +159,4 @@ if __name__ == "__main__":
         atom_indices = ensure_type(atom_indices, 'int', 1, "atom_indices")
 
     run(args.project, args.pdb, args.input_dir, args.source,
-        args.min_length, args.stride, rmsd_cutoff, atom_indices)
+        args.min_length, args.stride, rmsd_cutoff, atom_indices, args.iext)
