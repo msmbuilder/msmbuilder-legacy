@@ -85,7 +85,7 @@ class test_ConvertDataToHDF(WTempdir):
                              source='file',
                              min_length=0,
                              stride=1,
-                             rmsd_cutoff=np.inf, atom_indices=None)
+                             rmsd_cutoff=np.inf, atom_indices=None, iext=".xtc")
         
         eq(load(outfn), get('ProjectInfo.yaml'))
 
@@ -112,7 +112,7 @@ class test_ConvertDataToHDF_atomindices(WTempdir):
                              min_length=0,
                              stride=1,
                              rmsd_cutoff=np.inf,
-                             atom_indices=atom_indices)
+                             atom_indices=atom_indices, iext=".xtc")
         
         project = load(outfn)
         traj = project.load_conf()
