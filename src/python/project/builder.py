@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class ProjectBuilder(object):
     def __init__(self, input_traj_dir, input_traj_ext, conf_filename, 
         stride=1, project=None, validators=[], output_traj_dir='Trajectories',
-        output_traj_ext='.h5', output_traj_basename='trj'):
+        output_traj_ext='.h5', output_traj_basename='trj', atom_indices=None):
         """
         Build an MSMBuilder project from a set of trajectories
 
@@ -40,6 +40,10 @@ class ProjectBuilder(object):
             output extension for trajectories
         output_traj_basename : str, optional
             output trajectory basename
+        atom_indices : np.ndarray
+            Select only these atom indices when loading trajectories and PDBs
+            (Zero-based index).  If None, selected all atoms.  This also will
+            cause a new PDB to be written with name conf_filename.subset.pdb
 
         Attributes
         ----------
@@ -51,11 +55,25 @@ class ProjectBuilder(object):
         >>> pb = ProjectBuilder('XTC', '.xtc', 'native.pdb')
         >>> pb.project.save('ProjectInfo.yaml')
         """
+        self.atom_indices = atom_indices
         self.input_traj_dir = input_traj_dir.strip()
         self.input_traj_ext = input_traj_ext.strip()
         if self.input_traj_ext[0] != '.':
             self.input_traj_ext = '.%s' % self.input_traj_ext
         self.conf_filename = conf_filename.strip()
+        
+        if self.atom_indices is None:  # If not using atom_indices, we work exclusively with the original conf_filename
+            self.conf_filename_final = self.conf_filename
+        else:
+            # If we are selecting atom subsets, we need to generate 
+            # a new PDB file with the desired atoms, which will be called 
+            # conf_filename.subset.pdb
+            filename_pieces = list(os.path.splitext(self.conf_filename))
+            filename_pieces.insert(-1, ".subset")
+            self.conf_filename_final = "".join(filename_pieces)
+            subset_conf = md.load(self.conf_filename, atom_indices=atom_indices)
+            subset_conf.save(self.conf_filename_final)
+            
         self.conf = md.load(self.conf_filename)
 
         self.output_traj_ext = output_traj_ext.strip()
@@ -337,7 +355,7 @@ class ProjectBuilder(object):
             self.traj_converted_from = list(self.project._traj_converted_from) + self.traj_converted_from
             self.traj_converted_from = [[str(i) for i in l] for l in self.traj_converted_from]
 
-        self.project = Project({'conf_filename': self.conf_filename,
+        self.project = Project({'conf_filename': self.conf_filename_final,
                                 'traj_lengths': self.traj_lengths,
                                 'traj_paths': self.traj_paths,
                                 'traj_errors': self.traj_errors,
@@ -372,7 +390,7 @@ class ProjectBuilder(object):
         """
 
         traj = md.load(file_list, discard_overlapping_frames=True,
-            top=self.conf)
+            top=self.conf, atom_indices=self.atom_indices)
         # return the number of files loaded, which in this case is all or
         # nothing, since an error is raised if the Trajectory.load_from_<ext> 
         # doesn't work

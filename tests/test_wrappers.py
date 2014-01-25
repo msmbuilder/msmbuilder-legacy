@@ -85,10 +85,38 @@ class test_ConvertDataToHDF(WTempdir):
                              source='file',
                              min_length=0,
                              stride=1,
-                             rmsd_cutoff=np.inf)
+                             rmsd_cutoff=np.inf, atom_indices=None, iext=".xtc")
         
         eq(load(outfn), get('ProjectInfo.yaml'))
 
+
+@skipIf(os.environ.get('TRAVIS', None) == 'true', "This test uses RMSD, which doesn't work on travis-ci?")
+class test_ConvertDataToHDF_atomindices(WTempdir):
+    def test(self):
+        # extract xtcs to a temp dir
+        xtc_fn = get('XTC.tgz', just_filename=True)
+        fh = tarfile.open(xtc_fn, mode='r:gz')
+        fh.extractall(self.td)
+        fh.close()
+
+        outfn = pjoin(self.td, 'ProjectInfo.yaml')
+        # move to that directory
+        os.chdir(self.td)
+        
+        atom_indices = np.arange(4)
+        
+        ConvertDataToHDF.run(projectfn=outfn,
+                             conf_filename=get('native.pdb', just_filename=True),
+                             input_dir=pjoin(self.td, 'XTC'),
+                             source='file',
+                             min_length=0,
+                             stride=1,
+                             rmsd_cutoff=np.inf,
+                             atom_indices=atom_indices, iext=".xtc")
+        
+        project = load(outfn)
+        traj = project.load_conf()
+        eq(traj.n_atoms, 4)
 
 class test_tICA_train(WTempdir):
     def test(self):
