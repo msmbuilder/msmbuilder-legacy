@@ -1,3 +1,4 @@
+import os
 import glob
 import logging
 import numpy as np
@@ -22,6 +23,9 @@ def run(traj_dir, conf_filename, project_filename, iext):
 
     traj_lengths = np.zeros(num_traj, 'int')
     traj_paths = []
+
+    if not os.path.exists(conf_filename):
+        raise(IOError("Cannot find conformation file %s" % conf_filename))
 
     file_list = sorted(file_list, key=utils.keynat)
     for i, filename in enumerate(file_list):
