@@ -1,7 +1,9 @@
+import os
 import glob
 import logging
 import numpy as np
 from msmbuilder import Project, utils, arglib
+import mdtraj as md
 logger = logging.getLogger('msmbuilder.scripts.RebuildProject')
 
 parser = arglib.ArgumentParser(description="""
@@ -11,21 +13,23 @@ file. \nOutput: ProjectInfo.yaml""")
 parser.add_argument('traj_dir', default="./Trajectories/")
 parser.add_argument('conf_filename', default="native.pdb")
 parser.add_argument('project_filename', default="./ProjectInfo.yaml")
+parser.add_argument('iext', default=".h5")
 
 
-def run(traj_dir, conf_filename, project_filename):
+def run(traj_dir, conf_filename, project_filename, iext):
     logger.info("Rebuilding project.")
-    file_list = glob.glob(traj_dir + "/trj*.lh5")
+    file_list = glob.glob(traj_dir + "/trj*%s" % iext)
     num_traj = len(file_list)
 
     traj_lengths = np.zeros(num_traj, 'int')
     traj_paths = []
 
+    if not os.path.exists(conf_filename):
+        raise(IOError("Cannot find conformation file %s" % conf_filename))
+
     file_list = sorted(file_list, key=utils.keynat)
     for i, filename in enumerate(file_list):
-        traj_lengths[i] = len(md.load(filename))
-        raise NotImplementedError(
-            'We need a faster way to do this get the length business?')
+        traj_lengths[i] = len(md.open(filename))
         traj_paths.append(filename)
 
     records = {
@@ -42,4 +46,4 @@ def run(traj_dir, conf_filename, project_filename):
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    run(args.traj_dir, args.conf_filename, args.project_filename)
+    run(args.traj_dir, args.conf_filename, args.project_filename, args.iext)
