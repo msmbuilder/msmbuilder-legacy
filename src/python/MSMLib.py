@@ -578,7 +578,7 @@ def tarjan(graph):
     return(components)
 
 
-def ergodic_trim(counts, assignments=None):
+def ergodic_trim(counts):
     """Use Tarjan's Algorithm to find maximal strongly connected subgraph.
 
     Parameters
@@ -598,6 +598,7 @@ def ergodic_trim(counts, assignments=None):
 
     """
     states_to_trim = ergodic_trim_indices(counts)
+<<<<<<< HEAD
     trimmed_counts = trim_states(states_to_trim, counts, assignments=assignments)
 
     # Hacky way to calculate the mapping of saved / discarded states.
@@ -609,6 +610,10 @@ def ergodic_trim(counts, assignments=None):
     
     
     return trimmed_counts, mapping
+=======
+    trimmed_counts = trim_states(states_to_trim, counts, assignments=None)
+    return trimmed_counts
+>>>>>>> 373accddf61be5d0c2a7ba218266a4a70f0e3df1
 
 
 def ergodic_trim_indices(counts):
