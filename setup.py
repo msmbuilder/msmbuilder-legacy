@@ -20,7 +20,7 @@ from setuptools import setup, Extension
 
 try:
     import scipy
-    if scipy.version.version < '0.11':
+    if not hasattr(scipy.version, 'full_version') or scipy.version.full_version < '0.11':
         raise ImportError()
 except ImportError:
     print('scipy version 0.11 or better is required for msmbuilder', file=sys.stderr)
