@@ -714,9 +714,12 @@ def trim_states(states_to_trim, counts, assignments=None):
 
     if assignments is not None:
 
-        mapping = np.arange(counts.shape[0])
+        mapping = np.arange(counts.shape[0] + ndel)  # Use the ORIGINAL number of states! Re bug #300
         mapping[states_to_trim] = -1
+        
+        mapping = np.array([mapping])  # renumber_states requires rank 2 input, not rank 1.  Re bug #300
         renumber_states(mapping)  # renumbers into contiguous order, in-place
+        mapping = mapping[0]  # Unpack the 2D array into a 1D array.  Re bug #300
 
         trimmed_assignments = assignments.copy()
         apply_mapping_to_assignments(trimmed_assignments, mapping)  # in-place
