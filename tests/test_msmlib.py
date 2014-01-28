@@ -120,6 +120,11 @@ def test_trim_states():
 
     eq(trimmed.todense(), trimmed_counts.todense())
 
+    assignments = np.array([np.arange(counts.shape[0])])
+    states_to_trim = MSMLib.ergodic_trim_indices(counts)
+    trimmed_counts = MSMLib.trim_states(states_to_trim, counts, assignments=assignments)  # Test that code works with assignments given
+    
+
 
 class test_build_msm(object):
 
