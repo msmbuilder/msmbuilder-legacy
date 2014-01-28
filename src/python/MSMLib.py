@@ -487,7 +487,7 @@ def renumber_states(assignments):
     mapping = np.array(unique, dtype=int)
     return mapping
 
-@deprecated(None, '2.8')
+@deprecated(scipy.sparse.csgraph.connected_components, '2.8')
 def tarjan(graph):
     """Find the strongly connected components in a graph using Tarjan's algorithm.
 
