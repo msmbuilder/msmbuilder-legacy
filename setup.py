@@ -18,6 +18,14 @@ from glob import glob
 from distutils.ccompiler import new_compiler
 from setuptools import setup, Extension
 
+try:
+    import scipy
+    if scipy.version.full_version < '0.11':
+        raise ImportError()
+except ImportError:
+    print('scipy version 0.11 or better is required for msmbuilder', file=sys.stderr)
+    sys.exit(1)
+
 VERSION = "2.8"
 ISRELEASED = False
 __author__ = "MSMBuilder Team"
