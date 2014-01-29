@@ -19,6 +19,7 @@
 import sys
 import scipy.sparse
 import scipy.linalg
+import scipy.sparse.linalg
 import scipy
 import numpy as np
 import multiprocessing
@@ -33,41 +34,7 @@ logger = logging.getLogger(__name__)
 DisableErrorChecking = False
 
 eig = scipy.linalg.eig
-
-
-def import_sparse_eig():
-    """try to import scipy sparse methods correctly, accounting for different
-    namespaces in different version"""
-    try:
-        import scipy.sparse.linalg
-        sparse_eigensolver = scipy.sparse.linalg.eigs
-    except ImportError:
-        pass
-    else:
-        return sparse_eigensolver
-
-    try:
-        import scipy.sparse.linalg.eigen.arpack as arpack
-        sparse_eigensolver = arpack.eigen
-    except ImportError:
-        pass
-    else:
-        return sparse_eigensolver
-
-    try:
-        import scipy.sparse.linalg.eigen
-        sparse_eigensolver = scipy.sparse.linalg.eigen.eigs
-    except ImportError:
-        try:
-            import scipy.sparse.linalg.eigen
-            sparse_eigensolver = scipy.sparse.linalg.eigen
-        except ImportError:
-            pass
-    else:
-        return sparse_eigensolver
-
-    raise ImportError
-sparse_eigen = import_sparse_eig()
+sparse_eigen = scipy.sparse.linalg.eigs
 
 
 def get_eigenvectors(t_matrix, n_eigs, epsilon=.001, dense_cutoff=50, right=False, tol=1E-30):
