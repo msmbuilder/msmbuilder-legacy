@@ -19,6 +19,7 @@
 import sys
 import scipy.sparse
 import scipy.linalg
+import scipy.sparse.linalg
 import scipy
 import numpy as np
 import multiprocessing
@@ -31,43 +32,6 @@ logger = logging.getLogger(__name__)
 # Set this value to true (msm_analysis.DisableErrorChecking=True) to ignore
 # Eigenvector calculation errors.  Useful if you need to process disconnected data.
 DisableErrorChecking = False
-
-eig = scipy.linalg.eig
-
-
-def import_sparse_eig():
-    """try to import scipy sparse methods correctly, accounting for different
-    namespaces in different version"""
-    try:
-        import scipy.sparse.linalg
-        sparse_eigensolver = scipy.sparse.linalg.eigs
-    except ImportError:
-        pass
-    else:
-        return sparse_eigensolver
-
-    try:
-        import scipy.sparse.linalg.eigen.arpack as arpack
-        sparse_eigensolver = arpack.eigen
-    except ImportError:
-        pass
-    else:
-        return sparse_eigensolver
-
-    try:
-        import scipy.sparse.linalg.eigen
-        sparse_eigensolver = scipy.sparse.linalg.eigen.eigs
-    except ImportError:
-        try:
-            import scipy.sparse.linalg.eigen
-            sparse_eigensolver = scipy.sparse.linalg.eigen
-        except ImportError:
-            pass
-    else:
-        return sparse_eigensolver
-
-    raise ImportError
-sparse_eigen = import_sparse_eig()
 
 
 def get_eigenvectors(t_matrix, n_eigs, epsilon=.001, dense_cutoff=50, right=False, tol=1E-30):
@@ -123,9 +87,9 @@ def get_eigenvectors(t_matrix, n_eigs, epsilon=.001, dense_cutoff=50, right=Fals
         t_matrix = t_matrix.transpose()
 
     if scipy.sparse.issparse(t_matrix):
-        values, vectors = sparse_eigen(t_matrix.tocsr(), n_eigs, which="LR", maxiter=100000,tol=tol)
+        values, vectors = scipy.sparse.linalg.eigs(t_matrix.tocsr(), n_eigs, which="LR", maxiter=100000,tol=tol)
     else:
-        values, vectors = eig(t_matrix)
+        values, vectors = scipy.linalg.eig(t_matrix)
 
     order = np.argsort(-np.real(values))
     e_lambda = values[order]
