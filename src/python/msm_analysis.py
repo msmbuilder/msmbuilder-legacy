@@ -33,9 +33,6 @@ logger = logging.getLogger(__name__)
 # Eigenvector calculation errors.  Useful if you need to process disconnected data.
 DisableErrorChecking = False
 
-eig = scipy.linalg.eig
-sparse_eigen = scipy.sparse.linalg.eigs
-
 
 def get_eigenvectors(t_matrix, n_eigs, epsilon=.001, dense_cutoff=50, right=False, tol=1E-30):
     """Get the left eigenvectors of a transition matrix, sorted by eigenvalue
@@ -90,9 +87,9 @@ def get_eigenvectors(t_matrix, n_eigs, epsilon=.001, dense_cutoff=50, right=Fals
         t_matrix = t_matrix.transpose()
 
     if scipy.sparse.issparse(t_matrix):
-        values, vectors = sparse_eigen(t_matrix.tocsr(), n_eigs, which="LR", maxiter=100000,tol=tol)
+        values, vectors = scipy.sparse.linalg.eigs(t_matrix.tocsr(), n_eigs, which="LR", maxiter=100000,tol=tol)
     else:
-        values, vectors = eig(t_matrix)
+        values, vectors = scipy.linalg.eig(t_matrix)
 
     order = np.argsort(-np.real(values))
     e_lambda = values[order]
