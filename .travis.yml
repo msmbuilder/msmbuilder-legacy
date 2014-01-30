@@ -1,41 +1,18 @@
-# Adapted from statsmodel's .yaml file
-# https://github.com/statsmodels/statsmodels/blob/master/.travis.yml
-# which itself was adapted from M. Brett's .yaml file for nipy: 
-# https://github.com/nipy/nipy/blob/master/.travis.yml
-#
-# We pretend to be C because we can't use the python support in
-# travis-ci; it uses virtualenvs, they do not have numpy, scipy, matplotlib,
-# and it is impractical to build them
 language: c
 install:
-    - sudo apt-get update
-    - sudo apt-get install -qq libhdf5-serial-dev
-    - sudo apt-get install -qq python-dev
-    - sudo apt-get install -qq python-numpy
-    - sudo apt-get install -qq python-scipy
-    - sudo apt-get install -qq python-setuptools
-    - sudo apt-get install -qq python-nose
-    - sudo apt-get install -qq cython
-    - sudo apt-get install -qq python-numexpr
-    - sudo apt-get install -qq python-tables
-    - sudo apt-get install -qq python-matplotlib
-    - sudo apt-get install -qq swig
-    - sudo apt-get install -qq python-yaml
-    
-    
-    # get some stuff from http://neuro.debian.net/
-    - wget -O- http://neuro.debian.net/lists/precise.us-ca.full | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list
-    - sudo apt-key adv --recv-keys --keyserver pgp.mit.edu 2649A5A9
-    - sudo apt-get update    
-    - sudo apt-get install python-pandas
-    - sudo apt-get install python-statsmodels
-    
+    - sudo apt-get update -qq
+    - sudo apt-get install -qq python-dev python-pip python-yaml g++
+    - sudo pip install conda
+    - sudo conda init
+    - conda create --yes --name test numpy scipy pytables numexpr nose pandas cython statsmodels pandas patsy pyyaml matplotlib pip
+    - export PATH="$HOME/envs/test/bin/:$PATH"
+    - pip install fastcluster mdtraj
+
     # RMG is not really sure what this line does, but it's critical for multiprocessing 
     # to work in python. see https://github.com/travis-ci/travis-cookbooks/issues/155 and
     # https://github.com/SimTk/msmbuilder/issues/214
     - sudo rm -rf /dev/shm && sudo ln -s /run/shm /dev/shm 
     
-    - sudo easy_install fastcluster
 script:
-    - sudo python setup.py install
+    - python setup.py install
     - nosetests -vv
