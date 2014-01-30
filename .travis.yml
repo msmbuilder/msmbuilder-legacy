@@ -1,33 +1,16 @@
-# Adapted from statsmodel's .yaml file
-# https://github.com/statsmodels/statsmodels/blob/master/.travis.yml
-# which itself was adapted from M. Brett's .yaml file for nipy: 
-# https://github.com/nipy/nipy/blob/master/.travis.yml
-#
-# We pretend to be C because we can't use the python support in
-# travis-ci; it uses virtualenvs, they do not have numpy, scipy, matplotlib,
-# and it is impractical to build them
 language: c
 install:
     - sudo apt-get update
-    - sudo apt-get install -qq libhdf5-serial-dev
-    - sudo apt-get install -qq python-dev python-numpy
-    - sudo apt-get install -qq python-setuptools python-nose
-    - sudo apt-get install -qq python-numexpr cython python-tables
-    - sudo apt-get install -qq python-matplotlib swig python-yaml
-
-    - # get a recent scipy
-    - sudo easy_install -U pip
-    - sudo pip install -I -U wheel
-    - base_url=http://stanford.edu/~rmcgibbo/wheelhouse/2.7/
-    - PIP_ARGS=" -I --use-wheel --find-links=$base_url/${PYTHON_VERSION}/"
-    - sudo pip install $PIP_ARGS scipy pandas patsy statsmodels
+    - sudo apt-get install -qq python-dev python-pip
+    - sudo pip install conda
+    - sudo conda init
+    - sudo conda install numpy scipy pytables numexpr nose pandas cython statsmodels pandas patsy fastcluster
 
     # RMG is not really sure what this line does, but it's critical for multiprocessing 
     # to work in python. see https://github.com/travis-ci/travis-cookbooks/issues/155 and
     # https://github.com/SimTk/msmbuilder/issues/214
     - sudo rm -rf /dev/shm && sudo ln -s /run/shm /dev/shm 
     
-    - sudo easy_install fastcluster
 script:
     - sudo python setup.py install
     - nosetests -vv
