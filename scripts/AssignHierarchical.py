@@ -73,6 +73,6 @@ if __name__ == "__main__":
     project = Project.load_from(args.project)
 
     assignments = main(
-        k, d, args.hierarchical_clustering_zmatrix, stride, project)
+        k, d, args.hierarchical_clustering_zmatrix, args.stride, project)
     io.saveh(args.assignments, assignments)
     logger.info('Saved assignments to %s', args.assignments)
