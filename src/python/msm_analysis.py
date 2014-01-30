@@ -57,8 +57,8 @@ def get_reversible_eigenvectors(t_matrix, n_eigs, populations=None, right=False,
 
     Other Parameters
     ----------------
-    maxiter : int, optional
-    tol : int, optional
+    Additional keyword arguments are passed directly to scipy.sparse.linalg.eigsh.
+    Refer to the scipy documentation for further details.
 
     Notes
     -----    
@@ -68,6 +68,28 @@ def get_reversible_eigenvectors(t_matrix, n_eigs, populations=None, right=False,
         populations = scipy.sparse.linalg.eigs(t_matrix.T, k=1)[1]
         populations /= np.sum(populations)
 
+    # Get the left eigenvectors using the sparse hermetian eigensolver
+    # on the symmemtrized transition matrix
+    root_pi = populations**(0.5)
+    root_pi_diag = scipy.sparse.diags(root_pi, offsets=0).tocsr()
+    root_pi_diag_inv = scipy.sparse.diags(1.0 / root_pi, offsets=0).tocsr()
+    symtrans = root_pi_diag.dot(t_matrix).dot(root_pi_diag_inv)
+
+    values, vectors = scipy.sparse.linalg.eigsh(symtrans.T, k=n_eigs, **kwargs)
+
+    # Reorder the eigenpairs by descending eigenvalue
+    order = np.argsort(-np.real(values))
+    values = values[order]
+    vectors = vectors[:, order]
+
+    # the eigenvectors of symtrans are a rotated version of the eigenvectors
+    # of transmat that we want
+    vectors = (root_pi * vectors.T).T
+
+    # normalize the first eigenvector (populations)
+    vectors[:, 0] /= np.sum(vectors[:, 0])
+
+    return values, vectors
 
 
 def get_eigenvectors(t_matrix, n_eigs, epsilon=.001, dense_cutoff=50, right=False, tol=1E-30):
