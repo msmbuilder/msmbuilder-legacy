@@ -1,12 +1,11 @@
 language: c
 install:
     - sudo apt-get update -qq
-    - sudo apt-get install -qq python-dev python-pip python-yaml
+    - sudo apt-get install -qq python-dev python-pip python-yaml g++
     - sudo pip install conda
     - sudo conda init
-    - conda create --yes --name test numpy scipy pytables numexpr nose pandas cython statsmodels pandas patsy
-    - source activate test
-    - sudo pip install fastcluster
+    - conda create --yes --name test numpy scipy pytables numexpr nose pandas cython statsmodels pandas patsy pip
+    - envs/test/bin/pip install fastcluster mdtraj
 
     # RMG is not really sure what this line does, but it's critical for multiprocessing 
     # to work in python. see https://github.com/travis-ci/travis-cookbooks/issues/155 and
@@ -14,5 +13,5 @@ install:
     - sudo rm -rf /dev/shm && sudo ln -s /run/shm /dev/shm 
     
 script:
-    - sudo python setup.py install
-    - nosetests -vv
+    - envs/test/bin/python setup.py install
+    - envs/test/bin/nosetests -vv
