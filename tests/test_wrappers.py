@@ -67,7 +67,7 @@ class WTempdir(object):
     def teardown(self):
         shutil.rmtree(self.td)
 
-@skipIf(os.environ.get('TRAVIS', None) == 'true', "This test uses RMSD, which doesn't work on travis-ci?")
+
 class test_ConvertDataToHDF(WTempdir):
     def test(self):
         # extract xtcs to a temp dir
@@ -90,7 +90,6 @@ class test_ConvertDataToHDF(WTempdir):
         eq(load(outfn), get('ProjectInfo.yaml'))
 
 
-@skipIf(os.environ.get('TRAVIS', None) == 'true', "This test uses RMSD, which doesn't work on travis-ci?")
 class test_ConvertDataToHDF_atomindices(WTempdir):
     def test(self):
         # extract xtcs to a temp dir
@@ -153,7 +152,6 @@ def test_CreateAtomIndices():
     eq(indices, get('AtomIndices.dat'))
 
 
-@skipIf(os.environ.get('TRAVIS', None) == 'true', "This test uses RMSD, which doesn't work on travis-ci?")
 class test_Cluster_kcenters(WTempdir):
     # this one tests kcenters
     def test(self):
@@ -172,7 +170,6 @@ class test_Cluster_kcenters(WTempdir):
         eq(distances, np.zeros((1,8)))
 
 
-@skipIf(os.environ.get('TRAVIS', None) == 'true', "This test uses RMSD, which doesn't work on travis-ci?")
 class test_Cluster_hierarchical(WTempdir):
     def test(self):
         try:
@@ -192,7 +189,6 @@ class test_Cluster_hierarchical(WTempdir):
         eq(load(pjoin(self.td, 'ZMatrix.h5')), get('ZMatrix.h5'))
 
 
-@skipIf(os.environ.get('TRAVIS', None) == 'true', "This test uses RMSD, which doesn't work on travis-ci?")
 class test_Assign(WTempdir):
     def test(self):
         args, metric = Assign.parser.parse_args([
