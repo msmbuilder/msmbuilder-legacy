@@ -170,6 +170,17 @@ class test_Cluster_kcenters(WTempdir):
         eq(distances, np.zeros((1,8)))
 
 
+class test_Cluster_hybrid(WTempdir):
+    # this one tests hybrid kcenters kmedoids
+    def test(self):
+        args, metric = Cluster.parser.parse_args([
+            '-p', get('points_on_cube/ProjectInfo.yaml', just_filename=True),
+            '-o', self.td,
+            'rmsd', '-a', get('points_on_cube/AtomIndices.dat', just_filename=True),
+            'hybrid', '-k', '4'], print_banner=False)
+        Cluster.main(args, metric)
+
+
 class test_Cluster_hierarchical(WTempdir):
     def test(self):
         try:

@@ -633,12 +633,12 @@ def _hybrid_kmedoids(metric, ptraj, k=None, distance_cutoff=None, num_iters=10, 
 
     if not np.all(np.unique(medoids) == np.sort(medoids)):
         raise ValueError('Initial medoids must be distinct')
-    if not np.all(np.unique(assignments) == np.sorted(medoids)):
+    if not np.all(np.unique(assignments) == sorted(medoids)):
         raise ValueError('Initial assignments dont match initial medoids')
 
     for iteration in xrange(num_iters):
         for medoid_i in xrange(k):
-            if not np.all(np.unique(assignments) == np.sorted(medoids)):
+            if not np.all(np.unique(assignments) == sorted(medoids)):
                 raise ValueError('Loop invariant lost')
 
             if local_swap is False:
