@@ -34,16 +34,16 @@ logger = logging.getLogger(__name__)
 DisableErrorChecking = False
 
 
-def get_reversible_eigenvectors(t_matrix, n_eigs, populations=None, right=False, **kwargs):
-    """Get the left eigenvalues/eigenvectors of a reversible transition matrix, sorted by
-    eigenvalue magnitude
+def get_reversible_eigenvectors(t_matrix, k, populations=None, right=False, **kwargs):
+    """Find the k largest left eigenvalues and eigenvectors of a reversible
+    row-stochastic matrix, sorted by eigenvalue magnitude
 
     Parameters
     ----------
     t_matrix : sparse or dense matrix
          The row-stochastic transition probability matrix
-    n_eigs : int
-        The number of eigenpairs to calculate. The `n_eigs` eigenpairs with the
+    k : int
+        The number of eigenpairs to calculate. The `k` eigenpairs with the
         highest eigenvalues will be returned.
     populations : np.ndarray, optional
         The equilibrium, stationary distribution of t_matrix. If not supplied,
@@ -61,12 +61,41 @@ def get_reversible_eigenvectors(t_matrix, n_eigs, populations=None, right=False,
     Refer to the scipy documentation for further details.
 
     Notes
-    -----    
+    -----
+    A reversible transition matrix is one that satisifies the detailed balance
+    condition
 
+    .. math::
+
+        \pi_i T_{i,j} = \pi_j T_{j,i}
+
+    A reversible transition matrix satisifies a number of special
+    conditions. In particular, it is simmilar to a symmetric matrix
+    :math:`S_{i, j} = \sqrt{\frac{pi_i}{\pi_j}} T_{i, j} = S_{j, i}`.
+    This property enables a much more robust solution to the eigenvector
+    problem, because of the superior numerical stability of hermetian
+    eigensolvers.
+
+    See Also
+    --------
+    get_eigenvectors : computes the eigenpairs of a general row-stochastic matrix,
+        without requiring that the matrix be reversible.
+    scipy.sparse.linalg.eigsh
     """
+    check_dimensions(t_matrix)
+    n = t_matrix.shape[0]
+    if k > n:
+        logger.warning("You cannot calculate %d eigenvectors from a %d x %d matrix." % (k, n, n))
+        k = n
+        logger.warning("Instead, calculating %d eigenvectors." % k)
+    elif k >= n - 1  and scipy.sparse.issparse(t_matrix):
+        logger.warning("ARPACK cannot calculate %d eigenvectors from a %d x %d matrix." % (k, n, n))
+        k = n - 2
+        logger.warning("Instead, calculating %d eigenvectors." % k)
+
     if populations is None:
-        populations = scipy.sparse.linalg.eigs(t_matrix.T, k=1)[1]
-        populations /= np.sum(populations)
+        populations = np.real(scipy.sparse.linalg.eigs(t_matrix.T, k=1, which='LR')[1][:,0])
+        populations = populations / np.sum(populations)
 
     # Get the left eigenvectors using the sparse hermetian eigensolver
     # on the symmemtrized transition matrix
@@ -75,7 +104,7 @@ def get_reversible_eigenvectors(t_matrix, n_eigs, populations=None, right=False,
     root_pi_diag_inv = scipy.sparse.diags(1.0 / root_pi, offsets=0).tocsr()
     symtrans = root_pi_diag.dot(t_matrix).dot(root_pi_diag_inv)
 
-    values, vectors = scipy.sparse.linalg.eigsh(symtrans.T, k=n_eigs, **kwargs)
+    values, vectors = scipy.sparse.linalg.eigsh(symtrans.T, k=k, which='LA', **kwargs)
 
     # Reorder the eigenpairs by descending eigenvalue
     order = np.argsort(-np.real(values))
@@ -89,7 +118,7 @@ def get_reversible_eigenvectors(t_matrix, n_eigs, populations=None, right=False,
     # normalize the first eigenvector (populations)
     vectors[:, 0] /= np.sum(vectors[:, 0])
 
-    return values, vectors
+    return np.real(values), np.real(vectors)
 
 
 def get_eigenvectors(t_matrix, n_eigs, epsilon=.001, dense_cutoff=50, right=False, tol=1E-30):
@@ -122,7 +151,7 @@ def get_eigenvectors(t_matrix, n_eigs, epsilon=.001, dense_cutoff=50, right=Fals
     Notes
     -----
     Left eigenvectors satisfy the relation :math:`V \mathbf{T} = \lambda V`
-    Vectors are returned in columns of matrix.  
+    Vectors are returned in columns of matrix.
     Too large a value of tol may lead to unstable results.  See GitHub issue #174.
     """
 
@@ -273,9 +302,11 @@ def get_implied_timescales_helper(args):
         logger.critical(e)
         sys.exit(1)
 
-    #TJL: set Epsilon high, should not raise err here
     n_eigenvectors = n_implied_times + 1
-    e_values = get_eigenvectors(t_matrix, n_eigenvectors, epsilon=1)[0]
+    if symmetrize in ['MLE', 'Transpose']:
+        e_values = get_reversible_eigenvectors(t_matrix, n_eigenvectors, populations=populations)[0]
+    else:
+        e_values = get_eigenvectors(t_matrix, n_eigenvectors, epsilon=1)[0]
 
     # Correct for possible change in n_eigenvectors from trimming
     n_eigenvectors = len(e_values)
