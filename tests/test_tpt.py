@@ -70,32 +70,33 @@ class TestTPT():
         net_flux_ref = io.loadh(tpt_get("net_flux.h5"), 'Data')
         npt.assert_array_almost_equal(net_flux.toarray(), net_flux_ref)
         
-        
+    
+    # this test is for the original bottleneck cutting code    
     def test_path_calculations(self):
-        path_output = tpt.find_top_paths(self.sources, self.sinks, self.tprob)
-
+        path_output = tpt._find_top_paths_cut(self.sources, self.sinks, self.tprob)
+    
         paths_ref = io.loadh( tpt_get("dijkstra_paths.h5"), 'Data')
         fluxes_ref = io.loadh( tpt_get("dijkstra_fluxes.h5"), 'Data')
         bottlenecks_ref = io.loadh( tpt_get("dijkstra_bottlenecks.h5"), 'Data')
-
+    
         for i in xrange(len(paths_ref)):
             npt.assert_array_almost_equal(path_output[0][i], paths_ref[i])
         npt.assert_array_almost_equal(path_output[1], bottlenecks_ref)
         npt.assert_array_almost_equal(path_output[2], fluxes_ref)
 
 
-    def test_multi_state_path_calculations(self):
-        path_output = FindPaths.run(self.tprob, self.multi_sources, self.multi_sinks, self.num_paths)
+    #def test_multi_state_path_calculations(self):
+    #    path_output = FindPaths.run(self.tprob, self.multi_sources, self.multi_sinks, self.num_paths)
 
-        path_result_ref = io.loadh(tpt_get("many_state/Paths.h5"))
+    #    path_result_ref = io.loadh(tpt_get("many_state/Paths.h5"))
 
-        paths_ref = path_result_ref['Paths']
-        bottlenecks_ref = path_result_ref['Bottlenecks']
-        fluxes_ref = path_result_ref['fluxes']
+    #    paths_ref = path_result_ref['Paths']
+    #    bottlenecks_ref = path_result_ref['Bottlenecks']
+    #    fluxes_ref = path_result_ref['fluxes']
 
-        npt.assert_array_almost_equal(path_output[0], paths_ref)
-        npt.assert_array_almost_equal(path_output[1], bottlenecks_ref)
-        npt.assert_array_almost_equal(path_output[2], fluxes_ref)
+    #    npt.assert_array_almost_equal(path_output[0], paths_ref)
+    #    npt.assert_array_almost_equal(path_output[1], bottlenecks_ref)
+    #    npt.assert_array_almost_equal(path_output[2], fluxes_ref)
 
 
     def test_mfpt(self):
@@ -141,3 +142,33 @@ class TestTPT():
             assert np.abs(hub_score - all_hub_scores[waypoint]) < 0.0001
         
         
+
+class TestTPT2():
+    def setUp(self):
+        
+        self.net_flux = np.array([[0.0, 0.5, 0.5, 0.0, 0.0, 0.0],
+                                  [0.0, 0.0, 0.0, 0.3, 0.0, 0.2],
+                                  [0.0, 0.0, 0.0, 0.0, 0.5, 0.0],
+                                  [0.0, 0.0, 0.0, 0.0, 0.0, 0.3],
+                                  [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                                  [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]])
+
+        self.sources = np.array([0])
+        self.sinks = np.array([4, 5])
+
+        self.ref_paths = np.array([[0, 2, 4, -1],
+                                   [0, 1, 3,  5],
+                                   [0, 1, 5, -1]])
+
+        self.ref_fluxes = np.array([0.5, 0.3, 0.2])
+
+    def testA(self):
+        
+        paths, fluxes = tpt.get_paths(self.sources, self.sinks, self.net_flux)
+
+        npt.assert_array_almost_equal(fluxes, self.ref_fluxes)
+
+        npt.assert_array_equal(paths, self.ref_paths)
+
+        
+    

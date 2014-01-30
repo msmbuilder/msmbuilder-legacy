@@ -30,19 +30,14 @@ from msmbuilder import arglib
 import logging
 logger = logging.getLogger('msmbuilder.scripts.FindPaths')
 
-def run(tprob, A, B, n):
+def run(tprob, sources, sinks, num_paths=np.inf, flux_cutoff=1-1E-10):
 
-    (Paths, Bottlenecks, Fluxes) = tpt.find_top_paths(A, B, tprob, num_paths=n)
+    net_flux = tpt.calculate_net_fluxes(sources, sinks, tprob)
 
-    # We have to pad the paths with -1s to make a square array
-    maxi = 0 # the maximum path length
-    for path in Paths:
-        if len(path) > maxi: maxi = len(path)
-    PaddedPaths = -1 * np.ones( (len(Paths), maxi ) )
-    for i, path in enumerate(Paths):
-        PaddedPaths[i,:len(path)] = np.array(path)
-    
-    return PaddedPaths, np.array(Bottlenecks), np.array(Fluxes)
+    paths, fluxes = tpt.get_paths(sources, sinks, net_flux, 
+        num_paths=num_paths, flux_cutoff=flux_cutoff)
+
+    return paths, fluxes
 
 
 if __name__ == "__main__":
@@ -55,8 +50,11 @@ Returns: an HDF5 file (default: Paths.h5), which contains three items:
 
 Paths.h5 can be read by RenderPaths.py which generates a .dot file capturing these paths.""")
     
-    parser.add_argument('number', help='''Number of pathways you want
-        to retreive''', type=int)
+    parser.add_argument('num_paths', help='''Number of pathways you want
+        to retrieve''', type=int, default=np.inf)
+    parser.add_argument('flux_cutoff', type=float, default=1, 
+        help='''find paths until the percentage of explained flux is 
+        greater than this cutoff (between 0 and 1)''')
     parser.add_argument('tprob', help='Transition probability matrix',
         default='tProb.mtx')
     parser.add_argument('starting', help='''Vector of states in the
@@ -66,23 +64,20 @@ Paths.h5 can be read by RenderPaths.py which generates a .dot file capturing the
     parser.add_argument('output', default='Paths.h5')
     args = parser.parse_args()
     
-    F = np.loadtxt( args.ending ).astype(int)
-    U = np.loadtxt( args.starting ).astype(int)
-    tprob = scipy.io.mmread( args.tprob )
+    arglib.die_if_path_exists(args.output)
+
+    sinks = np.loadtxt(args.ending).astype(int)
+    sources = np.loadtxt(args.starting).astype(int)
+    tprob = scipy.io.mmread(args.tprob)
     
     # deal with case where have single start or end state
     # TJL note: this should be taken care of in library now... keeping it just in case
-    if F.shape == ():
-        tmp = np.zeros(1, dtype=int)
-        tmp[0] = int(F)
-        F = tmp.copy()
-    if U.shape == ():
-        tmp = np.zeros(1, dtype=int)
-        tmp[0] = int(U)
-        U = tmp.copy()
+    if sinks.shape == ():
+        sinks = np.array([sinks])
+    if sources.shape == ():
+        sources = np.array([sources])
     
-    arglib.die_if_path_exists(args.output)
-    paths, bottlenecks, fluxes = run(tprob, U, F, args.number)
+    paths, fluxes = run(tprob, sources, sinks, args.num_paths, args.flux_cutoff)
     
-    msmbuilder.io.saveh(args.output, Paths=paths, Bottlenecks=bottlenecks, fluxes=fluxes)
+    msmbuilder.io.saveh(args.output, paths=paths, fluxes=fluxes)
     logger.info('Saved output to %s', args.output)
