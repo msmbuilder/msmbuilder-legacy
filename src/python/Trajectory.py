@@ -384,7 +384,7 @@ class Trajectory(ConformationBaseClass):
                 add_frame = True
                 if discard_overlapping_frames:
                     if i > 0:
-                        if np.sum(np.abs(c.coords - A["XYZList"][-1])) < 1E-8:
+                        if np.all(np.abs(c.coords - A["XYZList"][-1]) < 2E-3):
                             num_redundant += 1
                             add_frame = False
 
@@ -432,7 +432,7 @@ class Trajectory(ConformationBaseClass):
                 add_frame = True
                 if discard_overlapping_frames:
                     if i > 0:
-                        if np.sum(np.abs(coords - A["XYZList"][-1])) < 1E-8:
+                        if np.all(np.abs(coords - A["XYZList"][-1]) < 2E-3):
                             num_redundant += 1
                             add_frame = False
 
