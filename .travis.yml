@@ -10,26 +10,18 @@ language: c
 install:
     - sudo apt-get update
     - sudo apt-get install -qq libhdf5-serial-dev
-    - sudo apt-get install -qq python-dev
-    - sudo apt-get install -qq python-numpy
-    - sudo apt-get install -qq python-scipy
-    - sudo apt-get install -qq python-setuptools
-    - sudo apt-get install -qq python-nose
-    - sudo apt-get install -qq cython
-    - sudo apt-get install -qq python-numexpr
-    - sudo apt-get install -qq python-tables
-    - sudo apt-get install -qq python-matplotlib
-    - sudo apt-get install -qq swig
-    - sudo apt-get install -qq python-yaml
-    
-    
-    # get some stuff from http://neuro.debian.net/
-    - wget -O- http://neuro.debian.net/lists/precise.us-ca.full | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list
-    - sudo apt-key adv --recv-keys --keyserver pgp.mit.edu 2649A5A9
-    - sudo apt-get update    
-    - sudo apt-get install python-pandas
-    - sudo apt-get install python-statsmodels
-    
+    - sudo apt-get install -qq python-dev python-numpy
+    - sudo apt-get install -qq python-setuptools python-nose
+    - sudo apt-get install -qq python-numexp cython python-tables
+    - sudo apt-get install -qq python-matplotlib swig python-yaml
+
+    - # get a recent scipy
+    - sudo pip install --upgrade pip
+    - sudo pip install -I -U wheel
+    - base_url=http://stanford.edu/~rmcgibbo/wheelhouse/2.7/
+    - PIP_ARGS=" -I --use-wheel --find-links=$base_url/${PYTHON_VERSION}/"
+    - sudo pip install $PIP_ARGS scipy pandas patsy statsmodels
+
     # RMG is not really sure what this line does, but it's critical for multiprocessing 
     # to work in python. see https://github.com/travis-ci/travis-cookbooks/issues/155 and
     # https://github.com/SimTk/msmbuilder/issues/214
