@@ -12,7 +12,7 @@ install:
     - sudo apt-get install -qq libhdf5-serial-dev
     - sudo apt-get install -qq python-dev python-numpy
     - sudo apt-get install -qq python-setuptools python-nose
-    - sudo apt-get install -qq python-numexp cython python-tables
+    - sudo apt-get install -qq python-numexpr cython python-tables
     - sudo apt-get install -qq python-matplotlib swig python-yaml
 
     - # get a recent scipy
