@@ -631,8 +631,15 @@ def _hybrid_kmedoids(metric, ptraj, k=None, distance_cutoff=None, num_iters=10, 
     obj_func = p_norm(distance_to_current, p=norm_exponent)
     max_norm = p_norm(distance_to_current, p='max')
 
+    if not np.all(np.unique(medoids) == np.sort(medoids)):
+        raise ValueError('Initial medoids must be distinct')
+    if not np.all(np.unique(assignments) == np.sorted(medoids)):
+        raise ValueError('Initial assignments dont match initial medoids')
+
     for iteration in xrange(num_iters):
         for medoid_i in xrange(k):
+            if not np.all(np.unique(assignments) == np.sorted(medoids)):
+                raise ValueError('Loop invariant lost')
 
             if local_swap is False:
                 trial_medoid = np.random.randint(num_frames)
@@ -654,6 +661,9 @@ def _hybrid_kmedoids(metric, ptraj, k=None, distance_cutoff=None, num_iters=10, 
             logger.info('Sweep %d, swapping medoid %d (conf %d) for conf %d...', iteration, medoid_i, old_medoid, trial_medoid)
 
             distance_to_trial = metric.one_to_all(ptraj, ptraj, trial_medoid)
+            if not np.all(np.isfinite(distance_to_trial)):
+                raise ValueError('distance metric returned nonfinite distances')
+
             if distance_to_trial[old_medoid] < too_close_cutoff:
                 logger.info('Too close')
                 continue
@@ -666,6 +676,8 @@ def _hybrid_kmedoids(metric, ptraj, k=None, distance_cutoff=None, num_iters=10, 
                                  (distance_to_trial >= distance_to_current))[0]
             for l in ambiguous:
                 d = metric.one_to_all(ptraj, pmedoids, l)
+                if not np.all(np.isfinite(d)):
+                    raise ValueError('distance metric returned nonfinite distances')
                 argmin = np.argmin(d)
                 new_assignments[l] = new_medoids[argmin]
                 new_distances[l] = d[argmin]
