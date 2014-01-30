@@ -197,12 +197,15 @@ class test_Assign(WTempdir):
             '-o', self.td,
             'rmsd', '-a', get('OldAtomIndices.dat', just_filename=True)],
             print_banner=False)
-        #Assign.main(args, metric)
+        if os.getenv('TRAVIS', None) == 'true':
+            raise nose.SkipTest('Skipping test_Assign on TRAVIS')
 
-        #eq(load(pjoin(self.td, 'Assignments.h5')),
-        #   get('assign/Assignments.h5'))
-        #eq(load(pjoin(self.td, 'Assignments.h5.distances')),
-        #   get('assign/Assignments.h5.distances'), decimal=5)
+        Assign.main(args, metric)
+
+        eq(load(pjoin(self.td, 'Assignments.h5')),
+           get('assign/Assignments.h5'))
+        eq(load(pjoin(self.td, 'Assignments.h5.distances')),
+           get('assign/Assignments.h5.distances'), decimal=5)
 
 
 class test_AssignHierarchical(WTempdir):
