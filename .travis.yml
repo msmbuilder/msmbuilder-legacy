@@ -16,7 +16,7 @@ install:
     - sudo apt-get install -qq python-matplotlib swig python-yaml
 
     - # get a recent scipy
-    - sudo pip install --upgrade pip
+    - sudo easy_install -U pip
     - sudo pip install -I -U wheel
     - base_url=http://stanford.edu/~rmcgibbo/wheelhouse/2.7/
     - PIP_ARGS=" -I --use-wheel --find-links=$base_url/${PYTHON_VERSION}/"
