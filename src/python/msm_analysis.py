@@ -34,9 +34,45 @@ logger = logging.getLogger(__name__)
 DisableErrorChecking = False
 
 
+def get_reversible_eigenvectors(t_matrix, n_eigs, populations=None, right=False, **kwargs):
+    """Get the left eigenvalues/eigenvectors of a reversible transition matrix, sorted by
+    eigenvalue magnitude
+
+    Parameters
+    ----------
+    t_matrix : sparse or dense matrix
+         The row-stochastic transition probability matrix
+    n_eigs : int
+        The number of eigenpairs to calculate. The `n_eigs` eigenpairs with the
+        highest eigenvalues will be returned.
+    populations : np.ndarray, optional
+        The equilibrium, stationary distribution of t_matrix. If not supplied,
+        it can be re-computed from `t_matrix`. But this substantially increases
+        the runtime of the routine, so if the stationary distribution is known,
+        it's more efficient to supply it.
+    right : bool, optional
+        The default behavior is to compute the *left* eigenvectors of the
+        transition matrix. This option may be invoked to instead compute the
+        *right* eigenvectors.
+
+    Other Parameters
+    ----------------
+    maxiter : int, optional
+    tol : int, optional
+
+    Notes
+    -----    
+
+    """
+    if populations is None:
+        populations = scipy.sparse.linalg.eigs(t_matrix.T, k=1)[1]
+        populations /= np.sum(populations)
+
+
+
 def get_eigenvectors(t_matrix, n_eigs, epsilon=.001, dense_cutoff=50, right=False, tol=1E-30):
-    """Get the left eigenvectors of a transition matrix, sorted by eigenvalue
-    magnitude
+    """Get the left eigenvalues/eigenvectors of a transition matrix, sorted by
+    eigenvalue magnitude
 
     Parameters
     ----------
