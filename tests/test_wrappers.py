@@ -86,7 +86,7 @@ class test_ConvertDataToHDF(WTempdir):
                              min_length=0,
                              stride=1,
                              rmsd_cutoff=np.inf, atom_indices=None, iext=".xtc")
-        
+
         eq(load(outfn), get('ProjectInfo.yaml'))
 
 
@@ -101,9 +101,9 @@ class test_ConvertDataToHDF_atomindices(WTempdir):
         outfn = pjoin(self.td, 'ProjectInfo.yaml')
         # move to that directory
         os.chdir(self.td)
-        
+
         atom_indices = np.arange(4)
-        
+
         ConvertDataToHDF.run(projectfn=outfn,
                              conf_filename=get('native.pdb', just_filename=True),
                              input_dir=pjoin(self.td, 'XTC'),
@@ -112,7 +112,7 @@ class test_ConvertDataToHDF_atomindices(WTempdir):
                              stride=1,
                              rmsd_cutoff=np.inf,
                              atom_indices=atom_indices, iext=".xtc")
-        
+
         project = load(outfn)
         traj = project.load_conf()
         eq(traj.n_atoms, 4)
@@ -128,7 +128,7 @@ class test_tICA_train(WTempdir):
                        output='tICAtest.h5', min_length=0, stride=1)
 
         ref_tICA = get('tICA_ref_mle.h5')
-    
+
         ref_vals = ref_tICA['vals']
         ref_vecs = ref_tICA['vecs']
         ref_inds = np.argsort(ref_vals)
@@ -165,7 +165,7 @@ class test_Cluster_kcenters(WTempdir):
         assignments = load(pjoin(self.td, 'Assignments.h5'))["arr_0"]
         assignment_counts = np.bincount(assignments.flatten())
         eq(assignment_counts, np.array([2, 2, 2, 2]))
-        
+
         distances = load(pjoin(self.td, 'Assignments.h5.distances'))["arr_0"]
         eq(distances, np.zeros((1,8)))
 
@@ -176,7 +176,7 @@ class test_Cluster_hierarchical(WTempdir):
             import fastcluster
         except ImportError:
             raise nose.SkipTest("Cannot find fastcluster, so skipping hierarchical clustering test.")
-            
+
         args, metric = Cluster.parser.parse_args([
             '-p', get('ProjectInfo.yaml', just_filename=True),
             '-s', '10',
@@ -318,7 +318,7 @@ class test_SaveStructures(WTempdir):
         project = get('ProjectInfo.yaml')
         assignments = get('Assignments.h5')['arr_0']
         which_states = [0, 1, 2]
-        list_of_trajs = project.get_random_confs_from_states(assignments, 
+        list_of_trajs = project.get_random_confs_from_states(assignments,
             which_states, num_confs=2, replacement=True,
             random=np.random.RandomState(42))
 
