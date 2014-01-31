@@ -345,10 +345,11 @@ class Project(object):
     def load_traj(self, trj_index, stride=1, atom_indices=None):
         "Load the a trajectory from disk"
         filename = self.traj_filename(trj_index)
-        return md.load(filename, stride=stride, atom_indices=atom_indices)
+        return md.load(filename, stride=stride, atom_indices=atom_indices, discard_overlapping_frames=True)
 
     def load_chunked_traj(self, trj_index, chunk_size=50000, stride=1, atom_indices=None):
         return md.iterload(self.traj_filename(trj_index), chunk=chunk_size, stride=stride, atom_indices=atom_indices)
+        # does anything use this function?
 
     def load_frame(self, traj_index, frame_index):
         """Load one or more specified frames.
