@@ -1,0 +1,39 @@
+Calculation of Autocorrelation Functions
+========================================
+
+First, suppose we have calculate the left eigenvectors and eigenvalues:
+
+.. math:: T^T \phi_i = \lambda \phi_i
+
+Suppose that :math:`\pi` is the equilibrium population. Then, we can
+normalize the eigenvectors such that:
+
+.. math:: \phi_i^T \pi^{-1} \phi_j = \delta_{ij}
+
+Above, we denote :math:`\pi^{-1}` to be a diagonal matrix with elements
+:math:`\pi_i^{-1}`.
+
+The autocorrelation function of the observable :math:`f_i` can be
+denoted:
+
+.. math:: E(f(z_t) f(z_0)) = \sum_{i,j} f_i P(z_0 = i) f_j P(z_t = j | z_0 = i) = \sum_{i,j} f_i  f_j \pi_i T_{ij} =
+
+We know that
+
+.. math:: T_{ab}(t) = \sum_k \lambda_k(t) (\psi_k)_a (\phi_k)_b = \sum_k \lambda_k(t) (\pi_a)^{-1} (\phi_k)_a (\phi_k)_b
+
+Thus,
+
+.. math:: E(f(z_t) f(z_0)) = \sum_{i,j,k} f_i f_j \lambda_k(t) (\phi_k)_i (\phi_k)_j = \sum_k \lambda_k(t) s_k^2
+
+Where
+
+.. math:: s_k = \sum_i f_i (\phi_k)_i
+
+Finally, note that :math:`\lambda_i(\infty) = \delta_{i0}`, so the
+long-timescale behavior is simply:
+
+.. math:: E(f(z_\infty) f(z_0)) = s_0^2
+
+For most applications, one is interested in the zero-centered ACF, so we
+simply skip the :math:`k = 0` term in the summation.

@@ -16,7 +16,6 @@ import numpy as np
 import scipy
 from scipy import io
 
-from msmbuilder import Trajectory
 from msmbuilder import cfep
 from msmbuilder.testing import get
 

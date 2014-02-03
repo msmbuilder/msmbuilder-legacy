@@ -1,17 +1,26 @@
 #!/usr/bin/env python
-import sys, os
+##############################################################################
+# imports
+##############################################################################
+
+import sys
+import os
 import numpy as np
 
 #from msmbuilder import arglib
 import argparse
-from msmbuilder import Trajectory
 from msmbuilder import arglib
 from msmbuilder.assigning import assign_with_checkpoint
 from msmbuilder import metrics
 from msmbuilder import Project
 import logging
-logger = logging.getLogger('msmbuilder.scripts.Assign')
+import mdtraj as md
 
+##############################################################################
+# Globals
+##############################################################################
+
+logger = logging.getLogger('msmbuilder.scripts.Assign')
 parser = arglib.ArgumentParser(description="""
 Assign data that were not originally used in the clustering (because of
 striding) to the microstates. This is applicable to all medoid-based clustering
@@ -27,25 +36,26 @@ Assignments.h5 contains the assignment of each frame of each trajectory to a
 microstate in a rectangular array of ints. Assignments.h5.distances is an 
 array of real numbers of the same dimension containing the distance (according 
 to whichever metric you choose) from each frame to to the medoid of the 
-microstate it is assigned to.""", get_metric=True)#, formatter_class=argparse.RawDescriptionHelpFormatter)
+microstate it is assigned to.""", get_metric=True)  # , formatter_class=argparse.RawDescriptionHelpFormatter)
 
-parser.add_argument( 'project')
+parser.add_argument('project')
 parser.add_argument( dest='generators', help='''Output trajectory file containing
     the structures of each of the cluster centers. Note that for hierarchical clustering
     methods, this file will not be produced.''', default='Data/Gens.lh5')
-parser.add_argument( 'output_dir' )
+parser.add_argument('output_dir')
+
 
 def main(args, metric):
     assignments_path = os.path.join(args.output_dir, "Assignments.h5")
     distances_path = os.path.join(args.output_dir, "Assignments.h5.distances")
 
-    #arglib.die_if_path_exists(args.output_dir)
+    # arglib.die_if_path_exists(args.output_dir)
     if not os.path.exists(args.output_dir):
         os.mkdir(args.output_dir)
 
     project = Project.load_from(args.project)
-    gens = Trajectory.load_trajectory_file(args.generators)
-    
+    gens = md.load(args.generators)
+
     if isinstance(metric, metrics.RMSD):
         # this is really bad design, and we're going to fix it soon in
         # MSMBuilder3, but here's the deal. When Cluster.py loads up the
@@ -56,7 +66,7 @@ def main(args, metric):
         # the trajectories on disk, but we need to NOT perform a restricted
         # load of the gens.lh5 file. (By restricted load, I mean loading
         # only a subset of the data in the file)
-        if gens['XYZList'].shape[1] != len(metric.atomindices):
+        if gens.n_atoms != len(metric.atomindices):
             msg = ('Using RMSD clustering/assignment, this script expects '
                    'that the Cluster.py script saves a generators file that '
                    'only contains the indices of the atoms of interest, and '
@@ -64,10 +74,9 @@ def main(args, metric):
                    'not used for clustering. But you supplied %d cluster '
                    'centers each containg %d atoms. Your atom indices file '
                    'on the other hand contains %d atoms') \
-                    % (gens['XYZList'].shape[0], gens['XYZList'].shape[1],
-                       len(metric.atomindices))
+                % (gens.xyz.shape[0], gens.xyz.shape[1],
+                   len(metric.atomindices))
             raise ValueError(msg)
-
 
         # now that we're telling the assign function only to load up a
         # subset of the atoms, an the generator is already only a subset,
@@ -78,10 +87,10 @@ def main(args, metric):
         metric.atomindices = None
         # this runs assignment and prints them to disk
         assign_with_checkpoint(metric, project, gens, assignments_path,
-            distances_path, atom_indices_to_load=atom_indices)
+                               distances_path, atom_indices_to_load=atom_indices)
     else:
         assign_with_checkpoint(metric, project, gens, assignments_path,
-            distances_path)
+                               distances_path)
 
     logger.info('All Done!')
 

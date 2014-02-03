@@ -7,7 +7,7 @@
 \usepackage{graphicx}
 \usepackage{subfigure}
 \title
-{MSMBuilder 2.6 Tutorial
+{MSMBuilder 2.8 Tutorial
 }
 
 \author{Kyle Beauchamp \and TJ Lane \and Greg Bowman \and  Robert McGibbon \and Christian Schwantes \and Vijay Pande}
@@ -29,11 +29,19 @@
 
 \section{Installation}
 
-\subsection{Prerequisites}
+\subsection{General Prerequisites}
 \begin{itemize}
-\item CPU with SSE3 support.
-\item GCC 4.2 or later (with OpenMP support)
+\item CPU with SSE3 support \begin{itemize} \item Standard on all x86 processors produced after 2005 \end{itemize}
+\item Working C compiler \begin{itemize} \item GCC 4.2 or later, clang, or MSVC \end{itemize}
 \item Python
+\item Some familiarity with the command line environment.
+\end{itemize}
+
+\subsection{Python Prerequisites}
+MSMBuilder is written in the python programming language, and uses a variety
+of tools from the wider scientific python ecosystem, which may need to be installed separately. They include
+\begin{itemize}
+\item MDTraj
 \item Numpy
 \item Scipy
 \item PyTables
@@ -43,33 +51,39 @@
 \item ipython (optional for interactive mode)
 \item pymol (optional for visualization)
 \end{itemize}
-Note that the Enthought Python Distribution contains most of these prerequisites and provides an easy way to facilitate installation.  Note that EPD free does \emph{not} contain all the required prerequisites, but the full or academic versions do.  
+
+Two companies, Enthought and Continuum Analytics, produce python distributions which bundle many of these packages in with the python interpreter into a single binary installer, available for all major operating systems. These are the Enthought Canopy python distribution and Continuum's Anaconda.
 
 \subsection{Install Python and Python Packages}
 
-Rather than individually install the many python dependencies, we recommend that you download the Python2.7 version of the Enthought Python Distribution, which contains almost all (except fastcluster) python dependencies required to run MSMBuilder.  Please use the 64 bit versions, as this will give higher performance in our RMSD code.
+Rather than individually install the many python dependencies, we recommend that you download the Python2.7 version of the Enthought Canopy or Continuum Anaconda, which contain almost all python dependencies required to run MSMBuilder. If you have a 64 bit platform, please use the 64 bit versions, as this will give higher performance.
 
 Note for OSX users: Enthought represents the easiest way to obtain a working Python installation.  The OSX system Python install is broken and cannot properly build Python extensions, which are required for MSMBuilder installation.  Also, see FAQ question 11 for a known issue with OSX Lion and OpenMP.  
 
-Note: please use a 64 bit version of python (and thus of MSMBuilder).  On certain systems (OSX Lion), 32 bit builds have experienced crashes in the RMSD / Clustering code.
-
-Note: if you are unable to use Enthought, there are other pre-compiled Python distributions available, although they might not be as fast as Enthought.  Options include Python(x,y) and the Scipy Superpack (OSX).  Finally, most Linux users can install most prerequisites using their package manager.  In Ubuntu, the following will install most of the prerequisites:
+Note: if you are unable to use Canopy or Anaconda, there are other pre-compiled Python distributions available, although they might not be as fast as Enthought.  Options include Python(x,y) and the Scipy Superpack (OSX).  Finally, most Linux users can install most prerequisites using their package manager.  In Ubuntu, the following will install most of the prerequisites:
 
 \begin{verbatim}
-sudo apt-get install libhdf5-serial-dev python-dev python-numpy \
+$ sudo apt-get install libhdf5-serial-dev python-dev python-numpy \
 python-scipy python-setuptools python-nose python-tables \
 python-matplotlib python-yaml swig ipython
 \end{verbatim}
 
+Neither Canopy nor Anaconda include MDTraj, a library for loading and manipulating molecular dynamics trajectories. For details on MDTraj, visit its
+documentation at \url{http://rmcgibbo.github.io/mdtraj/}. Once you've installed
+python, the remaining dependencies can be installed using python's package manager, \texttt{pip}.
+
+\begin{verbatim}
+$ pip install -r requirements.txt
+\end{verbatim}
 
 \subsection{Download and Install MSMBuilder}
 
 Download MSMBuilder, unzip, move to the msmbuilder directory.  Install using setup.py:
 \begin{verbatim}
-python setup.py install
+$ python setup.py install
 \end{verbatim}
 
-You may need root privileges during the install step; alternatively, you can specify an alternative install path via --prefix=XXX.  If you performed the install step with “--prefix=XXX”, you need to ensure that
+You may need root privileges during the install step; alternatively, you can specify an alternative install path via \texttt{--prefix=XXX}. If you performed the install step with \texttt{--prefix=XXX}, you need to ensure that
 \begin{enumerate}
  \item XXX/bin is included in your PATH
  \item XXX/lib/python2.7/site-packages/ is included in your PYTHONPATH
@@ -85,11 +99,11 @@ Step (1) ensures that you can run MSMBuilder scripts without specifying their lo
 MSMBuilder has been designed to provide both ease of use and versatility.  To facilitate the workflows of both novices and experts, we have designed MSMBuilder with two modes of operations:
 
 \begin{enumerate}
-\item MSMBuilder is a set of python scripts.  
+\item MSMBuilder is a set of python scripts.
 \item MSMBuilder is a library.
 \end{enumerate}
 
-Python scripts allow most users to work without writing a single line of Python code.  Advanced users can write their own Python scripts using the MSMBuilder library.  Using MSMBuilder as a library is further described in the MSMBuilder Scripting Guide; we recommend that users first master the script interface before jumping into the library.  
+Python scripts allow most users to work without writing a single line of Python code.  Advanced users can write their own Python scripts using the MSMBuilder library.  Using MSMBuilder as a library is further described in the MSMBuilder Scripting Guide; we recommend that users first master the script interface before jumping into the library.
 
 \newpage
 
@@ -117,12 +131,12 @@ Finally, in this tutorial we assume that you have installed pymol for viewing co
 
 \subsubsection{Move to tutorial directory, prepare trajectories}
 \begin{verbatim}
-cd Tutorial 
+$ cd Tutorial 
 \end{verbatim}
 
 \subsubsection{Create an MSMBuilder Project}
 \begin{verbatim}
-ConvertDataToHDF.py  -s native.pdb -i XTC
+$ msmb ConvertDataToHDF  -s native.pdb -i XTC
 \end{verbatim}
 
 \subsubsection{Cluster your data}
@@ -130,7 +144,7 @@ ConvertDataToHDF.py  -s native.pdb -i XTC
 The following command clusters your data using the RMSD metric using a hybrid k-centers k-medoids approach.  K-centers clustering continues until the intercluster distance (-d) is 0.045 nm.  At that point, 50 iterations (-l) of hybrid k-medoids are performed to refine those clusters.
 
 \begin{verbatim}
-Cluster.py rmsd hybrid -d 0.045 -l 50
+$ msmb Cluster rmsd hybrid -d 0.045 -l 50
 \end{verbatim}
 
 After clustering, one must assign the data to the clusters.  For the clustering settings used above, this happens automatically, so you will not need to run a separate assignment step.  For other clustering protocols, you may need to run Assign.py or AssignHierarchical.py after the clustering phase.  
@@ -146,13 +160,13 @@ Note that other clustering protocols (e.g. Ward's algorithm) often leads to impr
 \subsubsection{Validate microstate model with relaxation timescales.}
 We calculate the relaxation timescales for a sequence of lagtimes $\{1, 2, ..., 25\}$:
 \begin{verbatim}
-CalculateImpliedTimescales.py -l 1,25 -i 1 -o Data/ImpliedTimescales.dat
+$ msmb CalculateImpliedTimescales -l 1,25 -i 1 -o Data/ImpliedTimescales.dat
 \end{verbatim}
 
 Next, we use python to plot the results, specifying the lagtime between frames (1 ps):  
 
 \begin{verbatim}
-PlotImpliedTimescales.py -d 1. -i Data/ImpliedTimescales.dat
+$ msmb PlotImpliedTimescales -d 1. -i Data/ImpliedTimescales.dat
 \end{verbatim}
 
 \begin{figure}
@@ -165,7 +179,7 @@ PlotImpliedTimescales.py -d 1. -i Data/ImpliedTimescales.dat
 The plotted relaxation timescales suggest that the three slow timescales are reasonable flat at a lagtime of 3 timesteps [ps].  Thus, we construct an MSM using that lagtime:
 
 \begin{verbatim}
-BuildMSM.py -l 3 
+$ msmb BuildMSM -l 3 
 \end{verbatim}
 
 At this point, MSMBuilder has written the following files into your ./Data/ directory:
@@ -194,13 +208,13 @@ Spectral clustering methods such as PCCA+  \cite{Deuflhard2000, Deuflhard2005, k
 First, we need to construct a microstate model with a short lagtime.  The short lagtime is necessary because PCCA+ tries to create macrostates that are long-lived, or metastable.  At long lagtimes, states become less and less metastable.
 
 \begin{verbatim}
- BuildMSM.py -l 1 -o L1
+$ msmb BuildMSM -l 1 -o L1
 \end{verbatim}
 
 Our previous examination of the relaxation timescales suggested that there were 3 slow processes, so we choose to build a model with 4 macroscopic states.  
 
 \begin{verbatim}
-PCCA.py -n 4 -a L1/Assignments.Fixed.h5 -t L1/tProb.mtx -o Macro4/ -A PCCA+
+$ msmb PCCA -n 4 -a L1/Assignments.Fixed.h5 -t L1/tProb.mtx -o Macro4/ -A PCCA+
 \end{verbatim}
 
 \subsubsection{Examining the macrostate decomposition}
@@ -208,13 +222,13 @@ PCCA.py -n 4 -a L1/Assignments.Fixed.h5 -t L1/tProb.mtx -o Macro4/ -A PCCA+
 It is known that the relevant degrees of freedom for alanine dipeptide are the phi and psi backbone angles.  Thus, it is useful to examine (phi,psi). This data has been pre-calculated and is stored in Dihedrals.h5, or you can compute it via
 
 \begin{verbatim}
-python GetDihedrals.py --pdb native.pdb -a Macro4/MacroAssignments.h5 -n 1000
+$ python GetDihedrals.py --pdb native.pdb -a Macro4/MacroAssignments.h5 -n 1000
 \end{verbatim}
 
 This will sample up to 1000 conformations from each macrostate. To sample all macrostates, use -n -1. We then visualize the data.
 
 \begin{verbatim}
-python PlotDihedrals.py Dihedrals.h5
+$ python PlotDihedrals.py Dihedrals.h5
 \end{verbatim}
 
 You should see something like the following graph (our clustering and PCCA+ code both perform randomized searches, so your plot may appear slightly different):
@@ -237,10 +251,10 @@ In general, PCCA and PCCA+ are best applied to capturing long-lived, metastable 
 \subsubsection{Calculate Macrostate Implied Timescales}
 
 \begin{verbatim}
-CalculateImpliedTimescales.py -l 1,25 -i 1 \
+$ msmb CalculateImpliedTimescales -l 1,25 -i 1 \
 -o Macro4/ImpliedTimescales.dat -a Macro4/MacroAssignments.h5 -e 3
 
-PlotImpliedTimescales.py -i Macro4/ImpliedTimescales.dat -d 1
+$ msmb PlotImpliedTimescales -i Macro4/ImpliedTimescales.dat -d 1
 \end{verbatim}
 
 Occasionally, PCCA+ will lead to poor macrostates, so it is important to verify that:
@@ -268,7 +282,7 @@ Because macrostate models typically have a handful of states, it is easy for hum
 is to save randomly selected conformations from each state, then view them in Pymol (or VMD):
 
 \begin{verbatim}
-SaveStructures.py -s -1 -f pdb -S sep -a Macro4/MacroAssignments.h5
+$ msmb SaveStructures -s -1 -f pdb -S sep -a Macro4/MacroAssignments.h5
 pymol PDBs/State0-0.pdb PDBs/State1-0.pdb PDBs/State2-0.pdb PDBs/State3-0.pdb
 \end{verbatim}
 
@@ -282,15 +296,13 @@ pymol PDBs/State0-0.pdb PDBs/State1-0.pdb PDBs/State2-0.pdb PDBs/State3-0.pdb
 
 \newpage
 
-\subsection{MSMBuilder Scripts}
+\subsection{MSMBuilder Commands}
 
-The MSMBuilder scripts are listed below.  Each script below provides instructions by running with the -h flag.  Note that the installer (setup.py) should have installed each script below to someplace in your PATH.  
+The MSMBuilder commands are listed below. Each command corresponds to a single scrip that can be called either through \texttt{msmb} or on its own. Each command also provides instructions by running with the -h flag (e.g. \texttt{msmb Cluster -h} or \texttt{Cluster.py -h}). Note that the installer (setup.py) should have installed each script below to someplace in your PATH.
 
 \subsubsection{ConvertDataToHDF.py}
 
-Merges sequences of XTC or DCD files into HDF5 files that MSMB2 can read quickly.  Takes data from a directory of trajectory directories or a FAH-style filesystem.  
-
-Note: if you wish to convert a pre-existing MSMBuilder1 project, use UpdateProjectToHDF5.py 
+Merges sequences of XTC or DCD files into HDF5 files that MSMB2 can read quickly.  Takes data from a directory of trajectory directories or a FAH-style filesystem.
 
 \subsubsection{CreateAtomIndices.py}
 Selects atom indices you care about and dumps them into a flat text file. Can select all non-symmetric atoms, all heavy atoms, all alpha carbons, or all atoms.

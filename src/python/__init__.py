@@ -41,8 +41,4 @@ formatter = logging.Formatter(fmt='%(asctime)s - %(message)s', datefmt="%H:%M:%S
 sh.setFormatter(formatter)
 logger.addHandler(sh)
 logger.propagate = False
-
-import PDB
-from Trajectory import Trajectory
-from Conformation import Conformation
 from project import Project

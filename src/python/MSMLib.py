@@ -29,6 +29,26 @@ MSMLib functions generally relate to one of the following
 * Constructing a transition matrix from a count matrix.
 * Performing calculations with Assignments, Counts matrices, or transition matrices.
 
+.. currentmodule:: msmbuilder.MSMLib
+.. autosummary::
+    :toctree: generated/
+
+    apply_mapping_to_assignments
+    apply_mapping_to_vector
+    build_msm
+    ergodic_trim
+    ergodic_trim_indices
+    estimate_rate_matrix
+    estimate_transition_matrix
+    get_count_matrix_from_assignments
+    get_counts_from_traj
+    invert_assignments
+    log_likelihood
+    mle_reversible_count_matrix
+    permute_mat
+    renumber_states
+    tarjan
+    trim_states
 """
 import warnings
 import scipy.sparse
@@ -41,6 +61,13 @@ from msmbuilder.utils import deprecated, check_assignment_array_input
 from msmbuilder import msm_analysis
 import logging
 logger = logging.getLogger(__name__)
+__all__ = ['apply_mapping_to_assignments', 'apply_mapping_to_vector', 'build_msm',
+           'ergodic_trim', 'ergodic_trim_indices',  'estimate_rate_matrix',
+           'estimate_transition_matrix',  'get_count_matrix_from_assignments',
+           'get_counts_from_traj',  'invert_assignments',  'log_likelihood',
+           'mle_reversible_count_matrix', 'permute_mat',
+           'renumber_states', 'tarjan', 'trim_states']
+
 
 
 def estimate_rate_matrix(count_matrix, assignments):
@@ -143,7 +170,7 @@ def build_msm(counts, symmetrize='MLE', ergodic_trimming=True):
 
     Parameters
     ----------
-    counts : matrix
+    counts : scipy.sparse.csr_matrix
         the MSM counts matrix
     symmetrize : {'MLE', 'Transpose', None}
         symmetrization scheme so that we have reversible counts
@@ -460,13 +487,13 @@ def renumber_states(assignments):
     mapping = np.array(unique, dtype=int)
     return mapping
 
-
+@deprecated(scipy.sparse.csgraph.connected_components, '2.8')
 def tarjan(graph):
     """Find the strongly connected components in a graph using Tarjan's algorithm.
 
     Parameters
     ----------
-    graph : dict
+    graph : scipy.sparse.csr_matrix
         mapping from node names to lists of successor nodes.
 
     Returns
@@ -570,43 +597,18 @@ def ergodic_trim(counts, assignments=None):
     Tarjan
 
     """
+    states_to_trim = ergodic_trim_indices(counts)
+    trimmed_counts = trim_states(states_to_trim, counts, assignments=assignments)
 
-    # -------------------------------------------------------------------------
-    # TJL sez:
-    # This function could be simply replaced by the following code at a date
-    # in the not-so-distant future:
-    #
-    # states_to_trim = ergodic_trim_indices(counts)
-    # trimmed_counts = trim_states(states_to_trim, counts, assignments=None)
-    # return trimmed_counts
-    #
-    # -------------------------------------------------------------------------
+    # Hacky way to calculate the mapping of saved / discarded states.
+    mapping = np.array([np.arange(counts.shape[0])])  # Need 2D shape for renumber_states.
+    mapping[:, states_to_trim] = -1
+    renumber_states(mapping)  # renumbers into contiguous order, in-place
+    mapping = mapping[0]  # Unpack the 2D array into a 1D array.  
 
-    NZ = np.array(counts.nonzero()).transpose()
-
-    ConnectedComponents = tarjan(counts)
-    PiSym = np.array(counts.sum(0)).flatten()
-    ComponentPops = np.array([sum(PiSym[np.array(x)]) for x in ConnectedComponents])
-    ComponentInd = np.argmax(ComponentPops)
-
-    logger.info("Selected component %d with population %f", ComponentInd, ComponentPops[ComponentInd] / ComponentPops.sum())
-
-    GoodComponent = np.unique(ConnectedComponents[ComponentInd])
-
-    Mapping = np.zeros(counts.shape[0], dtype='int') - 1
-    for i, x in enumerate(GoodComponent):
-        Mapping[x] = i
-
-    NZ[:, 0] = Mapping[NZ[:, 0]]
-    NZ[:, 1] = Mapping[NZ[:, 1]]
-
-    Ind = np.where(NZ.min(1) != -1)
-    X = scipy.sparse.csr_matrix((counts.data[Ind], NZ[Ind].transpose()))
-
-    if assignments is not None:
-        apply_mapping_to_assignments(assignments, Mapping)
-
-    return (X, Mapping)
+    
+    
+    return trimmed_counts, mapping
 
 
 def ergodic_trim_indices(counts):
@@ -629,15 +631,15 @@ def ergodic_trim_indices(counts):
     trim_states : func
     """
 
-    ConnectedComponents = tarjan(counts)
-    PiSym = np.array(counts.sum(0)).flatten()
-    ComponentPops = np.array([sum(PiSym[np.array(x)]) for x in ConnectedComponents])
-    ComponentInd = np.argmax(ComponentPops)
 
-    logger.info("Selected component %d with population %f", ComponentInd, ComponentPops[ComponentInd] / ComponentPops.sum())
+    n_components, component_assignments = scipy.sparse.csgraph.connected_components(counts, connection="strong")
+    populations_symmetrized = np.array(counts.sum(0)).flatten()
+    component_pops = np.array([populations_symmetrized[component_assignments == i].sum() for i in range(n_components)])
+    which_component = component_pops.argmax()
 
-    states_to_keep = np.unique(ConnectedComponents[ComponentInd])
-    states_to_trim = np.setdiff1d(np.arange(counts.shape[0]), states_to_keep)
+    logger.info("Selected component %d with population %f", which_component, component_pops[which_component] / component_pops.sum())
+
+    states_to_trim = np.arange(counts.shape[0])[component_assignments != which_component]
 
     return states_to_trim
 
@@ -645,7 +647,7 @@ def ergodic_trim_indices(counts):
 def trim_states(states_to_trim, counts, assignments=None):
     """
     Performs the necessary operations to reduce an MSM to a subset of the
-    orignial states -- effectively trimming those states out.
+    original states -- effectively trimming those states out.
 
     Parameters
     ----------
@@ -687,9 +689,12 @@ def trim_states(states_to_trim, counts, assignments=None):
 
     if assignments is not None:
 
-        mapping = np.arange(counts.shape[0])
+        mapping = np.arange(counts.shape[0] + ndel)  # Use the ORIGINAL number of states! Re bug #300
         mapping[states_to_trim] = -1
+        
+        mapping = np.array([mapping])  # renumber_states requires rank 2 input, not rank 1.  Re bug #300
         renumber_states(mapping)  # renumbers into contiguous order, in-place
+        mapping = mapping[0]  # Unpack the 2D array into a 1D array.  Re bug #300
 
         trimmed_assignments = assignments.copy()
         apply_mapping_to_assignments(trimmed_assignments, mapping)  # in-place
@@ -1187,109 +1192,3 @@ class __Reversible_MLE_Estimator__():
         if info_dict["warnflag"] != 0:
             logger.warn("Abnormal termination of BFGS likelihood maximization.  Error code %d" % info_dict["warnflag"])
         return X
-
-
-######################################################################
-#  ALIASES FOR DEPRECATED FUNCTION NAMES
-#  THESE FUNCTIONS WERE ADDED FOR VERSION 2.6 AND
-#  CAN BE REMOVED IN VERSION
-######################################################################
-@deprecated(msm_analysis.is_transition_matrix, '2.7')
-def IsTransitionMatrix():
-    pass
-
-
-@deprecated(msm_analysis.are_all_dimensions_same, '2.7')
-def AreAllDimensionsSame():
-    pass
-
-
-@deprecated(msm_analysis.check_dimensions, '2.7')
-def CheckDimensions():
-    pass
-
-
-@deprecated(msm_analysis.check_transition, '2.7')
-def CheckTransition():
-    pass
-
-
-@deprecated(get_counts_from_traj, '2.7')
-def GetTransitionCountMatrixSparse():
-    pass
-
-
-@deprecated(estimate_rate_matrix, '2.7')
-def EstimateRateMatrix():
-    pass
-
-
-@deprecated(estimate_transition_matrix, '2.7')
-def EstimateTransitionMatrix():
-    pass
-
-
-@deprecated(msm_analysis.check_for_bad_eigenvalues, '2.7')
-def CheckForBadEigenvalues():
-    pass
-
-
-@deprecated(msm_analysis.get_eigenvectors, '2.7')
-def GetEigenvectors():
-    pass
-
-
-@deprecated(msm_analysis.get_implied_timescales, '2.7')
-def GetImpliedTimescales():
-    pass
-
-
-@deprecated(get_count_matrix_from_assignments, '2.7')
-def GetCountMatrixFromAssignments():
-    pass
-
-
-@deprecated(msm_analysis.sample, '2.7')
-def Sample():
-    pass
-
-
-@deprecated(msm_analysis.propagate_model, '2.7')
-def PropagateModel():
-    pass
-
-
-@deprecated(apply_mapping_to_assignments, '2.7')
-def ApplyMappingToAssignments():
-    pass
-
-
-@deprecated(apply_mapping_to_vector, '2.7')
-def ApplyMappingToVector():
-    pass
-
-
-@deprecated(ergodic_trim, '2.7')
-def ErgodicTrim():
-    pass
-
-
-@deprecated(mle_reversible_count_matrix, '2.7')
-def EstimateReversibleCountMatrix():
-    pass
-
-
-@deprecated(log_likelihood, '2.7')
-def logLikelihood():
-    pass
-
-
-@deprecated(renumber_states, '2.7')
-def RenumberStates():
-    pass
-
-
-def GetEigenvectors_Right(*args, **kwargs):
-    warnings.warn('GetEigenvectors_Right is deprecated use get_eigenvectors() with the keyword Right=True')
-    kwargs['right'] = True
-    return msm_analysis.get_eigenvectors(*args, **kwargs)
