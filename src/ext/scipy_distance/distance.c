@@ -346,7 +346,9 @@ void pdist_mahalanobis(const double *X, const double *covinv,
   double *it;
   double *dimbuf1, *dimbuf2;
 
+#ifdef _OMP
   #pragma omp parallel shared(X, m, n, dm, covinv) private(dimbuf1, dimbuf2, u,v,it,i,j)
+#endif
   {
     dimbuf1 = (double*)malloc(sizeof(double) * 2 * n);
     if (dimbuf1 == NULL) {
@@ -354,11 +356,17 @@ void pdist_mahalanobis(const double *X, const double *covinv,
     }
     
     dimbuf2 = dimbuf1 + n;
+#ifdef _OMP
     #pragma omp for
+#endif
     for (i = 0; i < m; i++) {
+#ifdef _OMP
       #pragma omp parallel shared(i, X, m, n, dm, covinv)
+#endif
       {
+#ifdef _OMP
         #pragma omp for
+#endif
         for (j = i + 1; j < m; j++) {
           u = X + (n * i);
           v = X + (n * j);
@@ -670,7 +678,9 @@ void cdist_euclidean(const double *XA,
   int i, j;
   const double *u, *v;
   double *it = dm;
+#ifdef _OMP
   #pragma omp parallel for default(none) shared(XA, XB, mA, mB, n, dm) private(u, v, it, j)
+#endif
   for (i = 0; i < mA; i++) {
     for (j = 0; j < mB; j++) {
       it = dm + i + j;
@@ -689,7 +699,9 @@ void cdist_mahalanobis(const double *XA,
   const double *u, *v;
   double *it = dm;
   double *dimbuf1, *dimbuf2;
+#ifdef _OMP
   #pragma omp parallel for default(none) shared(XA, XB, mA, mB, n, dm,  covinv) private(u, v, it, j, dimbuf1, dimbuf2)
+#endif
   for (i = 0; i < mA; i++) {
     dimbuf1 = (double*)malloc(sizeof(double) * 2 * n);
     dimbuf2 = dimbuf1 + n;
@@ -709,7 +721,9 @@ void cdist_bray_curtis(const double *XA, const double *XB,
   int i, j;
   const double *u, *v;
   double *it = dm;
+#ifdef _OMP
   #pragma omp parallel for default(none) shared(XA, XB, mA, mB, n, dm) private(u, v, it, j)
+#endif
   for (i = 0; i < mA; i++) {
     for (j = 0; j < mB; j++) {
       it = dm + i + j;
@@ -725,7 +739,9 @@ void cdist_canberra(const double *XA,
   int i, j;
   const double *u, *v;
   double *it = dm;
+#ifdef _OMP
   #pragma omp parallel for default(none) shared(XA, XB, mA, mB, n, dm) private(u, v, it, j)
+#endif
   for (i = 0; i < mA; i++) {
     for (j = 0; j < mB; j++) {
       it = dm + i + j;
@@ -741,7 +757,9 @@ void cdist_hamming(const double *XA,
   int i, j;
   const double *u, *v;
   double *it = dm;
+#ifdef _OMP
   #pragma omp parallel for default(none) shared(XA, XB, mA, mB, n, dm) private(u, v, it, j)
+#endif
   for (i = 0; i < mA; i++) {
     for (j = 0; j < mB; j++) {
       it = dm + i + j;
@@ -757,7 +775,9 @@ void cdist_hamming_bool(const char *XA,
   int i, j;
   const char *u, *v;
   double *it = dm;
+#ifdef _OMP
   #pragma omp parallel for default(none) shared(XA, XB, mA, mB, n, dm) private(u, v, it, j)
+#endif
   for (i = 0; i < mA; i++) {
     for (j = 0; j < mB; j++) {
       it = dm + i + j;
@@ -773,7 +793,9 @@ void cdist_jaccard(const double *XA,
   int i, j;
   const double *u, *v;
   double *it = dm;
+#ifdef _OMP
   #pragma omp parallel for default(none) shared(XA, XB, mA, mB, n, dm) private(u, v, it, j)
+#endif
   for (i = 0; i < mA; i++) {
     for (j = 0; j < mB; j++) {
       it = dm + i + j;
@@ -789,7 +811,9 @@ void cdist_jaccard_bool(const char *XA,
   int i, j;
   const char *u, *v;
   double *it = dm;
+#ifdef _OMP
   #pragma omp parallel for default(none) shared(XA, XB, mA, mB, n, dm) private(u, v, it, j)
+#endif
   for (i = 0; i < mA; i++) {
     for (j = 0; j < mB; j++) {
       it = dm + i + j;
@@ -806,7 +830,9 @@ void cdist_chebyshev(const double *XA,
   int i, j;
   const double *u, *v;
   double *it = dm;
+#ifdef _OMP
   #pragma omp parallel for default(none) shared(XA, XB, mA, mB, n, dm) private(u, v, it, j)
+#endif
   for (i = 0; i < mA; i++) {
     for (j = 0; j < mB; j++) {
       it = dm + i + j;
@@ -823,7 +849,9 @@ void cdist_cosine(const double *XA,
   int i, j;
   const double *u, *v;
   double *it = dm;
+#ifdef _OMP
   #pragma omp parallel for default(none) shared(XA, XB, mA, mB, n, dm, normsA, normsB) private(u, v, it, j)
+#endif
   for (i = 0; i < mA; i++) {
     for (j = 0; j < mB; j++) {
       it = dm + i + j;
@@ -841,7 +869,9 @@ void cdist_seuclidean(const double *XA,
   int i, j;
   const double *u, *v;
   double *it = dm;
+#ifdef _OMP
   #pragma omp parallel for default(none) shared(XA, XB, mA, mB, n, dm, var) private(u, v, it, j)
+#endif
   for (i = 0; i < mA; i++) {
     for (j = 0; j < mB; j++) {
       it = dm + i + j;
@@ -856,7 +886,9 @@ void cdist_city_block(const double *XA, const double *XB, double *dm, int mA, in
   int i, j;
   const double *u, *v;
   double *it = dm;
+#ifdef _OMP
   #pragma omp parallel for default(none) shared(XA, XB, mA, mB, n, dm) private(u, v, it, j)
+#endif
   for (i = 0; i < mA; i++) {
     /*it = dm + i;*/
     for (j = 0; j < mB; j++) {
@@ -872,7 +904,9 @@ void cdist_minkowski(const double *XA, const double *XB, double *dm, int mA, int
   int i, j;
   const double *u, *v;
   double *it = dm;
+#ifdef _OMP
   #pragma omp parallel for default(none) shared(XA, XB, mA, mB, n, dm, p) private(u, v, it, j)
+#endif
   for (i = 0; i < mA; i++) {
     for (j = 0; j < mB; j++) {
       it = dm + i + j;
@@ -887,7 +921,9 @@ void cdist_weighted_minkowski(const double *XA, const double *XB, double *dm, in
   int i, j;
   const double *u, *v;
   double *it = dm;
+#ifdef _OMP
   #pragma omp parallel for default(none) shared(XA, XB, mA, mB, n, dm, w, p) private(u, v, it, j)
+#endif
   for (i = 0; i < mA; i++) {
     for (j = 0; j < mB; j++) {
       it = dm + i + j;
@@ -902,7 +938,9 @@ void cdist_yule_bool(const char *XA, const char *XB, double *dm, int mA, int mB,
   int i, j;
   const char *u, *v;
   double *it = dm;
+#ifdef _OMP
   #pragma omp parallel for default(none) shared(XA, XB, mA, mB, n, dm) private(u, v, it, j)
+#endif
   for (i = 0; i < mA; i++) {
     for (j = 0; j < mB; j++) {
       it = dm + i + j;
@@ -917,7 +955,9 @@ void cdist_matching_bool(const char *XA, const char *XB, double *dm, int mA, int
   int i, j;
   const char *u, *v;
   double *it = dm;
+#ifdef _OMP
   #pragma omp parallel for default(none) shared(XA, XB, mA, mB, n, dm) private(u, v, it, j)
+#endif
   for (i = 0; i < mA; i++) {
     for (j = 0; j < mB; j++) {
       it = dm + i + j;
@@ -932,7 +972,9 @@ void cdist_dice_bool(const char *XA, const char *XB, double *dm, int mA, int mB,
   int i, j;
   const char *u, *v;
   double *it = dm;
+#ifdef _OMP
   #pragma omp parallel for default(none) shared(XA, XB, mA, mB, n, dm) private(u, v, it, j)
+#endif
   for (i = 0; i < mA; i++) {
     for (j = 0; j < mB; j++) {
       it = dm + i + j;
@@ -947,7 +989,9 @@ void cdist_rogerstanimoto_bool(const char *XA, const char *XB, double *dm, int m
   int i, j;
   const char *u, *v;
   double *it = dm;
+#ifdef _OMP
   #pragma omp parallel for default(none) shared(XA, XB, mA, mB, n, dm) private(u, v, it, j)
+#endif
   for (i = 0; i < mA; i++) {
     for (j = 0; j < mB; j++) {
       it = dm + i + j;
@@ -962,7 +1006,9 @@ void cdist_russellrao_bool(const char *XA, const char *XB, double *dm, int mA, i
   int i, j;
   const char *u, *v;
   double *it = dm;
+#ifdef _OMP
   #pragma omp parallel for default(none) shared(XA, XB, mA, mB, n, dm) private(u, v, it, j)
+#endif
   for (i = 0; i < mA; i++) {
     for (j = 0; j < mB; j++) {
       it = dm + i + j;
@@ -977,7 +1023,9 @@ void cdist_kulsinski_bool(const char *XA, const char *XB, double *dm, int mA, in
   int i, j;
   const char *u, *v;
   double *it = dm;
+#ifdef _OMP
   #pragma omp parallel for default(none) shared(XA, XB, mA, mB, n, dm) private(u, v, it, j)
+#endif
   for (i = 0; i < mA; i++) {
     for (j = 0; j < mB; j++) {
       it = dm + i + j;
@@ -992,7 +1040,9 @@ void cdist_sokalsneath_bool(const char *XA, const char *XB, double *dm, int mA, 
   int i, j;
   const char *u, *v;
   double *it = dm;
+#ifdef _OMP
   #pragma omp parallel for default(none) shared(XA, XB, mA, mB, n, dm) private(u, v, it, j)
+#endif
   for (i = 0; i < mA; i++) {
     for (j = 0; j < mB; j++) {
       it = dm + i + j;
@@ -1007,7 +1057,9 @@ void cdist_sokalmichener_bool(const char *XA, const char *XB, double *dm, int mA
   int i, j;
   const char *u, *v;
   double *it = dm;
+#ifdef _OMP
   #pragma omp parallel for default(none) shared(XA, XB, mA, mB, n, dm) private(u, v, it, j)
+#endif
   for (i = 0; i < mA; i++) {
     for (j = 0; j < mB; j++) {
       it = dm + i + j;

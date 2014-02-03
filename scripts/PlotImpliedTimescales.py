@@ -22,30 +22,31 @@ from numpy import loadtxt
 import sys
 from msmbuilder import arglib
 
-
-
 parser = arglib.ArgumentParser(description="""
 \nPlots data generated from CalculateImpliedTimescales.py. You may want to use
 this as a template for a pylab session
 
 We recommend modifying this script for your own purposes""")
 parser.add_argument('input', help='Path to ImpledTimescales.dat',
-    default='ImpliedTimescales.dat')
+                    default='ImpliedTimescales.dat')
 parser.add_argument('dt', help='Time between snapshots in your data',
-    default=1, type=float)
-parser.add_argument('filename', help='Filename to save plot to. Leave blank to render plot to sceen', default='') 
-parser.add_argument('title', help='Title for plot', default='Relaxation Timescale versus Lagtime')
-args = parser.parse_args()
+                    default=1, type=float)
+parser.add_argument(
+    'filename', help='Filename to save plot to. Leave blank to render plot to sceen', default='')
+parser.add_argument('title', help='Title for plot',
+                    default='Relaxation Timescale versus Lagtime')
 
-input = np.loadtxt( args.input )
+if __name__ == '__main__':
+    args = parser.parse_args()
+    input = np.loadtxt(args.input)
 
-scatter(input[:,0] * args.dt, input[:,1] * args.dt)
-yscale('log')
-title(args.title)
-xlabel('Lag Time')
-ylabel('Relaxation Timescale')
+    scatter(input[:, 0] * args.dt, input[:, 1] * args.dt)
+    yscale('log')
+    title(args.title)
+    xlabel('Lag Time')
+    ylabel('Relaxation Timescale')
 
-if args.filename:
-    savefig(args.filename)
-else:
-    show()
+    if args.filename:
+        savefig(args.filename)
+    else:
+        show()

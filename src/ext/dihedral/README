@@ -1,2 +1,0 @@
-Python C extension code to calculate the dihedral angles from MD trajectory.
-See dihedral.py for the python wrapper
