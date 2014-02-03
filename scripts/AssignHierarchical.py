@@ -71,7 +71,6 @@ if __name__ == "__main__":
         sys.exit(1)
 
     project = Project.load_from(args.project)
-
     assignments = main(
         k, d, args.hierarchical_clustering_zmatrix, args.stride, project)
     io.saveh(args.assignments, assignments)
