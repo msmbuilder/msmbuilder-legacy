@@ -1,0 +1,7 @@
+conf_filename: ./native.pdb
+trajs:
+- converted_from: [XTC/RUN00/frame0.xtc]
+  errors: null
+  id: 0
+  length: 8
+  path: ./Trajectories/trj0.lh5

@@ -12,8 +12,8 @@ class TestRMSD():
     
     def setup(self):
         self.traj = load_traj()
-        self.n_frames = self.traj['XYZList'].shape[0]
-        self.n_atoms = self.traj['XYZList'].shape[1]
+        self.n_frames = self.traj.n_frames
+        self.n_atoms = self.traj.n_atoms
         
         # RMSD from frame 0 to other frames
         self.target = np.array([0,0,0.63297522])
@@ -26,10 +26,7 @@ class TestRMSD():
        
         for metric in rmsds:
             ptraj = metric.prepare_trajectory(self.traj)
-            assert isinstance(ptraj, metrics.RMSD.TheoData)
-            ptraj.CheckCentered()
     
-    @skipIf(os.environ.get("TRAVIS", None) == 'true', "This SSE3 C code doesn't run correctly on travis-ci.org?")    
     def test_one_to_all(self):
         for rmsd in [metrics.RMSD(), metrics.RMSD(omp_parallel=False)]:
             ptraj = rmsd.prepare_trajectory(self.traj)
@@ -37,7 +34,6 @@ class TestRMSD():
         
             npt.assert_array_almost_equal(d0, self.target)
 
-    @skipIf(os.environ.get("TRAVIS", None) == 'true', "This SSE3 C code doesn't run correctly on travis-ci.org?")
     def test_one_to_many(self):
         for rmsd in [metrics.RMSD(), metrics.RMSD(omp_parallel=False)]:
             ptraj = rmsd.prepare_trajectory(self.traj)
@@ -45,17 +41,12 @@ class TestRMSD():
                 di = rmsd.one_to_many(ptraj, ptraj, 0, [i])
                 npt.assert_approx_equal(self.target[i], di)
     
-    @skipIf(os.environ.get("TRAVIS", None) == 'true', "This SSE3 C code doesn't run correctly on travis-ci.org?")
     def test_all_pairwise(self):
         sys.stderr = open('/dev/null')
         for rmsd in [metrics.RMSD(), metrics.RMSD(omp_parallel=False)]:
             ptraj = rmsd.prepare_trajectory(self.traj)
             d1 = rmsd.all_pairwise(ptraj)
             target = [ 0., 0.63297522,  0.63297522]
-            
-            d2 = rmsd._square_all_pairwise(ptraj)
-            
             npt.assert_array_almost_equal(d1, target)
-            npt.assert_array_almost_equal(d2, scipy.spatial.distance.squareform(target))
 
         sys.stderr=sys.__stderr__

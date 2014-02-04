@@ -54,7 +54,8 @@ parser.add_argument('notrim', help="""Do not apply an ergodic trim.
 def run(MinLagtime, MaxLagtime, Interval, NumEigen, AssignmentsFn, trimming,
         symmetrize, nProc):
 
-    logger.info("Getting %d eigenvalues (timescales) for each lagtime...", NumEigen)
+    logger.info(
+        "Getting %d eigenvalues (timescales) for each lagtime...", NumEigen)
     lagTimes = range(MinLagtime, MaxLagtime + 1, Interval)
     logger.info("Building MSMs at the following lag times: %s", lagTimes)
 
