@@ -13,14 +13,7 @@ if [[ "$TRAVIS_BRANCH" != "master" ]]; then
 fi
 
 # Create the docs and push them to S3
-sudo conda install --yes sphinx boto
-pip install sphinx -I
-echo `which python`
-echo `which sphinx-build`
-ls /home/travis/envs/test/bin/
-find $HOME -name sphinx-build
-
-SPHINXBUILD=sphinx-build
-BUILDDIR=_build
-cd docs/sphinx && $SPHINXBUILD -b html -d $BUILDDIR/doctrees $BUILDDIR/html && cd -
+# sudo conda install --yes boto
+pip install -q sphinx boto
+cd docs/sphinx && make html && cd -
 python tools/ci/push-docs-to-s3.py
