@@ -13,7 +13,7 @@ conn = boto.connect_s3(AWS_ACCESS_KEY_ID,
             AWS_SECRET_ACCESS_KEY)
 bucket = conn.create_bucket(BUCKET_NAME)
 
-root = 'docs/sphinx/_build'
+root = 'docs/sphinx/_build/html'
 for dirpath, dirnames, filenames in os.walk(root):
     for filename in filenames:
         fn = os.path.join(dirpath, filename)
