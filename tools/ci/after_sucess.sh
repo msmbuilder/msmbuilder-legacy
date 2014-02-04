@@ -20,5 +20,5 @@ ls /home/travis/envs/test/bin/
 
 SPHINXBUILD=sphinx-build
 BUILDDIR=_build
-cd docs/sphinx && $SPHINXBUILD -b html -d $BUILDDIR/doctrees $BUILDDIR)html && cd -
+cd docs/sphinx && $SPHINXBUILD -b html -d $BUILDDIR/doctrees $BUILDDIR/html && cd -
 python tools/ci/push-docs-to-s3.py
