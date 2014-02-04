@@ -18,7 +18,9 @@ void atomic_contact(const float *xyzlist, const int *contacts, int num_contacts,
   const float *frame, *atom1, *atom2;
   float *results_ptr;
   
+#ifdef _OMP
   #pragma omp parallel for default(none) shared(results, xyzlist, contacts, num_contacts, num_atoms, traj_length) private(j, atom_ind, frame, atom1, atom2, results_ptr)
+#endif
   for (i = 0; i < traj_length; i++) {
     frame = (const float*) xyzlist + num_atoms * 3 * i;
     results_ptr = results + num_contacts * i;
@@ -52,7 +54,9 @@ void closest_contact(const float *xyzlist, const int *residues,
   float *results_ptr;
   const float *frame, *atom0, *atom1;
   
+#ifdef _OMP
   #pragma omp parallel for default(none) shared(results, xyzlist, contacts, num_contacts, num_atoms, traj_length, residues, atoms_per_residue) private(j, k, l, max_k, max_l, atom0_ind_ptr, atom1_ind_ptr, a1_ind_ptr, contact_ptr, min, curr, results_ptr, frame, atom0, atom1)
+#endif
   for (i = 0; i < traj_length; i++) {
     frame = (const float*) xyzlist + num_atoms * 3 * i;
     contact_ptr = (int*) contacts;

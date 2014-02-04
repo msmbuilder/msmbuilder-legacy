@@ -1,33 +1,59 @@
-u"""
-setup.py: Install msmbuilder.  
+"""MSMBuilder: a python library for Markov state models of conformational dynamics
+
+MSMBuilder (https://simtk.org/home/msmbuilder)
+is a library that provides tools for analyzing molecular dynamics
+simulations, particularly through the construction
+of Markov state models for conformational dynamics.
 """
-import os, sys
-from glob import glob
-import subprocess
+
+from __future__ import print_function
+DOCLINES = __doc__.split("\n")
+
+import os
+import sys
 import shutil
 import tempfile
+import subprocess
+from glob import glob
 from distutils.ccompiler import new_compiler
+from setuptools import setup, Extension
 
-VERSION = "2.7.dev"
+try:
+    import scipy
+    if not hasattr(scipy.version, 'full_version') or scipy.version.full_version < '0.11':
+        raise ImportError()
+except ImportError:
+    print('scipy version 0.11 or better is required for msmbuilder', file=sys.stderr)
+    sys.exit(1)
+
+VERSION = "2.8"
 ISRELEASED = False
 __author__ = "MSMBuilder Team"
 __version__ = VERSION
 
 # metadata for setup()
 metadata = {
+    'name': 'msmbuilder',
     'version': VERSION,
     'author': __author__,
-    'author_email': 'kyleb@stanford.edu',
+    'author_email': 'msmbuilder-user@stanford.edu',
     'license': 'GPL v3.0',
     'url': 'https://simtk.org/home/msmbuilder',
     'download_url': 'https://simtk.org/home/msmbuilder',
     'platforms': ["Linux", "Mac OS X"],
     'zip_safe': False,
-    'description': "Python Code for Building Markov State Models",
-    'long_description': """MSMBuilder (https://simtk.org/home/msmbuilder)
-is a library that provides tools for analyzing molecular dynamics
-simulations, particularly through the construction
-of Markov state models for conformational dynamics."""}
+    'description': DOCLINES[0],
+    'long_description':"\n".join(DOCLINES[2:]),
+    'packages': ['msmbuilder', 'msmbuilder.scripts', 'msmbuilder.project',
+                 'msmbuilder.lumping', 'msmbuilder.geometry',
+                 'msmbuilder.metrics', 'msmbuilder.reduce',
+                 'msmbuilder.reference'],
+    'package_dir': {'msmbuilder': 'src/python', 'msmbuilder.scripts': 'scripts',
+                    'msmbuilder.reference': 'reference'},
+    'package_data': {'msmbuilder.reference': [os.path.relpath(os.path.join(a[0], b), 'reference') for a in os.walk('reference') for b in a[2]]},
+    'scripts': ['scripts/msmb'] + [e for e in glob('scripts/*') if not e.endswith('__.py')]
+}
+
 
 def hasfunction(cc, funcname, include=None, extra_postargs=None):
     # From http://stackoverflow.com/questions/
@@ -64,7 +90,7 @@ def hasfunction(cc, funcname, include=None, extra_postargs=None):
 def detect_openmp():
     "Does this compiler support OpenMP parallelization?"
     compiler = new_compiler()
-    print 'Attempting to autodetect OpenMP support...', 
+    print('Attempting to autodetect OpenMP support...')
     hasopenmp = hasfunction(compiler, 'omp_get_num_threads()')
     needs_gomp = hasopenmp
     if not hasopenmp:
@@ -73,9 +99,9 @@ def detect_openmp():
         needs_gomp = hasopenmp
     print
     if hasopenmp:
-        print 'Compiler supports OpenMP'
+        print('Compiler supports OpenMP')
     else:
-        print 'Did not detect OpenMP support; parallel RMSD disabled'
+        print('Did not detect OpenMP support; parallel RMSD disabled')
     return hasopenmp, needs_gomp
 
 # Return the git revision as a string
@@ -135,8 +161,7 @@ if not release:
     finally:
         a.close()
 
-
-if os.environ.get('READTHEDOCS', None) == 'True' and __name__ == '__main__':
+def travis_main():
     # On READTHEDOCS, the service that hosts our documentation, the build
     # environment does not have numpy and cannot build C extension modules,
     # so if we detect this environment variable, we're going to bail out
@@ -146,20 +171,11 @@ if os.environ.get('READTHEDOCS', None) == 'True' and __name__ == '__main__':
     from distutils.core import setup
     import tempfile, shutil
     write_version_py()
-    
-    metadata['name'] = 'msmbuilder'
-    metadata['packages'] = ['msmbuilder', 'msmbuilder.scripts', 'msmbuilder.project',
-                            'msmbuilder.geometry', 'msmbuilder.metrics', 'msmbuilder.reduce']
-    metadata['scripts'] = [e for e in glob('scripts/*.py') if not e.endswith('__.py')]
 
     # dirty, dirty trick to install "mock" packages
     mockdir = tempfile.mkdtemp()
     open(os.path.join(mockdir, '__init__.py'), 'w').close()
-    extensions = ['msmbuilder._distance_wrap', 'msmbuilder._rmsdcalc',
-                   'msmbuilder._asa', 'msmbuilder._rg_wrap',
-                   'msmbuilder._distance_wrap', 'msmbuilder._contact_wrap',
-                   'msmbuilder._dihedral_wrap']
-    metadata['package_dir'] = {'msmbuilder': 'src/python', 'msmbuilder.scripts': 'scripts'}
+    extensions = ['msmbuilder._distance_wrap', 'msmbuilder._contact_wrap']
     metadata['packages'].extend(extensions)
     for ex in extensions:
         metadata['package_dir'][ex] = mockdir
@@ -167,116 +183,34 @@ if os.environ.get('READTHEDOCS', None) == 'True' and __name__ == '__main__':
 
     setup(**metadata)
     shutil.rmtree(mockdir) #clean up dirty trick
-    sys.exit(1)
 
+def main():
+    import numpy
+    import setuptools
 
-# now procede to standard setup
-# setuptools needs to come before numpy.distutils to get install_requires
-import setuptools 
-import numpy
-from distutils import sysconfig
-from numpy.distutils.core import setup, Extension
-from numpy.distutils.misc_util import Configuration
-
-def configuration(parent_package='',top_path=None):
-    "Configure the build"
-
-    config = Configuration('msmbuilder',
-                           package_parent=parent_package,
-                           top_path=top_path,
-                           package_path='src/python')
-    config.set_options(assume_default_configuration=True,
-                       delegate_options_to_subpackages=True,
-                       quiet=False)
-    
-    #once all of the data is in one place, we can add it with this
-    config.add_data_dir('reference')
-    
-    # add the scipts, so they can be called from the command line
-    config.add_scripts([e for e in glob('scripts/*.py') if not e.endswith('__.py')])
-    
-    # add scripts as a subpackage (so they can be imported from other scripts)
-    config.add_subpackage('scripts',
-                          subpackage_path=None)
-
-    # add geometry subpackage
-    config.add_subpackage('geometry',
-                          subpackage_path='src/python/geometry')
-
-    config.add_subpackage('project',
-                          subpackage_path='src/python/project')
-
-    config.add_subpackage('lumping',
-                          subpackage_path='src/python/lumping')
-
-    config.add_subpackage('reduce',
-                          subpackage_path='src/python/reduce')
-
-    openmp_enabled, needs_gomp = detect_openmp()
     compiler_args = ['-O3', '-funroll-loops']
     if new_compiler().compiler_type == 'msvc':
         compiler_args.append('/arch:SSE2')
 
+    openmp_enabled, needs_gomp = detect_openmp()
     if openmp_enabled:
         compiler_args.append('-fopenmp')
     compiler_libraries = ['gomp'] if needs_gomp else []
-    #compiler_defs = [('USE_OPENMP', None)] if openmp_enabled else []
 
-
-    # add asa extension
-    # note this is wrapped using f2py, which
-	# is a little different that the other modules,
-    # but actually a lot more convenient and less error prone
-    asa = Extension('msmbuilder._asa',
-                    sources=['src/ext/asa/asa.pyf', 'src/ext/asa/asa.c'],
-                    libraries=compiler_libraries,
-                    extra_compile_args=compiler_args)
-
-    
-    # add metrics subpackage
-    config.add_subpackage('metrics',
-                          subpackage_path='src/python/metrics')
-
-    #xtc reader
-    xtc = Extension('msmbuilder.libxdrfile',
-                    sources = ['src/ext/xdrfile-1.1b/src/xdrfile.c',
-                               'src/ext/xdrfile-1.1b/src/trr2xtc.c',
-                               'src/ext/xdrfile-1.1b/src/xdrfile_trr.c',
-                               'src/ext/xdrfile-1.1b/src/xdrfile_xtc.c'],
-                    include_dirs = ["src/ext/xdrfile-1.1b/include/"])
-    # dcd reader
-    dcd = Extension('msmbuilder.dcdplugin_s',
-                    sources = ["src/ext/molfile_plugin/dcdplugin_s.c"],
-                    libraries=['m'],
-                    include_dirs = ["src/ext/molfile_plugin/include/",
-                                    "src/ext/molfile_plugin"])
-
-    # rmsd
-    rmsd = Extension('msmbuilder._rmsdcalc',
-                     sources=glob('src/ext/IRMSD/*.c'),
-                     extra_compile_args = ["-std=c99","-O2",
-                                           "-msse2","-msse3"] + compiler_args,
+    dist = Extension('msmbuilder._distance_wrap', sources=glob('src/ext/scipy_distance/*.c'),
+                     extra_compile_args=compiler_args,
                      libraries=compiler_libraries,
-                     include_dirs = [numpy.get_include(), os.path.join(numpy.get_include(), 'numpy')])
+                     include_dirs=[numpy.get_include()])
+    contact = Extension('msmbuilder._contact_wrap', sources=glob('src/ext/contact/*.c'),
+                        extra_compile_args=compiler_args,
+                        libraries=compiler_libraries,
+                        include_dirs = [numpy.get_include()])        
 
-    for e in [asa, xtc, dcd, rmsd]:
-        config.ext_modules.append(e)
-        
-    # add all of the distance metrics with the same compile_args, link_args, etc
-    dist = Extension('msmbuilder._distance_wrap', sources=glob('src/ext/scipy_distance/*.c'))
-    dihedral = Extension('msmbuilder._dihedral_wrap', sources=glob('src/ext/dihedral/*.c'))
-    contact = Extension('msmbuilder._contact_wrap', sources=glob('src/ext/contact/*.c'))
-    rg = Extension('msmbuilder._rg_wrap', sources=glob('src/ext/rg/*.c'))
-
-    for ext in [dist, dihedral, contact, rg]:
-        ext.extra_compile_args = compiler_args
-        ext.libraries = compiler_libraries
-        ext.include_dirs = [numpy.get_include()]
-        config.ext_modules.append(ext)
-    
-    return config
+    write_version_py()
+    setup(ext_modules=[dist, contact], **metadata)
 
 if __name__ == '__main__':
-    write_version_py()
-    metadata['configuration'] = configuration
-    setup(**metadata)
+    if os.environ.get('READTHEDOCS', None) == 'True' and __name__ == '__main__':
+        travis_main()
+    else:
+        main()

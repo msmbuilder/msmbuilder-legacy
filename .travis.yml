@@ -14,7 +14,7 @@ install:
     - sudo conda init
     - conda create --yes --name test numpy scipy pytables numexpr nose pandas cython statsmodels pandas patsy pyyaml matplotlib pip
     - export PATH="$HOME/envs/test/bin/:$PATH"
-    - pip install fastcluster mdtraj
+    - pip install -q fastcluster mdtraj simtk.unit
 
     # RMG is not really sure what this line does, but it's critical for multiprocessing 
     # to work in python. see https://github.com/travis-ci/travis-cookbooks/issues/155 and
