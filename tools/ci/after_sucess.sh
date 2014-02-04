@@ -14,6 +14,6 @@ fi
 
 # Create the docs and push them to S3
 # sudo conda install --yes boto
-pip install -q sphinx boto
+pip install -q sphinx boto sphinx_rtd_theme
 cd docs/sphinx && make html && cd -
 python tools/ci/push-docs-to-s3.py
