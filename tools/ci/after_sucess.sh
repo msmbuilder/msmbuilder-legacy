@@ -15,5 +15,10 @@ fi
 # Create the docs and push them to S3
 sudo conda install --yes sphinx boto
 echo `which python`
-cd docs/sphinx && make html && cd -
+echo `which sphinx-build`
+ls /home/travis/envs/test/bin/
+
+SPHINXBUILD=sphinx-build
+BUILDDIR=_build
+cd docs/sphinx && $SPHINXBUILD -b html -d $BUILDDIR/doctrees $BUILDDIR)html && cd -
 python tools/ci/push-docs-to-s3.py
