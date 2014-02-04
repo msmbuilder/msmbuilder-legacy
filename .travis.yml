@@ -23,7 +23,7 @@ install:
     
 script:
     - python setup.py install
-    - # nosetests -vv
+    - nosetests -vv
 
 after_success:
   - echo "after_success"
