@@ -27,4 +27,4 @@ script:
 
 after_success:
   - echo "after_success"
-  - tools/ci/after_sucess.sh
+  - bash tools/ci/after_sucess.sh
