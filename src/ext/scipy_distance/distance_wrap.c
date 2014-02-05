@@ -40,6 +40,8 @@
 #include <numpy/arrayobject.h>
 #include <stdio.h>
 
+void corresponding_euclidean(const double *XA, const double *XB, double *dm, int m, int n);
+
 extern PyObject *corresponding_euclidean_wrap(PyObject *self, PyObject *args) {
     PyArrayObject *XA_, *XB_, *dm_;
     int m, n;
