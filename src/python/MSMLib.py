@@ -202,6 +202,8 @@ def build_msm(counts, symmetrize='MLE', ergodic_trimming=True):
 
     # Apply a symmetrization scheme
     if symmetrize == 'mle':
+        if not ergodic_trimming:
+            raise ValueError("MLE symmetrization requires ergodic trimming.")
         rev_counts = mle_reversible_count_matrix(counts)
     elif symmetrize == 'transpose':
         rev_counts = 0.5 * (counts + counts.transpose())
@@ -399,7 +401,7 @@ def invert_assignments(assignments):
     check_assignment_array_input(assignments)
 
     inverse_mapping = defaultdict(lambda: ([], []))
-    non_neg_inds = np.array(np.where(assignments != -1)).T  
+    non_neg_inds = np.array(np.where(assignments != -1)).T
     # we do not care about -1's
 
     for (i, j) in non_neg_inds:
@@ -604,10 +606,10 @@ def ergodic_trim(counts, assignments=None):
     mapping = np.array([np.arange(counts.shape[0])])  # Need 2D shape for renumber_states.
     mapping[:, states_to_trim] = -1
     renumber_states(mapping)  # renumbers into contiguous order, in-place
-    mapping = mapping[0]  # Unpack the 2D array into a 1D array.  
+    mapping = mapping[0]  # Unpack the 2D array into a 1D array.
 
-    
-    
+
+
     return trimmed_counts, mapping
 
 
@@ -691,7 +693,7 @@ def trim_states(states_to_trim, counts, assignments=None):
 
         mapping = np.arange(counts.shape[0] + ndel)  # Use the ORIGINAL number of states! Re bug #300
         mapping[states_to_trim] = -1
-        
+
         mapping = np.array([mapping])  # renumber_states requires rank 2 input, not rank 1.  Re bug #300
         renumber_states(mapping)  # renumbers into contiguous order, in-place
         mapping = mapping[0]  # Unpack the 2D array into a 1D array.  Re bug #300
