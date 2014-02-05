@@ -37,7 +37,9 @@ def _setup_containers(project, assignments_fn, distances_fn):
                  completed_trajs=np.zeros((project.n_trajs), dtype=np.bool))
 
     def check_container(filename):
-        fh = tables.openFile(filename, 'r')
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            fh = tables.openFile(filename, 'r')
         if  fh.root.arr_0.shape != (project.n_trajs, np.max(project.traj_lengths)):
             raise ValueError('Shape error 1')
         if fh.root.completed_trajs.shape != (project.n_trajs,):
@@ -56,8 +58,10 @@ def _setup_containers(project, assignments_fn, distances_fn):
         raise ValueError("You're missing one of the containers")
 
     # append mode is read and write
-    f_assignments = tables.openFile(assignments_fn, mode='a')
-    f_distances = tables.openFile(distances_fn, mode='a')
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        f_assignments = tables.openFile(assignments_fn, mode='a')
+        f_distances = tables.openFile(distances_fn, mode='a')
 
     return f_assignments, f_distances
 
