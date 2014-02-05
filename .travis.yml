@@ -22,7 +22,7 @@ install:
     - sudo rm -rf /dev/shm && sudo ln -s /run/shm /dev/shm 
     
 script:
-    - python setup.py install
+    - python setup.py -q install
     - nosetests -vv
 
 after_success:
