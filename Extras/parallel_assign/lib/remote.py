@@ -23,7 +23,14 @@ def load_gens(gens_fn, conf_fn, metric):
     METRIC = metric
     CONF = Trajectory.load_trajectory_file(conf_fn)
     gens = Trajectory.load_trajectory_file(gens_fn)
+    # Make sure the atom indices are not used when processing the generators. (There has to be a less ugly way to do this...)
+    # Create a copy of atomindices.
+    atom_indices = metric.atomindices
+    # Then set atomindices attribute temporarily to None when computing PGENS
+    metric.atomindices = None
     PGENS = metric.prepare_trajectory(gens)
+    # Restore atomindices after PGENS is created.
+    metric.atomindices = atom_indices
     PREPARED = True
     
 
