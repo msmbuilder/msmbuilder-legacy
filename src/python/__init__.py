@@ -27,18 +27,23 @@ Vijay Pande
 Copyright 2011 Stanford University
 """
 
-# list of all the modules (files) that are part of msmbuilder
-import os
-import glob
-import sys
-__all__ = [os.path.basename(f)[:-3] for f in glob.glob(os.path.dirname(__file__) + "/*.py") if not f.endswith('__init__.py')]
+def _setup_logging():
+    """Helper function to set up logger imports without polluting namespace."""
+    import sys
+    import logging
 
-import logging
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-sh = logging.StreamHandler(sys.stdout)
-formatter = logging.Formatter(fmt='%(asctime)s - %(message)s', datefmt="%H:%M:%S")
-sh.setFormatter(formatter)
-logger.addHandler(sh)
-logger.propagate = False
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.INFO)
+    sh = logging.StreamHandler(sys.stdout)
+    formatter = logging.Formatter(fmt='%(asctime)s - %(message)s', datefmt="%H:%M:%S")
+    sh.setFormatter(formatter)
+    logger.addHandler(sh)
+    logger.propagate = False
+
+_setup_logging()
+
+
+# list of all the modules (files) that are part of msmbuilder
+__all__ = ["geometry", "metrics", "msm_analysis", "MSMLib", "clustering", "project"]
+
 from project import Project
