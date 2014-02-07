@@ -72,7 +72,7 @@ if __name__ == '__main__':
     arglib.die_if_path_exists(args.output)
 
     project = Project.load_from(args.project)
-    pdb = Trajectory.load_trajectory_file(args.pdb)
+    pdb = md.load(args.pdb)
     if args.traj_fn.lower() == 'all':
         traj_fn = None
     else:
