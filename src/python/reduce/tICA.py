@@ -2,6 +2,7 @@ import numpy as np
 import scipy.linalg
 import re, sys, os
 from time import time
+import cPickle
 import logging
 from mdtraj import io
 from msmbuilder.metrics import Vectorized
@@ -387,12 +388,14 @@ class tICA(AbstractDimReduction):
             output filename (.h5)
         """
         
+        metric_string = cPickle.dumps(self.prep_metric)  # Serialize metric used to calculate tICA input.
+        
         io.saveh(output, timelag_corr_mat=self.timelag_corr_mat,
             cov_mat=self.cov_mat, lag=np.array([self.lag]), vals=self.vals,
-            vecs=self.vecs)
+            vecs=self.vecs, metric_string=np.array([metric_string]))
 
 
-def load(tica_fn, metric):
+def load(tica_fn):
     """
     load a tICA solution to use in projecting data.
 
@@ -400,8 +403,6 @@ def load(tica_fn, metric):
     -----------
     tica_fn : str
         filename pointing to tICA solutions
-    metric : metrics.Vectorized subclass instance
-        metric used to prepare trajectories
 
     """
     # the only variables we need to save are the two matrices
@@ -410,6 +411,8 @@ def load(tica_fn, metric):
     logger.warn("NOTE: You can only use the tICA solution, you will "
                 "not be able to continue adding data")
     f = io.loadh(tica_fn)
+    
+    metric = cPickle.loads(f["metric_string"][0])
 
     tica_obj = tICA(f['lag'][0], prep_metric=metric)
     # lag entry is an array... with a single item
