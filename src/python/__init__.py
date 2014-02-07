@@ -46,4 +46,5 @@ _setup_logging()
 # list of all the modules (files) that are part of msmbuilder
 __all__ = ["geometry", "metrics", "msm_analysis", "MSMLib", "clustering", "project"]
 
+import clustering, geometry, metrics, msm_analysis, MSMLib, clustering, project
 from project import Project
