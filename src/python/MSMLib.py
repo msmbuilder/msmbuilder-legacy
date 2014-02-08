@@ -585,14 +585,14 @@ def ergodic_trim(counts, assignments=None):
 
     Parameters
     ----------
-    counts : lil sparse matrix
+    counts : lil or csr sparse matrix
         transition counts
     assignments : ndarray, optional
         Optionally map assignments to the new states, nulling out disconnected regions.
 
     Returns
     ----
-    trimmed_counts : csr sparse matrix
+    trimmed_counts : lil sparse matrix
         transition counts after ergodic trimming
     mapping : ndarray
         mapping[i] = j maps from untrimmed state index i
