@@ -112,6 +112,10 @@ for metric_parser in parser.metric_parser_list: # arglib stores the metric subpa
     add_argument(hier, '-m', default='ward', help='method. default=ward',
         choices=['single', 'complete', 'average', 'weighted', 'centroid', 'median', 'ward'], dest='hierarchical_method')
 
+    kmeans = subparser.add_parser('kmeans') 
+    add_argument(kmeans, '-k', help='number of clusters',
+        type=int, dest='kmeans_num_clusters')
+
 
 def load_prep_trajectories(project, stride, atom_indices, metric):
     """load the trajectories but prepare them during the load.
@@ -188,6 +192,14 @@ def cluster(metric, trajectories, ptrajs, args, **kwargs):
             method=args.hierarchical_method)
         clusterer.save_to_disk(zmatrix_fn)
         logger.info('ZMatrix saved to %s. Use AssignHierarchical.py to assign the data', zmatrix_fn)
+    elif args.alg == 'kmeans':
+        
+        if args.stride != 1:
+            logger.error("You must supply stride = 1 with kmeans")
+            sys.exit(1)
+        
+        clusterer = clustering.KMeans(metric, trajectories=trajectories,
+            prep_trajectories=ptrajs, k=args.kmeans_num_clusters)
     else:
         raise ValueError('Unrecognized algorithm %s' % args.alg)
     
