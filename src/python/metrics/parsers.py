@@ -138,14 +138,11 @@ def add_basic_metric_parsers(metric_subparser):
     ################################################################################
 
 
-def add_metric_parsers(parser, add_layer_metrics=False):
+def add_metric_parsers(parser):
 
     metric_parser_list = []
 
     metric_subparser = parser.add_subparsers(dest='metric', description ='Available metrics to use.')
-
-    #if add_layer_metrics:
-    #    metric_parser_list.extend(add_layer_metric_parsers(metric_subparser))
 
     metric_parser_list.extend(add_basic_metric_parsers(metric_subparser))
 

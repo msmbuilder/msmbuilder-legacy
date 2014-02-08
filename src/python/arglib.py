@@ -151,10 +151,8 @@ class ArgumentParser(object):
         self.parser.add_argument('-q', '--quiet', dest='quiet', help='Pass this flag to run in quiet mode.',
                                  default=False, action='store_true')
 
-        if self.get_metric:
-            self.metric_parser_list = metric_parsers.add_metric_parsers( self, add_layer_metrics=True )
-        elif self.get_basic_metric:
-            self.metric_parser_list = metric_parsers.add_metric_parsers( self, add_layer_metrics=False )
+        if self.get_metric or self.get_basic_metric:
+            self.metric_parser_list = metric_parsers.add_metric_parsers(self)
 
         self.parser.prog = os.path.split(sys.argv[0])[1]
         self.required = self.parser.add_argument_group(title='required arguments')
