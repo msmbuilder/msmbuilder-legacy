@@ -151,7 +151,9 @@ def add_metric_parsers(parser, add_layer_metrics=False):
 
     return metric_parser_list
 
-def construct_basic_metric(metric_name, args):
+def construct_metric(args):
+    metric_name = args.metric
+
     if metric_name == 'rmsd':
         if args.rmsd_atom_indices != 'all':
             atom_indices = np.loadtxt(args.rmsd_atom_indices, np.int)
@@ -237,21 +239,3 @@ def construct_basic_metric(metric_name, args):
         return ValueError("%s is not a AbstractDistanceMetric" % metric)
 
     return metric
-
-
-def construct_layer_metric(metric_name, args):
-    if metric_name == 'tica':        
-        tica_obj = tICA.load(args.tica_fn)
-
-        return RedDimPNorm(tica_obj, num_vecs=args.num_vecs, 
-                           metric=args.projected_metric, p=args.p)
-
-    else:
-        raise Exception("do not know how to construct metric (%s)")
-
-
-def construct_metric( args ):
-    if hasattr(args, 'sub_metric'):
-        return construct_layer_metric(args.metric, args)
-    else:
-        return construct_basic_metric(args.metric, args)
