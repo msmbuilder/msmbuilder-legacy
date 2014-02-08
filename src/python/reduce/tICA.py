@@ -78,6 +78,11 @@ class tICA(AbstractDimReduction):
             the size is the number of coordinates for the vector
             representation of the protein. If None, then the first
             trained vector will be used to initialize it.
+            
+        Notes
+        -----
+        
+        To load an already constructed tICA object, use `tICA.load()`.
         """
         
         self.corrs = None
