@@ -243,10 +243,8 @@ def construct_basic_metric(metric_name, args):
 
 
 def construct_layer_metric(metric_name, args):
-    if metric_name == 'tica':
-        sub_metric = construct_basic_metric(args.sub_metric, args)
-        
-        tica_obj = tICA.load(args.tica_fn, sub_metric)
+    if metric_name == 'tica':        
+        tica_obj = tICA.load(args.tica_fn)
 
         return RedDimPNorm(tica_obj, num_vecs=args.num_vecs, 
                            metric=args.projected_metric, p=args.p)
