@@ -399,36 +399,36 @@ class tICA(AbstractDimReduction):
             cov_mat=self.cov_mat, lag=np.array([self.lag]), vals=self.vals,
             vecs=self.vecs, metric_string=np.array([metric_string]))
 
+    @classmethod
+    def load(cls, tica_fn):
+        """
+        load a tICA solution to use in projecting data.
 
-def load(tica_fn):
-    """
-    load a tICA solution to use in projecting data.
+        Parameters:
+        -----------
+        tica_fn : str
+            filename pointing to tICA solutions
 
-    Parameters:
-    -----------
-    tica_fn : str
-        filename pointing to tICA solutions
+        """
+        # the only variables we need to save are the two matrices
+        # and the eigenvectors / values as well as the lag time
+        
+        logger.warn("NOTE: You can only use the tICA solution, you will "
+                    "not be able to continue adding data")
+        f = io.loadh(tica_fn)
+        
+        metric = cPickle.loads(f["metric_string"][0])
 
-    """
-    # the only variables we need to save are the two matrices
-    # and the eigenvectors / values as well as the lag time
-    
-    logger.warn("NOTE: You can only use the tICA solution, you will "
-                "not be able to continue adding data")
-    f = io.loadh(tica_fn)
-    
-    metric = cPickle.loads(f["metric_string"][0])
+        tica_obj = cls(f['lag'][0], prep_metric=metric)
+        # lag entry is an array... with a single item
 
-    tica_obj = tICA(f['lag'][0], prep_metric=metric)
-    # lag entry is an array... with a single item
+        tica_obj.timelag_corr_mat = f['timelag_corr_mat']
+        tica_obj.cov_mat = f['cov_mat']
 
-    tica_obj.timelag_corr_mat = f['timelag_corr_mat']
-    tica_obj.cov_mat = f['cov_mat']
+        tica_obj.vals = f['vals']
+        tica_obj.vecs = f['vecs']
 
-    tica_obj.vals = f['vals']
-    tica_obj.vecs = f['vecs']
+        tica_obj._sort()
 
-    tica_obj._sort()
-
-    return tica_obj
-    
+        return tica_obj
+        

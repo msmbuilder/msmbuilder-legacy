@@ -1,3 +1,3 @@
 from baseclasses import AbstractDimReduction
 
-import tICA
+from tICA import tICA
