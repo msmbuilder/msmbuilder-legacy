@@ -137,21 +137,12 @@ class ArgumentParser(object):
         else:
             self.get_metric = False
 
-        if 'get_basic_metric' in kwargs:
-            self.get_basic_metric = bool(kwargs.pop('get_basic_metric'))
-        else:
-            self.get_basic_metric = False
-
-        if self.get_metric and self.get_basic_metric:
-            warnings.warn('You should only pass one of get_metric and get_basic_metric. See arglib.py for details.')
-            self.get_basic_metric = False
-
         self.parser = argparse.ArgumentParser(*args, **kwargs)
 
         self.parser.add_argument('-q', '--quiet', dest='quiet', help='Pass this flag to run in quiet mode.',
                                  default=False, action='store_true')
 
-        if self.get_metric or self.get_basic_metric:
+        if self.get_metric:
             self.metric_parser_list = metric_parsers.add_metric_parsers(self)
 
         self.parser.prog = os.path.split(sys.argv[0])[1]
@@ -221,7 +212,7 @@ class ArgumentParser(object):
             # set the level of the root logger
             logging.getLogger().setLevel(logging.WARNING)
 
-        if self.get_metric or self.get_basic_metric: # if we want to get the metric, then we have to construct it
+        if self.get_metric: # if we want to get the metric, then we have to construct it
             metric = metric_parsers.construct_metric(namespace)
             return namespace, metric
 
