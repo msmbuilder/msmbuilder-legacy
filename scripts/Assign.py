@@ -41,7 +41,7 @@ microstate it is assigned to.""", get_metric=True)  # , formatter_class=argparse
 parser.add_argument('project')
 parser.add_argument( dest='generators', help='''Output trajectory file containing
     the structures of each of the cluster centers. Note that for hierarchical clustering
-    methods, this file will not be produced.''', default='Data/Gens.lh5')
+    methods, this file will not be produced.''', default='Data/Gens.h5')
 parser.add_argument('output_dir')
 
 
