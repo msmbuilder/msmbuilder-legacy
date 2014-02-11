@@ -64,7 +64,7 @@ def main(args, metric):
         # file, that file contains only a subset of the atoms. So when
         # we run *this* script, we need to perform a restricted load of the
         # the trajectories on disk, but we need to NOT perform a restricted
-        # load of the gens.lh5 file. (By restricted load, I mean loading
+        # load of the gens.h5 file. (By restricted load, I mean loading
         # only a subset of the data in the file)
         if gens.n_atoms != len(metric.atomindices):
             msg = ('Using RMSD clustering/assignment, this script expects '

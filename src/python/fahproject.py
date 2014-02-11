@@ -336,7 +336,7 @@ class _retrieve(object):
                                input_style, update=False):
         """
         Convert all of the trajectories in the FAH project in input_dir to
-        lh5 trajectory files which will be placed in output dir.
+        h5 trajectory files which will be placed in output dir.
 
         If the 'update' flag is set, then will use the memory object to check for
         previously converted data, and add to it (rather than reconverting everything).
@@ -349,7 +349,7 @@ class _retrieve(object):
             The directory to look for XTC/DCD files in.
 
         output_dir : str
-            The place to write the converted lh5s
+            The place to write the converted h5s
 
         stride : int
             The size of the stride to employ. E.g., if stride = 3, the script
@@ -365,7 +365,7 @@ class _retrieve(object):
             Discard trajectories with fewer than `min_gens` generations.
 
         center_conformations : bool
-            Whether to center the converted (lh5) conformations.
+            Whether to center the converted (h5) conformations.
 
         num_proc : int
             Number of processors to employ. Note that this function is typically
@@ -439,7 +439,7 @@ class _retrieve(object):
         mapping = {} # document the directory changes, allowing us to update memory
         for i, filename in enumerate( sorted( os.listdir(output_dir), key=keynat) ):
             path = os.path.join(output_dir, filename)
-            new_path = os.path.join(output_dir, "trj%d.lh5" % i)
+            new_path = os.path.join(output_dir, "trj%d.h5" % i)
             os.rename(path, new_path)
             mapping[path] = new_path
 
@@ -462,7 +462,7 @@ class _retrieve(object):
         Project.CreateProjectFromDir( Filename         = self.projectinfo_file,
                                       TrajFilePath     = output_dir,
                                       TrajFileBaseName = 'trj',
-                                      TrajFileType     = '.lh5',
+                                      TrajFileType     = '.h5',
                                       ConfFilename     = self.pdb_topology,
                                       initial_memory   = cPickle.dumps( self.memory ) )
 
@@ -473,7 +473,7 @@ class _retrieve(object):
 
     def update_trajectories(self):
         """
-		Using the memory state, updates a trajectory of LH5 Trajectory files by
+		Using the memory state, updates a trajectory of H5 Trajectory files by
         scanning a FAH project for new trajectories, and converting those.
 		"""
 
@@ -522,21 +522,21 @@ class _retrieve(object):
 						 omp_parallel_rmsd=True):
         """
         This function takes in a path to a CLONE and merges all the XTC files
-        it finds into a LH5 trajectory:
+        it finds into a H5 trajectory:
 
         Parameters
         ----------
         clone_dir : str
             the directory in which the xtc files are found. All of the xtc files
             in this directory are joined together to make a single trajectory
-            (.lh5) output file
+            (.h5) output file
 
         output_dir : str
             directory where the outputted files will be placed
 
         trajectory_number : int
             A unique number for this trajectory. This number is used in
-            constructing the filename to write the outputted .lh5 trajectory to,
+            constructing the filename to write the outputted .h5 trajectory to,
             and thus must be unique
 
         stride: int
@@ -651,7 +651,7 @@ class _retrieve(object):
 
         # if we are not adding to a traj, then we create a new one
         else:
-            output_filename = 'trj%s.lh5' % trajectory_number
+            output_filename = 'trj%s.h5' % trajectory_number
             output_file_path = os.path.join(output_dir, output_filename)
 
             if os.path.exists(output_file_path):
