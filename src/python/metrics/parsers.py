@@ -29,9 +29,11 @@ def locate_metric_plugins(name):
     eps = iter_entry_points(group='msmbuilder.metrics', name=name)
     return itertools.imap(lambda ep: ep.load(), eps)
 
-def add_basic_metric_parsers(metric_subparser):
+def add_metric_parsers(parser):
 
     metric_parser_list = []
+    
+    metric_subparser = parser.add_subparsers(dest='metric', description ='Available metrics to use.')
 
     #metrics_parsers = parser.add_subparsers(description='Available metrics to use.',dest='metric')
     rmsd = metric_subparser.add_parser('rmsd',
@@ -137,16 +139,6 @@ def add_basic_metric_parsers(metric_subparser):
 
     ################################################################################
 
-
-def add_metric_parsers(parser):
-
-    metric_parser_list = []
-
-    metric_subparser = parser.add_subparsers(dest='metric', description ='Available metrics to use.')
-
-    metric_parser_list.extend(add_basic_metric_parsers(metric_subparser))
-
-    return metric_parser_list
 
 def construct_metric(args):
     metric_name = args.metric
