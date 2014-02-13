@@ -29,9 +29,11 @@ def locate_metric_plugins(name):
     eps = iter_entry_points(group='msmbuilder.metrics', name=name)
     return itertools.imap(lambda ep: ep.load(), eps)
 
-def add_basic_metric_parsers(metric_subparser):
+def add_metric_parsers(parser):
 
     metric_parser_list = []
+    
+    metric_subparser = parser.add_subparsers(dest='metric', description ='Available metrics to use.')
 
     #metrics_parsers = parser.add_subparsers(description='Available metrics to use.',dest='metric')
     rmsd = metric_subparser.add_parser('rmsd',
@@ -106,6 +108,21 @@ def add_basic_metric_parsers(metric_subparser):
         help='which distance metric', choices=Positions.allowable_scipy_metrics)
     metric_parser_list.append(positions)
 
+    tica = metric_subparser.add_parser( 'tica', description='''
+        tICA: This metric is based on a variation of PCA which looks for the slowest d.o.f.
+        in the simulation data. See (Schwantes, C.R., Pande, V.S. JCTC 2013, 9 (4), 2000-09.)
+        for more details. In addition to these options, you must provide an additional 
+        metric you used to prepare the trajectories in the training step.''')
+
+    add_argument(tica,'-p', dest='p', help='p value for p-norm')
+    add_argument(tica,'-m', dest='projected_metric', help='metric to use in the projected space',
+        choices=Vectorized.allowable_scipy_metrics, default='euclidean')
+    add_argument(tica, '-f', dest='tica_fn', 
+        help='tICA Object which was prepared by tICA_train.py')
+    add_argument(tica, '-n', dest='num_vecs', type=int,
+        help='Choose the top <-n> eigenvectors based on their eigenvalues')
+    metric_parser_list.append(tica)
+
     picklemetric = metric_subparser.add_parser('custom', description="""CUSTOM: Use a custom
         distance metric. This requires defining your metric and saving it to a file using
         the pickle format, which can be done fron an interactive shell. This is an EXPERT FEATURE,
@@ -122,45 +139,10 @@ def add_basic_metric_parsers(metric_subparser):
 
     ################################################################################
 
-def add_layer_metric_parsers(metric_subparser):
 
-    tica = metric_subparser.add_parser( 'tica', description='''
-        tICA: This metric is based on a variation of PCA which looks for the slowest d.o.f.
-        in the simulation data. See (Schwantes, C.R., Pande, V.S. JCTC 2013, 9 (4), 2000-09.)
-        for more details. In addition to these options, you must provide an additional 
-        metric you used to prepare the trajectories in the training step.''')
+def construct_metric(args):
+    metric_name = args.metric
 
-    required = tica.add_argument_group('required')
-    choose_one = tica.add_argument_group('selecting projection vectors (choose_one)')
-
-    add_argument(tica,'-p', dest='p', help='p value for p-norm')
-    add_argument(tica,'-m', dest='projected_metric', help='metric to use in the projected space',
-        choices=Vectorized.allowable_scipy_metrics, default='euclidean')
-    add_argument(required, '-f', dest='tica_fn', 
-        help='tICA Object which was prepared by tICA_train.py')
-    add_argument(choose_one, '-n', dest='num_vecs', type=int,
-        help='Choose the top <-n> eigenvectors based on their eigenvalues')
-    tica.metric_parser_list = []
-    tica_subparsers = tica.add_subparsers(dest='sub_metric', description='''  
-        Available metrics to use in preparing the trajectory before projecting.''' )
-    tica.metric_parser_list = add_basic_metric_parsers(tica_subparsers)
-
-    return tica.metric_parser_list
-
-def add_metric_parsers(parser, add_layer_metrics=False):
-
-    metric_parser_list = []
-
-    metric_subparser = parser.add_subparsers(dest='metric', description ='Available metrics to use.')
-
-    if add_layer_metrics:
-        metric_parser_list.extend(add_layer_metric_parsers(metric_subparser))
-
-    metric_parser_list.extend(add_basic_metric_parsers(metric_subparser))
-
-    return metric_parser_list
-
-def construct_basic_metric(metric_name, args):
     if metric_name == 'rmsd':
         if args.rmsd_atom_indices != 'all':
             atom_indices = np.loadtxt(args.rmsd_atom_indices, np.int)
@@ -217,7 +199,13 @@ def construct_basic_metric(metric_name, args):
         
         metric = Positions(target, atom_indices=atom_indices, align_indices=align_indices,
                            metric=args.positions_metric, p=args.positions_p)
-             
+
+    elif metric_name == "tica":
+        tica_obj = tICA.load(args.tica_fn)
+
+        metric = RedDimPNorm(tica_obj, num_vecs=args.num_vecs, 
+                           metric=args.projected_metric, p=args.p)
+
     elif metric_name == 'custom':
         with open(args.picklemetric_input) as f:
             metric = pickle.load(f)
@@ -240,23 +228,3 @@ def construct_basic_metric(metric_name, args):
         return ValueError("%s is not a AbstractDistanceMetric" % metric)
 
     return metric
-
-
-def construct_layer_metric(metric_name, args):
-    if metric_name == 'tica':
-        sub_metric = construct_basic_metric(args.sub_metric, args)
-        
-        tica_obj = tICA.load(args.tica_fn, sub_metric)
-
-        return RedDimPNorm(tica_obj, num_vecs=args.num_vecs, 
-                           metric=args.projected_metric, p=args.p)
-
-    else:
-        raise Exception("do not know how to construct metric (%s)")
-
-
-def construct_metric( args ):
-    if hasattr(args, 'sub_metric'):
-        return construct_layer_metric(args.metric, args)
-    else:
-        return construct_basic_metric(args.metric, args)
