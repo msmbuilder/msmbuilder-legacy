@@ -26,10 +26,10 @@ parser.add_argument('states', nargs='+', type=int,
                     default=[-1])
 # nargs=+ means the values will come out as type list, but this isn't
 # naturally applied to the default, so we just put the default as [-1]
-parser.add_argument('format', choices=['pdb', 'xtc', 'lh5'],
+parser.add_argument('format', choices=['pdb', 'xtc', 'h5'],
                     help='''Format for the outputted conformations. PDB is the standard
     plaintext protein databank format. XTC is the gromacs binary trajectory
-    format, and lh5 is the MSMBuilder standard hdf5 based format''',
+    format, and h5 is the MDTraj hdf format''',
                     default='pdb')
 parser.add_argument('style', choices=['sep', 'tps', 'one'], help='''Controls
     the number of conformations save per file. If "sep" (SEPARATE), all of
