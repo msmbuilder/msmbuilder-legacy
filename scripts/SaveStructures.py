@@ -99,9 +99,8 @@ def main():
 
     # states
     if -1 in args.states:
-        n_states = len(np.unique(assignments[np.where(assignments != -1)]))
-        logger.info('Yanking from all %d states', n_states)
-        states = np.arange(n_states)
+        states = np.unique(assigments[np.where(assignments != -1)])
+        logger.info('Yanking from all %d states', len(states))
     else:
         # ensure that the states are sorted, and that they're unique -- you
         # can only request each state once
@@ -109,9 +108,9 @@ def main():
         logger.info("Yanking from the following states: %s", states)
 
     # extract the conformations using np.random for the randomness
-    confs_by_state = project.get_random_confs_from_states(assignments,
-                                                          states=states, num_confs=args.conformations_per_state,
-                                                          replacement=args.replacement)
+    confs_by_state = project.get_random_confs_from_states(
+        assignments, states=states, num_confs=args.conformations_per_state,
+        replacement=args.replacement)
 
     # save the conformations to disk, in the requested style
     save(confs_by_state=confs_by_state, states=states, style=args.style,
