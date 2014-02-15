@@ -264,7 +264,7 @@ def outer_product_assignment(assign1, assign2):
 
     assert assign1.shape == assign2.shape, """Assignments must be
         for the same set of trajectories."""
-    new_ass = -1 * np.ones_like(assign1, dtype=np.int)
+    new_assign = -1 * np.ones_like(assign1, dtype=np.int)
 
     nstates1 = np.max(assign1) + 1
     nstates2 = np.max(assign2) + 1
@@ -281,8 +281,8 @@ def outer_product_assignment(assign1, assign2):
                 assert assign2[i, j] == -1, """Assignments must be for
                     the same set of trajectories."""
             else:
-                new_ass[i, j] = translations[assign1[i, j], assign2[i, j]]
+                new_assign[i, j] = translations[assign1[i, j], assign2[i, j]]
 
-    new_assign = msmlib.renumber_states(new_ass)
-
+    # Renumber states in place
+    msmlib.renumber_states(new_assign)
     return new_assign
