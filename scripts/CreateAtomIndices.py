@@ -33,9 +33,10 @@ parser.add_argument('output', default='AtomIndices.dat')
 parser.add_argument('atom_type', help='''Atoms to include in index file.
 
     One of four options: (1) minimal (CA, CB, C, N, O, recommended), (2) heavy,
-    (3) alpha (carbons), (4) water, or (5) all.  Use "all" in cases where protein
-    nomenclature may be inapproprate, although you may want to define your own
-    indices in such situations.  Note that "heavy" keeps all heavy atoms that
+    (3) alpha (carbons), (4) water (water oxygens), or (5) all.  Use "all"
+    in cases where protein nomenclature may be inapproprate, although you
+    may want to define your own indices in such situations.
+    Note that "heavy" keeps all heavy atoms that
     are not symmetry equivalent.  By symmetry equivalent, we mean atoms
     identical under an exchange of labels.  For example, heavy will exclude
     the two pairs of equivalent carbons (CD, CE) in a PHE ring.
@@ -141,6 +142,7 @@ def run(PDBfn, atomtype):
         for key in toKeepDict.keys():
             toKeepDict[key] = ["CA"]
     elif atomtype == 'water':
+        # Note: we only keep water oxygens
         for key in toKeepDict.keys():
             if key == "SOL" or key == 'HOH':
                 toKeepDict[key] = ["O"]
