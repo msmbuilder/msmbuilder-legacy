@@ -585,7 +585,7 @@ def ergodic_trim(counts, assignments=None):
 
     Parameters
     ----------
-    counts : csr sparse matrix
+    counts : sparse matrix (csr is best)
         transition counts
     assignments : ndarray, optional
         Optionally map assignments to the new states, nulling out disconnected regions.
