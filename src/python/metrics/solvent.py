@@ -84,7 +84,7 @@ class SolventFp(Vectorized):
         fingerprints = np.zeros((trajectory.n_frames, len(prot_indices)))
 
         # Check for periodic information
-        if trajectory.unitcell_lenghts is None:
+        if trajectory.unitcell_lengths is None:
             logging.warn('No periodic information found for computing solventfp.')
 
         for i, prot_i in enumerate(prot_indices):
