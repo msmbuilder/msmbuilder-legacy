@@ -1,5 +1,5 @@
 :mod:`msmbuilder.assigning`
-======================
+===========================
 
 .. automodule:: msmbuilder.assigning
 .. currentmodule:: msmbuilder.assigning

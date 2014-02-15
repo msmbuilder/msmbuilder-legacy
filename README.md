@@ -4,7 +4,7 @@
 
 Usage
 -----
-See `Tutorial.pdf` for complete installation and usage instructions.
+See [msmbuilder.org](http://www.msmbuilder.org) for complete installation and usage instructions.
 
 Installation
 ------------
@@ -22,13 +22,6 @@ Want to chat with other users and the developers and get help using msmbuilder t
 simulations? Sign up for the msmbuilder-user email list at
 https://mailman.stanford.edu/mailman/listinfo/msmbuilder-user!
 
-Documentation
--------------
-Are you curious about how the MSMBuilder internals work, or would you like to  use the MSMBuilder
-libraries in your own project?
-
-In addition to `Tutorial.pdf`, check out the web based documentation of the libraries at
-[msmbuilder.readthedocs.org](http://msmbuilder.readthedocs.org/en/latest/index.html)
 
 Contributing
 ------------
@@ -39,5 +32,5 @@ to have your contribution!
 MSMBuilder is [hosted](https://github.com/SimTk/msmbuilder) on GitHub. Filing an issue such as a
 bug report or feature request is easy and will contribute to the future development of MSMBuilder.
 Contributing code is easy too, just fork the repository and then submit a pull request.
-A few guidelines on contributing can be found [here](http://msmbuilder.readthedocs.org/en/latest/developer.html). 
+A few guidelines on contributing can be found [here](http://msmbuilder.org/developer.html). 
 

@@ -13,11 +13,9 @@
 
 import sys, os
 import msmbuilder.version
-sys.path.append(os.path.abspath('sphinxext'))
-try:
-    import sphinx_rtd_theme
-except:
-    pass
+sys.path.insert(0, os.path.abspath('sphinxext'))
+sys.path.insert(0, os.path.abspath('sphinx_rtd_theme-0.1.5'))
+import sphinx_rtd_theme
 
 
 # If extensions (or modules to document with autodoc) are in another directory,

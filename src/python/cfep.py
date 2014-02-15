@@ -547,12 +547,13 @@ class VariableCoordinate(CutCoordinate):
 
 def test():
     from scipy import io
+    import mdtraj
 
     print "Testing cfep code...."
 
     test_dir = '/Users/TJ/Programs/msmbuilder.sandbox/tjlane/cfep/'
     
-    generators = Trajectory.load_trajectory_file(test_dir + 'Gens.lh5')
+    generators = mdtraj.load(test_dir + 'Gens.h5')
     counts = io.mmread(test_dir + 'tCounts.mtx')
     reactant = 0    # generator w/max RMSD
     product = 10598 # generator w/min RMSD

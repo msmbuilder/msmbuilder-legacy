@@ -1,5 +1,5 @@
 :mod:`msmbuilder.reduce.tICA`
-======================
+=============================
 
 .. automodule:: msmbuilder.reduce.tICA
 .. currentmodule:: msmbuilder.reduce.tICA

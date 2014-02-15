@@ -295,6 +295,8 @@ class Project(object):
                 it is not possible to sample that many conformations without 
                 replacement
             """
+            assert state_counts > 0
+
             if replacement:
                 result = random.randint(0, state_counts, size=size)
             else:
@@ -332,6 +334,9 @@ class Project(object):
 
         for n, state in zip(num_confs, states):
             logger.debug("Working on %s", state)
+            if state_counts[state] == 0:
+                raise ValueError('No conformations to sample from state %d! It contains no assigned conformations.' % state)
+
             random_conf_inds = randomize(state_counts[state], size=n,
                                          replacement=replacement, 
                                          random=random)
@@ -345,10 +350,11 @@ class Project(object):
     def load_traj(self, trj_index, stride=1, atom_indices=None):
         "Load the a trajectory from disk"
         filename = self.traj_filename(trj_index)
-        return md.load(filename, stride=stride, atom_indices=atom_indices)
+        return md.load(filename, stride=stride, atom_indices=atom_indices, discard_overlapping_frames=True)
 
     def load_chunked_traj(self, trj_index, chunk_size=50000, stride=1, atom_indices=None):
         return md.iterload(self.traj_filename(trj_index), chunk=chunk_size, stride=stride, atom_indices=atom_indices)
+        # does anything use this function?
 
     def load_frame(self, traj_index, frame_index):
         """Load one or more specified frames.

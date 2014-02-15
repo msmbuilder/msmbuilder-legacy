@@ -23,7 +23,6 @@ from msmbuilder import arglib
 from msmbuilder import msm_analysis
 logger = logging.getLogger('msmbuilder.scripts.CalculateImpliedTimescales')
 
-
 parser = arglib.ArgumentParser(description="""
 \nCalculates the implied timescales of a set of assigned data, up to
 the argument 'lagtime'. Returns: ImpliedTimescales.dat, a flat file that
@@ -50,6 +49,7 @@ parser.add_argument('symmetrize', help="""Method by which to estimate a
 parser.add_argument('notrim', help="""Do not apply an ergodic trim.
     By default, we keep only the largest observed ergodic subset of the data.
     supplied, keeps everything.""", action='store_true')
+
 
 def run(MinLagtime, MaxLagtime, Interval, NumEigen, AssignmentsFn, trimming,
         symmetrize, nProc):
