@@ -27,9 +27,9 @@ class SolventFp(Vectorized):
         Parameters
         ----------
         solute_indices : ndarray
-                         atom indices of the solute atoms
+            atom indices of the solute atoms
         solvent_indices : ndarray
-                          atom indices of the solvent atoms
+            atom indices of the solvent atoms
         sigma : float
                 width of gaussian kernel
         metric : {'braycurtis', 'canberra', 'chebyshev', 'cityblock',
@@ -44,8 +44,12 @@ class SolventFp(Vectorized):
             inverse covariance matrix, used for metric='mahalanobi'
 
         """
-        _check_indices(solute_indices, 'Solute')
-        _check_indices(solvent_indices, 'Solvent')
+
+        # Check input indices
+        md.utils.ensure_type(solute_indices, dtype=np.int, ndim=1,
+                             name='solute', can_be_none=False)
+        md.utils.ensure_type(solvent_indices, dtype=np.int, ndim=1,
+                             name='solvent', can_be_none=False)
 
         super(SolventFp, self).__init__(metric, p, V, VI)
         self.solute_indices = solute_indices
@@ -79,6 +83,10 @@ class SolventFp(Vectorized):
         # The result vector
         fingerprints = np.zeros((trajectory.n_frames, len(prot_indices)))
 
+        # Check for periodic information
+        if trajectory.unitcell_lenghts is None:
+            logging.warn('No periodic information found for computing solventfp.')
+
         for i, prot_i in enumerate(prot_indices):
             # For each protein atom, calculate distance to all water
             # molecules
@@ -98,27 +106,19 @@ class SolventFp(Vectorized):
         return fingerprints
 
 
-def _check_indices(indices, name):
-    """Validate input indices."""
-    if indices is not None:
-        if not isinstance(indices, np.ndarray):
-            raise ValueError('%s indices must be a numpy array' % name)
-        if not indices.ndim == 1:
-            raise ValueError('%s indices must be 1D' % name)
-        if not indices.dtype == np.int:
-            raise ValueError('%s indices must contain ints' % name)
-    else:
-        raise ValueError('%s indices must be specified' % name)
-
-
 class OuterProductAssignment(object):
     """Class to facilitate taking the outer product of the result of
     two clusterings."""
 
-    def __init__(self, ass1_fn, ass2_fn):
-        """Create the object
+    def __init__(self, assign1, assign2):
+        """Create a distance metric to capture solvent degrees of freedom
 
-        the ass_fn's should point to an hdf5 assignments file.
+        Parameters
+        ----------
+        assign1 : ndarray
+            assignment array 1
+        assign2 : ndarray
+            assignment array 2
         """
         self.ass1 = io.loadh(ass1_fn, 'arr_0')
         self.ass2 = io.loadh(ass2_fn, 'arr_0')

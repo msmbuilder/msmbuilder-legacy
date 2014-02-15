@@ -39,11 +39,18 @@ parser.add_argument('assignment_out', default='OuterProductAssignments.h5',
                     help='Output file')
 
 
+def main(assign1_fn, assign2_fn, out_fn):
+    assign1 = io.loadh(assign1_fn, 'arr_0')
+    assign2 = io.loadh(assign2_fn, 'arr_0')
+
+    opa = solvent.OuterProductAssignment(assign1, assign2)
+    new_assignments = opa.get_product_assignments()
+    io.saveh(out_fn, new_assignments)
+    logger.info('Saved outer product assignments to %s', out_fn)
+
+
 if __name__ == "__main__":
     args = parser.parse_args()
     arglib.die_if_path_exists(args.assignment_out)
 
-    opa = solvent.OuterProductAssignment(args.assignment1, args.assignment2)
-    new_assignments = opa.get_product_assignments()
-    io.saveh(args.assignment_out, new_assignments)
-    logger.info('Saved outer product assignments to %s', args.assignment_out)
+    main(args.assignment1, args.assignment2, args.assignment_out)

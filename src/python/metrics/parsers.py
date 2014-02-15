@@ -96,8 +96,9 @@ def add_metric_parsers(parser):
         help='which distance metric', choices=AtomPairs.allowable_scipy_metrics)
     metric_parser_list.append(atompairs)
 
-    solventfp = metric_subparser.add_parser('solventfp', description='''SOLVENTFP: Get
-        the solvent fingerprint.''')
+    solventfp = metric_subparser.add_parser('solventfp', description="""SOLVENTFP: For each frame
+        calculate a 'solvent fingerprint' by considering the weighted pairwise distances
+        between solute and solvent atoms as in as in Gu et al. BMC Bioinformatics 2013, 14(Suppl 2):S8.""")
     add_argument(solventfp, '-w', dest='solventfp_wateri', default='WaterIndices.dat',
                  help='Indices of the solvent (water) atoms')
     add_argument(solventfp, '-v', dest='solventfp_proti', default='ProteinIndices.dat',
