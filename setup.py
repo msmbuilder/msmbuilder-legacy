@@ -19,11 +19,14 @@ from distutils.ccompiler import new_compiler
 from setuptools import setup, Extension
 
 try:
+    import numpy
     import scipy
+    if not hasattr(numpy.version, 'full_version') or numpy.version.full_version < '1.6':
+        raise ImportError()
     if not hasattr(scipy.version, 'full_version') or scipy.version.full_version < '0.11':
         raise ImportError()
 except ImportError:
-    print('scipy version 0.11 or better is required for msmbuilder', file=sys.stderr)
+    print('numpy>=1.6 and scipy>=0.11 are required for msmbuilder', file=sys.stderr)
     sys.exit(1)
 
 VERSION = "2.8"
@@ -161,33 +164,8 @@ if not release:
     finally:
         a.close()
 
-def travis_main():
-    # On READTHEDOCS, the service that hosts our documentation, the build
-    # environment does not have numpy and cannot build C extension modules,
-    # so if we detect this environment variable, we're going to bail out
-    # and run a minimal setup. This only installs the python packages, which
-    # is not enough to RUN anything, but should be enough to introspect the
-    # docstrings, which is what's needed for the documentation
-    from distutils.core import setup
-    import tempfile, shutil
-    write_version_py()
-
-    # dirty, dirty trick to install "mock" packages
-    mockdir = tempfile.mkdtemp()
-    open(os.path.join(mockdir, '__init__.py'), 'w').close()
-    extensions = ['msmbuilder._distance_wrap', 'msmbuilder._contact_wrap']
-    metadata['packages'].extend(extensions)
-    for ex in extensions:
-        metadata['package_dir'][ex] = mockdir
-    # end dirty trick :)
-
-    setup(**metadata)
-    shutil.rmtree(mockdir) #clean up dirty trick
 
 def main():
-    import numpy
-    import setuptools
-
     compiler_args = ['-O3', '-funroll-loops']
     if new_compiler().compiler_type == 'msvc':
         compiler_args.append('/arch:SSE2')
@@ -210,7 +188,4 @@ def main():
     setup(ext_modules=[dist, contact], **metadata)
 
 if __name__ == '__main__':
-    if os.environ.get('READTHEDOCS', None) == 'True' and __name__ == '__main__':
-        travis_main()
-    else:
-        main()
+    main()
