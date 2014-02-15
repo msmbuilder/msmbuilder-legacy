@@ -18,7 +18,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
-from msmbuilder import arglib
+from msmbuilder import arglib, assigning
 from mdtraj import io
 from msmbuilder.metrics import solvent
 import logging
@@ -43,8 +43,7 @@ def main(assign1_fn, assign2_fn, out_fn):
     assign1 = io.loadh(assign1_fn, 'arr_0')
     assign2 = io.loadh(assign2_fn, 'arr_0')
 
-    opa = solvent.OuterProductAssignment(assign1, assign2)
-    new_assignments = opa.get_product_assignments()
+    new_assignments = assigning.outer_product_assignment(assign1, assign2)
     io.saveh(out_fn, new_assignments)
     logger.info('Saved outer product assignments to %s', out_fn)
 
