@@ -14,7 +14,7 @@ from msmbuilder.reduce.tICA import tICA
 logger = logging.getLogger('msmbuilder.scripts.tICA_train')
 
 
-parser = arglib.ArgumentParser(get_basic_metric=True, description="""
+parser = arglib.ArgumentParser(get_metric=True, description="""
 Calculate the time-lag correlation and covariance matrices for use in the tICA
 metric. This method attempts to find projection vectors such that they have a
 maximal autocorrelation function.

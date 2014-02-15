@@ -1,5 +1,5 @@
 :mod:`msmbuilder.arglib`
-======================
+========================
 
 .. automodule:: msmbuilder.arglib
 .. currentmodule:: msmbuilder.arglib

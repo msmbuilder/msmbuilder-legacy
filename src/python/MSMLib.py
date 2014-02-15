@@ -202,6 +202,8 @@ def build_msm(counts, symmetrize='MLE', ergodic_trimming=True):
 
     # Apply a symmetrization scheme
     if symmetrize == 'mle':
+        if not ergodic_trimming:
+            raise ValueError("MLE symmetrization requires ergodic trimming.")
         rev_counts = mle_reversible_count_matrix(counts)
     elif symmetrize == 'transpose':
         rev_counts = 0.5 * (counts + counts.transpose())
@@ -399,7 +401,7 @@ def invert_assignments(assignments):
     check_assignment_array_input(assignments)
 
     inverse_mapping = defaultdict(lambda: ([], []))
-    non_neg_inds = np.array(np.where(assignments != -1)).T  
+    non_neg_inds = np.array(np.where(assignments != -1)).T
     # we do not care about -1's
 
     for (i, j) in non_neg_inds:
@@ -487,7 +489,7 @@ def renumber_states(assignments):
     mapping = np.array(unique, dtype=int)
     return mapping
 
-
+@deprecated(scipy.sparse.csgraph.connected_components, '2.8')
 def tarjan(graph):
     """Find the strongly connected components in a graph using Tarjan's algorithm.
 
@@ -583,10 +585,19 @@ def ergodic_trim(counts, assignments=None):
 
     Parameters
     ----------
-    counts : csr sparse matrix
+    counts : sparse matrix (csr is best)
         transition counts
     assignments : ndarray, optional
         Optionally map assignments to the new states, nulling out disconnected regions.
+
+    Returns
+    ----
+    trimmed_counts : lil sparse matrix
+        transition counts after ergodic trimming
+    mapping : ndarray
+        mapping[i] = j maps from untrimmed state index i
+        to trimmed state index j, or mapping[i] = -1 if state i
+        was trimmed
 
     Notes
     -----
@@ -597,43 +608,18 @@ def ergodic_trim(counts, assignments=None):
     Tarjan
 
     """
+    states_to_trim = ergodic_trim_indices(counts)
+    trimmed_counts = trim_states(states_to_trim, counts, assignments=assignments)
 
-    # -------------------------------------------------------------------------
-    # TJL sez:
-    # This function could be simply replaced by the following code at a date
-    # in the not-so-distant future:
-    #
-    # states_to_trim = ergodic_trim_indices(counts)
-    # trimmed_counts = trim_states(states_to_trim, counts, assignments=None)
-    # return trimmed_counts
-    #
-    # -------------------------------------------------------------------------
+    # Hacky way to calculate the mapping of saved / discarded states.
+    mapping = np.array([np.arange(counts.shape[0])])  # Need 2D shape for renumber_states.
+    mapping[:, states_to_trim] = -1
+    renumber_states(mapping)  # renumbers into contiguous order, in-place
+    mapping = mapping[0]  # Unpack the 2D array into a 1D array.
 
-    NZ = np.array(counts.nonzero()).transpose()
 
-    ConnectedComponents = tarjan(counts)
-    PiSym = np.array(counts.sum(0)).flatten()
-    ComponentPops = np.array([sum(PiSym[np.array(x)]) for x in ConnectedComponents])
-    ComponentInd = np.argmax(ComponentPops)
 
-    logger.info("Selected component %d with population %f", ComponentInd, ComponentPops[ComponentInd] / ComponentPops.sum())
-
-    GoodComponent = np.unique(ConnectedComponents[ComponentInd])
-
-    Mapping = np.zeros(counts.shape[0], dtype='int') - 1
-    for i, x in enumerate(GoodComponent):
-        Mapping[x] = i
-
-    NZ[:, 0] = Mapping[NZ[:, 0]]
-    NZ[:, 1] = Mapping[NZ[:, 1]]
-
-    Ind = np.where(NZ.min(1) != -1)
-    X = scipy.sparse.csr_matrix((counts.data[Ind], NZ[Ind].transpose()))
-
-    if assignments is not None:
-        apply_mapping_to_assignments(assignments, Mapping)
-
-    return (X, Mapping)
+    return trimmed_counts, mapping
 
 
 def ergodic_trim_indices(counts):
@@ -656,15 +642,15 @@ def ergodic_trim_indices(counts):
     trim_states : func
     """
 
-    ConnectedComponents = tarjan(counts)
-    PiSym = np.array(counts.sum(0)).flatten()
-    ComponentPops = np.array([sum(PiSym[np.array(x)]) for x in ConnectedComponents])
-    ComponentInd = np.argmax(ComponentPops)
 
-    logger.info("Selected component %d with population %f", ComponentInd, ComponentPops[ComponentInd] / ComponentPops.sum())
+    n_components, component_assignments = scipy.sparse.csgraph.connected_components(counts, connection="strong")
+    populations_symmetrized = np.array(counts.sum(0)).flatten()
+    component_pops = np.array([populations_symmetrized[component_assignments == i].sum() for i in range(n_components)])
+    which_component = component_pops.argmax()
 
-    states_to_keep = np.unique(ConnectedComponents[ComponentInd])
-    states_to_trim = np.setdiff1d(np.arange(counts.shape[0]), states_to_keep)
+    logger.info("Selected component %d with population %f", which_component, component_pops[which_component] / component_pops.sum())
+
+    states_to_trim = np.arange(counts.shape[0])[component_assignments != which_component]
 
     return states_to_trim
 
@@ -672,7 +658,7 @@ def ergodic_trim_indices(counts):
 def trim_states(states_to_trim, counts, assignments=None):
     """
     Performs the necessary operations to reduce an MSM to a subset of the
-    orignial states -- effectively trimming those states out.
+    original states -- effectively trimming those states out.
 
     Parameters
     ----------
@@ -714,9 +700,12 @@ def trim_states(states_to_trim, counts, assignments=None):
 
     if assignments is not None:
 
-        mapping = np.arange(counts.shape[0])
+        mapping = np.arange(counts.shape[0] + ndel)  # Use the ORIGINAL number of states! Re bug #300
         mapping[states_to_trim] = -1
+
+        mapping = np.array([mapping])  # renumber_states requires rank 2 input, not rank 1.  Re bug #300
         renumber_states(mapping)  # renumbers into contiguous order, in-place
+        mapping = mapping[0]  # Unpack the 2D array into a 1D array.  Re bug #300
 
         trimmed_assignments = assignments.copy()
         apply_mapping_to_assignments(trimmed_assignments, mapping)  # in-place

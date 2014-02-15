@@ -31,14 +31,14 @@ logger = logging.getLogger('msmbuilder.scripts.ConvertDataToHDF')
 
 
 parser = ArgumentParser(description="""
-Merges individual XTC files into continuous lossy HDF5 (.lh5) trajectories.
+Merges individual XTC files into continuous HDF5 (.h5) trajectories.
 
 Can read data from a FAH project (PROJECT/RUN*/CLONE*/frame*.xtc) or from
 a directory containing one directory for each trajectory, with all the
 relevant XTCs inside that directory (PROJECT/TRAJ*/frame*.xtc).
 
 Output:
--- 'Trajectories' directory containing all the merged lh5 files
+-- 'Trajectories' directory containing all the merged h5 files
 -- 'ProjectInfo' file containing information MSMBuilder uses in subsequent
  calculations.
 

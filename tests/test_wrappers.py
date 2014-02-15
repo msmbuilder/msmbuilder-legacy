@@ -67,7 +67,7 @@ class WTempdir(object):
     def teardown(self):
         shutil.rmtree(self.td)
 
-@skipIf(os.environ.get('TRAVIS', None) == 'true', "This test uses RMSD, which doesn't work on travis-ci?")
+
 class test_ConvertDataToHDF(WTempdir):
     def test(self):
         # extract xtcs to a temp dir
@@ -86,11 +86,10 @@ class test_ConvertDataToHDF(WTempdir):
                              min_length=0,
                              stride=1,
                              rmsd_cutoff=np.inf, atom_indices=None, iext=".xtc")
-        
+
         eq(load(outfn), get('ProjectInfo.yaml'))
 
 
-@skipIf(os.environ.get('TRAVIS', None) == 'true', "This test uses RMSD, which doesn't work on travis-ci?")
 class test_ConvertDataToHDF_atomindices(WTempdir):
     def test(self):
         # extract xtcs to a temp dir
@@ -102,9 +101,9 @@ class test_ConvertDataToHDF_atomindices(WTempdir):
         outfn = pjoin(self.td, 'ProjectInfo.yaml')
         # move to that directory
         os.chdir(self.td)
-        
+
         atom_indices = np.arange(4)
-        
+
         ConvertDataToHDF.run(projectfn=outfn,
                              conf_filename=get('native.pdb', just_filename=True),
                              input_dir=pjoin(self.td, 'XTC'),
@@ -113,7 +112,7 @@ class test_ConvertDataToHDF_atomindices(WTempdir):
                              stride=1,
                              rmsd_cutoff=np.inf,
                              atom_indices=atom_indices, iext=".xtc")
-        
+
         project = load(outfn)
         traj = project.load_conf()
         eq(traj.n_atoms, 4)
@@ -129,7 +128,7 @@ class test_tICA_train(WTempdir):
                        output='tICAtest.h5', min_length=0, stride=1)
 
         ref_tICA = get('tICA_ref_mle.h5')
-    
+
         ref_vals = ref_tICA['vals']
         ref_vecs = ref_tICA['vecs']
         ref_inds = np.argsort(ref_vals)
@@ -153,7 +152,6 @@ def test_CreateAtomIndices():
     eq(indices, get('AtomIndices.dat'))
 
 
-@skipIf(os.environ.get('TRAVIS', None) == 'true', "This test uses RMSD, which doesn't work on travis-ci?")
 class test_Cluster_kcenters(WTempdir):
     # this one tests kcenters
     def test(self):
@@ -167,19 +165,29 @@ class test_Cluster_kcenters(WTempdir):
         assignments = load(pjoin(self.td, 'Assignments.h5'))["arr_0"]
         assignment_counts = np.bincount(assignments.flatten())
         eq(assignment_counts, np.array([2, 2, 2, 2]))
-        
+
         distances = load(pjoin(self.td, 'Assignments.h5.distances'))["arr_0"]
         eq(distances, np.zeros((1,8)))
 
 
-@skipIf(os.environ.get('TRAVIS', None) == 'true', "This test uses RMSD, which doesn't work on travis-ci?")
+class test_Cluster_hybrid(WTempdir):
+    # this one tests hybrid kcenters kmedoids
+    def test(self):
+        args, metric = Cluster.parser.parse_args([
+            '-p', get('points_on_cube/ProjectInfo.yaml', just_filename=True),
+            '-o', self.td,
+            'rmsd', '-a', get('points_on_cube/AtomIndices.dat', just_filename=True),
+            'hybrid', '-k', '4'], print_banner=False)
+        Cluster.main(args, metric)
+
+
 class test_Cluster_hierarchical(WTempdir):
     def test(self):
         try:
             import fastcluster
         except ImportError:
             raise nose.SkipTest("Cannot find fastcluster, so skipping hierarchical clustering test.")
-            
+
         args, metric = Cluster.parser.parse_args([
             '-p', get('ProjectInfo.yaml', just_filename=True),
             '-s', '10',
@@ -192,7 +200,6 @@ class test_Cluster_hierarchical(WTempdir):
         eq(load(pjoin(self.td, 'ZMatrix.h5')), get('ZMatrix.h5'))
 
 
-@skipIf(os.environ.get('TRAVIS', None) == 'true', "This test uses RMSD, which doesn't work on travis-ci?")
 class test_Assign(WTempdir):
     def test(self):
         args, metric = Assign.parser.parse_args([
@@ -201,6 +208,9 @@ class test_Assign(WTempdir):
             '-o', self.td,
             'rmsd', '-a', get('OldAtomIndices.dat', just_filename=True)],
             print_banner=False)
+        if os.getenv('TRAVIS', None) == 'true':
+            raise nose.SkipTest('Skipping test_Assign on TRAVIS')
+
         Assign.main(args, metric)
 
         eq(load(pjoin(self.td, 'Assignments.h5')),
@@ -319,7 +329,7 @@ class test_SaveStructures(WTempdir):
         project = get('ProjectInfo.yaml')
         assignments = get('Assignments.h5')['arr_0']
         which_states = [0, 1, 2]
-        list_of_trajs = project.get_random_confs_from_states(assignments, 
+        list_of_trajs = project.get_random_confs_from_states(assignments,
             which_states, num_confs=2, replacement=True,
             random=np.random.RandomState(42))
 
