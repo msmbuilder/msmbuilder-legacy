@@ -59,7 +59,7 @@ def run(MinLagtime, MaxLagtime, Interval, NumEigen, AssignmentsFn, trimming,
     lagTimes = range(MinLagtime, MaxLagtime + 1, Interval)
     logger.info("Building MSMs at the following lag times: %s", lagTimes)
 
-    assert np.all(lagTimes > 0), "Please specify a range of positive lag times."
+    assert np.all(np.array(lagTimes) > 0), "Please specify a range of positive lag times."
 
     # Get the implied timescales (eigenvalues)
     impTimes = msm_analysis.get_implied_timescales(
