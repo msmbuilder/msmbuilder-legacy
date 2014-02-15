@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # This file is part of MSMBuilder.
 #
-# Copyright 2011 Stanford University
+# Copyright 2014 Stanford University
 #
 # MSMBuilder is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,9 +24,13 @@ from msmbuilder.metrics import solvent
 import logging
 logger = logging.getLogger('msmbuilder.scripts.AssignOuter')
 
-parser = arglib.ArgumentParser(description='''Assign data to the outer product
-                                              space of two preliminary
-                                              assignments''')
+parser = arglib.ArgumentParser(description=
+    """Combine the results of two clusterings. Specifically, if a conformation
+    is in state i after clustering with metric 1, and it is in state j
+    after clustering with metric 2, we assign it to a new state (ij)
+
+    This is a naive way of combining two metrics to give a singular
+    assignment of states.""")
 parser.add_argument('assignment1', default='./Data1/Assignments.h5',
                     help='First assignment file')
 parser.add_argument('assignment2', default='./Data2/Assignments.h5',
@@ -34,11 +38,6 @@ parser.add_argument('assignment2', default='./Data2/Assignments.h5',
 parser.add_argument('assignment_out', default='OuterProductAssignments.h5',
                     help='Output file')
 
-
-def main(ass1_fn, ass2_fn):
-    hierarchical = Hierarchical.load_from_disk(zmatrix_fn)
-    assignments = hierarchical.get_assignments(k=k, cutoff_distance=d)
-    return assignments
 
 if __name__ == "__main__":
     args = parser.parse_args()
