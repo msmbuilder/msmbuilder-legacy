@@ -1,7 +1,6 @@
 import logging
 
 import mdtraj as md
-from mdtraj import io
 
 from baseclasses import Vectorized
 import numpy as np
@@ -120,8 +119,8 @@ class OuterProductAssignment(object):
         assign2 : ndarray
             assignment array 2
         """
-        self.ass1 = io.loadh(ass1_fn, 'arr_0')
-        self.ass2 = io.loadh(ass2_fn, 'arr_0')
+        self.ass1 = assign1
+        self.ass2 = assign2
 
     def get_product_assignments(self):
         assert self.ass1.shape == self.ass2.shape, """Assignments must be
