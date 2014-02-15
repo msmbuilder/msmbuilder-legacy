@@ -99,7 +99,7 @@ def main():
 
     # states
     if -1 in args.states:
-        states = np.unique(assigments[np.where(assignments != -1)])
+        states = np.unique(assignments[np.where(assignments != -1)])
         logger.info('Yanking from all %d states', len(states))
     else:
         # ensure that the states are sorted, and that they're unique -- you
