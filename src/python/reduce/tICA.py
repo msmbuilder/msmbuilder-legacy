@@ -2,6 +2,7 @@ import numpy as np
 import scipy.linalg
 import re, sys, os
 from time import time
+import cPickle
 import logging
 from mdtraj import io
 from msmbuilder.metrics import Vectorized
@@ -77,6 +78,11 @@ class tICA(AbstractDimReduction):
             the size is the number of coordinates for the vector
             representation of the protein. If None, then the first
             trained vector will be used to initialize it.
+            
+        Notes
+        -----
+        
+        To load an already constructed tICA object, use `tICA.load()`.
         """
         
         self.corrs = None
@@ -387,40 +393,42 @@ class tICA(AbstractDimReduction):
             output filename (.h5)
         """
         
+        metric_string = cPickle.dumps(self.prep_metric)  # Serialize metric used to calculate tICA input.
+        
         io.saveh(output, timelag_corr_mat=self.timelag_corr_mat,
             cov_mat=self.cov_mat, lag=np.array([self.lag]), vals=self.vals,
-            vecs=self.vecs)
+            vecs=self.vecs, metric_string=np.array([metric_string]))
 
+    @classmethod
+    def load(cls, tica_fn):
+        """
+        load a tICA solution to use in projecting data.
 
-def load(tica_fn, metric):
-    """
-    load a tICA solution to use in projecting data.
+        Parameters:
+        -----------
+        tica_fn : str
+            filename pointing to tICA solutions
 
-    Parameters:
-    -----------
-    tica_fn : str
-        filename pointing to tICA solutions
-    metric : metrics.Vectorized subclass instance
-        metric used to prepare trajectories
+        """
+        # the only variables we need to save are the two matrices
+        # and the eigenvectors / values as well as the lag time
+        
+        logger.warn("NOTE: You can only use the tICA solution, you will "
+                    "not be able to continue adding data")
+        f = io.loadh(tica_fn)
+        
+        metric = cPickle.loads(f["metric_string"][0])
 
-    """
-    # the only variables we need to save are the two matrices
-    # and the eigenvectors / values as well as the lag time
-    
-    logger.warn("NOTE: You can only use the tICA solution, you will "
-                "not be able to continue adding data")
-    f = io.loadh(tica_fn)
+        tica_obj = cls(f['lag'][0], prep_metric=metric)
+        # lag entry is an array... with a single item
 
-    tica_obj = tICA(f['lag'][0], prep_metric=metric)
-    # lag entry is an array... with a single item
+        tica_obj.timelag_corr_mat = f['timelag_corr_mat']
+        tica_obj.cov_mat = f['cov_mat']
 
-    tica_obj.timelag_corr_mat = f['timelag_corr_mat']
-    tica_obj.cov_mat = f['cov_mat']
+        tica_obj.vals = f['vals']
+        tica_obj.vecs = f['vecs']
 
-    tica_obj.vals = f['vals']
-    tica_obj.vecs = f['vecs']
+        tica_obj._sort()
 
-    tica_obj._sort()
-
-    return tica_obj
-    
+        return tica_obj
+        

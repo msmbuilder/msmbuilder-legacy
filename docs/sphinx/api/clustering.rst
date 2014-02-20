@@ -1,5 +1,5 @@
 :mod:`msmbuilder.clustering`
-======================
+============================
 
 .. automodule:: msmbuilder.clustering
 .. currentmodule:: msmbuilder.clustering
