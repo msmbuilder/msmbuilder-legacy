@@ -36,6 +36,7 @@ Documentation
    installation
    tutorial
    ward_and_scre_tutorial
+   publications
    commands
    faq
    whats_new
