@@ -183,6 +183,9 @@ class test_Cluster_hybrid(WTempdir):
 
 class test_Cluster_hierarchical(WTempdir):
     def test(self):
+        if os.getenv('TRAVIS', None) == 'true':
+            raise nose.SkipTest('Skipping test_Assign on TRAVIS')
+
         try:
             import fastcluster
         except ImportError:

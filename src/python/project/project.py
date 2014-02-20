@@ -295,6 +295,8 @@ class Project(object):
                 it is not possible to sample that many conformations without 
                 replacement
             """
+            assert state_counts > 0
+
             if replacement:
                 result = random.randint(0, state_counts, size=size)
             else:
@@ -332,6 +334,9 @@ class Project(object):
 
         for n, state in zip(num_confs, states):
             logger.debug("Working on %s", state)
+            if state_counts[state] == 0:
+                raise ValueError('No conformations to sample from state %d! It contains no assigned conformations.' % state)
+
             random_conf_inds = randomize(state_counts[state], size=n,
                                          replacement=replacement, 
                                          random=random)
