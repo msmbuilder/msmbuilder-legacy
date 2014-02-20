@@ -21,7 +21,7 @@ MSMs are a powerful means of modeling the structure and dynamics of molecular sy
 
 MSMBuilder has been designed to provide both ease of use and versatility. To facilitate the workflows of both novices and experts, we have designed MSMBuilder with two modes of operations:
 
-#. MSMBuilder is a set of command line toos
+#. MSMBuilder is a set of command line tools
 
 #. MSMBuilder is a python library.
 
