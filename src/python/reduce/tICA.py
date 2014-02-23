@@ -9,7 +9,6 @@ from msmbuilder.metrics import Vectorized
 from msmbuilder.reduce import AbstractDimReduction
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 class tICA(AbstractDimReduction):
     """
