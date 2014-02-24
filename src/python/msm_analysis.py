@@ -302,7 +302,6 @@ def get_implied_timescales_helper(args):
         sys.exit(1)
 
     n_eigenvectors = n_implied_times + 1
-    e_values = get_eigenvectors(t_matrix, n_eigenvectors, epsilon=1)[0]
     if symmetrize in ['MLE', 'Transpose']:
         e_values = get_reversible_eigenvectors(t_matrix, n_eigenvectors, populations=populations)[0]
     else:
