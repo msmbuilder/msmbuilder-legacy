@@ -50,7 +50,6 @@ MSMLib functions generally relate to one of the following
     tarjan
     trim_states
 """
-import warnings
 import scipy.sparse
 import scipy.linalg
 import scipy

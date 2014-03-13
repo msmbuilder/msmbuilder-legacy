@@ -5,7 +5,6 @@ from glob import glob
 from msmbuilder.utils import keynat
 import numpy as np
 import mdtraj as md
-import tables
 
 from project import Project
 from validators import ValidationError
