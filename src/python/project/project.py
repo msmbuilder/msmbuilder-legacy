@@ -29,12 +29,9 @@ except ImportError:
     from yaml import Dumper
 
 from msmbuilder import MSMLib
-import tables
 import mdtraj as md
 from mdtraj import io
-from mdtraj.trajectory import HDF5TrajectoryFile
 import logging
-from msmbuilder.utils import keynat
 logger = logging.getLogger(__name__)
 
 class Project(object):
@@ -363,8 +360,7 @@ class Project(object):
         -------
         >>> project = Project.load_from('ProjectInfo.yaml')
         >>> foo = project.load_frame(1,10)
-        >>> bar = Trajectory.read_frame(TrajFilename=project.traj_filename(1),
-            WhichFrame=10)
+        >>> bar = Trajectory.read_frame(TrajFilename=project.traj_filename(1), WhichFrame=10)
         >>> np.all(foo['XYZList'] == bar)
         True
 
