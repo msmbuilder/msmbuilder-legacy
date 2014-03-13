@@ -56,6 +56,8 @@ metadata = {
     'scripts': ['scripts/msmb'] + [e for e in glob('scripts/*') if not e.endswith('__.py')]
 }
 
+if 'setuptools' in sys.modules:
+    metadata['zip_safe'] = False
 
 
 # Return the git revision as a string
