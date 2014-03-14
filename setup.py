@@ -13,21 +13,50 @@ import os
 import sys
 import subprocess
 from glob import glob
+from distutils.version import StrictVersion
 try:
     from setuptools import setup
 except ImportError:
     from distutils.core import setup
 
-try:
-    import numpy
-    import scipy
-    if not hasattr(numpy.version, 'full_version') or numpy.version.full_version < '1.6':
-        raise ImportError()
-    if not hasattr(scipy.version, 'full_version') or scipy.version.full_version < '0.11':
-        raise ImportError()
-except ImportError:
-    print('numpy>=1.6 and scipy>=0.11 are required for msmbuilder', file=sys.stderr)
-    sys.exit(1)
+
+def warn_on_version(module_name, minimum=None, package_name=None, recommend_conda=True):
+    if package_name is None:
+        package_name = module_name
+
+    class VersionError(Exception):
+        pass
+
+    msg = None
+    try:
+        package = __import__(module_name)
+        if minimum is not None:
+            try:
+                v = package.version.short_version
+            except AttributeError:
+                v = package.__version__
+            if StrictVersion(v) < StrictVersion(minimum):
+                raise VersionError
+    except ImportError:
+        if minimum is None:
+            msg = 'MSMBuilder requires the python package "%s", which is not installed.' % package_name
+        else:
+            msg = 'MSMBuilder requires the python package "%s", version %s or later.' % (package_name, minimum)
+    except VersionError:    
+        msg = ('MSMBuilder requires the python package "%s", version %s or '
+               ' later. You have version %s installed. You will need to upgrade.') % (package_name, minimum, v)
+
+    if recommend_conda:
+        install = ('\nTo install %s, we recommend the conda package manger. See http://conda.pydata.org for info on conda.\n'
+                   'Using conda, you can install it with::\n\n    $ conda install %s') % (package_name, package_name)
+        install += '\n\nAlternatively, with pip you can install the package with:\n\n    $ pip install %s' % package_name
+    else:
+        install = '\nWith pip you can install the package with:\n\n    $ pip install %s' % package_name
+    
+    if msg:
+        banner = ('==' * 40)
+        print('\n'.join([banner, banner, "", msg, install, "", banner, banner]))
+
 
 VERSION = "2.8"
 ISRELEASED = False
@@ -118,7 +147,16 @@ if not release:
     finally:
         a.close()
 
-
 write_version_py()
 setup(**metadata)
 
+# running these after setup() ensures that they show
+# at the bottom of the output, since setup() prints
+# a lot to stdout. helps them not get lost
+warn_on_version('numpy', '1.6.0')
+warn_on_version('scipy', '0.11.0')
+warn_on_version('tables', '2.4.0', package_name='pytables')
+warn_on_version('fastcluster', '1.1.13', recommend_conda=False)
+warn_on_version('yaml', package_name='pyyaml')
+# because it requires adding a different channel, the correct instructions are more complex with conda than pip
+warn_on_version('mdtraj', '0.8.0', recommend_conda=False)
