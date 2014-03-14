@@ -19,6 +19,12 @@ try:
 except ImportError:
     from distutils.core import setup
 
+#########################################
+VERSION = "2.8"
+ISRELEASED = False
+__author__ = "MSMBuilder Team"
+__version__ = VERSION
+########################################
 
 def warn_on_version(module_name, minimum=None, package_name=None, recommend_conda=True):
     if package_name is None:
@@ -57,11 +63,6 @@ def warn_on_version(module_name, minimum=None, package_name=None, recommend_cond
         banner = ('==' * 40)
         print('\n'.join([banner, banner, "", msg, install, "", banner, banner]))
 
-
-VERSION = "2.8"
-ISRELEASED = False
-__author__ = "MSMBuilder Team"
-__version__ = VERSION
 
 # metadata for setup()
 metadata = {
