@@ -21,7 +21,7 @@ import scipy.optimize
 import scipy.weave
 import matplotlib.pyplot as plt
 
-import mdtraj.geometry
+import mdtraj as md
 from msmbuilder import MSMLib
 from msmbuilder import tpt
 from msmbuilder.msm_analysis import get_eigenvectors
@@ -58,7 +58,7 @@ def contact_reaction_coordinate(trajectory, weights):
     C_alpha_pairs = np.array(list(itertools.combinations([a.index for a in t.topology.atoms if a.name == 'CA'])))
 
     # calculate the distance between all of those pairs
-    distance_array = md.geometry.compute_distances(trajectory, C_alpha_pairs)
+    distance_array = md.compute_distances(trajectory, C_alpha_pairs)
     rc_value = np.sum( distance_array * weights.T, axis=1 )
 
     if TIME:

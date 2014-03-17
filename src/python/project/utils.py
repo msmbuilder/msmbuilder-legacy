@@ -1,12 +1,10 @@
 import os
 import logging
-from glob import glob
 from msmbuilder.utils import keynat
-from msmbuilder.utils import keynat
+import tables
 import mdtraj as md
-
 from project import Project
-from validators import ValidationError
+
 logger = logging.getLogger(__name__)
 
 def get_project_object(traj_directory, conf_filename, out_filename=None):

@@ -1,6 +1,5 @@
 import numpy as np
 import scipy.linalg
-import re, sys, os
 from time import time
 import cPickle
 import logging
@@ -9,7 +8,6 @@ from msmbuilder.metrics import Vectorized
 from msmbuilder.reduce import AbstractDimReduction
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 class tICA(AbstractDimReduction):
     """
