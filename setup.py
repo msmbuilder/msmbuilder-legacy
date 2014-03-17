@@ -20,8 +20,8 @@ except ImportError:
     from distutils.core import setup
 
 #########################################
-VERSION = "2.8.1"
-ISRELEASED = True
+VERSION = "2.8.2"
+ISRELEASED = False
 __author__ = "MSMBuilder Team"
 __version__ = VERSION
 ########################################
