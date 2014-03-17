@@ -17,7 +17,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-from pylab import *
 from numpy import loadtxt
 import sys
 from msmbuilder import arglib
@@ -37,6 +36,7 @@ parser.add_argument('title', help='Title for plot',
                     default='Relaxation Timescale versus Lagtime')
 
 if __name__ == '__main__':
+    from pylab import *
     args = parser.parse_args()
     input = np.loadtxt(args.input)
 

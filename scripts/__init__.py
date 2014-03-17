@@ -32,7 +32,7 @@ __all__ = [
  'ConvertDataToHDF',
  'CreateAtomIndices',
  'FindPaths',
- 'Interactive-SCRE',
+ 'InteractiveSCRE',
  'PCCA',
  'PlotImpliedTimescales',
  'RebuildProject',
