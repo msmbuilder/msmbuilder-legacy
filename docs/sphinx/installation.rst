@@ -1,77 +1,64 @@
 Installation
 ============
 
-MSMBuilder should run on most modern computers equiped with a scientific python installation. But, in the interest of being explicit, here the requirements
+MSMBuilder is a python package that uses a number of components from the "scientific python" stack. These packages include `numpy and scipy <http://scipy.org/getting-started.html>`_ for array manipulation and numerical linear algebra, `PyTables <http://www.pytables.org/moin>`_ for storing binary data, and others.
 
-- A CPU with SSE3 support, which has been tandard on all x86 processors produce after 2006.
-- A working C compiler, such as GCC 4.2 or later, clang, or MSVC.
-- Python, with some scientific modules installed (see below)
+.. note::
 
-MSMBuilder is written in the python programming language, and uses a
-variety of tools from the wider scientific python ecosystem, which may
-need to be installed separately. They include
+   MSMBuilder currently required python2.7, and is not compatible with the python3.x series.
 
+Easily with ``conda``
+---------------------
 
-Python Prerequisites
---------------------
--  MDTraj
--  Numpy
--  Scipy
--  PyTables
--  numexpr
--  fastcluster (for hierarchical clustering)
+The easiest way to install MSMBuilder is with the python package manager ``conda``.
+``conda`` is an open-source cross-platform binary package manager integrated with
+the scientific python stack. It's built into the `Anaconda python distribution <http://docs.continuum.io/anaconda/>`_ produced by Continuum Analytics, which is a python installer that comes shipped with many of the python packages needed for science.
+
+.. warning::
+
+   We **strongly** recommend using Anaconda. Installing the scientific stack by hand can be quite tricky.
+
+If you don't want to get Anaconda, you can also install ``conda`` into an existing python interpreter. Once you have ``conda``, install MSMBuilder with ::
+
+   conda config --add channels http://conda.binstar.org/omnia
+   conda install msmbuilder
+
+Medium With ``pip``
+-------------------
+
+MSMBuilder can be instaleld with ``pip``, but ``pip`` is not fantastic at installing the dependencies. If you've already got the dependencies installed (see below), then you can download and install MSMBuilder::
+
+    pip install msmbuilder
+
+Hard Way by Hand
+----------------
+
+If you use conda, all of this will be done automatically. If you prefer to do things by hand, keep reading.
+
+You'll need to get the following python packages:
+
+-  `mdtraj >= 0.8 <https://pypi.python.org/pypi/mdtraj>`_
+-  `numpy >= 1.6 <https://pypi.python.org/pypi/numpy>`_
+-  `scipy >= 0.11 <https://pypi.python.org/pypi/scipy>`_
+-  `tables >= 2.4.0 <https://pypi.python.org/pypi/tables>`_
+-  `pyyaml <https://pypi.python.org/pypi/PyYAML>`_
+-  `fastcluster (for hierarchical clustering) <https://pypi.python.org/pypi/fastcluster>`_
 -  matplotlib (optional for plotting)
 -  ipython (optional for interactive mode)
--  pymol (optional for visualization)
 
-Two companies, Enthought and Continuum Analytics, produce python
-distributions which bundle many of these packages in with the python
-interpreter into a single binary installer, available for all major
-operating systems. These are the Enthought Canopy python distribution
-and Continuum’s Anaconda.
-
-
-Install Python and Python Packages
-----------------------------------
-
-Rather than individually install the many python dependencies, we
-recommend that you download the Python2.7 version of the Enthought
-Canopy or Continuum Anaconda, which contain almost all python
-dependencies required to run MSMBuilder. If you have a 64 bit platform,
-please use the 64 bit versions, as this will give higher performance.
-
-Note for OSX users: Enthought represents the easiest way to obtain a
-working Python installation. The OSX system Python install is broken and
-cannot properly build Python extensions, which are required for
-MSMBuilder installation. Also, see FAQ question 11 for a known issue
-with OSX Lion and OpenMP.
-
-Note: if you are unable to use Canopy or Anaconda, there are other
-pre-compiled Python distributions available, although they might not be
-as fast as Enthought. Options include Python(x,y) and the Scipy
-Superpack (OSX). Finally, most Linux users can install most
-prerequisites using their package manager. In Ubuntu, the following will
-install most of the prerequisites:
-
-::
+On a debian-based linux, you can get most of them with ::
 
     $ sudo apt-get install libhdf5-serial-dev python-dev python-numpy \
     python-scipy python-setuptools python-nose python-tables \
-    python-matplotlib python-yaml swig ipython
+    python-matplotlib python-yaml swig ipython python-pip
 
-Neither Canopy nor Anaconda include MDTraj nor fastcluster. They can be installed be installed using python’s package manager, ``pip``.
 
-::
+Download MSMBuilder, unzip, move to the msmbuilder directory. Then, use ``pip``
+to install any remaining dependencies ::
 
     $ pip install -r requirements.txt
 
-Download and Install MSMBuilder
--------------------------------
-
-Download MSMBuilder, unzip, move to the msmbuilder directory. Install
-using setup.py:
-
-::
+Then install MSMBuilder with ``setup.py`` ::
 
     $ python setup.py install
 
@@ -79,9 +66,9 @@ You may need root privileges during the install step; alternatively, you
 can specify an alternative install path via ``–prefix=XXX``. If you
 performed the install step with ``–prefix=XXX``, you need to ensure that
 
-#. XXX/bin is included in your PATH
+#. ``XXX/bin`` is included in your ``PATH``
 
-#. XXX/lib/python2.7/site-packages/ is included in your PYTHONPATH
+#. ``XXX/lib/python2.7/site-packages/`` is included in your ``PYTHONPATH``
 
 Step (1) ensures that you can run MSMBuilder scripts without specifying
 their location. Step (2) ensures that your Python can locate the
