@@ -1,3 +1,4 @@
+export PATH="$HOME/envs/test/bin/:$PATH"
 if [[ "$TRAVIS_PULL_REQUEST" == "true" ]]; then
     echo "This is a pull request. No deployment will be done."; exit 0
 fi
@@ -14,7 +15,6 @@ fi
 
 # Create the docs and push them to S3
 # sudo conda install --yes boto
-pip install -q sphinx boto sphinx_rtd_theme
-pip install -q bibpy
+pip install -q sphinx boto sphinx_rtd_theme bibpy
 cd docs/sphinx && make html && cd -
 python tools/ci/push-docs-to-s3.py
