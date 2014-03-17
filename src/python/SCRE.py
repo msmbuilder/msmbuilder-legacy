@@ -3,7 +3,6 @@ import scipy
 import scipy.linalg
 import scipy.optimize
 import scipy.stats
-import matplotlib
 
 
 def GetFormat():
@@ -240,6 +239,7 @@ def PlotRates(KList, LagTimeList, counts_list, Tau=1):
         The time unit associated with spacings between lagtimes.
         
     """
+    import matplotlib
     KList = np.array(KList)
     NumStates = KList.shape[-1]
     TauList = Tau / KList

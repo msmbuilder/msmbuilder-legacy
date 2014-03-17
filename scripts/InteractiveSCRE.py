@@ -8,7 +8,6 @@ from mdtraj import io
 from msmbuilder import MSMLib, SCRE, arglib
 import numpy as np
 import string
-import matplotlib
 import logging
 logger = logging.getLogger('msmbuilder.scripts.Interactive-SCRE')
 
@@ -89,6 +88,7 @@ def scre_iteration(assignments,K0,lagtime_list,M,X,populations):
 run = interactive_scre
 
 if __name__ == "__main__":
+    import matplotlib
     args = parser.parse_args()
 
     try:
