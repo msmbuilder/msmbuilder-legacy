@@ -65,19 +65,19 @@ clusters.
 After clustering, one must assign the data to the clusters. For the
 clustering settings used above, this happens automatically, so you will
 not need to run a separate assignment step. For other clustering
-protocols, you may need to run Assign.py or AssignHierarchical.py after
-the clustering phase.
+protocols, you may need to run ``Assign.py`` or ``AssignHierarchical.py``
+after the clustering phase.
 
-The assignments of each conformation are stored as Data/Assignments.h5.
-The cluster centers are stored as Data/Gens.lh5.
+The assignments of each conformation are stored as ``Data/Assignments.h5``.
+The cluster centers are stored as ``Data/Gens.lh5``.
 
 Note that clustering with the RMSD metric requires a list of which atom
 indices to use during RMSD calculation. This file is typically called
-AtomIndices.dat and can typically be created using the script
-CreateAtomIndices.py. Because alanine dipeptide contains non-standard
+``AtomIndices.dat`` and can typically be created using the script
+``CreateAtomIndices.py``. Because alanine dipeptide contains non-standard
 atom names, it cannot be generated automatically; a default
-AtomIndices.dat has already been placed in the Tutorial directory for
-your use. Note that AtomIndices.dat uses *zero* based indexing–the first
+``AtomIndices.dat`` has already been placed in the Tutorial directory for
+your use. Note that ``AtomIndices.dat`` uses *zero* based indexing–the first
 atom in your system has index 0.
 
 Alternative Clustering Protocols
@@ -132,17 +132,17 @@ Assignments.Fixed.h5 contains a “fixed” version of your microstate
 assignments that has removed all data that is trimmed the maximal
 ergodic subgraph of your data.
 
-tCounts.mtx contains the maximum likelihood estimated reversible count
-matrix. This is a symmetric matrix.
+``tCounts.mtx`` contains the maximum likelihood estimated reversible
+count matrix. This is a symmetric matrix.
 
-tProb.mtx contains the maximum likelihood estimated transition
+``tProb.mtx`` contains the maximum likelihood estimated transition
 probability matrix.
 
-Mapping.dat contains a mapping of the original microstate numbering to
+``Mapping.dat`` contains a mapping of the original microstate numbering to
 the “fixed” microstate numbering. This is necessary because some states
 may have been discarded during the ergodic trimming step.
 
-Populations.dat contains the maximum likelihood estimated reversible
+``Populations.dat`` contains the maximum likelihood estimated reversible
 equilibrium populations.
 
 Construct a Macrostate MSM
