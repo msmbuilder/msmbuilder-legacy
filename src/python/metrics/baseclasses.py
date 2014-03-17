@@ -3,7 +3,7 @@ import re
 import numpy as np
 import warnings
 
-from core import cdist, pdist
+from scipy.spatial.distance import cdist, pdist
 
 
 class AbstractDistanceMetric(object):

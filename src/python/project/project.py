@@ -29,12 +29,9 @@ except ImportError:
     from yaml import Dumper
 
 from msmbuilder import MSMLib
-import tables
 import mdtraj as md
 from mdtraj import io
-from mdtraj.trajectory import HDF5TrajectoryFile
 import logging
-from msmbuilder.utils import keynat
 logger = logging.getLogger(__name__)
 
 class Project(object):
@@ -359,15 +356,6 @@ class Project(object):
     def load_frame(self, traj_index, frame_index):
         """Load one or more specified frames.
 
-        Example
-        -------
-        >>> project = Project.load_from('ProjectInfo.yaml')
-        >>> foo = project.load_frame(1,10)
-        >>> bar = Trajectory.read_frame(TrajFilename=project.traj_filename(1),
-            WhichFrame=10)
-        >>> np.all(foo['XYZList'] == bar)
-        True
-
         Parameters
         ----------
         traj_index : int, [int]
@@ -441,7 +429,6 @@ class Project(object):
     def _eval_traj_shapes(self):
         lengths = np.zeros(self.n_trajs)
         n_atoms = np.zeros(self.n_trajs)
-        conf = self.load_conf()
         for i in xrange(self.n_trajs):
             filename = self.traj_filename(i)
             with md.open(filename) as f:

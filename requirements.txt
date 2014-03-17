@@ -1,4 +1,7 @@
-numpy
-scipy
-mdtraj
-fastcluster
+nose
+pyyaml
+numpy>=1.6
+scipy>=0.11
+mdtraj>=0.8
+fastcluster>=1.1.13
+tables>=2.4.0

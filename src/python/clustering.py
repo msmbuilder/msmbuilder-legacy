@@ -1,6 +1,4 @@
-import abc
 import sys
-import copy
 import types
 import random
 import numpy as np
@@ -14,7 +12,7 @@ import mdtraj as md
 
 from msmbuilder import metrics
 from mdtraj import io
-from msmbuilder.utils import uneven_zip, deprecated
+from msmbuilder.utils import uneven_zip
 
 from multiprocessing import Pool
 try:

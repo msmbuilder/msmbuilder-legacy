@@ -11,28 +11,58 @@ DOCLINES = __doc__.split("\n")
 
 import os
 import sys
-import shutil
-import tempfile
 import subprocess
 from glob import glob
-from distutils.ccompiler import new_compiler
-from setuptools import setup, Extension
-
+from distutils.version import StrictVersion
 try:
-    import numpy
-    import scipy
-    if not hasattr(numpy.version, 'full_version') or numpy.version.full_version < '1.6':
-        raise ImportError()
-    if not hasattr(scipy.version, 'full_version') or scipy.version.full_version < '0.11':
-        raise ImportError()
+    from setuptools import setup
 except ImportError:
-    print('numpy>=1.6 and scipy>=0.11 are required for msmbuilder', file=sys.stderr)
-    sys.exit(1)
+    from distutils.core import setup
 
+#########################################
 VERSION = "2.8"
 ISRELEASED = False
 __author__ = "MSMBuilder Team"
 __version__ = VERSION
+########################################
+
+def warn_on_version(module_name, minimum=None, package_name=None, recommend_conda=True):
+    if package_name is None:
+        package_name = module_name
+
+    class VersionError(Exception):
+        pass
+
+    msg = None
+    try:
+        package = __import__(module_name)
+        if minimum is not None:
+            try:
+                v = package.version.short_version
+            except AttributeError:
+                v = package.__version__
+            if StrictVersion(v) < StrictVersion(minimum):
+                raise VersionError
+    except ImportError:
+        if minimum is None:
+            msg = 'MSMBuilder requires the python package "%s", which is not installed.' % package_name
+        else:
+            msg = 'MSMBuilder requires the python package "%s", version %s or later.' % (package_name, minimum)
+    except VersionError:    
+        msg = ('MSMBuilder requires the python package "%s", version %s or '
+               ' later. You have version %s installed. You will need to upgrade.') % (package_name, minimum, v)
+
+    if recommend_conda:
+        install = ('\nTo install %s, we recommend the conda package manger. See http://conda.pydata.org for info on conda.\n'
+                   'Using conda, you can install it with::\n\n    $ conda install %s') % (package_name, package_name)
+        install += '\n\nAlternatively, with pip you can install the package with:\n\n    $ pip install %s' % package_name
+    else:
+        install = '\nWith pip you can install the package with:\n\n    $ pip install %s' % package_name
+    
+    if msg:
+        banner = ('==' * 40)
+        print('\n'.join([banner, banner, "", msg, install, "", banner, banner]))
+
 
 # metadata for setup()
 metadata = {
@@ -44,7 +74,6 @@ metadata = {
     'url': 'https://simtk.org/home/msmbuilder',
     'download_url': 'https://simtk.org/home/msmbuilder',
     'platforms': ["Linux", "Mac OS X"],
-    'zip_safe': False,
     'description': DOCLINES[0],
     'long_description':"\n".join(DOCLINES[2:]),
     'packages': ['msmbuilder', 'msmbuilder.scripts', 'msmbuilder.project',
@@ -57,55 +86,9 @@ metadata = {
     'scripts': ['scripts/msmb'] + [e for e in glob('scripts/*') if not e.endswith('__.py')]
 }
 
+if 'setuptools' in sys.modules:
+    metadata['zip_safe'] = False
 
-def hasfunction(cc, funcname, include=None, extra_postargs=None):
-    # From http://stackoverflow.com/questions/
-    #            7018879/disabling-output-when-compiling-with-distutils
-    tmpdir = tempfile.mkdtemp(prefix='hasfunction-')
-    devnull = oldstderr = None
-    try:
-        try:
-            fname = os.path.join(tmpdir, 'funcname.c')
-            f = open(fname, 'w')
-            if include is not None:
-                f.write('#include %s\n' % include)
-            f.write('int main(void) {\n')
-            f.write('    %s;\n' % funcname)
-            f.write('}\n')
-            f.close()
-            devnull = open(os.devnull, 'w')
-            oldstderr = os.dup(sys.stderr.fileno())
-            os.dup2(devnull.fileno(), sys.stderr.fileno())
-            objects = cc.compile([fname], output_dir=tmpdir,
-                                 extra_postargs=extra_postargs)
-            cc.link_executable(objects, os.path.join(tmpdir, 'a.out'))
-        except Exception as e:
-            return False
-        return True
-    finally:
-        if oldstderr is not None:
-            os.dup2(oldstderr, sys.stderr.fileno())
-        if devnull is not None:
-            devnull.close()
-        shutil.rmtree(tmpdir)
-
-
-def detect_openmp():
-    "Does this compiler support OpenMP parallelization?"
-    compiler = new_compiler()
-    print('Attempting to autodetect OpenMP support...')
-    hasopenmp = hasfunction(compiler, 'omp_get_num_threads()')
-    needs_gomp = hasopenmp
-    if not hasopenmp:
-        compiler.add_library('gomp')
-        hasopenmp = hasfunction(compiler, 'omp_get_num_threads()')
-        needs_gomp = hasopenmp
-    print
-    if hasopenmp:
-        print('Compiler supports OpenMP')
-    else:
-        print('Did not detect OpenMP support; parallel RMSD disabled')
-    return hasopenmp, needs_gomp
 
 # Return the git revision as a string
 # copied from numpy setup.py
@@ -131,6 +114,7 @@ def git_version():
         GIT_REVISION = "Unknown"
 
     return GIT_REVISION
+
 
 def write_version_py(filename='src/python/version.py'):
     cnt = """
@@ -164,28 +148,16 @@ if not release:
     finally:
         a.close()
 
+write_version_py()
+setup(**metadata)
 
-def main():
-    compiler_args = ['-O3', '-funroll-loops']
-    if new_compiler().compiler_type == 'msvc':
-        compiler_args.append('/arch:SSE2')
-
-    openmp_enabled, needs_gomp = detect_openmp()
-    if openmp_enabled:
-        compiler_args.append('-fopenmp')
-    compiler_libraries = ['gomp'] if needs_gomp else []
-
-    dist = Extension('msmbuilder._distance_wrap', sources=glob('src/ext/scipy_distance/*.c'),
-                     extra_compile_args=compiler_args,
-                     libraries=compiler_libraries,
-                     include_dirs=[numpy.get_include()])
-    contact = Extension('msmbuilder._contact_wrap', sources=glob('src/ext/contact/*.c'),
-                        extra_compile_args=compiler_args,
-                        libraries=compiler_libraries,
-                        include_dirs = [numpy.get_include()])        
-
-    write_version_py()
-    setup(ext_modules=[dist, contact], **metadata)
-
-if __name__ == '__main__':
-    main()
+# running these after setup() ensures that they show
+# at the bottom of the output, since setup() prints
+# a lot to stdout. helps them not get lost
+warn_on_version('numpy', '1.6.0')
+warn_on_version('scipy', '0.11.0')
+warn_on_version('tables', '2.4.0', package_name='pytables')
+warn_on_version('fastcluster', '1.1.13', recommend_conda=False)
+warn_on_version('yaml', package_name='pyyaml')
+# because it requires adding a different channel, the correct instructions are more complex with conda than pip
+warn_on_version('mdtraj', '0.8.0', recommend_conda=False)

@@ -2,8 +2,7 @@ import numpy as np
 import itertools
 from numbers import Number
 from baseclasses import Vectorized, AbstractDistanceMetric
-from msmbuilder.geometry import contact as _contactcalc # cannot remove
-from mdtraj.geometry import distance
+import mdtraj as md
 
 
 class ContinuousContact(Vectorized, AbstractDistanceMetric):
@@ -85,66 +84,8 @@ class ContinuousContact(Vectorized, AbstractDistanceMetric):
         pairwise_distances : ndarray
             1D array of various residue-residue distances
         """
+        return md.compute_contacts(trajectory, self.contacts, self.scheme)
 
-        xyzlist = trajectory.xyz
-        num_residues = trajectory.n_residues
-        num_atoms = trajectory.n_atoms
-
-        if self.contacts == 'all':
-            contacts = np.empty(((num_residues - 2) * (num_residues - 3) / 2, 2), dtype=np.int32)
-            p = 0
-            for (a, b) in itertools.combinations(range(num_residues), 2):
-                if max(a, b) > min(a, b) + 2:
-                    contacts[p, :] = [a, b]
-                    p += 1
-            assert p == len(contacts), 'Something went wrong generating "all"'
-
-        else:
-            num, width = self.contacts.shape
-            contacts = self.contacts
-            if not width == 2:
-                raise ValueError('contacts must be width 2')
-            if not (0 < len(np.unique(contacts[:, 0])) < num_residues):
-                raise ValueError('contacts should refer to zero-based indexing of the residues')
-            if not np.all(np.logical_and(0 <= np.unique(contacts), np.unique(contacts) < num_residues)):
-                raise ValueError('contacts should refer to zero-based indexing of the residues')
-
-        if self.scheme == 'ca':
-            atom_contacts = np.zeros_like(contacts)
-            residue_to_alpha = np.zeros(num_residues)  # zero based indexing
-            for i in range(num_atoms):
-                if trajectory.topology.atom(i).name == 'CA':
-                    residue = trajectory.topology.residue(i).index - 1
-                    residue_to_alpha[residue] = i
-            # print 'contacts (residues)', contacts
-            # print 'residue_to_alpja', residue_to_alpha.shape
-            # print 'residue_to_alpja', residue_to_alpha
-            atom_contacts = residue_to_alpha[contacts]
-            # print 'atom_contacts', atom_contacts
-            output = distance.compute_distances(trajectory, atom_contacts)
-
-        elif self.scheme in ['closest', 'closest-heavy']:
-            if self.scheme == 'closest':
-                residue_membership = [[atom.index for atom in residue.atoms]
-                                      for residue in trajectory.topology.residues]
-            elif self.scheme == 'closest-heavy':
-                residue_membership = [[] for i in range(num_residues)]
-                for i in range(num_atoms):
-                    residue = trajectory.topology.atom(i).residue.index - 1
-                    if not trajectory.topology.atom(i).name.lstrip('0123456789').startswith('H'):
-                        residue_membership[residue].append(i)
-
-            # print 'Residue Membership'
-            # print residue_membership
-            # for row in residue_membership:
-            #    for col in row:
-            #        print "%s-%s" % (trajectory['AtomNames'][col], trajectory['ResidueID'][col]),
-            #    print
-            output = _contactcalc.residue_distances(xyzlist, residue_membership, contacts)
-        else:
-            raise ValueError('This is not supposed to happen!')
-
-        return np.double(output)
 
 
 class BooleanContact(Vectorized, AbstractDistanceMetric):
@@ -278,5 +219,4 @@ class AtomPairs(Vectorized, AbstractDistanceMetric):
         self.atom_pairs = np.int32(atom_pairs)
 
     def prepare_trajectory(self, trajectory):
-        ptraj = distance.compute_distances(trajectory, self.atom_pairs)
-        return np.double(ptraj)
+        return md.compute_distances(trajectory, self.atom_pairs)
