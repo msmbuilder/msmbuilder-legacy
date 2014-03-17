@@ -20,8 +20,8 @@ except ImportError:
     from distutils.core import setup
 
 #########################################
-VERSION = "2.8"
-ISRELEASED = False
+VERSION = "2.8.1"
+ISRELEASED = True
 __author__ = "MSMBuilder Team"
 __version__ = VERSION
 ########################################
@@ -83,7 +83,7 @@ metadata = {
     'package_dir': {'msmbuilder': 'src/python', 'msmbuilder.scripts': 'scripts',
                     'msmbuilder.reference': 'reference'},
     'package_data': {'msmbuilder.reference': [os.path.relpath(os.path.join(a[0], b), 'reference') for a in os.walk('reference') for b in a[2]]},
-    'scripts': ['scripts/msmb'] + [e for e in glob('scripts/*') if not e.endswith('__.py')]
+    'scripts': ['scripts/msmb'] + [e for e in glob('scripts/*') if (not e.endswith('__.py')) or e.endswith('.pyc')]
 }
 
 if 'setuptools' in sys.modules:

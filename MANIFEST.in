@@ -5,6 +5,6 @@ include RevisionHistory.txt
 graft src
 graft reference
 graft tests
-graft TUTORIAL/xtc
+graft Tutorial
 graft Docs
 graft Extras
