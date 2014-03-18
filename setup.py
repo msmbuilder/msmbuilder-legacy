@@ -82,7 +82,7 @@ metadata = {
     'packages': ['msmbuilder', 'msmbuilder.scripts', 'msmbuilder.project',
                  'msmbuilder.lumping', 'msmbuilder.metrics', 'msmbuilder.reduce',
                  'msmbuilder.reference'],
-    'package_dir': {'msmbuilder': 'src/python', 'msmbuilder.scripts': 'scripts',
+    'package_dir': {'msmbuilder': 'MSMBuilder', 'msmbuilder.scripts': 'scripts',
                     'msmbuilder.reference': 'reference'},
     'package_data': {'msmbuilder.reference': [os.path.relpath(os.path.join(a[0], b), 'reference') for a in os.walk('reference') for b in a[2]]},
     'scripts': ['scripts/msmb'] + [e for e in glob('scripts/*') if os.path.isfile(e) and not (e.endswith('__.py') or e.endswith('.pyc'))]
@@ -118,7 +118,7 @@ def git_version():
     return GIT_REVISION
 
 
-def write_version_py(filename='src/python/version.py'):
+def write_version_py(filename='MSMBuilder/version.py'):
     cnt = """
 # THIS FILE IS GENERATED FROM MSMBUILDER SETUP.PY
 short_version = '%(version)s'
