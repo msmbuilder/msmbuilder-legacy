@@ -15,6 +15,7 @@ install:
     - sudo apt-get install -qq python-dev python-pip python-yaml g++
     - sudo pip install conda
     - sudo conda init
+    - sudo conda update conda
     - conda config --add channels http://conda.binstar.org/omnia
     - conda create --yes -n ${python} python=${python} numpy scipy pytables numexpr nose pandas cython statsmodels pandas patsy pyyaml matplotlib pip fastcluster mdtraj
     - export PATH="$HOME/envs/$python/bin/:$PATH"
