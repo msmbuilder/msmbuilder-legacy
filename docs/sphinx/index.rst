@@ -3,7 +3,7 @@ MSMBuilder
 
 MSMBuilder is an open source software package for automating the construction and analysis of Markov state models (MSMs). It is primarily written in the python programming language (optimized C extensions are used where appropriate to accelerate the calculations).
 
-.. image:: _static/Voelz2012Molecular-TOC-half.gif
+.. image:: _static/Voelz2012Molecular-TOC-half.png
    :align: right
 
 MSMs are a powerful means of modeling the structure and dynamics of molecular systems, like proteins. An MSM is essentially a map of the conformational space a molecule explores. Such models consist of a set of states and a matrix of transition probabilities (or, equivalently, transition rates) between each pair of states. Intuitively, the states in an MSM can be thought of as corresponding to local minima in the free energy landscape that ultimately determines a molecule’s structure and dynamics.
