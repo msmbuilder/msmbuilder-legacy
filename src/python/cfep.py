@@ -72,26 +72,21 @@ class CutCoordinate(object):
     """
     Object containing methods for computing the cut-based free energy profiles
     of reaction coordinates.
+
+    Parameters
+    ----------
+    counts : matrixs
+        A matrix of the transition counts observed in the MSM
+    generators : msmbuilder trajectory
+        The generators (or a trajectory containing an exemplar structure)
+        for each state.
+    reactant : int
+        Index of the state to use to represent the reactant (unfolded) well
+    product : int
+        Index of the state to use to represent the product (folded) well
     """
 
     def __init__(self, counts, generators, reactant, product):
-        """
-        Parameters
-        ----------
-        counts : matrixs
-            A matrix of the transition counts observed in the MSM
-
-        generators : msmbuilder trajectory
-            The generators (or a trajectory containing an exemplar structure)
-            for each state.
-
-        reactant : int
-            Index of the state to use to represent the reactant (unfolded) well
-
-        product : int
-            Index of the state to use to represent the product (folded) well
-        """
-
         # store the basic values
         self.counts     = counts
         self.generators = generators
@@ -447,43 +442,35 @@ class VariableCoordinate(CutCoordinate):
     the reals. Consider such a map that is dependent on some auxillary parameters
     `alphas`. Then we might hope to optimize that reaction coordinate by wisely
     choosing those weights.
-    """
 
+    Parameters
+    ----------
+    rxn_coordinate_function : function
+        This is a function that represents the reaction coordinate. It
+        takes the arguments of an msm trajectory and an array of weights
+        (floats). It should return an array of floats, specifically the
+        reaction coordinate scalar evaluated for each conformation in the
+        trajectory. Graphically:
+
+        rxn_coordinate_function(msm_traj, weights) --> array( [float, float, ...] )
+
+        An example function of this form is provided, for contact-map based
+        reaction coordinates.
+    initial_alphas : nd_array, float
+        An array representing an initial guess at the optimal alphas.
+    counts : matrixs
+        A matrix of the transition counts observed in the MSM
+    generators : msmbuilder trajectory
+        The generators (or a trajectory containing an exemplar structure)
+        for each state.
+    reactant : int
+        Index of the state to use to represent the reactant (unfolded) well
+    product : int
+        Index of the state to use to represent the product (folded) well
+    """
 
     def __init__(self, rxn_coordinate_function, initial_alphas, counts,
                  generators, reactant, product):
-        """
-        Parameters
-        ----------
-        rxn_coordinate_function : function
-            This is a function that represents the reaction coordinate. It
-            takes the arguments of an msm trajectory and an array of weights
-            (floats). It should return an array of floats, specifically the
-            reaction coordinate scalar evaluated for each conformation in the
-            trajectory. Graphically:
-
-            rxn_coordinate_function(msm_traj, weights) --> array( [float, float, ...] )
-
-            An example function of this form is provided, for contact-map based
-            reaction coordinates.
-
-        initial_alphas : nd_array, float
-            An array representing an initial guess at the optimal alphas.
-
-        counts : matrixs
-            A matrix of the transition counts observed in the MSM
-
-        generators : msmbuilder trajectory
-            The generators (or a trajectory containing an exemplar structure)
-            for each state.
-
-        reactant : int
-            Index of the state to use to represent the reactant (unfolded) well
-
-        product : int
-            Index of the state to use to represent the product (folded) well
-        """
-
         CutCoordinate.__init__(self, counts, generators, reactant, product)
         self.rxn_coordinate_function = rxn_coordinate_function
         self.rc_alphas = initial_alphas

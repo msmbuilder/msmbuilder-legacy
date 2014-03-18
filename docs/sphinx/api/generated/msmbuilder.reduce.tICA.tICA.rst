@@ -16,6 +16,7 @@ msmbuilder.reduce.tICA.tICA
       ~tICA.__init__
       ~tICA.get_current_estimate
       ~tICA.initialize
+      ~tICA.load
       ~tICA.project
       ~tICA.save
       ~tICA.solve
