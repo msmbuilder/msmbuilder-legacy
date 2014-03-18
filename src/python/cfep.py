@@ -19,7 +19,6 @@ import time
 import numpy as np
 import scipy
 import scipy.optimize
-import scipy.weave
 import matplotlib.pyplot as plt
 
 import mdtraj as md
@@ -215,6 +214,7 @@ class CutCoordinate(object):
         zh = self.zh
         rc = self.reaction_coordinate_values
 
+        import scipy.weave
         scipy.weave.inline(r"""
         // Loop over all `intermediate_states` to perform the integral
         // Employ a trapezoid approximation to evaluate the integral
@@ -299,6 +299,7 @@ class CutCoordinate(object):
         zc = np.zeros(self.N)
         N = self.N
 
+        import scipy.weave
         scipy.weave.inline(r"""
         Py_BEGIN_ALLOW_THREADS
         int i, j, k;

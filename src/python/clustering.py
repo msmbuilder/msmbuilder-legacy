@@ -132,10 +132,11 @@ def split(longlist, lengths):
 
     if not sum(lengths) == len(longlist):
         raise Exception('sum(lengths)=%s, len(longlist)=%s' % (sum(lengths), len(longlist)))
-    def func(length, cumlengths):
+    def func(x):
+        length, cumlength = x
         return longlist[cumlength - length: cumlength]
     iterable = zip(lengths, np.cumsum(lengths))
-    output = map(func, iterable)
+    output = list(map(func, iterable))
     return output
 
 
