@@ -19,7 +19,7 @@ trajectories will be returned, and project.n_trajs will only count
 the valid trajectories.
 """
 from __future__ import print_function, absolute_import, division
-from mdtraj.utils.six import string_types
+from mdtraj.utils.six import string_types, PY2
 
 import numpy as np
 from msmbuilder.metrics import RMSD
@@ -100,7 +100,10 @@ class RMSDExplosionValidator(ExplosionValidator):
             The indices over which you want to measure RMSD
         """
         metric = RMSD(atom_indices)
-        super(RMSDExplosionValidator, self).__init__(structure_or_filename, metric, max_rmsd)
+        if PY2:
+            super(RMSDExplosionValidator, self).__init__(structure_or_filename, metric, max_rmsd)
+        else:
+            super().__init__(structure_or_filename, metric, max_rmsd)
 
 
 class MinLengthValidator(object):

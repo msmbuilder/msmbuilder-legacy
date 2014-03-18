@@ -1,3 +1,7 @@
+from __future__ import print_function
+from __future__ import division
+from __future__ import absolute_import
+
 import sys, os
 from msmbuilder.testing import *
 from msmbuilder.arglib import ArgumentParser, add_argument

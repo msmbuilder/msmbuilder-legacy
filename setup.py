@@ -7,6 +7,9 @@ of Markov state models for conformational dynamics.
 """
 
 from __future__ import print_function
+from __future__ import division
+from __future__ import absolute_import
+
 DOCLINES = __doc__.split("\n")
 
 import os
@@ -77,13 +80,12 @@ metadata = {
     'description': DOCLINES[0],
     'long_description':"\n".join(DOCLINES[2:]),
     'packages': ['msmbuilder', 'msmbuilder.scripts', 'msmbuilder.project',
-                 'msmbuilder.lumping', 'msmbuilder.geometry',
-                 'msmbuilder.metrics', 'msmbuilder.reduce',
+                 'msmbuilder.lumping', 'msmbuilder.metrics', 'msmbuilder.reduce',
                  'msmbuilder.reference'],
     'package_dir': {'msmbuilder': 'src/python', 'msmbuilder.scripts': 'scripts',
                     'msmbuilder.reference': 'reference'},
     'package_data': {'msmbuilder.reference': [os.path.relpath(os.path.join(a[0], b), 'reference') for a in os.walk('reference') for b in a[2]]},
-    'scripts': ['scripts/msmb'] + [e for e in glob('scripts/*') if not (e.endswith('__.py') or e.endswith('.pyc'))]
+    'scripts': ['scripts/msmb'] + [e for e in glob('scripts/*') if os.path.isfile(e) and not (e.endswith('__.py') or e.endswith('.pyc'))]
 }
 
 if 'setuptools' in sys.modules:
@@ -157,7 +159,6 @@ setup(**metadata)
 warn_on_version('numpy', '1.6.0')
 warn_on_version('scipy', '0.11.0')
 warn_on_version('tables', '2.4.0', package_name='pytables')
-warn_on_version('fastcluster', '1.1.13', recommend_conda=False)
+warn_on_version('fastcluster', '1.1.13')
 warn_on_version('yaml', package_name='pyyaml')
-# because it requires adding a different channel, the correct instructions are more complex with conda than pip
-warn_on_version('mdtraj', '0.8.0', recommend_conda=False)
+warn_on_version('mdtraj', '0.8.0')

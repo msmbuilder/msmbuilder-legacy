@@ -1,4 +1,5 @@
 from __future__ import print_function, absolute_import, division
+from mdtraj.utils.six.moves import xrange
 import warnings
 import numpy as np
 from collections import namedtuple

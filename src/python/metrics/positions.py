@@ -1,4 +1,5 @@
 from __future__ import print_function, absolute_import, division
+from mdtraj.utils.six import PY2
 
 import logging
 logger = logging.getLogger(__name__)
@@ -46,8 +47,10 @@ class Positions(Vectorized, AbstractDistanceMetric):
             p-norm order, used for metric='minkowski'
 
         """
-
-        super(Positions, self).__init__(metric, p)
+        if PY2:
+            super(Positions, self).__init__(metric, p)
+        else:
+            super().__init__(metric, p)
 
         if not isinstance(target, md.Trajectory):
             raise ValueError("target must be mdtraj.Trajectory instance")

@@ -289,7 +289,7 @@ class PCCAPlus(EigenvectorLumper):
         logger.info("Final value: f = %f" % (obj(alpha)))
 
         if np.isneginf(obj(alpha)):
-            raise(ValueError("Error: minimization has not located a feasible point."))
+            raise ValueError("Error: minimization has not located a feasible point.")
 
         A = to_square(alpha, square_map)
 

@@ -18,7 +18,8 @@
 
 """Code for visualizing networks (e.g. transition, count, or flux matrices). 
 """
-from __future__ import print_function
+from __future__ import print_function, division, absolute_import
+
 import scipy.sparse
 import numpy as np
 import networkx

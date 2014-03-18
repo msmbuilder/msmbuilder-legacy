@@ -1,3 +1,6 @@
+from __future__ import print_function
+from __future__ import division
+from __future__ import absolute_import
 
 import os
 import sys
@@ -20,8 +23,8 @@ def save_new_ref(filename, data):
     ext = filename.split('.')[-1]
     
     if (data == None):
-        print "WARNING: Error generating file: %s" % filename
-        print "Skipped... try again."
+        print("WARNING: Error generating file: %s" % filename)
+        print("Skipped... try again.")
         return
     
     if os.path.exists(filename):
@@ -96,6 +99,6 @@ save_new_ref('tp_time.h5', tp_time)
 #save_new_ref('all_hub_scores.h5', all_hub_scores)
 
 # done!
-print "Done generating new reference for transition_path_theory.py!"
+print("Done generating new reference for transition_path_theory.py!")
 
 

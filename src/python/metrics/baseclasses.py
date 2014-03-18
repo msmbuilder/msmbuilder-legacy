@@ -1,3 +1,5 @@
+from __future__ import print_function, division, absolute_import
+from mdtraj.utils.six import with_metaclass
 import abc
 import re
 import numpy as np
@@ -6,15 +8,14 @@ import warnings
 from scipy.spatial.distance import cdist, pdist
 
 
-class AbstractDistanceMetric(object):
+class AbstractDistanceMetric(with_metaclass(abc.ABCMeta, object)):
+
     """Abstract base class for distance metrics. All distance metrics should
     inherit from this abstract class.
     
     Provides a niave implementation of all_pairwise and one_to_many in terms
     of the abstract method one_to_all, which may be overridden by subclasses.
     """
-    
-    __metaclass__ = abc.ABCMeta
     
     @abc.abstractmethod
     def prepare_trajectory(self, trajectory):

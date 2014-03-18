@@ -1,4 +1,4 @@
-from __future__ import print_function
+from __future__ import print_function, division, absolute_import
 import sys, os
 import argparse
 from msmbuilder.License import LicenseString
@@ -7,6 +7,7 @@ from msmbuilder.metrics import parsers as metric_parsers
 from pprint import pprint
 import warnings
 import logging
+from mdtraj.utils.six import iteritems
 logger = logging.getLogger(__name__)
 
 def _iter_both_cases(string):
@@ -22,8 +23,9 @@ def _iter_both_cases(string):
 
 def die_if_path_exists(path):
     if isinstance(path, list):
-        map(die_if_path_exists, path)
-        return None
+        for item in path:
+            die_if_path_exists(item)
+        return
 
     directory = os.path.split(path)[0]
     if len(directory) > 0 and not os.path.exists(directory):
@@ -78,14 +80,14 @@ def add_argument(group, dest, help=None, type=None, choices=None, nargs=None, de
         if type != None:
             kwargs['choices'] = [type(c) for c in choices]
 
-    long = '--{name}'.format(name=dest)
+    longn = '--{name}'.format(name=dest)
     found_short = False
 
     for char in _iter_both_cases(dest):
         if not dest in RESERVED:
             short = '-%s' % char
 
-        args = (short, long)
+        args = (short, longn)
 
         if default is None:
             kwargs['required'] = True
@@ -222,7 +224,7 @@ class ArgumentParser(object):
     def _typecast(self, namespace):
         """Work around for the argparse bug with respect to defaults and FileType not
         playing together nicely -- http://stackoverflow.com/questions/8236954/specifying-default-filenames-with-argparse-but-not-opening-them-on-help"""
-        for name, type in self.name_to_type.iteritems():
+        for name, type in iteritems(self.name_to_type):
             setattr(namespace, name, type(getattr(namespace, name)))
 
         return namespace

@@ -1,3 +1,4 @@
+from __future__ import print_function, division, absolute_import
 import numpy as np
 import scipy
 import scipy.linalg
@@ -108,7 +109,7 @@ def ConvertTIntoK(T0):
     """
 
     if type(T0) != np.ndarray:
-        raise(Exception("Error, T0 must be a numpy array"))
+        raise Exception("Error, T0 must be a numpy array")
     
     D = T0.diagonal()
     K = T0 - np.diag(D)
@@ -247,7 +248,7 @@ def PlotRates(KList, LagTimeList, counts_list, Tau=1):
     for i in range(NumStates):
         for j in range(NumStates):
             if i > j and KList[0, i, j] > 0:
-                matplotlib.pyplot.errorbar(Tau * LagTimeList, TauList[:, i, j], fmt=color_generator.next(), yerr=TauList[:, i, j] / np.sqrt(counts_list[:, i]), label="%d-%d" % (i, j))
+                matplotlib.pyplot.errorbar(Tau * LagTimeList, TauList[:, i, j], fmt=next(color_generator), yerr=TauList[:, i, j] / np.sqrt(counts_list[:, i]), label="%d-%d" % (i, j))
                 #matplotlib.pyplot.plot(Tau*LagTimeList,TauList[:,i,j],color_generator.next(),label="%d-%d"%(i,j))
 
     matplotlib.pyplot.yscale('log')

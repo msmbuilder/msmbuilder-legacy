@@ -1,3 +1,5 @@
+from __future__ import print_function, division, absolute_import
+from mdtraj.utils.six import PY2
 from .baseclasses import Vectorized, AbstractDistanceMetric
 
 import numpy as np
@@ -206,7 +208,10 @@ class HybridPNorm(Hybrid):
         """
 
         self.p = float(p)
-        super(HybridPNorm, self).__init__(base_metrics, weights)
+        if PY2:
+            super(HybridPNorm, self).__init__(base_metrics, weights)
+        else:
+            super().__init__(base_metrics, weights)
 
 
     def one_to_many(self, prepared_traj1, prepared_traj2, index1, indices2):

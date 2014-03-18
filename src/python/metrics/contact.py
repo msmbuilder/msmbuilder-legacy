@@ -1,4 +1,5 @@
 from __future__ import print_function, absolute_import, division
+from mdtraj.utils.six import PY2
 
 import numpy as np
 import itertools
@@ -51,8 +52,11 @@ class ContinuousContact(Vectorized, AbstractDistanceMetric):
             use the distance between the closest pair of non-hydrogen atoms where one
             belongs to reside i and one to residue j.
         """
+        if PY2:
+            super(ContinuousContact, self).__init__(metric, p, V, VI)
+        else:
+            super().__init__(metric, p, V, VI)
 
-        super(ContinuousContact, self).__init__(metric, p, V, VI)
         self.contacts = contacts
 
         scheme = scheme.lower()

@@ -1,4 +1,5 @@
-from __future__ import print_function
+from __future__ import print_function, division, absolute_import
+from mdtraj.utils.six import PY2
 import abc
 import re
 import numpy as np
@@ -70,7 +71,10 @@ class RedDimPNorm(Vectorized, AbstractDistanceMetric):
         self._set_which(abs_min=abs_min, num_vecs=num_vecs, expl_var=expl_var,
                         which=which)
 
-        super(RedDimPNorm, self).__init__(metric, p)
+        if PY2:
+            super(RedDimPNorm, self).__init__(metric, p)
+        else:
+            super().__init__(metric, p)
 
 
     def _set_which(self, abs_min=None, num_vecs=None, expl_var=None, which=None):

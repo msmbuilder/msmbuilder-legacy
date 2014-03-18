@@ -5,7 +5,7 @@ with folding@home projects.
 Written by: TJ Lane <tjlane@stanford.edu>
 Contributions from Robert McGibbon
 """
-
+from __future__ import print_function, division, absolute_import
 # GLOBAL IMPORTS
 import os
 import re
@@ -432,7 +432,8 @@ class _retrieve(object):
             pool.map(self.write_trajectory_mapper, jobs)
         else:
             # use regular serial execution
-            map(self.write_trajectory_mapper, jobs)
+            for j in jobs:
+                self.write_trajectory_mapper(j)
 
         # Rename trajectory files such that they have contiguous numbering
         logger.info("Finished Generating Trajectories. Renaming them now in contiguous order")

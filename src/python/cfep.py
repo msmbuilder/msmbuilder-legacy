@@ -11,8 +11,7 @@ To Do
 > Choose best search method in `optimize`
 > Add functionality for saving/loading the state of VariableCoordinate
 """
-
-from __future__ import print_function
+from __future__ import print_function, division, absolute_import
 import itertools
 import time
 

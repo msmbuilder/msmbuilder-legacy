@@ -1,6 +1,7 @@
 import abc
+from mdtraj.utils.six import with_metaclass
 
-class AbstractDimReduction(object):
+class AbstractDimReduction(with_metaclass(abc.ABCMeta, object)):
 
     """
     abstract class for defining dimensionality reduction
@@ -9,7 +10,6 @@ class AbstractDimReduction(object):
     Any subclass of this class can be used with the RedDimPNorm
     distance metric
     """
-    __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod    
     def project(self, trajectory=None, prep_trajectory=None, which=None):

@@ -26,7 +26,8 @@ Lutz Maibaum
 Vijay Pande
 Copyright 2011 Stanford University
 """
-from __future__ import print_function, absolute_import
+from __future__ import print_function, division, absolute_import
+
 
 def _setup_logging():
     """Helper function to set up logger imports without polluting namespace."""
@@ -45,11 +46,10 @@ _setup_logging()
 
 
 # list of all the modules (files) that are part of msmbuilder
-__all__ = ["geometry", "metrics", "msm_analysis", "MSMLib", "clustering", "project", "reduce"]
+__all__ = ["metrics", "msm_analysis", "MSMLib", "clustering", "project", "reduce"]
 
 from msmbuilder import metrics
 from msmbuilder import clustering
-from msmbuilder import geometry
 from msmbuilder import msm_analysis
 from msmbuilder import MSMLib
 from msmbuilder import project

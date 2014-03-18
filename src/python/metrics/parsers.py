@@ -1,12 +1,8 @@
-#!/usr/bin/env python
-from __future__ import print_function
+from __future__ import print_function, division, absolute_import
 import sys, os
 import pickle
 import numpy as np
 import mdtraj as md
-from mdtraj.utils.six import PY2
-if PY2:
-    from itertools import imap as map
 from pkg_resources import iter_entry_points
 from msmbuilder.reduce import tICA
 from msmbuilder.metrics import (RMSD, Dihedral, BooleanContact,
@@ -30,7 +26,8 @@ def locate_metric_plugins(name):
         raise ValueError()
 
     eps = iter_entry_points(group='msmbuilder.metrics', name=name)
-    return map(lambda ep: ep.load(), eps)
+    return [ep.load() for ep in eps]
+
 
 def add_metric_parsers(parser):
 
@@ -220,9 +217,9 @@ def construct_metric(args):
         # apply the constructor on args and take the first non-none element
         # note that using these itertools constructs, we'll only actual
         # execute the constructor until the match is achieved
-        metrics = map(lambda c: c(args), locate_metric_plugins('construct_metric'))
+        metrics = [c(args) for c in locate_metric_plugins('construct_metric')]
         try:
-            metric = itertools.dropwhile(lambda c: not c, metrics).next()
+            metric = next(itertools.dropwhile(lambda c: not c, metrics))
         except StopIteration:
             # This means that none of the plugins acceptedthe metric
             raise RuntimeError("Bad metric. Could not be constructed by any built-in or plugin metric. Perhaps you have a poorly written plugin?")

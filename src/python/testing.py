@@ -1,4 +1,4 @@
-from __future__ import print_function, absolute_import, division
+from __future__ import print_function, division, absolute_import
 from mdtraj.utils.six import iteritems
 
 # methods to support testing
@@ -130,7 +130,7 @@ def assert_dict_equal(t1, t2, decimal=6):
     """
 
     # make sure the keys are the same
-    eq_(t1.keys(), t2.keys())
+    eq_(list(t1.keys()), list(t2.keys()))
 
     for key, val in iteritems(t1):
         # compare numpy arrays using numpy.testing

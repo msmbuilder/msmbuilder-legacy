@@ -1,4 +1,4 @@
-from __future__ import print_function, absolute_import, division
+from __future__ import print_function, division, absolute_import
 
 import numpy as np
 import re
@@ -38,7 +38,7 @@ def uneven_zip(*args):
             except:
                 result[j] = args[j][lengths[j]-1]
         return result
-    zipped = map(get, range(max(lengths)))
+    zipped = [get(i) for i in range(max(lengths))]
     return zipped
 
 
@@ -58,7 +58,7 @@ def format_block(block):
     # look at first line to see how much indentation to trim
     ws = re.match(r'\s*', lines[0]).group(0)
     if ws:
-            lines = map( lambda x: x.replace(ws,'',1), lines )
+        lines = [x.replace(ws, '', 1) for x in lines]
     # remove leading/trailing blank lines (after leading ws removal)
     # we do this again in case there were pure-whitespace lines
     while lines and not lines[0]:
@@ -93,9 +93,9 @@ def keynat(string):
 
 
 def _pickle_method(method):
-    func_name = method.im_func.__name__
-    obj = method.im_self
-    cls = method.im_class
+    func_name = method.__func.__name__
+    obj = method.__self__
+    cls = method.__self__.__class__
     return _unpickle_method, (func_name, obj, cls)
 
 def _unpickle_method(func_name, obj, cls):
@@ -168,8 +168,8 @@ def future_warning(func):
         warnings.warn_explicit(
             "Call to future function {}.".format(func.__name__),
             category=FutureWarning,
-            filename=func.func_code.co_filename,
-            lineno=func.func_code.co_firstlineno + 1
+            filename=func.__code__.co_filename,
+            lineno=func.__code__.co_firstlineno + 1
         )
         return func(*args, **kwargs)
     return new_func

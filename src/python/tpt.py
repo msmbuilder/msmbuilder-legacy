@@ -37,7 +37,7 @@ References
        pathways in network models of coarse-grained protein dynamics. J. 
        Chem. Phys. 130, 205102 (2009).
 """
-
+from __future__ import print_function, division, absolute_import
 import numpy as np
 import scipy.sparse
 
@@ -243,7 +243,7 @@ def Dijkstra(sources, sinks, net_flux):
     pi[sources] = -1
     U = []
 
-    Q = sorted(range(N), key=lambda v: b[v])
+    Q = sorted(list(range(N)), key=lambda v: b[v])
     for v in sinks:
         Q.remove(v)
 
@@ -1172,7 +1172,7 @@ def calculate_all_hub_scores(tprob):
     """
 
     N = tprob.shape[0]
-    states = range(N)
+    states = list(range(N))
 
     # calculate the hub score
     Hc_array = np.zeros(N)

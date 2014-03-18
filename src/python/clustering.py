@@ -1,4 +1,4 @@
-from __future__ import print_function, absolute_import, division
+from __future__ import print_function, division, absolute_import
 from mdtraj.utils.six.moves import xrange
 import sys
 import types
@@ -135,8 +135,8 @@ def split(longlist, lengths):
     def func(x):
         length, cumlength = x
         return longlist[cumlength - length: cumlength]
-    iterable = zip(lengths, np.cumsum(lengths))
-    output = list(map(func, iterable))
+
+    output = [func(elem) for elem in zip(lengths, np.cumsum(lengths))]
     return output
 
 
@@ -174,7 +174,7 @@ def stochastic_subsample(trajectories, shrink_multiple):
         if new_length <= 0:
             return None
 
-        indices = np.array(random.sample(range(length), new_length))
+        indices = np.array(random.sample(np.arange(length), new_length))
         new_traj = traj[indices, :, :]
 
         return new_traj
@@ -190,7 +190,8 @@ def stochastic_subsample(trajectories, shrink_multiple):
         # shrink each trajectory
         subsampled = [stochastic_subsample(traj, shrink_multiple) for traj in trajectories]
         # filter out failures
-        subsampled = filter(lambda a: a is not None, subsampled)
+        subsampled = [a for a in subsampled if a is not None]
+
 
         return concatenate_trajectories(subsampled)
 
@@ -364,8 +365,7 @@ def _kcenters(metric, ptraj, k=None, distance_cutoff=None, seed=0, verbose=True)
         # set it below anything that can ever be reached
         distance_cutoff = -1
     if k is None:
-        # set k to be the highest 32bit integer
-        k = 2**32 - 1
+        k = sys.maxsize
 
     distance_list = np.inf * np.ones(len(ptraj), dtype=np.float32)
     assignments = -1 * np.ones(len(ptraj), dtype=np.int32)
@@ -373,7 +373,7 @@ def _kcenters(metric, ptraj, k=None, distance_cutoff=None, seed=0, verbose=True)
     generator_indices = []
     for i in xrange(k):
         new_ind = seed if i == 0 else np.argmax(distance_list)
-        if k == 2**32 - 1:
+        if k == sys.maxsize:
             logger.info("K-centers: Finding generator %i. Will finish when % .4f drops below % .4f", i, distance_list[new_ind], distance_cutoff)
         else:
             logger.info("K-centers: Finding generator %i", i)
@@ -1183,7 +1183,7 @@ class SubsampledClarans(BaseFlatClusterer):
 
 
         # function that returns a list of random indices
-        gen_sub_indices = lambda: np.array(random.sample(range(self.num_frames), self.num_frames / shrink_multiple))
+        gen_sub_indices = lambda: np.array(random.sample(np.arange(self.num_frames), self.num_frames / shrink_multiple))
         # gen_sub_indices = lambda: np.arange(self.num_frames)
 
         sub_indices = [gen_sub_indices() for i in range(num_samples)]
@@ -1192,7 +1192,7 @@ class SubsampledClarans(BaseFlatClusterer):
         clarans_args = uneven_zip(metric, ptrajs, k, num_local_minima, max_neighbors, local_swap, ['kcenters'], None, None, False)
 
         results = mymap(_clarans_helper, clarans_args)
-        medoids_list, assignments_list, distances_list = zip(*results)
+        medoids_list, assignments_list, distances_list = list(zip(*results))
         best_i = np.argmin([np.sum(d) for d in distances_list])
 
         # print 'best i', best_i

@@ -2,6 +2,7 @@
 Compute the drift in trajectories under different distance metrics
 using new distance_metrics.py code
 """
+from __future__ import print_function, division, absolute_import
 import numpy as np
 
 
@@ -47,7 +48,7 @@ def _drift_single_trajectory(metric, trajectory, tau):
     distances = -1 * np.ones((len(tau), traj_length - np.min(tau)))
     
     for i in xrange(traj_length - np.min(tau)):
-        comp_indices = filter(lambda elem: elem < traj_length, tau + i)
+        comp_indices = [elem for elem in tau + i if elem < traj_length]
         d = metric.one_to_many(ptraj, ptraj, i, comp_indices)
         # these distances are the ith column
         distances[0:len(comp_indices), i] = d
