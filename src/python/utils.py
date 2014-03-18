@@ -1,11 +1,18 @@
+from __future__ import print_function, absolute_import, division
+
 import numpy as np
 import re
-import copy_reg
 import types
 import warnings
 import functools
 import collections
-from itertools import ifilterfalse
+from mdtraj.utils.six import PY3
+from mdtraj.utils.six.moves import copyreg, xrange
+if PY3:
+    from itertools import filterfalse as ifilterfalse
+else:
+    from itertools import ifilterfalse
+
 warnings.simplefilter('always')
 
 def uneven_zip(*args):
@@ -103,7 +110,7 @@ def _unpickle_method(func_name, obj, cls):
 
 def make_methods_pickable():
     "Run this at the top of a script to register pickable methods"
-    copy_reg.pickle(types.MethodType, _pickle_method, _unpickle_method)
+    copyreg.pickle(types.MethodType, _pickle_method, _unpickle_method)
 
 
 def deprecated(replacement=None, removal_version=None):

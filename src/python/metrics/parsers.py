@@ -1,9 +1,12 @@
 #!/usr/bin/env python
+from __future__ import print_function
 import sys, os
 import pickle
 import numpy as np
 import mdtraj as md
-import itertools
+from mdtraj.utils.six import PY2
+if PY2:
+    from itertools import imap as map
 from pkg_resources import iter_entry_points
 from msmbuilder.reduce import tICA
 from msmbuilder.metrics import (RMSD, Dihedral, BooleanContact,
@@ -27,7 +30,7 @@ def locate_metric_plugins(name):
         raise ValueError()
 
     eps = iter_entry_points(group='msmbuilder.metrics', name=name)
-    return itertools.imap(lambda ep: ep.load(), eps)
+    return map(lambda ep: ep.load(), eps)
 
 def add_metric_parsers(parser):
 
@@ -209,15 +212,15 @@ def construct_metric(args):
     elif metric_name == 'custom':
         with open(args.picklemetric_input) as f:
             metric = pickle.load(f)
-            print '#'*80
-            print 'Loaded custom metric:'
-            print metric
-            print '#'*80
+            print('#'*80)
+            print('Loaded custom metric:')
+            print(metric)
+            print('#'*80)
     else:
         # apply the constructor on args and take the first non-none element
         # note that using these itertools constructs, we'll only actual
         # execute the constructor until the match is achieved
-        metrics = itertools.imap(lambda c: c(args), locate_metric_plugins('construct_metric'))
+        metrics = map(lambda c: c(args), locate_metric_plugins('construct_metric'))
         try:
             metric = itertools.dropwhile(lambda c: not c, metrics).next()
         except StopIteration:

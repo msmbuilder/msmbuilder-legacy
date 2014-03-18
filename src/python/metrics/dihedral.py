@@ -1,8 +1,12 @@
+from __future__ import print_function, absolute_import, division
+
 import logging
 logger = logging.getLogger(__name__)
 import numpy as np
-from baseclasses import Vectorized, AbstractDistanceMetric
 from mdtraj.geometry import dihedral as _dihedralcalc
+
+from .baseclasses import Vectorized, AbstractDistanceMetric
+
 
 class Dihedral(Vectorized, AbstractDistanceMetric):
     """Distance metric for calculating distances between frames based on their

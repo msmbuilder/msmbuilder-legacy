@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from __future__ import print_function, absolute_import, division
+
 
 import logging
 import os
@@ -8,6 +10,7 @@ import numpy as np
 import scipy
 import mdtraj as md
 from mdtraj import io
+from mdtraj.utils.six.moves import xrange
 from msmbuilder import arglib
 from msmbuilder import Project
 from msmbuilder.reduce.tICA import tICA

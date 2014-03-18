@@ -1,9 +1,10 @@
 import numpy as np
 import scipy.linalg
 from time import time
-import cPickle
 import logging
 from mdtraj import io
+from mdtraj.utils.six.moves import cPickle
+
 from msmbuilder.metrics import Vectorized
 from msmbuilder.reduce import AbstractDimReduction
 

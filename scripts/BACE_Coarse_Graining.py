@@ -16,7 +16,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
-
+from __future__ import print_function
 version = 1.0
 
 LicenseString = """--------------------------------------------------------------------------------
@@ -455,7 +455,7 @@ def filterFuncSparse(c, nProc):
     return c, map, statesKeep
 
 if __name__ == '__main__':
-    print LicenseString
+    print(LicenseString)
     args = parser.parse_args()
 
     if args.tCountFn[-4:] == ".mtx":

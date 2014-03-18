@@ -1,3 +1,6 @@
+from __future__ import print_function, absolute_import, division
+from mdtraj.utils.six.moves import xrange
+
 import numpy as np
 from numpy import dot
 

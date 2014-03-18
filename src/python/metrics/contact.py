@@ -1,8 +1,12 @@
+from __future__ import print_function, absolute_import, division
+
 import numpy as np
 import itertools
 from numbers import Number
-from baseclasses import Vectorized, AbstractDistanceMetric
 import mdtraj as md
+
+from .baseclasses import Vectorized, AbstractDistanceMetric
+
 
 
 class ContinuousContact(Vectorized, AbstractDistanceMetric):
@@ -214,7 +218,7 @@ class AtomPairs(Vectorized, AbstractDistanceMetric):
             n, m = atom_pairs.shape
             if not m == 2:
                 raise ValueError()
-        except ValueError, TypeError:
+        except (ValueError, TypeError):
             raise ValueError('Atom pairs must be an n x 2 array of pairs of atoms')
         self.atom_pairs = np.int32(atom_pairs)
 

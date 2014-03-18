@@ -3,6 +3,7 @@ import numpy as np
 import numpy.testing as npt
 import scipy.spatial.distance
 from unittest import skipIf
+from mdtraj.utils.six.moves import xrange
 
 from msmbuilder import metrics
 from common import load_traj

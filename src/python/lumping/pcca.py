@@ -1,6 +1,8 @@
+from __future__ import print_function, absolute_import, division
+
 import numpy as np
 
-from lumper import EigenvectorLumper
+from .lumper import EigenvectorLumper
 
 import logging
 logger = logging.getLogger(__name__)

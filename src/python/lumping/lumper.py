@@ -1,7 +1,8 @@
+from __future__ import print_function, absolute_import, division
+
 import numpy as np
 from msmbuilder import msm_analysis
-
-import utils
+from msmbuilder.lumping import utils
 import logging
 logger = logging.getLogger(__name__)
 

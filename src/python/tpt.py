@@ -1115,7 +1115,7 @@ def calculate_hub_score(tprob, waypoint):
 
     # find out which states to include in A, B (i.e. everything but C)
     N = tprob.shape[0]
-    states_to_include = range(N)
+    states_to_include = list(range(N))
     states_to_include.remove(waypoint)
 
     # calculate the hub score

@@ -1,3 +1,4 @@
-from baseclasses import AbstractDimReduction
+from __future__ import print_function, absolute_import, division
 
-from tICA import tICA
+from .baseclasses import AbstractDimReduction
+from .tICA import tICA

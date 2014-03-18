@@ -18,7 +18,7 @@
 
 """Code for visualizing networks (e.g. transition, count, or flux matrices). 
 """
-
+from __future__ import print_function
 import scipy.sparse
 import numpy as np
 import networkx
@@ -48,7 +48,7 @@ def CreateNetwork(Matrix, EqPops, Directed=True, EdgeScale=2, PopCutoff=0.01, Ed
     """
 
     Matrix=Matrix.tocsr()
-    print "Loaded an MSM with %d states..." % Matrix.shape[0]
+    print("Loaded an MSM with %d states..." % Matrix.shape[0])
 
     #These are the desired states.
     Ind=np.where(EqPops>PopCutoff)[0]

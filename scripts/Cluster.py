@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-
+from __future__ import print_function, absolute_import, division
+from mdtraj.utils.six.moves import xrange
 import sys, os
 import warnings
 import numpy as np

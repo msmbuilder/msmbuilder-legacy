@@ -1,3 +1,5 @@
+from __future__ import print_function, absolute_import, division
+from mdtraj.utils.six.moves import xrange
 import sys
 import types
 import random
@@ -130,7 +132,8 @@ def split(longlist, lengths):
 
     if not sum(lengths) == len(longlist):
         raise Exception('sum(lengths)=%s, len(longlist)=%s' % (sum(lengths), len(longlist)))
-    func = lambda (length, cumlength): longlist[cumlength - length: cumlength]
+    def func(length, cumlengths):
+        return longlist[cumlength - length: cumlength]
     iterable = zip(lengths, np.cumsum(lengths))
     output = map(func, iterable)
     return output
@@ -361,7 +364,7 @@ def _kcenters(metric, ptraj, k=None, distance_cutoff=None, seed=0, verbose=True)
         distance_cutoff = -1
     if k is None:
         # set k to be the highest 32bit integer
-        k = sys.maxint
+        k = 2**32 - 1
 
     distance_list = np.inf * np.ones(len(ptraj), dtype=np.float32)
     assignments = -1 * np.ones(len(ptraj), dtype=np.int32)
@@ -369,7 +372,7 @@ def _kcenters(metric, ptraj, k=None, distance_cutoff=None, seed=0, verbose=True)
     generator_indices = []
     for i in xrange(k):
         new_ind = seed if i == 0 else np.argmax(distance_list)
-        if k == sys.maxint:
+        if k == 2**32 - 1:
             logger.info("K-centers: Finding generator %i. Will finish when % .4f drops below % .4f", i, distance_list[new_ind], distance_cutoff)
         else:
             logger.info("K-centers: Finding generator %i", i)

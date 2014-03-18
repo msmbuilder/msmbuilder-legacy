@@ -1,3 +1,4 @@
+from __future__ import print_function
 import abc
 import re
 import numpy as np
@@ -66,7 +67,6 @@ class RedDimPNorm(Vectorized, AbstractDistanceMetric):
             raise Exception("proj_obj.project must take all of trajectory, "
                             "prep_trajectory, and which")
 
-        print abs_min
         self._set_which(abs_min=abs_min, num_vecs=num_vecs, expl_var=expl_var,
                         which=which)
 

@@ -16,6 +16,10 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
+from __future__ import print_function, absolute_import, division
+from mdtraj.utils.six.moves import xrange
+from mdtraj.utils.six import string_types
+
 import os
 import numpy as np
 import yaml
@@ -182,7 +186,7 @@ class Project(object):
         return cls(records, validate=False, project_dir=rootdir)
 
     def save(self, filename_or_file):
-        if isinstance(filename_or_file, basestring):
+        if isinstance(filename_or_file, string_types):
             if not filename_or_file.endswith('.yaml'):
                 filename_or_file += '.yaml'
             dirname = os.path.abspath(os.path.dirname(filename_or_file))

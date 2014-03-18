@@ -22,6 +22,7 @@ with this. The improvements are basically towards maintainability, and are
 documented in PR 48 at https://github.com/SimTk/msmbuilder/pull/48
 """
 
+from __future__ import print_function
 import numpy as np
 import tempfile
 import shutil
@@ -299,7 +300,6 @@ class test_PCCA(WTempdir):
 
         TC = get("PCCA_ref/tProb.mtx")
         A = get("PCCA_ref/Assignments.Fixed.h5")['arr_0']
-        print A
 
         macro_map, macro_assign = PCCA.run_pcca(num_macro, A, TC)
         r_macro_map = get("PCCA_ref/MacroMapping.dat")

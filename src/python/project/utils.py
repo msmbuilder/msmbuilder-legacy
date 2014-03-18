@@ -1,9 +1,11 @@
+from __future__ import print_function, absolute_import, division
 import os
 import logging
 from msmbuilder.utils import keynat
 import tables
 import mdtraj as md
-from project import Project
+
+from .project import Project
 
 logger = logging.getLogger(__name__)
 

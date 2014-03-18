@@ -12,6 +12,7 @@ To Do
 > Add functionality for saving/loading the state of VariableCoordinate
 """
 
+from __future__ import print_function
 import itertools
 import time
 
@@ -63,7 +64,7 @@ def contact_reaction_coordinate(trajectory, weights):
 
     if TIME:
         endtime = time.clock()
-        print "Time spent in RC eval", endtime - starttime
+        print("Time spent in RC eval", endtime - starttime)
 
     return rc_value
 
@@ -249,7 +250,7 @@ class CutCoordinate(object):
 
         if TIME:
             endtime = time.clock()
-            print "Time spent in MFPT:", endtime - starttime
+            print("Time spent in MFPT:", endtime - starttime)
 
         return mfpt
 
@@ -342,7 +343,7 @@ class CutCoordinate(object):
 
         if TIME:
             endtime = time.clock()
-            print "Time spent in zc:", endtime - starttime
+            print("Time spent in zc:", endtime - starttime)
 
         return
 
@@ -427,7 +428,7 @@ class CutCoordinate(object):
             plt.show()
         else:
             plt.savefig(filename)
-            print "Saved reaction coordinate plot to: %s" % filename
+            print("Saved reaction coordinate plot to: %s" % filename)
 
         return
 
@@ -536,7 +537,7 @@ def test():
     from scipy import io
     import mdtraj
 
-    print "Testing cfep code...."
+    print("Testing cfep code....")
 
     test_dir = '/Users/TJ/Programs/msmbuilder.sandbox/tjlane/cfep/'
     
@@ -566,11 +567,11 @@ def test():
                                       counts, generators, reactant, product)
 
     contact_cfep.evaluate_partition_functions()
-    print contact_cfep.zh
-    print contact_cfep.zc
+    print(contact_cfep.zh)
+    print(contact_cfep.zc)
 
     contact_cfep.optimize()
-    print "Finished optimization"
+    print("Finished optimization")
 
     contact_cfep.plot()
 

@@ -16,10 +16,13 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
+from __future__ import print_function, absolute_import, division
+
 import os
 import numpy as np
 
 import mdtraj as md
+from mdtraj.utils.six import iteritems
 import logging
 
 logger = logging.getLogger(__name__)
@@ -71,7 +74,7 @@ class FAHReferenceData(object):
         except OSError:
             pass
         
-        for (run, clone), num_gens in run_clone_gen.iteritems():
+        for (run, clone), num_gens in iteritems(run_clone_gen):
         
             try:
                 os.mkdir(path + "/RUN%d/" % run)

@@ -1,3 +1,5 @@
+from __future__ import print_function, absolute_import, division
+
 import os
 import re
 import logging
@@ -6,8 +8,8 @@ from msmbuilder.utils import keynat
 import numpy as np
 import mdtraj as md
 
-from project import Project
-from validators import ValidationError
+from .project import Project
+from .validators import ValidationError
 logger = logging.getLogger(__name__)
 
 class ProjectBuilder(object):

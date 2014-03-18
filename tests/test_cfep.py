@@ -9,6 +9,7 @@ To Do
 Test all code: need generators for WW domain
 
 """
+from __future__ import print_function, absolute_import, division
 
 import os
 
@@ -62,7 +63,7 @@ def ref_calc_cFEP(counts, lag_time, rxn_coordinate, rescale=True):
     # If no reaction coordinate is provided, calculate the "natural"
     # coordinate where D(x) = 1 and cfep(x) = hfep(x)
     if rescale:
-        print "rescaling to the natural coordinate"    
+        print("rescaling to the natural coordinate")
         szc = 0
         sx  = 0
         x2nx = {}

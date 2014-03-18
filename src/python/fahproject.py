@@ -58,7 +58,7 @@ class FahProject(object):
         email to forward alerts to
     """
 
-    def __init__(self, pdb, project_number=0001, projectinfo_file="ProjectInfo.h5", 
+    def __init__(self, pdb, project_number=1, projectinfo_file="ProjectInfo.h5", 
                  work_server=None, email=None):
 
         # metadata associated with a FAH project

@@ -18,6 +18,9 @@ will be ignored -- when using project.load_traj(), only the "valid"
 trajectories will be returned, and project.n_trajs will only count
 the valid trajectories.
 """
+from __future__ import print_function, absolute_import, division
+from mdtraj.utils.six import string_types
+
 import numpy as np
 from msmbuilder.metrics import RMSD
 import mdtraj as md
@@ -63,7 +66,7 @@ class ExplosionValidator(object):
 
         if isinstance(structure_or_filename, md.Trajectory):
             conf = structure_or_filename
-        elif isinstance(structure_or_filename, basestring):
+        elif isinstance(structure_or_filename, string_types):
             conf = md.load(structure_or_filename)
 
         self.max_distance = max_distance

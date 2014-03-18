@@ -1,3 +1,4 @@
+from __future__ import print_function
 import sys, os
 import argparse
 from msmbuilder.License import LicenseString
@@ -193,15 +194,15 @@ class ArgumentParser(object):
 
     def parse_args(self, args=None, namespace=None, print_banner=True):
         if print_banner:
-            print LicenseString
-            print CiteString
+            print(LicenseString)
+            print(CiteString)
 
         if self.print_argparse_bug_warning:
-            print "#" * 80
-            print "\n"
+            print("#" * 80)
+            print("\n")
             warnings.warn('Known bug in argparse regarding subparsers and optional arguments with nargs=[+*?] (http://bugs.python.org/issue9571)')
-            print "\n"
-            print "#" * 80
+            print("\n")
+            print("#" * 80)
 
         namespace = self.parser.parse_args(args=args, namespace=namespace)
 

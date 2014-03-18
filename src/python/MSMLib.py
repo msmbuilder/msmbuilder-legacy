@@ -50,6 +50,9 @@ MSMLib functions generally relate to one of the following
     tarjan
     trim_states
 """
+from __future__ import print_function, absolute_import, division
+from mdtraj.utils.six import iteritems
+
 import scipy.sparse
 import scipy.linalg
 import scipy
@@ -408,7 +411,7 @@ def invert_assignments(assignments):
         inverse_mapping[assignments[i, j]][1].append(j)
 
     # convert from lists to numpy arrays
-    for key, (trajs, frames) in inverse_mapping.iteritems():
+    for key, (trajs, frames) in iteritems(inverse_mapping):
         inverse_mapping[key] = (np.array(trajs), np.array(frames))
 
     return inverse_mapping

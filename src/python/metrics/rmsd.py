@@ -1,8 +1,11 @@
+from __future__ import print_function, absolute_import, division
 import warnings
 import numpy as np
 from collections import namedtuple
-from baseclasses import AbstractDistanceMetric
 import mdtraj as md
+
+from .baseclasses import AbstractDistanceMetric
+
 
 
 class RMSD(AbstractDistanceMetric):

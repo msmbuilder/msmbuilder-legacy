@@ -1,7 +1,9 @@
+from .baseclasses import Vectorized, AbstractDistanceMetric
+
 import numpy as np
 import logging
 logger = logging.getLogger(__name__)
-from baseclasses import AbstractDistanceMetric
+from .baseclasses import AbstractDistanceMetric
 
 
 class Hybrid(AbstractDistanceMetric):

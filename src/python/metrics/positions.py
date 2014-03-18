@@ -1,12 +1,15 @@
+from __future__ import print_function, absolute_import, division
+
 import logging
 logger = logging.getLogger(__name__)
-from baseclasses import Vectorized, AbstractDistanceMetric
 import mdtraj as md
 import numpy as np
 try:
     import lprmsd
 except:
     RuntimeError("Unable to import lprmsd. See msmbuilder/Extras/lprmsd for directions on installing")
+
+from .baseclasses import Vectorized, AbstractDistanceMetric
 
 
 class Positions(Vectorized, AbstractDistanceMetric):

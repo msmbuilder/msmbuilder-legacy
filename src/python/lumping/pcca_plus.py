@@ -1,3 +1,5 @@
+from __future__ import print_function, absolute_import, division
+
 import numpy as np
 from numpy import dot, diag
 inv = np.linalg.inv
@@ -6,7 +8,7 @@ tr = np.trace
 
 import scipy.optimize
 
-from lumper import EigenvectorLumper
+from .lumper import EigenvectorLumper
 
 import logging
 logger = logging.getLogger(__name__)

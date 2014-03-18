@@ -17,6 +17,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
+from __future__ import print_function
 import sys
 import logging
 import numpy as np
@@ -153,7 +154,7 @@ def run(PDBfn, atomtype):
 
 
 if __name__ == "__main__":
-    print sys.argv
+    print(sys.argv)
     args = parser.parse_args()
     arglib.die_if_path_exists(args.output)
     indices = run(args.pdb, args.atom_type)

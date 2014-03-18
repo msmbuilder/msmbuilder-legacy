@@ -124,7 +124,7 @@ class AbstractDistanceMetric(object):
         traj_length = len(prepared_traj)
         output = -1 * np.ones(traj_length * (traj_length - 1) / 2)
         p = 0
-        for i in xrange(traj_length):
+        for i in range(traj_length):
             cmp_indices = np.arange(i + 1, traj_length)
             output[p: p + len(cmp_indices)] = self.one_to_many(prepared_traj, prepared_traj, i, cmp_indices)
             p += len(cmp_indices)

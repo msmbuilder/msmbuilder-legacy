@@ -1,3 +1,6 @@
+from __future__ import print_function, absolute_import, division
+from mdtraj.utils.six import iteritems
+
 # methods to support testing
 import os
 import re
@@ -129,7 +132,7 @@ def assert_dict_equal(t1, t2, decimal=6):
     # make sure the keys are the same
     eq_(t1.keys(), t2.keys())
 
-    for key, val in t1.iteritems():        
+    for key, val in iteritems(t1):
         # compare numpy arrays using numpy.testing
         if isinstance(val, np.ndarray):
             if val.dtype.kind ==  'f':
@@ -191,7 +194,7 @@ def skip(rason):
         @functools.wraps(test)
         def inner(*args, **kwargs):
             raise SkipTest
-            print "After f(*args)"
+            print("After f(*args)")
         return inner
     return wrap
 
