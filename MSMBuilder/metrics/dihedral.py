@@ -9,6 +9,7 @@ from .baseclasses import Vectorized, AbstractDistanceMetric
 
 
 class Dihedral(Vectorized, AbstractDistanceMetric):
+
     """Distance metric for calculating distances between frames based on their
     projection in dihedral space."""
 
@@ -17,7 +18,7 @@ class Dihedral(Vectorized, AbstractDistanceMetric):
                                'sqeuclidean', 'seuclidean', 'mahalanobis', 'sqmahalanobis']
 
     def __init__(self, metric='euclidean', p=2, angles='phi/psi', userfilename='DihedralIndices.dat', V=None, VI=None,
-        indices=None):
+                 indices=None):
         """Create a distance metric to act on torison angles
 
         Parameters
@@ -31,7 +32,7 @@ class Dihedral(Vectorized, AbstractDistanceMetric):
             compute per residue. The choices are 'phi', 'psi', 'chi', and 'omega',
             or any combination thereof.  If  angles = 'user', indices are taken from the userfilename
         userfilename: string, optional
-	    filename used for angles=user.  Default is 'DihderalIndices.dat'
+            filename used for angles=user.  Default is 'DihderalIndices.dat'
         p : int, optional
             p-norm order, used for metric='minkowski'
         V : ndarray, optional
@@ -98,15 +99,14 @@ class Dihedral(Vectorized, AbstractDistanceMetric):
             dihedrals = _dihedralcalc.compute_dihedrals(trajectory, indices)
         else:
             if self.indices is None:
-                dihedrals = np.hstack(getattr(_dihedralcalc, 'compute_%s' % e)(trajectory)[1] for e in self.angles.split('/'))
+                f = getattr(_dihedralcalc, 'compute_%s' % e)
+                dihedrals = np.hstack(f(trajectory)[1] for e in self.angles.split('/'))
             else:
                 dihedrals = _dihedralcalc.compute_dihedrals(trajectory, self.indices)
-
 
         # these dihedrals go between -pi and pi but obviously because of the
         # periodicity, when we take distances we want the distance between -179
         # and +179 to be very close, so we need to do a little transform
-
         num_dihedrals = dihedrals.shape[1]
         transformed = np.empty((traj_length, 2 * num_dihedrals))
         transformed[:, 0:num_dihedrals] = np.cos(dihedrals)
@@ -132,6 +132,3 @@ class Dihedral(Vectorized, AbstractDistanceMetric):
         from scipy import loadtxt
         indices = loadtxt(filename)
         return indices
-
-
-

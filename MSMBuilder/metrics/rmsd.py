@@ -8,8 +8,8 @@ import mdtraj as md
 from .baseclasses import AbstractDistanceMetric
 
 
-
 class RMSD(AbstractDistanceMetric):
+
     """
     Compute distance between frames using the Room Mean Square Deviation
     over a specifiable set of atoms using the Theobald QCP algorithm
@@ -19,7 +19,7 @@ class RMSD(AbstractDistanceMetric):
     .. [1] Theobald, D. L. Acta. Crystallogr., Sect. A 2005, 61, 478-480.
 
     """
-    
+
     def __init__(self, atomindices=None, omp_parallel=True):
         """Initalize an RMSD calculator
 
@@ -48,9 +48,11 @@ class RMSD(AbstractDistanceMetric):
 
     def __repr__(self):
         try:
-            val = 'metrics.RMSD(atom_indices=%s, omp_parallel=%s)' % (repr(list(self.atomindices)), self.omp_parallel)
+            val = 'metrics.RMSD(atom_indices=%s, omp_parallel=%s)' % (
+                repr(list(self.atomindices)), self.omp_parallel)
         except:
-            val = 'metrics.RMSD(atom_indices=%s, omp_parallel=%s)' % (self.atomindices, self.omp_parallel)
+            val = 'metrics.RMSD(atom_indices=%s, omp_parallel=%s)' % (
+                self.atomindices, self.omp_parallel)
         return val
 
     def prepare_trajectory(self, trajectory):
@@ -71,7 +73,7 @@ class RMSD(AbstractDistanceMetric):
             A msmbuilder.metrics.TheoData object, which contains some preprocessed
             calculations for the RMSD calculation
         """
-        
+
         if self.atomindices is not None:
             if trajectory.topology is not None:
                 topology = trajectory.topology.copy()
@@ -146,7 +148,8 @@ class RMSD(AbstractDistanceMetric):
 
     def _square_all_pairwise(self, prepared_traj):
         """Reference implementation of all_pairwise"""
-        warnings.warn('This is HORRIBLY inefficient. This operation really needs to be done directly in C')
+        warnings.warn(
+            'This is HORRIBLY inefficient. This operation really needs to be done directly in C')
         output = np.empty((prepared_traj.n_frames, prepared_traj.n_frames))
         for i in xrange(prepared_traj.n_frames):
             output[i] = self.one_to_all(prepared_traj, prepared_traj, i)

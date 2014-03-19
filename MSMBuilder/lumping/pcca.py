@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 class PCCA(EigenvectorLumper):
+
     def __init__(self, T, num_macrostates, tolerance=1E-5, flux_cutoff=None):
         """Create a lumped model using the PCCA algorithm.
 
@@ -62,7 +63,7 @@ class PCCA(EigenvectorLumper):
 
         microstate_mapping = np.zeros(self.num_microstates, 'int')
 
-        #Function to calculate the spread of a single eigenvector.
+        # Function to calculate the spread of a single eigenvector.
         spread = lambda x: x.max() - x.min()
 
         for i in range(self.num_macrostates - 1):  # Thus, if we want 2 states, we split once.

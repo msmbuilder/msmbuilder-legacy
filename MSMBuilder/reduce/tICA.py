@@ -10,7 +10,9 @@ from msmbuilder.reduce import AbstractDimReduction
 
 logger = logging.getLogger(__name__)
 
+
 class tICA(AbstractDimReduction):
+
     """
     tICA is a class for calculating the matrices required to do time-structure
     based independent component analysis (tICA). It can be
@@ -40,7 +42,7 @@ class tICA(AbstractDimReduction):
     example by adding the transpose:
 
     C' = (C + C^T) / 2
-     
+
     There is, in fact, an MLE estimator for ech matrix C, and S:
 
     S = E[Outer(X[t], X[t])]
@@ -77,29 +79,29 @@ class tICA(AbstractDimReduction):
             the size is the number of coordinates for the vector
             representation of the protein. If None, then the first
             trained vector will be used to initialize it.
-            
+
         Notes
         -----
-        
+
         To load an already constructed tICA object, use `tICA.load()`.
         """
-        
+
         self.corrs = None
         self.sum_t = None
         self.sum_t_dt = None
-        # The above containers hold a running sum that is used to 
+        # The above containers hold a running sum that is used to
         # calculate the time-lag correlation matrix as well as the
         # covariance matrix
 
         self.corrs_lag0 = None  # needed for calculating the covariance
-                                # matrix       
+                                # matrix
         self.sum_all = None
 
         self.trained_frames = 0
         self.total_frames = 0
         # Track how many frames we've trained
 
-        self.lag=int(lag)
+        self.lag = int(lag)
         if self.lag < 0:
             raise Exception("lag must be non-negative.")
         elif self.lag == 0:  # If we have lag=0 then we don't need to
@@ -111,12 +113,12 @@ class tICA(AbstractDimReduction):
         if prep_metric is None:
             self.prep_metric = None
             logger.warn("no metric specified, you must pass prepared"
-                " trajectories to the train and project methods")
+                        " trajectories to the train and project methods")
 
         else:
             if not isinstance(prep_metric, Vectorized):
                 raise Exception("prep_metric must be an instance of a "
-                    "subclass of msmbuilder.metrics.Vectorized")
+                                "subclass of msmbuilder.metrics.Vectorized")
 
             self.prep_metric = prep_metric
 
@@ -129,9 +131,8 @@ class tICA(AbstractDimReduction):
         self.cov_mat = None
         self.vals = None
         self.vecs = None
-    
+
         self._sorted = False
-            
 
     def initialize(self, size):
         """
@@ -153,7 +154,6 @@ class tICA(AbstractDimReduction):
         if self.calc_cov_mat:
             self.corrs_lag0_t = np.zeros((size, size), dtype=float)
             self.corrs_lag0_t_dt = np.zeros((size, size), dtype=float)
-
 
     def train(self, trajectory=None, prep_trajectory=None):
         """
@@ -181,9 +181,9 @@ class tICA(AbstractDimReduction):
         else:
             raise Exception("need to input one of trajectory or prep_trajectory")
 
-        a=time()  # For debugging we are tracking the time each step takes
+        a = time()  # For debugging we are tracking the time each step takes
 
-        if self.size is None:  
+        if self.size is None:
         # then we haven't started yet, so set up the containers
             self.initialize(size=data_vector.shape[1])
 
@@ -194,10 +194,10 @@ class tICA(AbstractDimReduction):
 
         if data_vector.shape[0] <= self.lag:
             logger.warn("Data vector is too short (%d) "
-                        "for this lag (%d)", data_vector.shape[0],self.lag)
+                        "for this lag (%d)", data_vector.shape[0], self.lag)
             return
 
-        b=time()
+        b = time()
 
         if self.lag != 0:
             self.corrs += data_vector[:-self.lag].T.dot(data_vector[self.lag:])
@@ -214,15 +214,14 @@ class tICA(AbstractDimReduction):
             self.sum_all += data_vector.sum(axis=0)
             self.total_frames += data_vector.shape[0]
 
-        self.trained_frames += data_vector.shape[0] - self.lag  
-        # this accounts for us having finite trajectories, so we really are 
+        self.trained_frames += data_vector.shape[0] - self.lag
+        # this accounts for us having finite trajectories, so we really are
         #  only calculating expectation values over N - \Delta t total samples
 
-        c=time()
+        c = time()
 
-        logger.debug("Setup: %f, Corrs: %f" %(b-a, c-b))
+        logger.debug("Setup: %f, Corrs: %f" % (b - a, c - b))
         # Probably should just get rid of this..
-
 
     def get_current_estimate(self):
         """Calculate the current estimate of the time-lag correlation
@@ -245,7 +244,7 @@ class tICA(AbstractDimReduction):
         # ^^ denominator in all of these expressions...
         mle_mean = (self.sum_t + self.sum_t_dt) / two_N
         outer_means = np.outer(mle_mean, mle_mean)
-        
+
         time_lag_corr = (self.corrs + self.corrs.T) / two_N
 
         timelag_corr_mat = time_lag_corr - outer_means
@@ -263,7 +262,6 @@ class tICA(AbstractDimReduction):
 
         return timelag_corr_mat
 
-    
     def _sort(self):
         """
         sort the eigenvectors by their eigenvalues.
@@ -271,19 +269,18 @@ class tICA(AbstractDimReduction):
         if self.vals is None:
             self.solve()
 
-        ind = np.argsort(self.vals)[::-1] 
+        ind = np.argsort(self.vals)[::-1]
         # in order of decreasing value
         self.vals = self.vals[ind]
         self.vecs = self.vecs[:, ind]
 
         self._sorted = True
 
-
     def solve(self, pca_cutoff=0):
         """
         Solve the eigenvalue problem. We can translate into the
         PCA space and remove directions that have zero variance.
-        
+
         If there are directions with zero variance, then the tICA
         eigenvalues will be complex or greater than one.
 
@@ -295,7 +292,7 @@ class tICA(AbstractDimReduction):
             your covariance matrix to see if you need this.
 
         """
-        
+
         if self.timelag_corr_mat is None or self.cov_mat is None:
             self.get_current_estimate()
 
@@ -341,9 +338,8 @@ class tICA(AbstractDimReduction):
 
         else:
             self.vecs = self.vecs.real
-        
-        self._sort()
 
+        self._sort()
 
     def project(self, trajectory=None, prep_trajectory=None, which=None):
         """
@@ -374,29 +370,29 @@ class tICA(AbstractDimReduction):
 
         if which is None:
             raise Exception("must pass 'which' to indicate which tICs to project onto")
-        
+
         which = np.array(which).flatten().astype(int)
 
         proj_trajectory = prep_trajectory.dot(self.vecs[:, which])
-    
-        return proj_trajectory
 
+        return proj_trajectory
 
     def save(self, output):
         """
         save the results to file
-        
+
         Parameters:
         -----------
         output : str
             output filename (.h5)
         """
-        
-        metric_string = cPickle.dumps(self.prep_metric)  # Serialize metric used to calculate tICA input.
-        
+
+        # Serialize metric used to calculate tICA input.
+        metric_string = cPickle.dumps(self.prep_metric)
+
         io.saveh(output, timelag_corr_mat=self.timelag_corr_mat,
-            cov_mat=self.cov_mat, lag=np.array([self.lag]), vals=self.vals,
-            vecs=self.vecs, metric_string=np.array([metric_string]))
+                 cov_mat=self.cov_mat, lag=np.array([self.lag]), vals=self.vals,
+                 vecs=self.vecs, metric_string=np.array([metric_string]))
 
     @classmethod
     def load(cls, tica_fn):
@@ -411,11 +407,11 @@ class tICA(AbstractDimReduction):
         """
         # the only variables we need to save are the two matrices
         # and the eigenvectors / values as well as the lag time
-        
+
         logger.warn("NOTE: You can only use the tICA solution, you will "
                     "not be able to continue adding data")
         f = io.loadh(tica_fn)
-        
+
         metric = cPickle.loads(f["metric_string"][0])
 
         tica_obj = cls(f['lag'][0], prep_metric=metric)
@@ -430,4 +426,3 @@ class tICA(AbstractDimReduction):
         tica_obj._sort()
 
         return tica_obj
-        

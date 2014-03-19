@@ -38,7 +38,9 @@ from mdtraj import io
 import logging
 logger = logging.getLogger(__name__)
 
+
 class Project(object):
+
     @property
     def conf_filename(self):
         """Filename of the project topology (PDB)"""
@@ -53,7 +55,7 @@ class Project(object):
     def traj_lengths(self):
         """Length of each of the trajectories, in frames"""
         return self._traj_lengths[self._valid_traj_indices]
-        
+
     def __eq__(self, other):
         '''Is this project equal to another'''
         if not isinstance(other, Project):
@@ -61,10 +63,10 @@ class Project(object):
         return os.path.basename(self._conf_filename) == os.path.basename(other._conf_filename) and \
             np.all(self._traj_lengths == other._traj_lengths) and \
             np.all(np.array([os.path.basename(e) for e in self._traj_paths])
-                == np.array([os.path.basename(e) for e in other._traj_paths])) and \
+                   == np.array([os.path.basename(e) for e in other._traj_paths])) and \
             np.all(self._traj_errors == other._traj_errors)
             # np.all(self._traj_converted_from == other._traj_converted_from)
-                                
+
     def __init__(self, records, validate=False, project_dir='.'):
         """Create a project from a  set of records
 
@@ -171,12 +173,12 @@ class Project(object):
             records = {'conf_filename': str(ondisk['ConfFilename'][0]),
                        'traj_lengths': ondisk['TrajLengths'],
                        'traj_paths': [],
-                       'traj_converted_from': [ [None] ] * n_trajs,
+                       'traj_converted_from': [[None]] * n_trajs,
                        'traj_errors': [None] * n_trajs}
 
             for i in xrange(n_trajs):
                 # this is the convention used in the hdf project format to get the traj paths
-                path = os.path.join( ondisk['TrajFilePath'][0], ondisk['TrajFileBaseName'][0] + str(i) + ondisk['TrajFileType'][0] )
+                path = os.path.join(ondisk['TrajFilePath'][0], ondisk['TrajFileBaseName'][0] + str(i) + ondisk['TrajFileType'][0])
                 records['traj_paths'].append(path)
 
         else:
@@ -230,8 +232,8 @@ class Project(object):
 
         return filename_or_file
 
-    def get_random_confs_from_states(self, assignments, states, num_confs, 
-        replacement=True, random=np.random):
+    def get_random_confs_from_states(self, assignments, states, num_confs,
+                                     replacement=True, random=np.random):
         """
         Get random conformations from a particular state (or states) in assignments.
 
@@ -265,7 +267,7 @@ class Project(object):
             """
             This is a helper function for selecting random conformations. It will
             select many samples from a discrete, uniform distribution over:
-            
+
             .. math::  \{i\}_{i=1}^{\textnormal{state_counts}}
 
             If replacement==True, then random.randint will be used, otherwise
@@ -308,7 +310,6 @@ class Project(object):
                     result = random.permutation(np.arange(state_counts))[:size]
 
             return result
-            
 
         if isinstance(states, int):
             states = np.array([states])
@@ -317,7 +318,7 @@ class Project(object):
         # if num_confs is just a number, map it to
         # each state given in states
         if isinstance(num_confs, int):
-            num_confs = np.array([num_confs] * len(states)) 
+            num_confs = np.array([num_confs] * len(states))
         num_confs = np.array(num_confs).flatten()
 
         # if num_confs is length-1, then map that value to each
@@ -329,23 +330,24 @@ class Project(object):
             raise Exception("num_confs must be the same size as num_states")
 
         inv_assignments = MSMLib.invert_assignments(assignments)
-        state_counts = np.bincount(assignments[np.where(assignments!=-1)])
+        state_counts = np.bincount(assignments[np.where(assignments != -1)])
 
         random_confs = []
 
         for n, state in zip(num_confs, states):
             logger.debug("Working on %s", state)
             if state_counts[state] == 0:
-                raise ValueError('No conformations to sample from state %d! It contains no assigned conformations.' % state)
+                raise ValueError('No conformations to sample from state %d! It contains '
+                                 'no assigned conformations.' % state)
 
             random_conf_inds = randomize(state_counts[state], size=n,
-                                         replacement=replacement, 
+                                         replacement=replacement,
                                          random=random)
 
             traj_inds, frame_inds = inv_assignments[state]
-            random_confs.append(self.load_frame(traj_inds[random_conf_inds], 
+            random_confs.append(self.load_frame(traj_inds[random_conf_inds],
                                                 frame_inds[random_conf_inds]))
-        
+
         return random_confs
 
     def load_traj(self, trj_index, stride=1, atom_indices=None):
@@ -386,10 +388,11 @@ class Project(object):
 
         conf = self.load_conf()
         xyzlist = []
-        for i,j in zip(traj_index, frame_index):
+        for i, j in zip(traj_index, frame_index):
             if j >= self.traj_lengths[i]:
-                raise ValueError('traj %d too short (%d) to contain a frame %d' % (i, self.traj_lengths[i], j))
-                
+                raise ValueError('traj %d too short (%d) to contain a frame %d' %
+                                 (i, self.traj_lengths[i], j))
+
             xyzlist.append(md.load_frame(self.traj_filename(i), j).xyz)
 
         conf.xyz = np.concatenate(xyzlist)
@@ -409,7 +412,7 @@ class Project(object):
 
     def _validate(self):
         "Run some checks to ensure that this project is consistent"
-        
+
         if not os.path.exists(self.conf_filename):
             raise ValueError('conf does not exist: %s' % self.conf_filename)
         for i in xrange(self.n_trajs):

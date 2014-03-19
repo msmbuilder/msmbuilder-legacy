@@ -117,7 +117,7 @@ def find_top_paths(sources, sinks, tprob, num_paths=10, node_wipe=False, net_flu
     To Do
     -----
     -- Add periodic flow check
-    
+
     References
     ----------
     .. [1] Dijkstra, E. W. (1959). "A note on two problems in connexion with 
@@ -220,7 +220,7 @@ def Dijkstra(sources, sinks, net_flux):
         `DijkstraTopPaths` is probably the function you want to call to find
          paths through an MSM network. This is a utility function called by
          `DijkstraTopPaths`, but may be useful in some specific cases
-         
+
      References
      ----------
      .. [1] Dijkstra, E. W. (1959). "A note on two problems in connexion with 
@@ -416,7 +416,7 @@ def find_path_bottleneck(path, net_flux):
         `find_top_paths` is probably the function you want to call to find
          paths through an MSM network. This is a utility function called by
          `find_top_paths`, but may be useful in some specific cases.
-         
+
      References
      ----------
      .. [1] Metzner, P., Schutte, C. & Vanden-Eijnden, E. Transition path theory 
@@ -467,7 +467,7 @@ def calculate_fluxes(sources, sinks, tprob, populations=None, committors=None):
         The committors associated with `sources`, `sinks`, and `tprob`.
         If not provided, is calculated from scratch. If provided, `sources`
         and `sinks` are ignored.
-        
+
     References
     ----------
     .. [1] Metzner, P., Schutte, C. & Vanden-Eijnden, E. Transition path theory 
@@ -552,7 +552,7 @@ def calculate_net_fluxes(sources, sinks, tprob, populations=None, committors=Non
         The committors associated with `sources`, `sinks`, and `tprob`.
         If not provided, is calculated from scratch. If provided, `sources`
         and `sinks` are ignored.
-        
+
     References
     ----------
     .. [1] Metzner, P., Schutte, C. & Vanden-Eijnden, E. Transition path theory 
@@ -619,7 +619,7 @@ def calculate_ensemble_mfpt(sources, sinks, tprob, lag_time):
         the average of the MFPTs
     std : float
         the standard deviation of the MFPTs
-        
+
     References
     ----------
     .. [1] Metzner, P., Schutte, C. & Vanden-Eijnden, E. Transition path theory 
@@ -669,7 +669,7 @@ def calculate_avg_TP_time(sources, sinks, tprob, lag_time):
         the average of the MFPTs
     std : float
         the standard deviation of the MFPTs
-        
+
     References
     ----------
     .. [1] Metzner, P., Schutte, C. & Vanden-Eijnden, E. Transition path theory 
@@ -737,7 +737,7 @@ def calculate_mfpt(sinks, tprob, lag_time=1.):
     --------
     calculate_all_to_all_mfpt : function
         A more efficient way to calculate all the MFPTs in a network
-        
+
     References
     ----------
     .. [1] Metzner, P., Schutte, C. & Vanden-Eijnden, E. Transition path theory 
@@ -804,7 +804,7 @@ def calculate_all_to_all_mfpt(tprob, populations=None):
     GetMFPT : function
         for calculating a subset of the MFPTs, with functionality for including
         a set of sinks
-        
+
     References
     ----------
     .. [1] Metzner, P., Schutte, C. & Vanden-Eijnden, E. Transition path theory 
@@ -864,7 +864,7 @@ def calculate_committors(sources, sinks, tprob):
     -------
     Q : array_like
         The forward committors for the reaction U -> F.
-        
+
     References
     ----------
     .. [1] Metzner, P., Schutte, C. & Vanden-Eijnden, E. Transition path theory 

@@ -10,6 +10,7 @@ from mdtraj import io
 import logging
 logger = logging.getLogger(__name__)
 
+
 def _setup_containers(project, assignments_fn, distances_fn):
     """
     Setup the files on disk (Assignments.h5 and Assignments.h5.distances) that
@@ -36,14 +37,14 @@ def _setup_containers(project, assignments_fn, distances_fn):
     """
 
     def save_container(filename, dtype):
-        io.saveh(filename, arr_0=-1*np.ones((project.n_trajs, np.max(project.traj_lengths)), dtype=dtype),
+        io.saveh(filename, arr_0=-1 * np.ones((project.n_trajs, np.max(project.traj_lengths)), dtype=dtype),
                  completed_trajs=np.zeros((project.n_trajs), dtype=np.bool))
 
     def check_container(filename):
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             fh = tables.openFile(filename, 'r')
-        if  fh.root.arr_0.shape != (project.n_trajs, np.max(project.traj_lengths)):
+        if fh.root.arr_0.shape != (project.n_trajs, np.max(project.traj_lengths)):
             raise ValueError('Shape error 1')
         if fh.root.completed_trajs.shape != (project.n_trajs,):
             raise ValueError('Shape error 2')
@@ -114,8 +115,8 @@ def assign_in_memory(metric, generators, project, atom_indices_to_load=None):
 
         for j in xrange(len(traj)):
             d = metric.one_to_all(ptraj, pgens, j)
-            assignments[i,j] = np.argmin(d)
-            distances[i,j] = d[assignments[i,j]]
+            assignments[i, j] = np.argmin(d)
+            distances[i, j] = d[assignments[i, j]]
 
     return assignments, distances
 
@@ -204,7 +205,7 @@ def assign_with_checkpoint(metric, project, generators, assignments_path,
                 assignments[j] = ind
                 distances[j] = d[ind]
 
-            end_index = start_index+this_length
+            end_index = start_index + this_length
             fh_a.root.arr_0[i, start_index:end_index] = assignments
             fh_d.root.arr_0[i, start_index:end_index] = distances
 
@@ -229,13 +230,13 @@ def assign_with_checkpoint(metric, project, generators, assignments_path,
         fh_a.root.completed_trajs[i] = True
         fh_d.root.completed_trajs[i] = True
 
-
     fh_a.close()
     fh_d.close()
 
+
 def streaming_assign_with_checkpoint(metric, project, generators, assignments_path,
-    distances_path, checkpoint=1,chunk_size=10000, atom_indices_to_load=None):
+                                     distances_path, checkpoint=1, chunk_size=10000, atom_indices_to_load=None):
     warnings.warn(("assign_with_checkpoint now uses the steaming engine "
-        "-- this function is deprecated"), DeprecationWarning)
+                   "-- this function is deprecated"), DeprecationWarning)
     assign_with_checkpoint(metric, project, generators, assignments_path,
-        distances_path, chunk_size, atom_indices_to_load)
+                           distances_path, chunk_size, atom_indices_to_load)

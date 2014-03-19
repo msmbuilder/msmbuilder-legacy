@@ -15,13 +15,14 @@ else:
 
 warnings.simplefilter('always')
 
+
 def uneven_zip(*args):
     '''Zip the arguments together like the builtin function, except that
     when one argument runs out (because its shorter), you keep filling it in
     with its last value
-    
+
     i.e.
-    
+
     uneven_zip([1,2,3], 'a', [10,11]) = [[1, 'a', 10], [2, 'a', 11], [3, 'a', 11]]
     '''
     num_args = len(args)
@@ -30,17 +31,17 @@ def uneven_zip(*args):
         if not hasattr(args[i], '__len__'):
             args[i] = (args[i],)
     lengths = [len(arg) for arg in args]
+
     def get(i):
         result = [None] * num_args
         for j in range(num_args):
             try:
                 result[j] = args[j][i]
             except:
-                result[j] = args[j][lengths[j]-1]
+                result[j] = args[j][lengths[j] - 1]
         return result
     zipped = [get(i) for i in range(max(lengths))]
     return zipped
-
 
 
 def format_block(block):
@@ -65,8 +66,8 @@ def format_block(block):
         del lines[0]
     while lines and not lines[-1]:
         del lines[-1]
-    
-    return '\n'.join(lines)+'\n'
+
+    return '\n'.join(lines) + '\n'
 
 
 def keynat(string):
@@ -98,6 +99,7 @@ def _pickle_method(method):
     cls = method.__self__.__class__
     return _unpickle_method, (func_name, obj, cls)
 
+
 def _unpickle_method(func_name, obj, cls):
     for cls in cls.mro():
         try:
@@ -108,6 +110,7 @@ def _unpickle_method(func_name, obj, cls):
             break
     return func.__get__(obj, cls)
 
+
 def make_methods_pickable():
     "Run this at the top of a script to register pickable methods"
     copyreg.pickle(types.MethodType, _pickle_method, _unpickle_method)
@@ -117,7 +120,7 @@ def deprecated(replacement=None, removal_version=None):
     """A decorator which can be used to mark functions as deprecated.
     replacement is a callable that will be called with the same args
     as the decorated function.
-    
+
     Code adapted from http://code.activestate.com/recipes/577819-deprecated-decorator/,
     MIT license
 
@@ -150,13 +153,14 @@ def deprecated(replacement=None, removal_version=None):
 
             if removal_version is not None:
                 msg += '%s will be removed in version %s' % (oldfun.__name__, removal_version)
-                
+
             warnings.warn(msg, DeprecationWarning, stacklevel=2)
-            
+
             return replacement(*args, **kwargs)
 
         return inner
     return outer
+
 
 def future_warning(func):
     '''This is a decorator which can be used to mark functions
@@ -174,12 +178,13 @@ def future_warning(func):
         return func(*args, **kwargs)
     return new_func
 
-def highlight(text,color='Red',bold=False):
+
+def highlight(text, color='Red', bold=False):
     """Return a highlighted string using color or bold.
 
     @param[in] text The string that the printout is based upon.  This function
     will return the highlighted string.
-    
+
     @param[in] color String or number corresponding to the color.
     1 red\n
     2 green\n
@@ -191,14 +196,14 @@ def highlight(text,color='Red',bold=False):
 
     @param[in] bold Whether to use bold print
     """
-    
-    colordict = {'red' : 1,
-                 'green' : 2,
-                 'yellow' : 3,
-                 'blue' : 4,
-                 'magenta' : 5,
-                 'cyan' : 6,
-                 'white' : 7}
+
+    colordict = {'red': 1,
+                 'green': 2,
+                 'yellow': 3,
+                 'blue': 4,
+                 'magenta': 5,
+                 'cyan': 6,
+                 'white': 7}
 
     if color.lower() in colordict:
         color = colordict[color.lower()]
@@ -207,17 +212,20 @@ def highlight(text,color='Red',bold=False):
     elif color in range(1, 8):
         pass
     else:
-        raise ValueError('Invalid argument given for color (use integer 1-7 or case-insensitive word: red, green, yellow, blue, magenta, cyan, or white)')
-    
+        raise ValueError(
+            'Invalid argument given for color (use integer 1-7 or case-insensitive word: red, green, yellow, blue, magenta, cyan, or white)')
 
     return "\x1b[%s9%im" % (bold and "1;" or "", color) + text + "\x1b[0m"
 
 
 # http://code.activestate.com/recipes/498245-lru-and-lfu-cache-decorators/
 class Counter(dict):
+
     'Mapping where default values are zero'
+
     def __missing__(self, key):
         return 0
+
 
 def lru_cache(maxsize=100):
     '''Least-recently-used cache decorator.
@@ -229,10 +237,11 @@ def lru_cache(maxsize=100):
 
     '''
     maxqueue = maxsize * 10
+
     def decorating_function(user_function,
-            len=len, iter=iter, tuple=tuple, sorted=sorted, KeyError=KeyError):
+                            len=len, iter=iter, tuple=tuple, sorted=sorted, KeyError=KeyError):
         cache = {}                  # mapping of args to results
-        queue = collections.deque() # order that keys have been used
+        queue = collections.deque()  # order that keys have been used
         refcount = Counter()        # times each key is in the queue
         sentinel = object()         # marker for looping around the queue
         kwd_mark = object()         # separate positional and keyword args
@@ -280,7 +289,6 @@ def lru_cache(maxsize=100):
                     queue_appendleft(key)
                     refcount[key] = 1
 
-
             return result
 
         def clear():
@@ -322,4 +330,5 @@ def check_assignment_array_input(assignments, check_ndarray=True, check_integer=
         raise TypeError("Input assignments must be integer type.")
 
     if assignments.ndim != ndim:
-        raise TypeError("Input assignments must have ndim = %d; found %d." % (ndim, assignments.ndim))
+        raise TypeError("Input assignments must have ndim = %d; found %d." %
+                        (ndim, assignments.ndim))

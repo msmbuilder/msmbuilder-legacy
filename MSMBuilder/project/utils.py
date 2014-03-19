@@ -9,6 +9,7 @@ from .project import Project
 
 logger = logging.getLogger(__name__)
 
+
 def get_project_object(traj_directory, conf_filename, out_filename=None):
     """
     This function constructs a msmbuilder.Project object 
@@ -23,7 +24,7 @@ def get_project_object(traj_directory, conf_filename, out_filename=None):
     folder. Though, it's probably more efficient to just
     do some bash stuff to cat the ProjectInfo.yaml's 
     together and rename the trajectories.
-    
+
     Inputs:
     -------
     1) traj_directory : directory to find the trajectories
@@ -38,13 +39,14 @@ def get_project_object(traj_directory, conf_filename, out_filename=None):
     project : msmbuilder.Project object corresponding to 
         your project.
     """
-
-    traj_paths = sorted(os.listdir(traj_directory), key=keynat) # relative to the traj_directory
-    traj_paths = [os.path.join(traj_directory, filename) for filename in traj_paths] # relative to current directory
+    # relative to the traj_directory
+    traj_paths = sorted(os.listdir(traj_directory), key=keynat)
+    # relative to current directory
+    traj_paths = [os.path.join(traj_directory, filename) for filename in traj_paths]
 
     traj_lengths = []
 
-    for traj_filename in traj_paths: # Get the length of each trajectory
+    for traj_filename in traj_paths:  # Get the length of each trajectory
         logger.info(traj_filename)
 
         if traj_filename.split('.')[-1] in ['hdf', 'h5', 'lh5']:
@@ -52,17 +54,17 @@ def get_project_object(traj_directory, conf_filename, out_filename=None):
                 traj_lengths.append(f.root.coordinates.shape[0])
 
         else:
-            traj_lengths.append(md.load(traj_filename).n_frames) 
+            traj_lengths.append(md.load(traj_filename).n_frames)
 
     project = Project({'conf_filename': conf_filename,
                        'traj_lengths': traj_lengths,
                        'traj_paths': traj_paths,
                        'traj_errors': [None] * len(traj_paths),
-                       'traj_converted_from': [ [None] ] * len(traj_paths) })
+                       'traj_converted_from': [[None]] * len(traj_paths)})
 
     if out_filename is None:
         return project
     else:
-        project.save( out_filename )
+        project.save(out_filename)
         logger.info('Saved project file to %s', out_filename)
         return project

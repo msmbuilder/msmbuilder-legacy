@@ -12,6 +12,7 @@ class Lumper():  # Not sure what the most general lumper would look like, so fil
 
 
 class EigenvectorLumper(Lumper):
+
     def __init__(self, T, num_macrostates, flux_cutoff=None):
         """Base class for PCCA and PCCA+.
 
@@ -32,10 +33,13 @@ class EigenvectorLumper(Lumper):
         utils.normalize_left_eigenvectors(self.left_eigenvectors)
 
         if flux_cutoff != None:
-            self.eigenvalues, self.left_eigenvectors = utils.trim_eigenvectors_by_flux(self.eigenvalues, self.left_eigenvectors, flux_cutoff)
+            self.eigenvalues, self.left_eigenvectors = utils.trim_eigenvectors_by_flux(
+                self.eigenvalues, self.left_eigenvectors, flux_cutoff)
             self.num_macrostates = len(self.eigenvalues)
 
         self.populations = self.left_eigenvectors[:, 0]
         self.num_microstates = len(self.populations)
 
-        self.right_eigenvectors = utils.construct_right_eigenvectors(self.left_eigenvectors, self.populations, self.num_macrostates)  # Construct properly normalized right eigenvectors
+        # Construct properly normalized right eigenvectors
+        self.right_eigenvectors = utils.construct_right_eigenvectors(
+            self.left_eigenvectors, self.populations, self.num_macrostates)  

@@ -12,16 +12,16 @@ class AbstractDistanceMetric(with_metaclass(abc.ABCMeta, object)):
 
     """Abstract base class for distance metrics. All distance metrics should
     inherit from this abstract class.
-    
+
     Provides a niave implementation of all_pairwise and one_to_many in terms
     of the abstract method one_to_all, which may be overridden by subclasses.
     """
-    
+
     @abc.abstractmethod
     def prepare_trajectory(self, trajectory):
         """Prepare trajectory on a format that is more conventient to take
         distances on.
-        
+
         Parameters
         ----------
         trajecory : msmbuilder.Trajectory
@@ -32,21 +32,20 @@ class AbstractDistanceMetric(with_metaclass(abc.ABCMeta, object)):
         prepared_traj : array-like
             the exact form of the prepared_traj is subclass specific, but it should
             support fancy indexing
-        
+
         Notes
         -----
         For RMSD, this is going to mean making word-aligned padded
         arrays (TheoData) suitable for faste calculation, for dihedral-space
         distances means computing the dihedral angles, etc."""
-        
+
         return
-        
-    
+
     @abc.abstractmethod
     def one_to_all(self, prepared_traj1, prepared_traj2, index1):
         """Calculate the vector of distances from the index1th frame of
         prepared_traj1 to all of the frames in prepared_traj2.
-        
+
         Parameters
         ----------
         prepared_traj1 : prepared_trajectory
@@ -55,12 +54,12 @@ class AbstractDistanceMetric(with_metaclass(abc.ABCMeta, object)):
             Second prepared trajectory
         index1 : int
             index in `prepared_trajectory` 
-            
+
         Returns
         -------
         distances : ndarray
             vector of distances of length len(prepared_traj2)
-        
+
         Notes
         -----
         Although this might seem to be a special case of one_to_many(), it
@@ -68,14 +67,13 @@ class AbstractDistanceMetric(with_metaclass(abc.ABCMeta, object)):
         require construction of the indices2 array and array slicing in python
         is kindof slow.
         """
-        
+
         return
-        
-    
+
     def one_to_many(self, prepared_traj1, prepared_traj2, index1, indices2):
         """Calculate the a vector of distances from the index1th frame of
         prepared_traj1 to all of the indices2 frames of prepared_traj2.
-        
+
         Parameters
         ----------
         prepared_traj1 : prepared_trajectory
@@ -86,54 +84,54 @@ class AbstractDistanceMetric(with_metaclass(abc.ABCMeta, object)):
             index in `prepared_trajectory`
         indices2 : ndarray
             list of indices in `prepared_traj2` to calculate the distances to
-        
+
         Returns
         -------
             Vector of distances of length len(indices2)
-        
+
         Notes
         -----
         A subclass should be able to provide a more efficient implementation of
         this
         """
-        
+
         return self.one_to_all(prepared_traj1, prepared_traj2[indices2], index1)
-        
-    
+
     def all_pairwise(self, prepared_traj):
         """Calculate condensed distance metric of all pairwise distances
-        
+
         See `scipy.spatial.distance.squareform` for information on how to convert
         the condensed distance matrix to a redundant square matrix
-        
+
         Parameters
         ----------
         prepared_traj : array_like
             Prepared trajectory
-        
+
         Returns
         -------
         Y : ndarray
             A 1D array containing the distance from each frame to each other frame
-            
+
         See Also
         --------
         fast_pdist
         scipy.spatial.distance.squareform
         """
-        
+
         traj_length = len(prepared_traj)
         output = -1 * np.ones(traj_length * (traj_length - 1) / 2)
         p = 0
         for i in range(traj_length):
             cmp_indices = np.arange(i + 1, traj_length)
-            output[p: p + len(cmp_indices)] = self.one_to_many(prepared_traj, prepared_traj, i, cmp_indices)
+            output[p: p + len(cmp_indices)] = self.one_to_many(prepared_traj,
+                                                               prepared_traj, i, cmp_indices)
             p += len(cmp_indices)
         return output
 
 
-        
 class Vectorized(AbstractDistanceMetric):
+
     """Represent MSM frames as vectors in some arbitrary vector space, and then
     use standard vector space metrics. 
 
@@ -161,7 +159,7 @@ class Vectorized(AbstractDistanceMetric):
 
     allowable_scipy_metrics = ['braycurtis', 'canberra', 'chebyshev', 'cityblock',
                                'correlation', 'cosine', 'euclidean', 'minkowski',
-                               'sqeuclidean','dice', 'kulsinki', 'matching',
+                               'sqeuclidean', 'dice', 'kulsinki', 'matching',
                                'rogerstanimoto', 'russellrao', 'sokalmichener',
                                'sokalsneath', 'yule', 'seuclidean', 'mahalanobis',
                                'sqmahalanobis']
@@ -195,12 +193,11 @@ class Vectorized(AbstractDistanceMetric):
         if self.metric in ['mahalanobis', 'sqmahalanobis'] and VI is None:
             raise ValueError('To used mahalanobis or sqmahalanobis, you need to supply VI')
 
-
     def _validate_scipy_metric(self, metric):
         """Ensure that "metric" is an "allowable" metric (in allowable_scipy_metrics)"""
         if not metric in self.allowable_scipy_metrics:
-            raise TypeError('%s is an  unrecognize metric. "metric" must be one of %s' % (metric, str(self.allowable_scipy_metrics)))
-
+            raise TypeError('%s is an  unrecognize metric. "metric" must be one of %s' %
+                            (metric, str(self.allowable_scipy_metrics)))
 
     def one_to_many(self, prepared_traj1, prepared_traj2, index1, indices2):
         """Calculate a vector of distances from one frame of the first trajectory
@@ -261,7 +258,6 @@ class Vectorized(AbstractDistanceMetric):
                      p=self.p, V=self.V, VI=self.VI)
         return out2[:, 0]
 
-
     def many_to_many(self, prepared_traj1, prepared_traj2, indices1, indices2):
         """Get a matrix of distances from each frame in a set to each other frame
         in a second set.
@@ -285,7 +281,6 @@ class Vectorized(AbstractDistanceMetric):
         -------
         distances : ndarray
             A 2D array of shape len(indices1) * len(indices2)"""
-
 
         out = cdist(prepared_traj1[indices1], prepared_traj2[indices2], metric=self.metric,
                     p=self.p, V=self.V, VI=self.VI)
@@ -318,7 +313,7 @@ class Vectorized(AbstractDistanceMetric):
 
         out = cdist(prepared_traj1, prepared_traj2, metric=self.metric, p=self.p,
                     V=self.V, VI=self.VI)
-        return out                                        
+        return out
 
     def all_pairwise(self, prepared_traj):
         """Calculate a condense" distance matrix of all the pairwise distances

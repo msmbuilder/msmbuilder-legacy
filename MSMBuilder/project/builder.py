@@ -12,10 +12,12 @@ from .project import Project
 from .validators import ValidationError
 logger = logging.getLogger(__name__)
 
+
 class ProjectBuilder(object):
-    def __init__(self, input_traj_dir, input_traj_ext, conf_filename, 
-        stride=1, project=None, validators=[], output_traj_dir='Trajectories',
-        output_traj_ext='.h5', output_traj_basename='trj', atom_indices=None):
+
+    def __init__(self, input_traj_dir, input_traj_ext, conf_filename,
+                 stride=1, project=None, validators=[], output_traj_dir='Trajectories',
+                 output_traj_ext='.h5', output_traj_basename='trj', atom_indices=None):
         """
         Build an MSMBuilder project from a set of trajectories
 
@@ -62,19 +64,20 @@ class ProjectBuilder(object):
         if self.input_traj_ext[0] != '.':
             self.input_traj_ext = '.%s' % self.input_traj_ext
         self.conf_filename = conf_filename.strip()
-        
-        if self.atom_indices is None:  # If not using atom_indices, we work exclusively with the original conf_filename
+
+        # If not using atom_indices, we work exclusively with the original conf_filename
+        if self.atom_indices is None:
             self.conf_filename_final = self.conf_filename
         else:
-            # If we are selecting atom subsets, we need to generate 
-            # a new PDB file with the desired atoms, which will be called 
+            # If we are selecting atom subsets, we need to generate
+            # a new PDB file with the desired atoms, which will be called
             # conf_filename.subset.pdb
             filename_pieces = list(os.path.splitext(self.conf_filename))
             filename_pieces.insert(-1, ".subset")
             self.conf_filename_final = "".join(filename_pieces)
             subset_conf = md.load(self.conf_filename, atom_indices=atom_indices)
             subset_conf.save(self.conf_filename_final)
-            
+
         self.conf = md.load(self.conf_filename)
 
         self.output_traj_ext = output_traj_ext.strip()
@@ -116,7 +119,6 @@ class ProjectBuilder(object):
 
         self._check_out_dir()
 
-
     def _validate_traj(self, traj):
         """
         Run the registered validators on  the trajectory
@@ -134,15 +136,14 @@ class ProjectBuilder(object):
         for validator in self._validators:
             validator(traj)
 
-
     def add_validator(self, validator):
         """
         Add a validator to the project builder
-        
+
         Parameters
         ----------
         validator : callable
-        
+
         Notes
         -----
         As the trajectories are being converted from their native format to
@@ -151,14 +152,14 @@ class ProjectBuilder(object):
         functions or classes with a __call__ method that check a
         trajectory. They are free to modify a trajectory as well, since it is
         passed by reference to the validator.
-        
+
         If a validator detects a problem with a trajectory, it should raise
         a ValidationError -- that is, an error which subclasses
         msmbuilder.project.validators.ValidationError. When the ProjectBuilder
         detects a ValidationError, the error will be recorded in the project
         file, but the execution will procede as normal and the trajectory will
         still be saved to disk. It will just be marked specially as "in error".
-        
+
         In the current Project implementation, trajectories that are "in error"
         will be ignored -- when using project.load_traj(), only the "valid"
         trajectories will be returned, and project.n_trajs will only count
@@ -167,7 +168,6 @@ class ProjectBuilder(object):
         if not hasattr(validator, '__call__'):
             raise TypeError('Validator must be callable: %s' % validator)
         self._validators.append(validator)
-
 
     def get_project(self):
         """
@@ -186,17 +186,15 @@ class ProjectBuilder(object):
             self.convert()
         return self.project
 
-
     def _check_out_dir(self):
         "Create self.output_traj_dir, or throw an error if it already exists"
         if not os.path.exists(self.output_traj_dir):
             os.makedirs(self.output_traj_dir)
         elif self.project is None:
             raise IOError('%s already exists' % self.output_traj_dir)
-        else:  # project exists so we are supposed to be updating the 
+        else:  # project exists so we are supposed to be updating the
                # trajectories
             pass
-
 
     def _load_new_files(self, file_list, traj_loc):
         """
@@ -208,7 +206,7 @@ class ProjectBuilder(object):
             traj, n_loaded = self._load_traj(file_list)
             traj = traj[::self.stride]
         except RuntimeError as e:
-            #traj_errors.append(e)
+            # traj_errors.append(e)
             logger.warning('Could not convert %d files from %s (%s)', num_files, traj_loc, e)
         else:
             if self.project is None:
@@ -216,33 +214,32 @@ class ProjectBuilder(object):
             else:
                 next_ind = len(self.traj_lengths) + len(self.project._traj_lengths)
 
-            out_fn = os.path.join(self.output_traj_dir, 
-                (self.output_traj_basename + str(next_ind) + self.output_traj_ext))
+            out_fn = os.path.join(self.output_traj_dir,
+                                  (self.output_traj_basename + str(next_ind) + self.output_traj_ext))
             traj.save(out_fn)
             self.traj_lengths.append(traj.n_frames)
             self.traj_paths.append(out_fn)
             self.traj_converted_from.append(file_list[:n_loaded])
-            
+
             error = None
             try:
                 self._validate_traj(traj)
-                logger.info("%s (%d files), length %d, converted to %s", 
+                logger.info("%s (%d files), length %d, converted to %s",
                             traj_loc, n_loaded, self.traj_lengths[-1], out_fn)
             except ValidationError as e:
                 error = e
-                logger.error("%s (%d files), length %d, converted to %s with error '%s'", 
+                logger.error("%s (%d files), length %d, converted to %s with error '%s'",
                              traj_loc, num_files, self.traj_lengths[-1], out_fn, e)
 
             self.traj_errors.append(error)
-
 
     def _update_traj(self, old_ind, file_list, traj_loc):
         """
         update a trajectory that we already had in the old project.
         """
-        # This trajectory has been seen before, and so we need to 
-        # either extend it or skip it 
-        # This procedure would ideally be done using EArrays and we 
+        # This trajectory has been seen before, and so we need to
+        # either extend it or skip it
+        # This procedure would ideally be done using EArrays and we
         # use pyTables to actually extend the trajectory. Currently,
         # the XYZList is a CArray, and so at some point we have to load
         # the old array into memory, which is not the most efficient
@@ -254,7 +251,8 @@ class ProjectBuilder(object):
         if old_num_files == len(file_list):
             # Just assume if it is the same number of files then they are the
             # same. We should change this eventually
-            logger.info("%s no change, did nothing for %s", traj_loc, self.project._traj_paths[old_ind])
+            logger.info("%s no change, did nothing for %s",
+                        traj_loc, self.project._traj_paths[old_ind])
 
         elif old_num_files < len(file_list):
             # Need to update the trajectory
@@ -283,16 +281,16 @@ class ProjectBuilder(object):
                 self.project._traj_converted_from[old_ind] = list(new_traj_locs)
                 self.project._traj_lengths[old_ind] = traj.n_frames
                 # _errors updated later, saved to the same place, so traj_filename is the same
-                
+
                 try:
                     self._validate_traj(traj)
                     logger.info("%s (%d files), length %d, UPDATED %s",
-                                traj_loc, num_files, self.project._traj_lengths[old_ind], 
+                                traj_loc, num_files, self.project._traj_lengths[old_ind],
                                 self.project._traj_paths[old_ind])
                 except ValidationError as e:
                     error = e
                     logger.info("%s (%d files), length %d, UPDATED %s",
-                                traj_loc, num_files, self.project._traj_lengths[old_ind], 
+                                traj_loc, num_files, self.project._traj_lengths[old_ind],
                                 self.project._traj_paths[old_ind])
 
                     if self.project._traj_errors[old_ind] is None:
@@ -304,7 +302,6 @@ class ProjectBuilder(object):
 
         else:
             logger.warn('Fewer frames found than currently have. Skipping. (%s)' % traj_loc)
-
 
     def convert(self):
         """
@@ -318,13 +315,14 @@ class ProjectBuilder(object):
         """
 
         if not self.project is None:
-            old_traj_locs = ['/'.join([d for d in os.path.relpath(file_list[0]).split('/') if not d in ['.','..']][:-1]) for file_list in self.project._traj_converted_from]
+            old_traj_locs = ['/'.join([d for d in os.path.relpath(file_list[0]).split('/') if not d in ['.', '..']][:-1])
+                             for file_list in self.project._traj_converted_from]
             # ^^^ haha, @rmcgibbo, is this acceptable?
             # basically we want to turn something like:
             #   ../../PROJXXXX/RUN0/CLONE195/frame0.xtc
             # into:
             #   PROJXXXX/RUN0/CLONE195
-            # and we use this label to see if we've already included the 
+            # and we use this label to see if we've already included the
             # trajectory in the old project
         else:
             old_traj_locs = []
@@ -335,13 +333,14 @@ class ProjectBuilder(object):
             num_orig_trajs = 0
         else:
             num_orig_trajs = len(self.project._traj_paths)
-    
+
         for file_list in self._input_trajs():
-            traj_loc = '/'.join([d for d in os.path.relpath(file_list[0]).split('/') if not d in ['.', '..']][:-1])
+            traj_loc = '/'.join([d for d in os.path.relpath(file_list[0]).split('/')
+                                if not d in ['.', '..']][:-1])
             num_files = len(file_list)
             if not traj_loc in old_traj_locs:
                 self._load_new_files(file_list, traj_loc)
-            else: 
+            else:
                 old_ind = np.where(old_traj_locs == traj_loc)[0][0]
                 self._update_traj(old_ind, file_list, traj_loc)
 
@@ -364,7 +363,6 @@ class ProjectBuilder(object):
 
         self.updated_project = True
 
-
     def _input_trajs(self):
         logger.warning("WARNING: Sorting trajectory files by numerical values in their names.")
         logger.warning("Ensure that numbering is as intended.")
@@ -373,7 +371,7 @@ class ProjectBuilder(object):
         traj_dirs.sort(key=keynat)
         logger.info("Found %s traj dirs", len(traj_dirs))
         for traj_dir in traj_dirs:
-            to_add = glob(traj_dir + '/*'+ self.input_traj_ext)
+            to_add = glob(traj_dir + '/*' + self.input_traj_ext)
             to_add.sort(key=keynat)
             if to_add:
                 yield to_add
@@ -391,21 +389,22 @@ class ProjectBuilder(object):
         """
 
         traj = md.load(file_list, discard_overlapping_frames=True,
-            top=self.conf, atom_indices=self.atom_indices)
+                       top=self.conf, atom_indices=self.atom_indices)
         # return the number of files loaded, which in this case is all or
-        # nothing, since an error is raised if the Trajectory.load_from_<ext> 
+        # nothing, since an error is raised if the Trajectory.load_from_<ext>
         # doesn't work
         return traj, len(file_list)
 
 
 class FahProjectBuilder(ProjectBuilder):
+
     """
     Build a project using the classic FAH-style directory setup. E.g. looks
     for data of the form
     -- RUNs
     ---- CLONEs
     ------ frame0.xtc, frame1.xtc ....
-    
+
     Contains a little more forgiving code than the standard ProjectBuilder,
     specifically if a certain CLONE will not load, then we try to load again
     excluding the last frame (which is often a FAH crash). This helps out
@@ -436,38 +435,36 @@ class FahProjectBuilder(ProjectBuilder):
     --------
     >>> pb = ProjectBuilder('XTC', '.xtc', 'native.pdb')
     >>> pb.project.save('ProjectInfo.yaml')
-    
+
     """
-    
 
     def _input_trajs(self):
-        
+
         run_dirs = glob(os.path.join(self.input_traj_dir, "RUN*"))
         run_dirs.sort(key=keynat)
         logger.info("Found %d RUN dirs", len(run_dirs))
-        
+
         for run_dir in run_dirs:
             clone_dirs = glob(os.path.join(run_dir, "CLONE*"))
             clone_dirs.sort(key=keynat)
             logger.info("%s: Found %d CLONE dirs", run_dir, len(clone_dirs))
 
             for clone_dir in clone_dirs:
-                to_add = glob(clone_dir + '/*'+ self.input_traj_ext)
+                to_add = glob(clone_dir + '/*' + self.input_traj_ext)
                 to_add.sort(key=keynat)
                 if to_add:
                     yield to_add
-    
-    
+
     def _load_traj(self, file_list):
         traj = None
 
         try:
             traj, n_loaded = super(FahProjectBuilder, self)._load_traj(file_list)
         except (RuntimeError, IOError) as e:
-            
-            if hasattr(e, "errno") and e.errno == 2: # Then the pdb filename doesn't exist
+
+            if hasattr(e, "errno") and e.errno == 2:  # Then the pdb filename doesn't exist
                 raise e
-            
+
             corrupted_files = True
             n_corrupted = 1
             logger.error("Some files appear to be corrupted")
@@ -477,14 +474,15 @@ class FahProjectBuilder(ProjectBuilder):
                     traj = None
                     break
                 try:
-                    traj, n_loaded = super(FahProjectBuilder, self)._load_traj(file_list[:-n_corrupted])
+                    traj, n_loaded = super(FahProjectBuilder, self)._load_traj(
+                        file_list[:-n_corrupted])
                 except IOError:
                     n_corrupted += 1
                 else:
                     logger.error("That seemed to work")
                     corrupted_files = False
-        
+
         if traj is None:
             raise RuntimeError("Corrupted frames in %s, recovery impossible" % file_list)
-            
+
         return traj, n_loaded

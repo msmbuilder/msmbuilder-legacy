@@ -1,5 +1,6 @@
 from __future__ import print_function, division, absolute_import
-import sys, os
+import sys
+import os
 import argparse
 from msmbuilder.License import LicenseString
 from msmbuilder.Citation import CiteString
@@ -9,6 +10,7 @@ import warnings
 import logging
 from mdtraj.utils.six import iteritems
 logger = logging.getLogger(__name__)
+
 
 def _iter_both_cases(string):
     """Iterate over the chars in a strings in both cases
@@ -114,6 +116,7 @@ def add_argument(group, dest, help=None, type=None, choices=None, nargs=None, de
 
 
 class ArgumentParser(object):
+
     "MSMBuilder specific wrapper around argparse.ArgumentParser"
 
     def __init__(self, *args, **kwargs):
@@ -136,7 +139,8 @@ class ArgumentParser(object):
         kwargs['formatter_class'] = argparse.RawDescriptionHelpFormatter
 
         if 'get_metric' in kwargs:
-            self.get_metric = bool(kwargs.pop('get_metric'))  # pop gets the value plus removes the entry
+            # pop gets the value plus removes the entry
+            self.get_metric = bool(kwargs.pop('get_metric'))
         else:
             self.get_metric = False
 
@@ -157,7 +161,6 @@ class ArgumentParser(object):
 
         for v in RESERVED.values():
             self.short_strings.add(v[0])
-
 
     def add_argument_group(self, title):
         self.extra_groups.append(self.parser.add_argument_group(title=title))
@@ -202,7 +205,8 @@ class ArgumentParser(object):
         if self.print_argparse_bug_warning:
             print("#" * 80)
             print("\n")
-            warnings.warn('Known bug in argparse regarding subparsers and optional arguments with nargs=[+*?] (http://bugs.python.org/issue9571)')
+            warnings.warn('Known bug in argparse regarding subparsers and optional '
+                          'arguments with nargs=[+*?] (http://bugs.python.org/issue9571)')
             print("\n")
             print("#" * 80)
 
@@ -215,7 +219,7 @@ class ArgumentParser(object):
             # set the level of the root logger
             logging.getLogger().setLevel(logging.WARNING)
 
-        if self.get_metric: # if we want to get the metric, then we have to construct it
+        if self.get_metric:  # if we want to get the metric, then we have to construct it
             metric = metric_parsers.construct_metric(namespace)
             return namespace, metric
 

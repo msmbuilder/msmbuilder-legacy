@@ -1,6 +1,7 @@
 import abc
 from mdtraj.utils.six import with_metaclass
 
+
 class AbstractDimReduction(with_metaclass(abc.ABCMeta, object)):
 
     """
@@ -11,7 +12,7 @@ class AbstractDimReduction(with_metaclass(abc.ABCMeta, object)):
     distance metric
     """
 
-    @abc.abstractmethod    
+    @abc.abstractmethod
     def project(self, trajectory=None, prep_trajectory=None, which=None):
         """
         this method should take at least three kwargs:
@@ -29,5 +30,5 @@ class AbstractDimReduction(with_metaclass(abc.ABCMeta, object)):
         proj_trajectory: np.ndarray
             projected trajectory (n_frames, len(which))
         """
-        
+
         return

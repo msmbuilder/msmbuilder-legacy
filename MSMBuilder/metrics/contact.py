@@ -9,8 +9,8 @@ import mdtraj as md
 from .baseclasses import Vectorized, AbstractDistanceMetric
 
 
-
 class ContinuousContact(Vectorized, AbstractDistanceMetric):
+
     """Distance metric for calculating distances between frames based on the
     pairwise distances between residues.
 
@@ -23,7 +23,7 @@ class ContinuousContact(Vectorized, AbstractDistanceMetric):
                                'sqeuclidean', 'seuclidean', 'mahalanobis']
 
     def __init__(self, metric='euclidean', p=2, contacts='all', scheme='closest-heavy',
-                       V=None, VI=None):
+                 V=None, VI=None):
         """Create a distance calculator based on the distances between pairs of atoms
         in a sturcture -- like the contact map except without casting to boolean.
 
@@ -65,14 +65,12 @@ class ContinuousContact(Vectorized, AbstractDistanceMetric):
 
         self.scheme = scheme
 
-
     def __repr__(self):
         try:
             contacts_repr = repr(self.contacts.tolist())
         except:
             contacts_repr = repr(self.contacts)
         return 'metrics.ContinuousContact(metric=%s, p=%s, contacts=%s, scheme=%s)' % (self.metric, self.p, contacts_repr, self.scheme)
-
 
     def prepare_trajectory(self, trajectory):
         """Prepare a trajectory for distance calculations based on the contact map.
@@ -95,8 +93,8 @@ class ContinuousContact(Vectorized, AbstractDistanceMetric):
         return md.compute_contacts(trajectory, self.contacts, self.scheme)
 
 
-
 class BooleanContact(Vectorized, AbstractDistanceMetric):
+
     """Distance metric for calculating distances between frames based on their
     contact maps.
 
@@ -161,7 +159,6 @@ class BooleanContact(Vectorized, AbstractDistanceMetric):
 
         self.scheme = scheme
 
-
     def __repr__(self):
         try:
             contacts_repr = repr(self.contacts.tolist())
@@ -174,7 +171,6 @@ class BooleanContact(Vectorized, AbstractDistanceMetric):
             cutoff_repr = repr(self.cutoff)
 
         return 'metrics.BooleanContact(metric=%s, p=%s, contacts=%s, cutoff=%s, scheme=%s)' % (self.metric, self.p, contacts_repr, cutoff_repr, self.scheme)
-
 
     def prepare_trajectory(self, trajectory):
         """Prepare a trajectory for distance calculations based on the contact map.
@@ -190,11 +186,11 @@ class BooleanContact(Vectorized, AbstractDistanceMetric):
             1D array of various residue-residue distances, casted to boolean
         """
 
-
         ccm = ContinuousContact(contacts=self.contacts, scheme=self.scheme)
         contact_d = ccm.prepare_trajectory(trajectory)
         if not isinstance(self.cutoff, Number):
-            if not len(self.cutoff) == contact_d.shape[1]:  # contact_d has frames in rows and contacts in columns
+            # contact_d has frames in rows and contacts in columns
+            if not len(self.cutoff) == contact_d.shape[1]:
                 raise ValueError('cutoff must be a number or match the length of contacts')
 
         # contact = np.zeros_like(contact_d).astype(bool)
@@ -205,6 +201,7 @@ class BooleanContact(Vectorized, AbstractDistanceMetric):
 
 
 class AtomPairs(Vectorized, AbstractDistanceMetric):
+
     """Concrete distance metric that monitors the distance
     between certain pairs of atoms (as opposed to certain pairs of residues
     as ContinuousContact does)"""

@@ -45,7 +45,8 @@ def metastability(alpha, T, right_eigenvectors, square_map, pi):
 
     A, chi, mapping = calculate_fuzzy_chi(alpha, square_map, right_eigenvectors)
 
-    if len(np.unique(mapping)) != right_eigenvectors.shape[1] or has_constraint_violation(A, right_eigenvectors):  # If current point is infeasible or leads to degenerate lumping.
+    # If current point is infeasible or leads to degenerate lumping.
+    if len(np.unique(mapping)) != right_eigenvectors.shape[1] or has_constraint_violation(A, right_eigenvectors):
         return -1.0 * np.inf
 
     obj = 0.0
@@ -91,7 +92,8 @@ def crisp_metastability(alpha, T, right_eigenvectors, square_map, pi):
     chi = 0.0 * chi_fuzzy  # Make the membership matrix "crisp"
     chi[np.arange(num_micro), mapping] = 1.
 
-    if len(np.unique(mapping)) != right_eigenvectors.shape[1] or has_constraint_violation(A, right_eigenvectors):  # If current point is infeasible or leads to degenerate lumping.
+    # If current point is infeasible or leads to degenerate lumping.
+    if len(np.unique(mapping)) != right_eigenvectors.shape[1] or has_constraint_violation(A, right_eigenvectors):
         return -1.0 * np.inf
 
     obj = 0.0
@@ -130,7 +132,8 @@ def crispness(alpha, T, right_eigenvectors, square_map, pi):
 
     A, chi, mapping = calculate_fuzzy_chi(alpha, square_map, right_eigenvectors)
 
-    if len(np.unique(mapping)) != right_eigenvectors.shape[1] or has_constraint_violation(A, right_eigenvectors):  # If current point is infeasible or leads to degenerate lumping.
+    # If current point is infeasible or leads to degenerate lumping.
+    if len(np.unique(mapping)) != right_eigenvectors.shape[1] or has_constraint_violation(A, right_eigenvectors):
         return -1.0 * np.inf
 
     obj = tr(dot(diag(1. / A[0]), dot(A.transpose(), A)))
@@ -139,6 +142,7 @@ def crispness(alpha, T, right_eigenvectors, square_map, pi):
 
 
 class PCCAPlus(EigenvectorLumper):
+
     def __init__(self, T, num_macrostates, objective_function="crisp_metastability", flux_cutoff=None, do_minimization=True):
         """Perform PCCA+ lumping and return PCCA+ object.
 
@@ -240,7 +244,8 @@ class PCCAPlus(EigenvectorLumper):
 
         index = index_search(self.right_eigenvectors)
 
-        # compute transformation matrix A as initial guess for local optimization (maybe not feasible)
+        # compute transformation matrix A as initial guess for local optimization
+        # (maybe not feasible)
         A = self.right_eigenvectors[index, :]
 
         A = inv(A)
@@ -276,15 +281,19 @@ class PCCAPlus(EigenvectorLumper):
         flat_map, square_map = get_maps(A)
         alpha = to_flat(1.0 * A, flat_map)
 
-        obj = lambda x: -1 * self.objective_function(x, self.T, self.right_eigenvectors, square_map, self.populations)
+        obj = lambda x: -1 * \
+            self.objective_function(
+                x, self.T, self.right_eigenvectors, square_map, self.populations)
         self.obj = obj
         self.alpha = alpha.copy()
 
         logger.info("Initial value of objective function: f = %f", obj(alpha))
 
-        alpha = scipy.optimize.anneal(obj, alpha, lower=0.0, maxiter=1, schedule="boltzmann", dwell=1000, feps=1E-3, boltzmann=2.0, T0=1.0)[0]
+        alpha = scipy.optimize.anneal(
+            obj, alpha, lower=0.0, maxiter=1, schedule="boltzmann", dwell=1000, feps=1E-3, boltzmann=2.0, T0=1.0)[0]
 
-        alpha = scipy.optimize.fmin(obj, alpha, full_output=True, xtol=1E-4, ftol=1E-4, maxfun=5000, maxiter=100000)[0]
+        alpha = scipy.optimize.fmin(
+            obj, alpha, full_output=True, xtol=1E-4, ftol=1E-4, maxfun=5000, maxiter=100000)[0]
 
         logger.info("Final value: f = %f" % (obj(alpha)))
 
@@ -465,13 +474,13 @@ def fill_A(A, right_eigenvectors):
 
     A = A.copy()
 
-    #compute 1st column of A by row sum condition
+    # compute 1st column of A by row sum condition
     A[1:, 0] = -1 * A[1:, 1:].sum(1)
 
     # compute 1st row of A by maximum condition
     A[0] = -1 * dot(right_eigenvectors[:, 1:].real, A[1:]).min(0)
 
-    #rescale A to be in the feasible set
+    # rescale A to be in the feasible set
     A /= A[0].sum()
 
     return A

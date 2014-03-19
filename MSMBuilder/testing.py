@@ -7,9 +7,9 @@ import re
 import functools
 import numpy as np
 from numpy.testing import (assert_allclose, assert_almost_equal,
-  assert_approx_equal, assert_array_almost_equal, assert_array_almost_equal_nulp,
-  assert_array_equal, assert_array_less, assert_array_max_ulp, assert_equal,
-  assert_raises, assert_string_equal, assert_warns)
+                           assert_approx_equal, assert_array_almost_equal, assert_array_almost_equal_nulp,
+                           assert_array_equal, assert_array_less, assert_array_max_ulp, assert_equal,
+                           assert_raises, assert_string_equal, assert_warns)
 from nose.tools import ok_, eq_, raises
 from nose import SkipTest
 import mdtraj as md
@@ -20,11 +20,12 @@ from pkg_resources import resource_filename
 __all__ = ['get', 'load', 'eq', 'assert_dict_equal', 'assert_sparse_matrix_equal',
            'expected_failure', 'skip',
            # stuff that was imported from numpy / nose too
-          'ok_', 'eq_', 'assert_allclose', 'assert_almost_equal',
-          'assert_approx_equal', 'assert_array_almost_equal',
-          'assert_array_almost_equal_nulp', 'assert_array_equal',
-          'assert_array_less', 'assert_array_max_ulp', 'assert_equal',
-          'assert_raises', 'assert_string_equal', 'assert_warns', 'raises']
+           'ok_', 'eq_', 'assert_allclose', 'assert_almost_equal',
+           'assert_approx_equal', 'assert_array_almost_equal',
+           'assert_array_almost_equal_nulp', 'assert_array_equal',
+           'assert_array_less', 'assert_array_max_ulp', 'assert_equal',
+           'assert_raises', 'assert_string_equal', 'assert_warns', 'raises']
+
 
 def get(name, just_filename=False):
     """
@@ -47,21 +48,22 @@ def get(name, just_filename=False):
 
     # reference is where all the data is stored
     fn = resource_filename('msmbuilder', os.path.join('reference', name))
-    
+
     if not os.path.exists(fn):
         raise ValueError('Sorry! %s does not exists. If you just '
-            'added it, you\'ll have to re install' % fn)
+                         'added it, you\'ll have to re install' % fn)
 
     if just_filename:
         return fn
     return load(fn)
-    
+
+
 def load(filename):
     # delay these imports, since this module is loaded in a bunch
     # of places but not necessarily used
     import scipy.io
     from msmbuilder import Project
-    
+
     # the filename extension
     ext = os.path.splitext(filename)[1]
 
@@ -77,11 +79,11 @@ def load(filename):
     elif ext in ['.dat']:
         # try loading general .dats with floats
         val = np.loadtxt(filename)
-    
+
     # short circuit opening ProjectInfo
     elif ('ProjectInfo.yaml' in filename) or ('ProjectInfo.h5' in filename) or (re.search('ProjectInfo.*\.yaml', filename)):
         val = Project.load_from(filename)
-        
+
     # load with serializer files that end with .h5, .hdf or .h5.distances
     elif ext in ['.h5', '.hdf']:
         val = io.loadh(filename, deferred=False)
@@ -91,11 +93,11 @@ def load(filename):
     # load matricies
     elif ext in ['.mtx']:
         val = scipy.io.mmread(filename)
-        
+
     else:
         raise TypeError("I could not infer how to load this file. You "
-            "can either request load=False, or perhaps add more logic to "
-            "the load heuristics in this class: %s" % filename)
+                        "can either request load=False, or perhaps add more logic to "
+                        "the load heuristics in this class: %s" % filename)
 
     return val
 
@@ -135,7 +137,7 @@ def assert_dict_equal(t1, t2, decimal=6):
     for key, val in iteritems(t1):
         # compare numpy arrays using numpy.testing
         if isinstance(val, np.ndarray):
-            if val.dtype.kind ==  'f':
+            if val.dtype.kind == 'f':
                 # compare floats for almost equality
                 assert_array_almost_equal(val, t2[key], decimal)
             else:
@@ -159,7 +161,7 @@ def assert_sparse_matrix_equal(m1, m2, decimal=6):
     # make sure they have the same format
     eq_(m1.format, m2.format)
 
-    #make sure they have the same shape
+    # make sure they have the same shape
     eq_(m1.shape, m2.shape)
 
     # even though its called assert_array_almost_equal, it will
@@ -177,6 +179,8 @@ def assert_sparse_matrix_equal(m1, m2, decimal=6):
     assert_array_almost_equal(m1.data, m2.data, decimal=decimal)
 
 # decorator to mark tests as expected failure
+
+
 def expected_failure(test):
     @functools.wraps(test)
     def inner(*args, **kwargs):
@@ -189,6 +193,8 @@ def expected_failure(test):
     return inner
 
 # decorator to skip tests
+
+
 def skip(rason):
     def wrap(test):
         @functools.wraps(test)
@@ -197,5 +203,3 @@ def skip(rason):
             print("After f(*args)")
         return inner
     return wrap
-
-

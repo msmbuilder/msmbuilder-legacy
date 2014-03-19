@@ -9,9 +9,11 @@ from .baseclasses import AbstractDistanceMetric
 
 
 class Hybrid(AbstractDistanceMetric):
+
     "A linear combination of other distance metrics"
 
     class HybridPreparedTrajectory(object):
+
         """Container to to hold the prepared trajectory.
         This container needs to support slice notation in a way that kind
         of passes through the indices to the 2nd dimension. So if you
@@ -21,6 +23,7 @@ class Hybrid(AbstractDistanceMetric):
         trajectories sliced 0:100. We don't want to slice out base_metrics
         and thus have metric[0] return only one of the three prepared_trajectories
         in its full length."""
+
         def __init__(self, *args):
             self.num_base = len(args)
             self.length = len(args[0])
@@ -28,7 +31,6 @@ class Hybrid(AbstractDistanceMetric):
                 raise ValueError("Must all be equal length")
 
             self.datas = args
-
 
         def __getitem__(self, key):
             if isinstance(key, int):
@@ -43,12 +45,11 @@ class Hybrid(AbstractDistanceMetric):
                 if self.num_base != value.num_base:
                     raise ValueError("Must be prepared over the same metrics")
             except:
-                raise ValueError("I can only set in something which is also a HybridPreparedTrajectory")
+                raise ValueError("I can only set in something which is also "
+                                 "a HybridPreparedTrajectory")
 
             for i in xrange(self.num_base):
                 self.datas[i][key] = value.datas[i]
-
-
 
     def __init__(self, base_metrics, weights):
         """Create a hybrid linear combinatiin distance metric
@@ -67,7 +68,6 @@ class Hybrid(AbstractDistanceMetric):
 
         if not len(self.weights) == self.num:
             raise ValueError()
-
 
     def prepare_trajectory(self, trajectory):
         """Preprocess trajectory for use with this metric
@@ -88,7 +88,6 @@ class Hybrid(AbstractDistanceMetric):
         """
         prepared = (m.prepare_trajectory(trajectory) for m in self.base_metrics)
         return self.HybridPreparedTrajectory(*prepared)
-
 
     def one_to_many(self, prepared_traj1, prepared_traj2, index1, indices2):
         """Calculate a vector of distances from one frame of the first trajectory
@@ -114,13 +113,13 @@ class Hybrid(AbstractDistanceMetric):
         """
         distances = None
         for i in range(self.num):
-            d = self.base_metrics[i].one_to_many(prepared_traj1.datas[i], prepared_traj2.datas[i], index1, indices2)
+            d = self.base_metrics[i].one_to_many(
+                prepared_traj1.datas[i], prepared_traj2.datas[i], index1, indices2)
             if distances is None:
                 distances = self.weights[i] * d
             else:
                 distances += self.weights[i] * d
         return distances
-
 
     def one_to_all(self, prepared_traj1, prepared_traj2, index1):
         """Calculate the vector of distances from the index1th frame of
@@ -150,13 +149,13 @@ class Hybrid(AbstractDistanceMetric):
 
         distances = None
         for i in range(self.num):
-            d = self.base_metrics[i].one_to_all(prepared_traj1.datas[i], prepared_traj2.datas[i], index1)
+            d = self.base_metrics[i].one_to_all(
+                prepared_traj1.datas[i], prepared_traj2.datas[i], index1)
             if distances is None:
                 distances = self.weights[i] * d
             else:
                 distances += self.weights[i] * d
         return distances
-
 
     def all_pairwise(self, prepared_traj):
         """Calculate condensed distance metric of all pairwise distances
@@ -183,11 +182,13 @@ class Hybrid(AbstractDistanceMetric):
         distances = None
         for i in range(self.num):
             d = self.base_metrics[i].all_pairwise(prepared_traj.datas[i])
-            distances = self.weights[i] * d if distances is None else distances + self.weights[i] * d
+            distances = self.weights[i] * \
+                d if distances is None else distances + self.weights[i] * d
         return distances
 
 
 class HybridPNorm(Hybrid):
+
     """A p-norm combination of other distance metrics. With p=2 for instance,
     this gives you the root mean square combination of the base metrics"""
 
@@ -212,7 +213,6 @@ class HybridPNorm(Hybrid):
             super(HybridPNorm, self).__init__(base_metrics, weights)
         else:
             super().__init__(base_metrics, weights)
-
 
     def one_to_many(self, prepared_traj1, prepared_traj2, index1, indices2):
         """Calculate a vector of distances from one frame of the first trajectory
@@ -239,7 +239,8 @@ class HybridPNorm(Hybrid):
 
         distances = None
         for i in range(self.num):
-            d = self.base_metrics[i].one_to_many(prepared_traj1.datas[i], prepared_traj2.datas[i], index1, indices2)
+            d = self.base_metrics[i].one_to_many(
+                prepared_traj1.datas[i], prepared_traj2.datas[i], index1, indices2)
             if distances is None:
                 distances = (self.weights[i] * d) ** self.p
             else:
@@ -274,7 +275,8 @@ class HybridPNorm(Hybrid):
 
         distances = None
         for i in range(self.num):
-            d = self.base_metrics[i].one_to_all(prepared_traj1.datas[i], prepared_traj2.datas[i], index1)
+            d = self.base_metrics[i].one_to_all(
+                prepared_traj1.datas[i], prepared_traj2.datas[i], index1)
             if distances is None:
                 distances = (self.weights[i] * d) ** self.p
             else:

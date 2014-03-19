@@ -8,12 +8,14 @@ import numpy as np
 try:
     import lprmsd
 except:
-    RuntimeError("Unable to import lprmsd. See msmbuilder/Extras/lprmsd for directions on installing")
+    RuntimeError(
+        "Unable to import lprmsd. See msmbuilder/Extras/lprmsd for directions on installing")
 
 from .baseclasses import Vectorized, AbstractDistanceMetric
 
 
 class Positions(Vectorized, AbstractDistanceMetric):
+
     """
     This metric will calculate distances based on some vector norm while
     doing only a single alignment to a target structure.
@@ -26,8 +28,7 @@ class Positions(Vectorized, AbstractDistanceMetric):
                                'sqeuclidean', 'seuclidean', 'mahalanobis']
 
     def __init__(self, target, align_indices=None, atom_indices=None,
-        metric='euclidean', p=2):
-
+                 metric='euclidean', p=2):
         """Create a distance metric to act on absolute atom positions
 
         Parameters
@@ -71,7 +72,6 @@ class Positions(Vectorized, AbstractDistanceMetric):
         self.target = target
         self.prep_target = self.lprmsd.prepare_trajectory(self.target)
 
-
     def prepare_trajectory(self, trajectory, return_dist=False):
         """
         Prepare a trajectory by first aligning it to the target with LPRMSD
@@ -97,7 +97,8 @@ class Positions(Vectorized, AbstractDistanceMetric):
 
         # TODO: This method hasn't been updated yet (2013-11-22 mph)
         lp_prep_trajectory = self.lprmsd.prepare_trajectory(trajectory)
-        aligned_distances, prep_trajectory = self.lprmsd._compute_one_to_all(self.prep_target, lp_prep_trajectory, 0, b_xyzout=True)
+        aligned_distances, prep_trajectory = self.lprmsd._compute_one_to_all(
+            self.prep_target, lp_prep_trajectory, 0, b_xyzout=True)
 
         if not self.atom_indices is None:
             prep_trajectory = prep_trajectory[:, self.atom_indices]
@@ -107,4 +108,3 @@ class Positions(Vectorized, AbstractDistanceMetric):
             return prep_trajectory, aligned_distances
         else:
             return prep_trajectory
-

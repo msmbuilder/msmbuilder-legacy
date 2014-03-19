@@ -160,7 +160,8 @@ def stochastic_subsample(trajectories, shrink_multiple):
     """
     shrink_multiple = int(shrink_multiple)
     if shrink_multiple < 1:
-        raise ValueError('Shrink multiple should be an integer greater than 1. You supplied %s' % shrink_multiple)
+        raise ValueError('Shrink multiple should be an integer greater '
+                         'than 1. You supplied %s' % shrink_multiple)
     elif shrink_multiple == 1:
         # if isinstance(trajectories, Trajectory):
         #    return trajectories
@@ -358,7 +359,8 @@ def _kcenters(metric, ptraj, k=None, distance_cutoff=None, seed=0, verbose=True)
 
 
     if k is None and distance_cutoff is None:
-        raise ValueError("I need some cutoff criterion! both k and distance_cutoff can't both be none")
+        raise ValueError("I need some cutoff criterion! both k and "
+                         "distance_cutoff can't both be none")
     if k is None and distance_cutoff <= 0:
         raise ValueError("With k=None you need to supply a legit distance_cutoff")
     if distance_cutoff is None:
@@ -1245,56 +1247,15 @@ class HybridKMedoids(BaseFlatClusterer):
 
         super(HybridKMedoids, self).__init__(metric, trajectories, prep_trajectories)
 
+        medoids, assignments, distances = _hybrid_kmedoids(
+            metric, self.ptraj, k, distance_cutoff, local_num_iters, True, norm_exponent,
+            too_close_cutoff, ignore_max_objective, initial_medoids='kcenters')
 
-        medoids, assignments, distances = _hybrid_kmedoids(metric, self.ptraj, k, distance_cutoff,
-                                                           local_num_iters, True, norm_exponent,
-                                                           too_close_cutoff, ignore_max_objective,
-                                                           initial_medoids='kcenters')
         if global_num_iters != 0:
-            medoids, assignments, distances = _hybrid_kmedoids(metric, self.ptraj, k, distance_cutoff,
-                                                           global_num_iters, False, norm_exponent,
-                                                           too_close_cutoff, ignore_max_objective,
-                                                           medoids, assignments, distances)
+            medoids, assignments, distances = _hybrid_kmedoids(
+                metric, self.ptraj, k, distance_cutoff, global_num_iters, False, norm_exponent,
+                too_close_cutoff, ignore_max_objective, medoids, assignments, distances)
 
         self._generator_indices = medoids
         self._assignments = assignments
         self._distances = distances
-
-# class KMeans(object):
-#    def __init__(self, metric, trajectories, k, num_iters=1):
-#        if not isinstance(metric, metrics.Vectorized):
-#            raise TypeError('KMeans can only be used with Vectorized metrics')
-#        if not metric.metric in ['euclidean', 'cityblock']:
-#            raise TypeError('KMeans can only be used with euclidean or cityblock.')
-#
-#        self._traj_lengths = [len(traj['XYZList']) for traj in trajectories]
-#        self._concatenated = concatenate_trajectories(trajectories)
-#        self.ptraj = metric.prepare_trajectory(self._concatenated)
-#
-#        if metric.metric == 'euclidean':
-#            d = 'e'
-#        elif metric.metric == 'cityblock':
-#            d = 'b'
-#        else:
-#            raise Exception('!')
-#
-#        # seed with kcenters
-#        indices, assignments, distances, = _kcenters(metric, self.ptraj, k=k, verbose=False)
-#        ptraj_index_to_gens_traj_index = np.zeros(len(self.ptraj))
-#        for i, g in enumerate(indices):
-#            ptraj_index_to_gens_traj_index[g] = i
-#        assignments = ptraj_index_to_gens_traj_index[assignments]
-#
-#        # now run kmeans
-#        import Pycluster
-#        assignments, error, nfound = Pycluster.kcluster(self.ptraj, nclusters=k, npass=num_iters, dist=d, initialid=assignments)
-#
-#        self._assignments = assignments
-#
-#
-#    def get_assignments(self):
-#        assgn_list = split(self._assignments, self._traj_lengths)
-#        output = -1 * np.ones((len(self._traj_lengths), max(self._traj_lengths)), dtype='int')
-#        for i, traj_assign in enumerate(assgn_list):
-#            output[i][0:len(traj_assign)] = traj_assign
-#        return output
