@@ -16,8 +16,8 @@ install:
     - export PATH=$HOME/miniconda/bin:$PATH
     - conda config --add channels http://conda.binstar.org/omnia
     - conda create --yes -n ${python} python=${python} numpy scipy pytables numexpr nose pandas cython statsmodels pandas patsy pyyaml matplotlib pip mdtraj
-    - conda install --yes fastcluster
     - export PATH="$HOME/miniconda/envs/$python/bin/:$PATH"
+    - conda install --yes fastcluster
 
     # RMG is not really sure what this line does, but it's critical for multiprocessing 
     # to work in python. see https://github.com/travis-ci/travis-cookbooks/issues/155 and
