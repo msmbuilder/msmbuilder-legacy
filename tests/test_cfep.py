@@ -14,10 +14,11 @@ from __future__ import division
 from __future__ import absolute_import
 
 import os
-
+import nose
 import numpy as np
 import scipy
 from scipy import io
+from mdtraj.utils.six import PY3
 
 from msmbuilder import cfep
 from msmbuilder.testing import get
@@ -88,7 +89,10 @@ class TestCfep():
     """ test the cfep library in msmbuilder by comparing to the reference
         implementation above """
     
+
     def setUp(self):
+        if PY3:
+            raise nose.SkipTest('TestCfep requires scipy.weave which doesnt exist on python3')
         
         self.generators = get('cfep_reference/Gens.lh5')
         N = len(self.generators)
