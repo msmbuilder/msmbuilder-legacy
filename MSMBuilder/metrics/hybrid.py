@@ -209,10 +209,8 @@ class HybridPNorm(Hybrid):
         """
 
         self.p = float(p)
-        if PY2:
-            super(HybridPNorm, self).__init__(base_metrics, weights)
-        else:
-            super().__init__(base_metrics, weights)
+        s = super(HybridPNorm, self) if PY2 else super()
+        s.__init__(base_metrics, weights)
 
     def one_to_many(self, prepared_traj1, prepared_traj2, index1, indices2):
         """Calculate a vector of distances from one frame of the first trajectory

@@ -74,10 +74,8 @@ class RedDimPNorm(Vectorized, AbstractDistanceMetric):
         self._set_which(abs_min=abs_min, num_vecs=num_vecs, expl_var=expl_var,
                         which=which)
 
-        if PY2:
-            super(RedDimPNorm, self).__init__(metric, p)
-        else:
-            super().__init__(metric, p)
+        s = super(RedDimPNorm, self) if PY2 else super()
+        s.__init__(metric, p)
 
     def _set_which(self, abs_min=None, num_vecs=None, expl_var=None, which=None):
         """

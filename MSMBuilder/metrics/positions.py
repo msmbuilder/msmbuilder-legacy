@@ -48,10 +48,8 @@ class Positions(Vectorized, AbstractDistanceMetric):
             p-norm order, used for metric='minkowski'
 
         """
-        if PY2:
-            super(Positions, self).__init__(metric, p)
-        else:
-            super().__init__(metric, p)
+        s = super(Positions, self) if PY2 else super()
+        s.__init__(metric, p)
 
         if not isinstance(target, md.Trajectory):
             raise ValueError("target must be mdtraj.Trajectory instance")

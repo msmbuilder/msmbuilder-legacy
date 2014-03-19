@@ -1,4 +1,5 @@
 from __future__ import print_function, absolute_import, division
+from mdtraj.utils.six import PY2
 
 import logging
 logger = logging.getLogger(__name__)
@@ -53,7 +54,9 @@ class Dihedral(Vectorized, AbstractDistanceMetric):
         scipy.spatial.distance
 
         """
-        super(Dihedral, self).__init__(metric, p, V, VI)
+        s = super(Dihedral, self) if PY2 else super()
+        s.__init__(metric, p, V, VI)
+
         self.angles = angles
         self.userfilename = userfilename
         self.indices = indices
@@ -99,8 +102,8 @@ class Dihedral(Vectorized, AbstractDistanceMetric):
             dihedrals = _dihedralcalc.compute_dihedrals(trajectory, indices)
         else:
             if self.indices is None:
-                f = getattr(_dihedralcalc, 'compute_%s' % e)
-                dihedrals = np.hstack(f(trajectory)[1] for e in self.angles.split('/'))
+                f = lambda e: getattr(_dihedralcalc, 'compute_%s' % e)
+                dihedrals = np.hstack(f(e)(trajectory)[1] for e in self.angles.split('/'))
             else:
                 dihedrals = _dihedralcalc.compute_dihedrals(trajectory, self.indices)
 

@@ -1,4 +1,5 @@
 from __future__ import print_function, division, absolute_import
+from mdtraj.utils.six import PY2
 from mdtraj.utils.six.moves import xrange
 import sys
 import types
@@ -1071,8 +1072,8 @@ class KCenters(BaseFlatClusterer):
         ----------
         .. [1] Beauchamp, MSMBuilder2
         """
-
-        super(KCenters, self).__init__(metric, trajectories, prep_trajectories)
+        s = super(KCenters, self) if PY2 else super()
+        s.__init__(metric, trajectories, prep_trajectories)
 
         gi, asgn, dl = _kcenters(metric, self.ptraj, k, distance_cutoff, seed)
 
@@ -1123,8 +1124,8 @@ class Clarans(BaseFlatClusterer):
         _kcenters : implementation
         SubsampledClarans : random subsampling version (faster)
         """
-
-        super(Clarans, self).__init__(metric, trajectories, prep_trajectories)
+        s = super(Clarans, self) if PY2 else super()
+        s.__init__(metric, trajectories, prep_trajectories)
 
         medoids, assignments, distances = _clarans(metric, self.ptraj, k,
             num_local_minima, max_neighbors, local_swap, initial_medoids='kcenters')
@@ -1171,8 +1172,8 @@ class SubsampledClarans(BaseFlatClusterer):
             Which parallelization library to use. Each of the random subsamples
             are run independently
         """
-
-        super(SubsampledClarans, self).__init__(metric, trajectories, prep_trajectories)
+        s = super(SubsampledClarans, self) if PY2 else super()
+        s.__init__(metric, trajectories, prep_trajectories)
 
         if parallel is None:
             mymap = map
@@ -1244,8 +1245,8 @@ class HybridKMedoids(BaseFlatClusterer):
         KCenters : faster, less accurate
         Clarans : slightly more clever termination criterion
         """
-
-        super(HybridKMedoids, self).__init__(metric, trajectories, prep_trajectories)
+        s = super(HybridKMedoids, self) if PY2 else super()
+        s.__init__(metric, trajectories, prep_trajectories)
 
         medoids, assignments, distances = _hybrid_kmedoids(
             metric, self.ptraj, k, distance_cutoff, local_num_iters, True, norm_exponent,
