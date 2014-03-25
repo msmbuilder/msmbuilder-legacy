@@ -208,7 +208,7 @@ class tICA(AbstractDimReduction):
         else:
             self.corrs += data_vector.T.dot(data_vector)
             self.sum_t += data_vector.sum(axis=0)
-            self.sum_t_dt += self.sum_t
+            self.sum_t_dt += data_vector.sum(axis=0)
 
         if self.calc_cov_mat:
             self.corrs_lag0_t += data_vector[:-self.lag].T.dot(data_vector[:-self.lag])
