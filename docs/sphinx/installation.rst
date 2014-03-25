@@ -4,15 +4,12 @@ Installation
 MSMBuilder is a python package that uses a number of components from the "scientific python" stack. These packages include `numpy and scipy <http://scipy.org/getting-started.html>`_ for array manipulation and numerical linear algebra, `PyTables <http://www.pytables.org/moin>`_ for storing binary data, and others.
 
 .. note::
-
-   MSMBuilder currently required python2.7, and is not compatible with the python3.x series.
+    MSMBuilder is runs on Python 2.7 and Python 3.3. Use whichever you prefer. Other version like Python 2.6 and Python 3.2 probably will work, but are not explicitly supported .
 
 Easily with ``conda``
 ---------------------
 
-The easiest way to install MSMBuilder is with the python package manager ``conda``.
-``conda`` is an open-source cross-platform binary package manager integrated with
-the scientific python stack. It's built into the `Anaconda python distribution <http://docs.continuum.io/anaconda/>`_ produced by Continuum Analytics, which is a python installer that comes shipped with many of the python packages needed for science.
+The easiest way to install MSMBuilder is with the python package manager ``conda``. ``conda`` is an open-source cross-platform binary package manager integrated with the scientific python stack. It's built into the `Anaconda python distribution <http://docs.continuum.io/anaconda/>`_ produced by Continuum Analytics, which is a python installer that comes shipped with many of the python packages needed for science.
 
 .. warning::
 
@@ -22,6 +19,11 @@ If you don't want to get Anaconda, you can also install ``conda`` into an existi
 
    conda config --add channels http://conda.binstar.org/omnia
    conda install msmbuilder
+
+
+.. note::
+    For windows users, we recommend using the 32-bit version of Anaconda.
+
 
 Medium With ``pip``
 -------------------
