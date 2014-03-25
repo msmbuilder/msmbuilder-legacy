@@ -178,7 +178,7 @@ It is known that the relevant degrees of freedom for alanine dipeptide
 are the phi and psi backbone angles. Thus, it is useful to examine
 (phi, psi). To visualize the projection of your macrostates onto the Ramachandran plot, run ::
 
-    $ python PlotDihedrals.py Macro4
+    $ python PlotDihedrals.py Macro4/MacroAssignments.h5
 
 You should see something like the following graph (our clustering and
 PCCA+ code both perform randomized searches, so your plot may appear
