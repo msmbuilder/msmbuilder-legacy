@@ -6,7 +6,9 @@ What's New
    - Ported code to use MDTraj. This eliminates the need for MSMBuilder to
      directly handle the loading and saving of trajectories, and gives us
      much more cross-format support.
-   - New sphinx documentation
+   - New sphinx documentation at http://msmbuilder.org
+   - MSMBuilder is now Python 3 compatible.
+   - MSMBuilder now supports windows.
    
 2.6 Changelog
 -------------
