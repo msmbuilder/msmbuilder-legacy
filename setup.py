@@ -21,8 +21,8 @@ from setuptools import setup
 
 
 #########################################
-VERSION = "2.8.2"
-ISRELEASED = True
+VERSION = "2.8.3"
+ISRELEASED = False
 __author__ = "MSMBuilder Team"
 __version__ = VERSION
 ########################################
