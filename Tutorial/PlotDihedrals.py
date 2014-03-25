@@ -24,6 +24,7 @@ import argparse
 import operator
 import numpy as np
 import matplotlib.pyplot as pp
+from mdtraj.utils.six.moves import reduce
 
 import mdtraj as md
 from mdtraj import io
@@ -36,7 +37,7 @@ PHI_INDICES = [4, 6, 8, 14]
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('macro_model_directory', default='Macro4', help='Path to directory containing a macrostate model. (default=Macro4)')
+    parser.add_argument('assignments', default='Macro4/MacroAssignments.h5', help='Path to an assignments file. (default=Macro4/MacroAssignments.h5)')
     parser.add_argument('--project', default='ProjectInfo.yaml', help='Path to ProjectInfo.yaml file. (default=ProjectInfo.yaml)')
     args = parser.parse_args()
 
@@ -45,7 +46,7 @@ def main():
 
     phi_angles = md.compute_dihedrals(t, [PHI_INDICES]) * 180.0 / np.pi
     psi_angles = md.compute_dihedrals(t, [PSI_INDICES]) * 180.0 / np.pi
-    state_index = np.hstack(io.loadh(os.path.join(args.macro_model_directory, 'MacroAssignments.h5'))['arr_0'])
+    state_index = np.hstack(io.loadh(args.assignments)['arr_0'])
 
     for i in np.unique(state_index):
         pp.plot(phi_angles[np.where(state_index == i)],
