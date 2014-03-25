@@ -17,6 +17,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
+from __future__ import print_function
 import sys
 import logging
 import numpy as np
@@ -151,11 +152,13 @@ def run(PDBfn, atomtype):
     indices = [a.index for a in pdb.topology.atoms if selector(a)]
     return np.array(indices)
 
-
-if __name__ == "__main__":
-    print sys.argv
+def entry_point():
     args = parser.parse_args()
     arglib.die_if_path_exists(args.output)
     indices = run(args.pdb, args.atom_type)
     np.savetxt(args.output, indices, '%d')
     logger.info('Saved output to %s', args.output)
+
+if __name__ == "__main__":
+    entry_point()
+

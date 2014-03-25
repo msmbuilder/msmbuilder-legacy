@@ -1,4 +1,6 @@
-export PATH="$HOME/envs/test/bin/:$PATH"
+export PATH=$HOME/miniconda/bin:$PATH
+export PATH=$HOME/miniconda/envs/$python/bin:$PATH
+
 if [[ "$TRAVIS_PULL_REQUEST" == "true" ]]; then
     echo "This is a pull request. No deployment will be done."; exit 0
 fi

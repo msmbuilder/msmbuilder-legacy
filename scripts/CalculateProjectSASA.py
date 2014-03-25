@@ -66,7 +66,7 @@ def run(project, atom_indices=None, traj_fn = 'all'):
 
     return SASA
 
-if __name__ == '__main__':
+def entry_point():
     args = parser.parse_args()
     arglib.die_if_path_exists(args.output)
 
@@ -78,3 +78,6 @@ if __name__ == '__main__':
     project = Project.load_from(args.project)
     SASA = run(project, atom_indices, args.traj_fn)
     io.saveh(args.output, SASA)
+
+if __name__ == '__main__':
+    entry_point()

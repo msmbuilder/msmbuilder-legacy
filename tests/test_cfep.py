@@ -9,12 +9,16 @@ To Do
 Test all code: need generators for WW domain
 
 """
+from __future__ import print_function
+from __future__ import division
+from __future__ import absolute_import
 
 import os
-
+import nose
 import numpy as np
 import scipy
 from scipy import io
+from mdtraj.utils.six import PY3
 
 from msmbuilder import cfep
 from msmbuilder.testing import get
@@ -56,26 +60,26 @@ def ref_calc_cFEP(counts, lag_time, rxn_coordinate, rescale=True):
             zc[xi] = zc.get(xi, 0) + nij
             zc[xj] = zc.get(xj, 0) - nij
 
-    zc_keys = zc.keys()
+    zc_keys = list(zc.keys())
     zc_keys.sort()
 
     # If no reaction coordinate is provided, calculate the "natural"
     # coordinate where D(x) = 1 and cfep(x) = hfep(x)
     if rescale:
-        print "rescaling to the natural coordinate"    
+        print("rescaling to the natural coordinate")
         szc = 0
         sx  = 0
         x2nx = {}
         zcn  = {}
         for x in zc_keys:
             szc = szc + zc[x] / 2.0
-            if zh.has_key(x) and szc > 0:
+            if x in zh and szc > 0:
                 sx += float(zh[x]) / (szc * math.sqrt(math.pi))
             zcn[sx] = szc
             x2nx[x] = sx
 
     else:
-        for k in zc.keys():
+        for k in list(zc.keys()):
             zc[k] /= 2.0
     
     return zc, zh
@@ -85,7 +89,10 @@ class TestCfep():
     """ test the cfep library in msmbuilder by comparing to the reference
         implementation above """
     
+
     def setUp(self):
+        if PY3:
+            raise nose.SkipTest('TestCfep requires scipy.weave which doesnt exist on python3')
         
         self.generators = get('cfep_reference/Gens.lh5')
         N = len(self.generators)
@@ -113,7 +120,7 @@ class TestCfep():
         zc_ref, zh_ref = ref_calc_cFEP(self.counts, self.lag_time, self.pfolds, self.rescale)
 
         error = 0.0
-        for k in zc_ref.keys():
+        for k in list(zc_ref.keys()):
             error += np.abs(zc_ref[k] - zc[np.where( self.pfolds == k )].flatten()[0])
 
         assert np.abs( error ) < 0.0000001

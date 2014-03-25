@@ -60,7 +60,7 @@ def main(k, d, zmatrix_fn, stride, project):
 
     return new_assignments
 
-if __name__ == "__main__":
+def entry_point():
     args = parser.parse_args()
     k = int(args.num_states) if args.num_states != 'none' else None
     d = float(args.cutoff_distance) if args.cutoff_distance != 'none' else None
@@ -75,3 +75,6 @@ if __name__ == "__main__":
         k, d, args.hierarchical_clustering_zmatrix, args.stride, project)
     io.saveh(args.assignments, assignments)
     logger.info('Saved assignments to %s', args.assignments)
+
+if __name__ == '__main__':
+    entry_point()

@@ -66,7 +66,7 @@ def run(tprob, A, B, n):
     return PaddedPaths, np.array(Bottlenecks), np.array(Fluxes)
 
 
-if __name__ == "__main__":
+def entry_point():
     args = parser.parse_args()
 
     F = np.loadtxt(args.ending).astype(int)
@@ -91,3 +91,6 @@ if __name__ == "__main__":
     msmbuilder.io.saveh(
         args.output, Paths=paths, Bottlenecks=bottlenecks, fluxes=fluxes)
     logger.info('Saved output to %s', args.output)
+
+if __name__ == "__main__":
+    entry_point()

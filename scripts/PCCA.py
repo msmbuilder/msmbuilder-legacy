@@ -81,7 +81,7 @@ def run_pcca_plus(num_macrostates, assignments, tProb, flux_cutoff=0.0,
 
     return chi, A, MAP, assignments
 
-if __name__ == "__main__":
+def entry_point():
     args = parser.parse_args()
 
     # load args
@@ -131,3 +131,7 @@ if __name__ == "__main__":
                     ChiFn, AFn, MacroMapFn, MacroAssignmentsFn)
     else:
         raise Exception()
+
+
+if __name__ == "__main__":
+    entry_point()

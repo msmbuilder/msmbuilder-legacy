@@ -44,6 +44,9 @@ def run(traj_dir, conf_filename, project_filename, iext):
     p.save(project_filename)
     logger.info("Wrote %s" % project_filename)
 
-if __name__ == "__main__":
+def entry_point():
     args = parser.parse_args()
     run(args.traj_dir, args.conf_filename, args.project_filename, args.iext)
+
+if __name__ == "__main__":
+    entry_point()

@@ -94,6 +94,9 @@ def main(args, metric):
 
     logger.info('All Done!')
 
-if __name__ == '__main__':
+def entry_point():
     args, metric = parser.parse_args()
     main(args, metric)
+
+if __name__ == '__main__':
+    entry_point()

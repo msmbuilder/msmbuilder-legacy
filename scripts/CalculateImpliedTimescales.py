@@ -68,7 +68,7 @@ def run(MinLagtime, MaxLagtime, Interval, NumEigen, AssignmentsFn, trimming,
     return impTimes
 
 
-if __name__ == "__main__":
+def entry_point():
     args = parser.parse_args()
     arglib.die_if_path_exists(args.output)
 
@@ -85,3 +85,6 @@ if __name__ == "__main__":
         (not args.notrim), args.symmetrize, args.procs)
     np.savetxt(args.output, impTimes)
     logger.info("Saved output to %s", args.output)
+
+if __name__ == '__main__':
+    entry_point()

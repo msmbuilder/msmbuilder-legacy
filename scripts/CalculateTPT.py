@@ -51,7 +51,7 @@ def run(TC, Uv, Fv):
     return Fc, NFlux
 
 
-if __name__ == "__main__":
+def entry_point():
     args = parser.parse_args()
 
     T = scipy.io.mmread(args.tProb)
@@ -79,3 +79,6 @@ if __name__ == "__main__":
     np.savetxt(output_flist[0], Fc)
     scipy.io.mmwrite(output_flist[1], NFlux)
     logger.info("Saved output to %s", ', '.join(output_flist))
+
+if __name__ == "__main__":
+    entry_point()

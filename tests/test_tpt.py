@@ -1,3 +1,6 @@
+from __future__ import print_function
+from __future__ import division
+from __future__ import absolute_import
 import sys
 import os
 
@@ -20,7 +23,7 @@ def tpt_get(filename):
 def hub_get(filename):
     """ a little hack to save headache -- returns the path to a file in 
         the hub_ref subdir inside reference/ """
-    return get( os.path.join('hub_ref', filename), just_filename=True )
+    return get( os.path.join('transition_path_theory_reference', 'hub_ref', filename), just_filename=True )
     
 
 
@@ -77,7 +80,7 @@ class TestTPT():
         fluxes_ref = io.loadh( tpt_get("dijkstra_fluxes.h5"), 'Data')
         bottlenecks_ref = io.loadh( tpt_get("dijkstra_bottlenecks.h5"), 'Data')
 
-        for i in xrange(len(paths_ref)):
+        for i in range(len(paths_ref)):
             npt.assert_array_almost_equal(path_output[0][i], paths_ref[i])
         npt.assert_array_almost_equal(path_output[1], bottlenecks_ref)
         npt.assert_array_almost_equal(path_output[2], fluxes_ref)

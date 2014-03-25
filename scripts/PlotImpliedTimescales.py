@@ -17,8 +17,8 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-from numpy import loadtxt
 import sys
+import numpy as np
 from msmbuilder import arglib
 
 parser = arglib.ArgumentParser(description="""
@@ -35,18 +35,22 @@ parser.add_argument(
 parser.add_argument('title', help='Title for plot',
                     default='Relaxation Timescale versus Lagtime')
 
-if __name__ == '__main__':
-    from pylab import *
+def entry_point():
+    import matplotlib.pyplot as pp
     args = parser.parse_args()
     input = np.loadtxt(args.input)
 
-    scatter(input[:, 0] * args.dt, input[:, 1] * args.dt)
-    yscale('log')
-    title(args.title)
-    xlabel('Lag Time')
-    ylabel('Relaxation Timescale')
+    pp.scatter(input[:, 0] * args.dt, input[:, 1] * args.dt)
+    pp.yscale('log')
+    pp.title(args.title)
+    pp.xlabel('Lag Time')
+    pp.ylabel('Relaxation Timescale')
 
     if args.filename:
-        savefig(args.filename)
+        pp.savefig(args.filename)
     else:
-        show()
+        pp.show()
+
+
+if __name__ == "__main__":
+    entry_point()

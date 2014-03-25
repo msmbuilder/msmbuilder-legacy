@@ -6,15 +6,18 @@ env:
     - secure: "bVH6M//wxPNZSCe2DHDVxc9Umnz+7S+L5Sm+fGugQ9Nv/7lqPi/aCBRW+O7o9BgOye0s0IRr+ivyRJ5I8cYN5a2rpYsKIo/aItJ2sN/3Gw8K/6BZMjmMJFNaHUREtazpftkiv8WADZV/j5d1QcBHzx/RHyubtLerx22dgCvyc0s="
     - secure: "OFwGj26dWBFaUcHpz8BRlPw0IFcbt6827kutfpgrb19ebldKv18TvE3BXJIoKDTUz9yGhv+j1hUi64vGUTRbv5y7bAE9bK9r9/y7mFVTWHu5IRyhmewr2DuqKkNyI2bI57FbRBGVt6Nrf68tzg8QCLu8GoIutGWeHH0D1li8bZ4="
 
+  matrix:
+    - python=2.7
+    - python=3.3
 
 install:
-    - sudo apt-get update -qq
-    - sudo apt-get install -qq python-dev python-pip python-yaml g++
-    - sudo pip install conda
-    - sudo conda init
+    - wget http://repo.continuum.io/miniconda/Miniconda-3.0.5-Linux-x86_64.sh
+    - bash Miniconda-3.0.5-Linux-x86_64.sh -b
+    - export PATH=$HOME/miniconda/bin:$PATH
     - conda config --add channels http://conda.binstar.org/omnia
-    - conda create --yes --name test numpy scipy pytables numexpr nose pandas cython statsmodels pandas patsy pyyaml matplotlib pip fastcluster mdtraj
-    - export PATH="$HOME/envs/test/bin/:$PATH"
+    - conda create --yes -n ${python} python=${python} numpy scipy pytables numexpr nose pandas cython statsmodels pandas patsy pyyaml matplotlib pip mdtraj
+    - export PATH="$HOME/miniconda/envs/$python/bin/:$PATH"
+    - conda install --yes fastcluster
 
     # RMG is not really sure what this line does, but it's critical for multiprocessing 
     # to work in python. see https://github.com/travis-ci/travis-cookbooks/issues/155 and
@@ -22,8 +25,10 @@ install:
     - sudo rm -rf /dev/shm && sudo ln -s /run/shm /dev/shm 
     
 script:
+    - export PATH=$HOME/miniconda/bin:$PATH
+    - export PATH=$HOME/miniconda/envs/$python/bin:$PATH
     - python setup.py -q install
-    - nosetests -vv
+    - pydir=$(which python); $(dirname $pydir)/nosetests -vv
 
 after_success:
   - echo "after_success"

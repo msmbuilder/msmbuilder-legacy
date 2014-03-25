@@ -7,6 +7,9 @@ of Markov state models for conformational dynamics.
 """
 
 from __future__ import print_function
+from __future__ import division
+from __future__ import absolute_import
+
 DOCLINES = __doc__.split("\n")
 
 import os
@@ -14,10 +17,8 @@ import sys
 import subprocess
 from glob import glob
 from distutils.version import StrictVersion
-try:
-    from setuptools import setup
-except ImportError:
-    from distutils.core import setup
+from setuptools import setup
+
 
 #########################################
 VERSION = "2.8.2"
@@ -25,6 +26,7 @@ ISRELEASED = False
 __author__ = "MSMBuilder Team"
 __version__ = VERSION
 ########################################
+
 
 def warn_on_version(module_name, minimum=None, package_name=None, recommend_conda=True):
     if package_name is None:
@@ -64,6 +66,18 @@ def warn_on_version(module_name, minimum=None, package_name=None, recommend_cond
         print('\n'.join([banner, banner, "", msg, install, "", banner, banner]))
 
 
+def find_console_scripts():
+    console_scripts = []
+    exclude = ['__init__.py']
+    for fn in glob('scripts/*.py'):
+        dirname, filename = os.path.split(fn)
+        if filename not in exclude:
+            basename, _ = os.path.splitext(filename)
+            console_scripts.append(
+                '{basename} = msmbuilder.scripts.{basename}:entry_point'.format(basename=basename))
+
+    return console_scripts
+
 # metadata for setup()
 metadata = {
     'name': 'msmbuilder',
@@ -77,17 +91,15 @@ metadata = {
     'description': DOCLINES[0],
     'long_description':"\n".join(DOCLINES[2:]),
     'packages': ['msmbuilder', 'msmbuilder.scripts', 'msmbuilder.project',
-                 'msmbuilder.lumping', 'msmbuilder.geometry',
-                 'msmbuilder.metrics', 'msmbuilder.reduce',
+                 'msmbuilder.lumping', 'msmbuilder.metrics', 'msmbuilder.reduce',
                  'msmbuilder.reference'],
-    'package_dir': {'msmbuilder': 'src/python', 'msmbuilder.scripts': 'scripts',
+    'package_dir': {'msmbuilder': 'MSMBuilder', 'msmbuilder.scripts': 'scripts',
                     'msmbuilder.reference': 'reference'},
     'package_data': {'msmbuilder.reference': [os.path.relpath(os.path.join(a[0], b), 'reference') for a in os.walk('reference') for b in a[2]]},
-    'scripts': ['scripts/msmb'] + [e for e in glob('scripts/*') if not (e.endswith('__.py') or e.endswith('.pyc'))]
+    'zip_safe': False,
+    'entry_points': {'console_scripts': find_console_scripts() }
 }
 
-if 'setuptools' in sys.modules:
-    metadata['zip_safe'] = False
 
 
 # Return the git revision as a string
@@ -116,7 +128,7 @@ def git_version():
     return GIT_REVISION
 
 
-def write_version_py(filename='src/python/version.py'):
+def write_version_py(filename='MSMBuilder/version.py'):
     cnt = """
 # THIS FILE IS GENERATED FROM MSMBUILDER SETUP.PY
 short_version = '%(version)s'
@@ -157,7 +169,6 @@ setup(**metadata)
 warn_on_version('numpy', '1.6.0')
 warn_on_version('scipy', '0.11.0')
 warn_on_version('tables', '2.4.0', package_name='pytables')
-warn_on_version('fastcluster', '1.1.13', recommend_conda=False)
+warn_on_version('fastcluster', '1.1.13')
 warn_on_version('yaml', package_name='pyyaml')
-# because it requires adding a different channel, the correct instructions are more complex with conda than pip
-warn_on_version('mdtraj', '0.8.0', recommend_conda=False)
+warn_on_version('mdtraj', '0.8.0')
