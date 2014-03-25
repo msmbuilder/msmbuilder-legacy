@@ -22,7 +22,7 @@ from setuptools import setup
 
 #########################################
 VERSION = "2.8.2"
-ISRELEASED = False
+ISRELEASED = True
 __author__ = "MSMBuilder Team"
 __version__ = VERSION
 ########################################
