@@ -17,10 +17,8 @@ import sys
 import subprocess
 from glob import glob
 from distutils.version import StrictVersion
-try:
-    from setuptools import setup
-except ImportError:
-    from distutils.core import setup
+from setuptools import setup
+
 
 #########################################
 VERSION = "2.8.2"
@@ -28,6 +26,7 @@ ISRELEASED = False
 __author__ = "MSMBuilder Team"
 __version__ = VERSION
 ########################################
+
 
 def warn_on_version(module_name, minimum=None, package_name=None, recommend_conda=True):
     if package_name is None:
@@ -67,6 +66,18 @@ def warn_on_version(module_name, minimum=None, package_name=None, recommend_cond
         print('\n'.join([banner, banner, "", msg, install, "", banner, banner]))
 
 
+def find_console_scripts():
+    console_scripts = []
+    exclude = ['__init__.py']
+    for fn in glob('scripts/*.py'):
+        dirname, filename = os.path.split(fn)
+        if filename not in exclude:
+            basename, _ = os.path.splitext(filename)
+            console_scripts.append(
+                '{basename} = msmbuilder.scripts.{basename}:entry_point'.format(basename=basename))
+
+    return console_scripts
+
 # metadata for setup()
 metadata = {
     'name': 'msmbuilder',
@@ -85,11 +96,10 @@ metadata = {
     'package_dir': {'msmbuilder': 'MSMBuilder', 'msmbuilder.scripts': 'scripts',
                     'msmbuilder.reference': 'reference'},
     'package_data': {'msmbuilder.reference': [os.path.relpath(os.path.join(a[0], b), 'reference') for a in os.walk('reference') for b in a[2]]},
-    'scripts': ['scripts/msmb'] + [e for e in glob('scripts/*') if os.path.isfile(e) and not (e.endswith('__.py') or e.endswith('.pyc'))]
+    'zip_safe': False,
+    'entry_points': {'console_scripts': find_console_scripts() }
 }
 
-if 'setuptools' in sys.modules:
-    metadata['zip_safe'] = False
 
 
 # Return the git revision as a string

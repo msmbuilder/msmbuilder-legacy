@@ -119,9 +119,9 @@ def run(lagtime, assignments, symmetrize='MLE', input_mapping="None", trim=True,
 
     return
 
-if __name__ == "__main__":
+def entry_point():
     args = parser.parse_args()
-
+    
     try:
         assignments = io.loadh(args.assignments, 'arr_0')
     except KeyError:
@@ -131,3 +131,7 @@ if __name__ == "__main__":
         args.mapping = np.array(np.loadtxt(args.mapping), dtype=int)
 
     run(args.lagtime, assignments, args.symmetrize, args.mapping, args.trim, args.output_dir)
+
+if __name__ == "__main__":
+    entry_point()
+    

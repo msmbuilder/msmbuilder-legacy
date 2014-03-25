@@ -84,7 +84,7 @@ def save(confs_by_state, states, style, format, outdir):
         raise ValueError('Invalid style: %s' % style)
 
 
-def main():
+def entry_point():
     """Parse command line inputs, load up files, then call run() and save() to do
     the real work"""
     parser.add_argument('output_dir', default='PDBs')
@@ -120,4 +120,4 @@ def main():
          format=args.format, outdir=args.output_dir)
 
 if __name__ == '__main__':
-    main()
+    entry_point()

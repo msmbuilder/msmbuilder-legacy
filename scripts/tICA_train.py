@@ -80,7 +80,7 @@ def run(prep_metric, project, delta_time, atom_indices=None,
     return tica_obj
 
 
-if __name__ == '__main__':
+def entry_point():
     args, prep_metric = parser.parse_args()
     arglib.die_if_path_exists(args.output)
 
@@ -97,3 +97,6 @@ if __name__ == '__main__':
     tica_obj = run(
         prep_metric, project, args.delta_time, atom_indices=atom_indices,
         output=args.output, min_length=min_length, stride=args.stride)
+
+if __name__ == "__main__":
+    entry_point()

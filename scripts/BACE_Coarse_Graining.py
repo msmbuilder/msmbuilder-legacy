@@ -454,7 +454,7 @@ def filterFuncSparse(c, nProc):
 
     return c, map, statesKeep
 
-if __name__ == '__main__':
+def entry_point():
     print(LicenseString)
     args = parser.parse_args()
 
@@ -479,3 +479,6 @@ if __name__ == '__main__':
 
     run(c, args.nMacro, args.nProc, multiDist,
         args.outDir, filterFunc, chunkSize=100)
+
+if __name__ == '__main__':
+    entry_point()

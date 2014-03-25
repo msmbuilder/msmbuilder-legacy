@@ -66,7 +66,7 @@ def run(project, pdb, metric, traj_fn=None):
     return distances
 
 
-if __name__ == '__main__':
+def entry_point():
     args, metric = parser.parse_args()
 
     arglib.die_if_path_exists(args.output)
@@ -82,3 +82,6 @@ if __name__ == '__main__':
 
     io.saveh(args.output, distances)
     logger.info('Saved to %s', args.output)
+
+if __name__ == "__main__":
+    entry_point()

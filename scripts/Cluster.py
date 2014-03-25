@@ -276,7 +276,8 @@ could stride a little at the begining, but its not recommended.""")
             io.saveh(assignments_fn, assignments)
             io.saveh(distances_fn, distances)
 
-if __name__ == '__main__':
+
+def entry_point():
     args, metric = parser.parse_args()
     
     if hasattr(args, 'sclarans_parallel')  and args.sclarans_parallel == 'dtm':
@@ -284,3 +285,6 @@ if __name__ == '__main__':
         dtm.start(main, args)
     else:
         main(args, metric)
+
+if __name__ == "__main__":
+    entry_point()

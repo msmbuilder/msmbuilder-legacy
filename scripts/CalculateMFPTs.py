@@ -52,7 +52,7 @@ def run(T, state):
     return m
 
 
-if __name__ == "__main__":
+def entry_point():
     args = parser.parse_args()
 
     T = scipy.io.mmread(args.tProb)
@@ -72,3 +72,7 @@ if __name__ == "__main__":
 
     np.savetxt(output_filename, MFPTs)
     logger.info("Saved output to %s" % output_filename)
+
+
+if __name__ == "__main__":
+    entry_point()

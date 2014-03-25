@@ -143,7 +143,7 @@ def run(projectfn, conf_filename, input_dir, source, min_length, stride, rmsd_cu
     return
 
 
-if __name__ == "__main__":
+def entry_point():
     args = parser.parse_args()
     rmsd_cutoff = args.rmsd_cutoff
     if rmsd_cutoff <= 0.0:
@@ -160,3 +160,6 @@ if __name__ == "__main__":
 
     run(args.project, args.pdb, args.input_dir, args.source,
         args.min_length, args.stride, rmsd_cutoff, atom_indices, args.iext)
+
+if __name__ == '__main__':
+    entry_point()

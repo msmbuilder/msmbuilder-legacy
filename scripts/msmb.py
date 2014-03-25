@@ -21,7 +21,7 @@ parser = argparse.ArgumentParser(description=__doc__, usage='msmb [subcommand]')
 # Code
 ##############################################################################
 
-def main():
+def entry_point():
     subparsers = parser.add_subparsers(dest="subparser_name")
     scriptfiles = {}
     argv = sys.argv[:]
@@ -46,19 +46,9 @@ def main():
         first_sentence = ' '.join(' '.join(re.split(r'(?<=[.:;])\s', description)[:1]).split())
         subparsers.add_parser(scriptname, help=first_sentence)
 
-    sys.argv = argv[0:2]
-    args = parser.parse_args()
-    scriptfile = scriptfiles[args.subparser_name]
-    if os.path.splitext(scriptfile)[1] == '.pyc':
-        scriptfile = os.path.splitext(scriptfile)[0] + '.py'
-
+    args = parser.parse_args(argv[1:2])        
     sys.argv = argv[1:]
-    if not os.path.exists(scriptfile):
-        raise IOError('Script not found')
-
-    return scriptfile
-
+    getattr(scripts, args.subparser_name).entry_point()
+        
 if __name__ == '__main__':
-    __scriptfile__ = main()
-    with open(__scriptfile__, "r") as __fh__:
-        exec(__fh__.read(), globals(), locals())
+    entry_point()

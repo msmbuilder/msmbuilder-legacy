@@ -22,7 +22,7 @@ parser.add_argument('output', default='sample_traj.pdb',
                     help="""The filename of your output trajectory.  The filetype suffix will be used to select the output file format.""")
 
 
-def main():
+def entry_point():
     """Parse command line inputs, load up files, and build a movie."""
     args = parser.parse_args()
     try:
@@ -44,4 +44,4 @@ def main():
     traj.save(args.output)
 
 if __name__ == '__main__':
-    main()
+    entry_point()

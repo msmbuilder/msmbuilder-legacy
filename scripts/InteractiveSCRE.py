@@ -87,7 +87,7 @@ def scre_iteration(assignments,K0,lagtime_list,M,X,populations):
 
 run = interactive_scre
 
-if __name__ == "__main__":
+def entry_point():
     import matplotlib
     args = parser.parse_args()
 
@@ -102,3 +102,7 @@ if __name__ == "__main__":
 
     np.savetxt(os.path.join(args.output_dir, "Rate.dat"), K)
     scipy.io.mmwrite(os.path.join(args.output_dir, "tProb.mtx.tl"), T)
+
+
+if __name__ == "__main__":
+    entry_point()
