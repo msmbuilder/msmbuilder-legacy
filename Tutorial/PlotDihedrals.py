@@ -29,6 +29,7 @@ from mdtraj.utils.six.moves import reduce
 import mdtraj as md
 from mdtraj import io
 from msmbuilder import  Project
+from mdtraj.utils.six.moves import reduce
 
 
 PSI_INDICES = [6, 8, 14, 16]
