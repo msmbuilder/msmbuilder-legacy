@@ -91,7 +91,7 @@ print('You can access it with:\\n\\n  $ {basename}\\n\\nor\\n\\n  $ msmb {basena
                     self.scripts.append(path)
 
             if PY3:
-                super().copy_scripts
+                super().copy_scripts()
             else:
                 build_scripts.copy_scripts(self)
         finally:
