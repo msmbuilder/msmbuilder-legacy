@@ -78,16 +78,17 @@ print('The MSMBuilder script {basename}.py has been\\nrenamed {basename}.', file
 print('You can access it with:\\n\\n  $ {basename}\\n\\nor\\n\\n  $ msmb {basename}\\n', file=sys.stderr)
 '''
     def copy_scripts(self):
+        exclude = ['msmb']
         try:
             tdir = tempfile.mkdtemp()
             self.scripts = []
             for fn in find_console_scripts():
-                print(fn)
                 basename = fn.split(':')[0].split('.')[-1]
-                path = '{}/{}.py'.format(tdir, basename)
-                with open(path, 'w') as f:
-                    f.write(self.TEMPLATE.format(basename=basename))
-                self.scripts.append(path)
+                if basename not in exclude:
+                    path = '{}/{}.py'.format(tdir, basename)
+                    with open(path, 'w') as f:
+                        f.write(self.TEMPLATE.format(basename=basename))
+                    self.scripts.append(path)
             s = super() if PY3 else super(mybuildscript, self)
             s.copy_scripts()
         finally:
