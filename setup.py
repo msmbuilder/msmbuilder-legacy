@@ -14,11 +14,14 @@ DOCLINES = __doc__.split("\n")
 
 import os
 import sys
+import tempfile
+import shutil
 import subprocess
 from glob import glob
 from distutils.version import StrictVersion
+from distutils.command.build_scripts import build_scripts
 from setuptools import setup
-
+PY3 = sys.version_info >= (3,0)
 
 #########################################
 VERSION = "2.8.3"
@@ -66,6 +69,31 @@ def warn_on_version(module_name, minimum=None, package_name=None, recommend_cond
         print('\n'.join([banner, banner, "", msg, install, "", banner, banner]))
 
 
+class mybuildscript(build_scripts):
+    TEMPLATE = '''
+from __future__ import print_function
+import sys
+
+print('The MSMBuilder script {basename}.py has been\\nrenamed {basename}.', file=sys.stderr, end=' ')
+print('You can access it with:\\n\\n  $ {basename}\\n\\nor\\n\\n  $ msmb {basename}\\n', file=sys.stderr)
+'''
+    def copy_scripts(self):
+        try:
+            tdir = tempfile.mkdtemp()
+            self.scripts = []
+            for fn in find_console_scripts():
+                print(fn)
+                basename = fn.split(':')[0].split('.')[-1]
+                path = '{}/{}.py'.format(tdir, basename)
+                with open(path, 'w') as f:
+                    f.write(self.TEMPLATE.format(basename=basename))
+                self.scripts.append(path)
+            s = super() if PY3 else super(mybuildscript, self)
+            s.copy_scripts()
+        finally:
+            shutil.rmtree(tdir)
+
+
 def find_console_scripts():
     console_scripts = []
     exclude = ['__init__.py']
@@ -77,6 +105,7 @@ def find_console_scripts():
                 '{basename} = msmbuilder.scripts.{basename}:entry_point'.format(basename=basename))
 
     return console_scripts
+
 
 # metadata for setup()
 metadata = {
@@ -97,7 +126,12 @@ metadata = {
                     'msmbuilder.reference': 'reference'},
     'package_data': {'msmbuilder.reference': [os.path.relpath(os.path.join(a[0], b), 'reference') for a in os.walk('reference') for b in a[2]]},
     'zip_safe': False,
-    'entry_points': {'console_scripts': find_console_scripts() }
+    'entry_points': {'console_scripts': find_console_scripts()},
+
+    # CUSTOM HACK TO DYNAMICALLY CREATE STUB SCRIPTS TO DIRECT PEOPLE TO THE NEW ENTRY POINTS
+    # (`Cluster.py` vs. `Cluster`)
+    'cmdclass': {'build_scripts': mybuildscript},
+    'scripts': [''],
 }
 
 
