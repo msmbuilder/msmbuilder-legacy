@@ -89,8 +89,11 @@ print('You can access it with:\\n\\n  $ {basename}\\n\\nor\\n\\n  $ msmb {basena
                     with open(path, 'w') as f:
                         f.write(self.TEMPLATE.format(basename=basename))
                     self.scripts.append(path)
-            s = super() if PY3 else super(mybuildscript, self)
-            s.copy_scripts()
+
+            if PY3:
+                super().copy_scripts
+            else:
+                build_scripts.copy_scripts(self)
         finally:
             shutil.rmtree(tdir)
 
