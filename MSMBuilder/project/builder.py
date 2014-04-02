@@ -60,7 +60,7 @@ class ProjectBuilder(object):
         """
         
         format_reg = md.formats.registry._FormatRegistry
-        valid_ext = format_reg.fileobjects.keys()
+        valid_ext = list(format_reg.fileobjects.keys())
         if input_traj_ext not in valid_ext + ['']:
             raise ValueError("Unsupported format")
         

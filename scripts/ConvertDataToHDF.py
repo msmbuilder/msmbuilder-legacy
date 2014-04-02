@@ -31,11 +31,13 @@ logger = logging.getLogger('msmbuilder.scripts.ConvertDataToHDF')
 
 
 parser = ArgumentParser(description="""
-Merges individual XTC files into continuous HDF5 (.h5) trajectories.
+Merges individual MD trajectory files into continuous HDF5 (.h5) trajectories.
 
 Can read data from a FAH project (PROJECT/RUN*/CLONE*/frame*.xtc) or from
 a directory containing one directory for each trajectory, with all the
 relevant XTCs inside that directory (PROJECT/TRAJ*/frame*.xtc).
+
+Can read any format compatible with mdtraj.
 
 Output:
 -- 'Trajectories' directory containing all the merged h5 files
@@ -53,7 +55,7 @@ parser.add_argument('project', type=str, help='''The ProjectInfo (.h5) to
     write to disk. Contains metadata associated with your project''')
 parser.add_argument('pdb')
 parser.add_argument('input_dir', help='''Path to the parent directory
-    containing subdirectories with MD (.xtc/.dcd) data. See the description above
+    containing subdirectories with MD data. See the description above
     for the appropriate formatting for directory architecture.''')
 parser.add_argument('source', help='''Data source: "file", or
     "fah". For "file" format, each of the trajectories needs to be
