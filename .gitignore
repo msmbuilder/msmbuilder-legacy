@@ -37,8 +37,11 @@ pip-log.txt
 #Translations
 *.mo
 
-#Mr Developer
+# IDE files
 .mr.developer.cfg
+.pydevproject
+.project
+.spyderproject
 
 #latex
 *.aux
