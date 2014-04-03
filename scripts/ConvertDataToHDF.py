@@ -31,11 +31,13 @@ logger = logging.getLogger('msmbuilder.scripts.ConvertDataToHDF')
 
 
 parser = ArgumentParser(description="""
-Merges individual XTC files into continuous HDF5 (.h5) trajectories.
+Merges individual MD trajectory files into continuous HDF5 (.h5) trajectories.
 
 Can read data from a FAH project (PROJECT/RUN*/CLONE*/frame*.xtc) or from
 a directory containing one directory for each trajectory, with all the
 relevant XTCs inside that directory (PROJECT/TRAJ*/frame*.xtc).
+
+Can read any format compatible with mdtraj.
 
 Output:
 -- 'Trajectories' directory containing all the merged h5 files
@@ -53,15 +55,17 @@ parser.add_argument('project', type=str, help='''The ProjectInfo (.h5) to
     write to disk. Contains metadata associated with your project''')
 parser.add_argument('pdb')
 parser.add_argument('input_dir', help='''Path to the parent directory
-    containing subdirectories with MD (.xtc/.dcd) data. See the description above
+    containing subdirectories with MD data. See the description above
     for the appropriate formatting for directory architecture.''')
 parser.add_argument('source', help='''Data source: "file", or
     "fah". For "file" format, each of the trajectories needs to be
     in a different directory. For example, if you supply input_dir='XTC', then
     it is expected that the directory 'XTC' contains a set of subdirectories, each
     of which contains one or more files of a single MD trajectory that will be concatenated
-    together. The glob pattern used would be XTC/*/*.xtc'. If 'fah', then standard
-    folding@home-style directory architecture is required.''',
+    together. The glob pattern used would be XTC/*/*.*'. If 'fah', then standard
+    folding@home-style directory architecture is required. If the IEXT option
+    is given, the glob pattern will be restricted to the given file extension
+    (behavior is the same for file and fah)''',
                     default='file', choices=['fah', 'file'])
 parser.add_argument('min_length', help='''Minimum number of frames per trajectory
     required to include data in Project.  Used to discard extremely short
@@ -78,8 +82,10 @@ parser.add_argument('atom_indices', help='''If specified, load atom indices
     extract only a subset of atoms during the file conversion process.''',
                     default="", type=str)                    
 parser.add_argument('iext', help='''The file extension of input trajectory
-    files.  Must be a filetype that mdtraj.load() can recognize.''',
-                    default=".xtc", type=str)
+    files.  Must be a filetype that mdtraj.load() can recognize. If this
+    option is not supplied, all filetypes known to mdtraj.load() will be
+    loaded.''',
+                    default="", type=str)
 
 def run(projectfn, conf_filename, input_dir, source, min_length, stride, rmsd_cutoff, atom_indices, iext):
 

@@ -26,7 +26,7 @@ class ProjectBuilder(object):
         input_traj_dir : str
             Root directory of the trajectory hierarchy. The trajectories should
             actually be in input_traj_dir/<something>/{files}.
-        input_traj_ext : {'.xtc', '.dcd'}
+        input_traj_ext : {'.xtc', '.dcd', '', any mdtraj format}
             Trajectory file format
         conf_filename : str 
             path to a pdb
@@ -58,11 +58,19 @@ class ProjectBuilder(object):
         >>> pb = ProjectBuilder('XTC', '.xtc', 'native.pdb')
         >>> pb.project.save('ProjectInfo.yaml')
         """
+        
+        format_reg = md.formats.registry._FormatRegistry
+        valid_ext = list(format_reg.fileobjects.keys())
+        if input_traj_ext not in valid_ext + ['']:
+            raise ValueError("Unsupported format")
+        
         self.atom_indices = atom_indices
-        self.input_traj_dir = input_traj_dir.strip()
+        self.input_traj_dir = input_traj_dir.strip()    
+        
         self.input_traj_ext = input_traj_ext.strip()
-        if self.input_traj_ext[0] != '.':
+        if len(self.input_traj_ext) != 0 and self.input_traj_ext[0] != '.':
             self.input_traj_ext = '.%s' % self.input_traj_ext
+        
         self.conf_filename = conf_filename.strip()
 
         # If not using atom_indices, we work exclusively with the original conf_filename
@@ -114,8 +122,7 @@ class ProjectBuilder(object):
         for e in validators:
             self.add_validator(e)
 
-        if input_traj_ext not in ['.xtc', '.dcd']:
-            raise ValueError("Unsupported format")
+        
 
         self._check_out_dir()
 
@@ -306,7 +313,7 @@ class ProjectBuilder(object):
     def convert(self):
         """
         Main method for this class. Convert all of the trajectories into
-        lh5 format and save them to self.output_traj_dir.
+        h5 format and save them to self.output_traj_dir.
 
         Returns
         -------
