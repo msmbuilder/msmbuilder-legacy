@@ -4,6 +4,7 @@ import os
 import pickle
 import numpy as np
 import mdtraj as md
+import itertools
 from pkg_resources import iter_entry_points
 from msmbuilder.reduce import tICA
 from msmbuilder.metrics import (RMSD, Dihedral, BooleanContact,
