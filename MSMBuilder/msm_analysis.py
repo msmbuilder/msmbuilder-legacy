@@ -99,11 +99,7 @@ def get_reversible_eigenvectors(t_matrix, k, populations=None, right=False, dens
         logger.warning("Instead, calculating %d eigenvectors." % k)
 
     if populations is None:
-        if scipy.sparse.issparse(t_matrix):
-            populations = np.real(scipy.sparse.linalg.eigs(t_matrix.T, k=1, which='LR')[1][:,0])
-            populations = populations / np.sum(populations)
-        else:
-            populations = get_eigenvectors(t_matrix, 1)[1][:, 0]
+        populations = get_eigenvectors(t_matrix, 1, **kwargs)[1][:, 0]  # This should work for BOTH dense and sparse.
 
     # Get the left eigenvectors using the sparse hermetian eigensolver
     # on the symmemtrized transition matrix
