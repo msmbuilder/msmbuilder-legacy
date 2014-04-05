@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 # Eigenvector calculation errors.  Useful if you need to process disconnected data.
 DisableErrorChecking = False
 
-def get_reversible_eigenvectors(t_matrix, k, populations=None, right=False, **kwargs):
+def get_reversible_eigenvectors(t_matrix, k, populations=None, right=False, dense_cutoff=50, **kwargs):
     """Find the k largest left eigenvalues and eigenvectors of a reversible
     row-stochastic matrix, sorted by eigenvalue magnitude
 
@@ -55,6 +55,8 @@ def get_reversible_eigenvectors(t_matrix, k, populations=None, right=False, **kw
         The default behavior is to compute the *left* eigenvectors of the
         transition matrix. This option may be invoked to instead compute the
         *right* eigenvectors.
+    dense_cutoff : int, optional
+        use dense eigensolver if dimensionality is below this
 
     Other Parameters
     ----------------
@@ -89,23 +91,27 @@ def get_reversible_eigenvectors(t_matrix, k, populations=None, right=False, **kw
         logger.warning("You cannot calculate %d eigenvectors from a %d x %d matrix." % (k, n, n))
         k = n
         logger.warning("Instead, calculating %d eigenvectors." % k)
+    if n < dense_cutoff and scipy.sparse.issparse(t_matrix):
+        t_matrix = t_matrix.toarray()
     elif k >= n - 1  and scipy.sparse.issparse(t_matrix):
         logger.warning("ARPACK cannot calculate %d eigenvectors from a %d x %d matrix." % (k, n, n))
         k = n - 2
         logger.warning("Instead, calculating %d eigenvectors." % k)
 
     if populations is None:
-        populations = np.real(scipy.sparse.linalg.eigs(t_matrix.T, k=1, which='LR')[1][:,0])
-        populations = populations / np.sum(populations)
+        populations = get_eigenvectors(t_matrix, 1, **kwargs)[1][:, 0]  # This should work for BOTH dense and sparse.
 
     # Get the left eigenvectors using the sparse hermetian eigensolver
     # on the symmemtrized transition matrix
     root_pi = populations**(0.5)
     root_pi_diag = scipy.sparse.diags(root_pi, offsets=0).tocsr()
     root_pi_diag_inv = scipy.sparse.diags(1.0 / root_pi, offsets=0).tocsr()
-    symtrans = root_pi_diag.dot(t_matrix).dot(root_pi_diag_inv)
+    symtrans = root_pi_diag.dot(scipy.sparse.csr_matrix(t_matrix)).dot(root_pi_diag_inv)  # Force temporary conversion to sparse
 
-    values, vectors = scipy.sparse.linalg.eigsh(symtrans.T, k=k, which='LA', **kwargs)
+    if scipy.sparse.issparse(t_matrix):
+        values, vectors = scipy.sparse.linalg.eigsh(symtrans.T, k=k, which='LA', **kwargs)
+    else:
+        values, vectors = np.linalg.eigh(symtrans.toarray().T)
 
     # Reorder the eigenpairs by descending eigenvalue
     order = np.argsort(-np.real(values))
@@ -119,7 +125,7 @@ def get_reversible_eigenvectors(t_matrix, k, populations=None, right=False, **kw
     # normalize the first eigenvector (populations)
     vectors[:, 0] /= np.sum(vectors[:, 0])
 
-    return np.real(values), np.real(vectors)
+    return np.real(values[0:k]), np.real(vectors[:, 0:k])
 
 
 def get_eigenvectors(t_matrix, n_eigs, epsilon=.001, dense_cutoff=50, right=False, tol=1E-30):
