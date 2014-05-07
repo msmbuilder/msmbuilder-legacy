@@ -59,7 +59,15 @@ def get_reversible_eigenvectors(t_matrix, k, populations=None, right=False,
     dense_cutoff : int, optional
         use dense eigensolver if dimensionality is below this
     normalized : bool, optional
-        normalize the vectors
+        normalize the vectors such that 
+        
+    .. math::
+        
+        \phi_i^T \psi_j = \delta_{ij}
+
+        where `phi_i` is the i'th left eigenvector, and `\psi_j` is the j'th
+        right eigenvector
+
 
     Other Parameters
     ----------------
@@ -105,16 +113,16 @@ def get_reversible_eigenvectors(t_matrix, k, populations=None, right=False,
         populations = get_eigenvectors(t_matrix, 1, **kwargs)[1][:, 0]  # This should work for BOTH dense and sparse.
 
     # Get the left eigenvectors using the sparse hermetian eigensolver
-    # on the symmemtrized transition matrix
+    # on the symmetrized transition matrix
     root_pi = populations**(0.5)
     root_pi_diag = scipy.sparse.diags(root_pi, offsets=0).tocsr()
     root_pi_diag_inv = scipy.sparse.diags(1.0 / root_pi, offsets=0).tocsr()
     symtrans = root_pi_diag.dot(scipy.sparse.csr_matrix(t_matrix)).dot(root_pi_diag_inv)  # Force temporary conversion to sparse
 
     if scipy.sparse.issparse(t_matrix):
-        values, vectors = scipy.sparse.linalg.eigsh(symtrans, k=k, which='LA', **kwargs)
+        values, vectors = scipy.sparse.linalg.eigsh(symtrans.T, k=k, which='LA', **kwargs)
     else:
-        values, vectors = np.linalg.eigh(symtrans.toarray())
+        values, vectors = np.linalg.eigh(symtrans.toarray().T)
 
     # Reorder the eigenpairs by descending eigenvalue
     order = np.argsort(-np.real(values))
@@ -130,7 +138,7 @@ def get_reversible_eigenvectors(t_matrix, k, populations=None, right=False,
 
     # normalize the left eigenvectors
     if normalized:
-        lenghts = np.sum(left_vectors * left_vectors / left_vectors[:, 0:1], axis=0, keepdims=True)
+        lengths = np.sum(left_vectors * left_vectors / left_vectors[:, 0:1], axis=0, keepdims=True)
         left_vectors = left_vectors / np.sqrt(lengths)
 
     if right:
@@ -161,7 +169,14 @@ def get_eigenvectors(t_matrix, n_eigs, epsilon=.001, dense_cutoff=50, right=Fals
     tol : float, optional
         Convergence criterion for sparse eigenvalue solver.
     normalized : bool, optional
-        normalize the vectors
+        normalize the vectors such that 
+        
+    .. math::
+        
+        \phi_i^T \psi_j = \delta_{ij}
+
+        where `phi_i` is the i'th left eigenvector, and `\psi_j` is the j'th
+        right eigenvector
 
     Returns
     -------
@@ -191,9 +206,8 @@ def get_eigenvectors(t_matrix, n_eigs, epsilon=.001, dense_cutoff=50, right=Fals
         n_eigs = n - 2
         logger.warning("Instead, calculating %d Eigenvectors." % n_eigs)
 
-    ## if we want the left eigenvectors, take the transpose
-    #if not right:
-    #    t_matrix = t_matrix.transpose()
+    # get the left eigenvectors
+    t_matrix = t_matrix.transpose()
 
     if scipy.sparse.issparse(t_matrix):
         values, vectors = scipy.sparse.linalg.eigs(t_matrix.tocsr(), n_eigs, which="LR", maxiter=100000,tol=tol)
@@ -207,7 +221,7 @@ def get_eigenvectors(t_matrix, n_eigs, epsilon=.001, dense_cutoff=50, right=Fals
     check_for_bad_eigenvalues(e_lambda, cutoff_value=1 - epsilon)  # this is bad IMO --TJL
 
     # normalize the first eigenvector (populations)
-    left_vectors[:, 0] /= sum(e_vectors[:, 0])
+    left_vectors[:, 0] /= sum(left_vectors[:, 0])
 
     if normalized:
         lengths = np.sum(left_vectors * left_vectors / left_vectors[:, 0:1], axis=0, keepdims=True)

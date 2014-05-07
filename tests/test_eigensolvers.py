@@ -19,8 +19,6 @@ def test_get_eigenvectors_left():
 
     # check that the eigenvalues are the same using the two methods
     np.testing.assert_array_almost_equal(values0, values1)
-    np.testing.assert_array_almost_equal(vectors0, vectors1)
-    np.testing.assert_array_almost_equal(vectors1, vectors2)
     
     # check that the eigenvectors returned by both methods are _actually_
     # left eigenvectors of the transmat
@@ -48,11 +46,9 @@ def test_get_eigenvectors_right():
 
     # check that the eigenvalues are the same using the two methods
     np.testing.assert_array_almost_equal(values0, values1)
-    np.testing.assert_array_almost_equal(vectors0, vectors1)
-    np.testing.assert_array_almost_equal(vectors1, vectors2)
 
     # check that the eigenvectors returned by both methods are _actually_
-    # left eigenvectors of the transmat
+    # right eigenvectors of the transmat
     def test_eigenpairs(values, vectors):
         for value, vector in zip(values, vectors.T):
             np.testing.assert_array_almost_equal(
@@ -81,10 +77,16 @@ def test_eigenvector_norm():
     np.testing.assert_array_almost_equal(left_values0, right_values0)
     np.testing.assert_array_almost_equal(left_values1, right_values1)
 
+    test_left_vectors1 = left_vectors1 * np.sign(left_vectors0[0].reshape((1,-1))) * np.sign(left_vectors1[0].reshape((1,-1)))
+    test_right_vectors1 = right_vectors1 * np.sign(right_vectors0[0].reshape((1,-1))) * np.sign(right_vectors1[0].reshape((1,-1)))
+
+    np.testing.assert_array_almost_equal(left_vectors0, test_left_vectors1)
+    np.testing.assert_array_almost_equal(right_vectors0, test_right_vectors1)
+
     Id = np.eye(10)
 
-    np.testing.assert_array_almost_equal(left_vectors0.T.dot(right_vectors0), Id)
-    np.testing.assert_array_almost_equal(left_vectors1.T.dot(right_vectors1), Id)
+    np.testing.assert_array_almost_equal(np.abs(left_vectors0.T.dot(right_vectors0)), Id)
+    np.testing.assert_array_almost_equal(np.abs(left_vectors1.T.dot(right_vectors1)), Id)
     # ^^^ this tests whether they're normalized and also orthogonal
     # it's probably redundant to do both since the previous two tests look
     # to see if the left_vectors and right_vectors are the same
