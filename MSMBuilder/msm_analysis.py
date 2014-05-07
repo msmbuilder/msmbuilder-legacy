@@ -35,6 +35,8 @@ logger = logging.getLogger(__name__)
 # Eigenvector calculation errors.  Useful if you need to process disconnected data.
 DisableErrorChecking = False
 
+# hi!
+
 def get_reversible_eigenvectors(t_matrix, k, populations=None, right=False, dense_cutoff=50, **kwargs):
     """Find the k largest left eigenvalues and eigenvectors of a reversible
     row-stochastic matrix, sorted by eigenvalue magnitude
