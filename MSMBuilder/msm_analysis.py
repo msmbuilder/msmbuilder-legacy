@@ -35,9 +35,8 @@ logger = logging.getLogger(__name__)
 # Eigenvector calculation errors.  Useful if you need to process disconnected data.
 DisableErrorChecking = False
 
-# hi!
-
-def get_reversible_eigenvectors(t_matrix, k, populations=None, right=False, dense_cutoff=50, **kwargs):
+def get_reversible_eigenvectors(t_matrix, k, populations=None, right=False, 
+    dense_cutoff=50, normalized=False, **kwargs):
     """Find the k largest left eigenvalues and eigenvectors of a reversible
     row-stochastic matrix, sorted by eigenvalue magnitude
 
@@ -59,6 +58,8 @@ def get_reversible_eigenvectors(t_matrix, k, populations=None, right=False, dens
         *right* eigenvectors.
     dense_cutoff : int, optional
         use dense eigensolver if dimensionality is below this
+    normalized : bool, optional
+        normalize the vectors
 
     Other Parameters
     ----------------
@@ -111,9 +112,9 @@ def get_reversible_eigenvectors(t_matrix, k, populations=None, right=False, dens
     symtrans = root_pi_diag.dot(scipy.sparse.csr_matrix(t_matrix)).dot(root_pi_diag_inv)  # Force temporary conversion to sparse
 
     if scipy.sparse.issparse(t_matrix):
-        values, vectors = scipy.sparse.linalg.eigsh(symtrans.T, k=k, which='LA', **kwargs)
+        values, vectors = scipy.sparse.linalg.eigsh(symtrans, k=k, which='LA', **kwargs)
     else:
-        values, vectors = np.linalg.eigh(symtrans.toarray().T)
+        values, vectors = np.linalg.eigh(symtrans.toarray())
 
     # Reorder the eigenpairs by descending eigenvalue
     order = np.argsort(-np.real(values))
@@ -122,15 +123,26 @@ def get_reversible_eigenvectors(t_matrix, k, populations=None, right=False, dens
 
     # the eigenvectors of symtrans are a rotated version of the eigenvectors
     # of transmat that we want
-    vectors = (root_pi * vectors.T).T
+    left_vectors = (root_pi * vectors.T).T
 
     # normalize the first eigenvector (populations)
-    vectors[:, 0] /= np.sum(vectors[:, 0])
+    left_vectors[:, 0] /= np.sum(left_vectors[:, 0])
 
-    return np.real(values[0:k]), np.real(vectors[:, 0:k])
+    # normalize the left eigenvectors
+    if normalized:
+        lenghts = np.sum(left_vectors * left_vectors / left_vectors[:, 0:1], axis=0, keepdims=True)
+        left_vectors = left_vectors / np.sqrt(lengths)
+
+    if right:
+        right_vectors = left_vectors / left_vectors[:, 0:1]
+        return np.real(values[0:k]), np.real(right_vectors[:, 0:k])
+
+    else:
+        return np.real(values[0:k]), np.real(left_vectors[:, 0:k])
 
 
-def get_eigenvectors(t_matrix, n_eigs, epsilon=.001, dense_cutoff=50, right=False, tol=1E-30):
+def get_eigenvectors(t_matrix, n_eigs, epsilon=.001, dense_cutoff=50, right=False, 
+    tol=1E-30, normalized=False):
     """Get the left eigenvectors of a transition matrix, sorted by
     eigenvalue magnitude
 
@@ -148,7 +160,8 @@ def get_eigenvectors(t_matrix, n_eigs, epsilon=.001, dense_cutoff=50, right=Fals
         if true, compute the right eigenvectors instead of the left
     tol : float, optional
         Convergence criterion for sparse eigenvalue solver.
-
+    normalized : bool, optional
+        normalize the vectors
 
     Returns
     -------
@@ -178,9 +191,9 @@ def get_eigenvectors(t_matrix, n_eigs, epsilon=.001, dense_cutoff=50, right=Fals
         n_eigs = n - 2
         logger.warning("Instead, calculating %d Eigenvectors." % n_eigs)
 
-    # if we want the left eigenvectors, take the transpose
-    if not right:
-        t_matrix = t_matrix.transpose()
+    ## if we want the left eigenvectors, take the transpose
+    #if not right:
+    #    t_matrix = t_matrix.transpose()
 
     if scipy.sparse.issparse(t_matrix):
         values, vectors = scipy.sparse.linalg.eigs(t_matrix.tocsr(), n_eigs, which="LR", maxiter=100000,tol=tol)
@@ -189,12 +202,23 @@ def get_eigenvectors(t_matrix, n_eigs, epsilon=.001, dense_cutoff=50, right=Fals
 
     order = np.argsort(-np.real(values))
     e_lambda = values[order]
-    e_vectors = vectors[:, order]
+    left_vectors = vectors[:, order]
 
     check_for_bad_eigenvalues(e_lambda, cutoff_value=1 - epsilon)  # this is bad IMO --TJL
 
     # normalize the first eigenvector (populations)
-    e_vectors[:, 0] /= sum(e_vectors[:, 0])
+    left_vectors[:, 0] /= sum(e_vectors[:, 0])
+
+    if normalized:
+        lengths = np.sum(left_vectors * left_vectors / left_vectors[:, 0:1], axis=0, keepdims=True)
+        left_vectors = left_vectors / np.sqrt(lengths)
+
+    if right:
+        right_vectors = left_vectors / left_vectors[:, 0:1]
+        e_vectors = right_vectors
+
+    else:
+        e_vectors = left_vectors
 
     e_lambda = np.real(e_lambda[0: n_eigs])
     e_vectors = np.real(e_vectors[:, 0: n_eigs])
