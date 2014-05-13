@@ -37,7 +37,7 @@ DisableErrorChecking = False
 
 def get_reversible_eigenvectors(t_matrix, k, populations=None, right=False, 
     dense_cutoff=50, normalized=False, **kwargs):
-    """Find the k largest left eigenvalues and eigenvectors of a reversible
+    r"""Find the k largest left eigenvalues and eigenvectors of a reversible
     row-stochastic matrix, sorted by eigenvalue magnitude
 
     Parameters
@@ -61,34 +61,45 @@ def get_reversible_eigenvectors(t_matrix, k, populations=None, right=False,
     normalized : bool, optional
         normalize the vectors such that 
         
-    .. math::
+        .. math::
         
-        \phi_i^T \psi_j = \delta_{ij}
+            \phi_i^T \psi_j = \delta_{ij}
 
-        where `phi_i` is the i'th left eigenvector, and `\psi_j` is the j'th
-        right eigenvector
+        where :math:`\phi_i` is the :math:`i^{th}` left eigenvector, 
+        and :math:`\psi_j` is the :math:`j^{th}` right eigenvector
 
 
     Other Parameters
     ----------------
-    Additional keyword arguments are passed directly to scipy.sparse.linalg.eigsh.
-    Refer to the scipy documentation for further details.
+    **kwargs 
+        Additional keyword arguments are passed directly to ``scipy.sparse.linalg.eigsh``.
+        Refer to the scipy documentation for further details.
+
+
+    Returns
+    -------
+    eigenvalues : ndarray
+        1D array of eigenvalues
+    eigenvectors : ndarray
+        2D array of eigenvectors
+
 
     Notes
     -----
-    A reversible transition matrix is one that satisifies the detailed balance
-    condition
+    - A reversible transition matrix is one that satisifies the detailed balance
+      condition
 
-    .. math::
+      .. math::
 
-        \pi_i T_{i,j} = \pi_j T_{j,i}
+          \pi_i T_{i,j} = \pi_j T_{j,i}
 
-    A reversible transition matrix satisifies a number of special
-    conditions. In particular, it is simmilar to a symmetric matrix
-    :math:`S_{i, j} = \sqrt{\frac{pi_i}{\pi_j}} T_{i, j} = S_{j, i}`.
-    This property enables a much more robust solution to the eigenvector
-    problem, because of the superior numerical stability of hermetian
-    eigensolvers.
+    - A reversible transition matrix satisifies a number of special
+      conditions. In particular, it is similar to a symmetric matrix
+      :math:`S_{i, j} = \sqrt{\frac{pi_i}{\pi_j}} T_{i, j} = S_{j, i}`.
+      This property enables a much more robust solution to the eigenvector
+      problem, because of the superior numerical stability of hermetian
+      eigensolvers.
+
 
     See Also
     --------
@@ -171,12 +182,13 @@ def get_eigenvectors(t_matrix, n_eigs, epsilon=.001, dense_cutoff=50, right=Fals
     normalized : bool, optional
         normalize the vectors such that 
         
-    .. math::
+        .. math::
         
-        \phi_i^T \psi_j = \delta_{ij}
+            \phi_i^T \psi_j = \delta_{ij}
 
-        where `phi_i` is the i'th left eigenvector, and `\psi_j` is the j'th
-        right eigenvector
+        where :math:`\phi_i` is the :math`i^{th}` left eigenvector, and :math:`\psi_j` 
+        is the :math:`j^{th}` right eigenvector
+
 
     Returns
     -------
@@ -185,11 +197,12 @@ def get_eigenvectors(t_matrix, n_eigs, epsilon=.001, dense_cutoff=50, right=Fals
     eigenvectors : ndarray
         2D array of eigenvectors
 
+
     Notes
     -----
-    Left eigenvectors satisfy the relation :math:`V \mathbf{T} = \lambda V`
-    Vectors are returned in columns of matrix.
-    Too large a value of tol may lead to unstable results.  See GitHub issue #174.
+    - Left eigenvectors satisfy the relation :math:`V \mathbf{T} = \lambda V`
+    - Vectors are returned in columns of matrix.
+    - Too large a value of tol may lead to unstable results.  See GitHub issue #174.
     """
 
     check_transition(t_matrix, epsilon)
