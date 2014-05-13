@@ -35,8 +35,9 @@ logger = logging.getLogger(__name__)
 # Eigenvector calculation errors.  Useful if you need to process disconnected data.
 DisableErrorChecking = False
 
-def get_reversible_eigenvectors(t_matrix, k, populations=None, right=False, dense_cutoff=50, **kwargs):
-    """Find the k largest left eigenvalues and eigenvectors of a reversible
+def get_reversible_eigenvectors(t_matrix, k, populations=None, right=False, 
+    dense_cutoff=50, normalized=False, **kwargs):
+    r"""Find the k largest left eigenvalues and eigenvectors of a reversible
     row-stochastic matrix, sorted by eigenvalue magnitude
 
     Parameters
@@ -57,27 +58,48 @@ def get_reversible_eigenvectors(t_matrix, k, populations=None, right=False, dens
         *right* eigenvectors.
     dense_cutoff : int, optional
         use dense eigensolver if dimensionality is below this
+    normalized : bool, optional
+        normalize the vectors such that 
+        
+        .. math::
+        
+            \phi_i^T \psi_j = \delta_{ij}
+
+        where :math:`\phi_i` is the :math:`i^{th}` left eigenvector, 
+        and :math:`\psi_j` is the :math:`j^{th}` right eigenvector
+
 
     Other Parameters
     ----------------
-    Additional keyword arguments are passed directly to scipy.sparse.linalg.eigsh.
-    Refer to the scipy documentation for further details.
+    **kwargs 
+        Additional keyword arguments are passed directly to ``scipy.sparse.linalg.eigsh``.
+        Refer to the scipy documentation for further details.
+
+
+    Returns
+    -------
+    eigenvalues : ndarray
+        1D array of eigenvalues
+    eigenvectors : ndarray
+        2D array of eigenvectors
+
 
     Notes
     -----
-    A reversible transition matrix is one that satisifies the detailed balance
-    condition
+    - A reversible transition matrix is one that satisifies the detailed balance
+      condition
 
-    .. math::
+      .. math::
 
-        \pi_i T_{i,j} = \pi_j T_{j,i}
+          \pi_i T_{i,j} = \pi_j T_{j,i}
 
-    A reversible transition matrix satisifies a number of special
-    conditions. In particular, it is simmilar to a symmetric matrix
-    :math:`S_{i, j} = \sqrt{\frac{pi_i}{\pi_j}} T_{i, j} = S_{j, i}`.
-    This property enables a much more robust solution to the eigenvector
-    problem, because of the superior numerical stability of hermetian
-    eigensolvers.
+    - A reversible transition matrix satisifies a number of special
+      conditions. In particular, it is similar to a symmetric matrix
+      :math:`S_{i, j} = \sqrt{\frac{pi_i}{\pi_j}} T_{i, j} = S_{j, i}`.
+      This property enables a much more robust solution to the eigenvector
+      problem, because of the superior numerical stability of hermetian
+      eigensolvers.
+
 
     See Also
     --------
@@ -102,7 +124,7 @@ def get_reversible_eigenvectors(t_matrix, k, populations=None, right=False, dens
         populations = get_eigenvectors(t_matrix, 1, **kwargs)[1][:, 0]  # This should work for BOTH dense and sparse.
 
     # Get the left eigenvectors using the sparse hermetian eigensolver
-    # on the symmemtrized transition matrix
+    # on the symmetrized transition matrix
     root_pi = populations**(0.5)
     root_pi_diag = scipy.sparse.diags(root_pi, offsets=0).tocsr()
     root_pi_diag_inv = scipy.sparse.diags(1.0 / root_pi, offsets=0).tocsr()
@@ -120,15 +142,26 @@ def get_reversible_eigenvectors(t_matrix, k, populations=None, right=False, dens
 
     # the eigenvectors of symtrans are a rotated version of the eigenvectors
     # of transmat that we want
-    vectors = (root_pi * vectors.T).T
+    left_vectors = (root_pi * vectors.T).T
 
     # normalize the first eigenvector (populations)
-    vectors[:, 0] /= np.sum(vectors[:, 0])
+    left_vectors[:, 0] /= np.sum(left_vectors[:, 0])
 
-    return np.real(values[0:k]), np.real(vectors[:, 0:k])
+    # normalize the left eigenvectors
+    if normalized:
+        lengths = np.sum(left_vectors * left_vectors / left_vectors[:, 0:1], axis=0, keepdims=True)
+        left_vectors = left_vectors / np.sqrt(lengths)
+
+    if right:
+        right_vectors = left_vectors / left_vectors[:, 0:1]
+        return np.real(values[0:k]), np.real(right_vectors[:, 0:k])
+
+    else:
+        return np.real(values[0:k]), np.real(left_vectors[:, 0:k])
 
 
-def get_eigenvectors(t_matrix, n_eigs, epsilon=.001, dense_cutoff=50, right=False, tol=1E-30):
+def get_eigenvectors(t_matrix, n_eigs, epsilon=.001, dense_cutoff=50, right=False, 
+    tol=1E-30, normalized=False):
     """Get the left eigenvectors of a transition matrix, sorted by
     eigenvalue magnitude
 
@@ -146,6 +179,15 @@ def get_eigenvectors(t_matrix, n_eigs, epsilon=.001, dense_cutoff=50, right=Fals
         if true, compute the right eigenvectors instead of the left
     tol : float, optional
         Convergence criterion for sparse eigenvalue solver.
+    normalized : bool, optional
+        normalize the vectors such that 
+        
+        .. math::
+        
+            \phi_i^T \psi_j = \delta_{ij}
+
+        where :math:`\phi_i` is the :math`i^{th}` left eigenvector, and :math:`\psi_j` 
+        is the :math:`j^{th}` right eigenvector
 
 
     Returns
@@ -155,11 +197,12 @@ def get_eigenvectors(t_matrix, n_eigs, epsilon=.001, dense_cutoff=50, right=Fals
     eigenvectors : ndarray
         2D array of eigenvectors
 
+
     Notes
     -----
-    Left eigenvectors satisfy the relation :math:`V \mathbf{T} = \lambda V`
-    Vectors are returned in columns of matrix.
-    Too large a value of tol may lead to unstable results.  See GitHub issue #174.
+    - Left eigenvectors satisfy the relation :math:`V \mathbf{T} = \lambda V`
+    - Vectors are returned in columns of matrix.
+    - Too large a value of tol may lead to unstable results.  See GitHub issue #174.
     """
 
     check_transition(t_matrix, epsilon)
@@ -176,9 +219,8 @@ def get_eigenvectors(t_matrix, n_eigs, epsilon=.001, dense_cutoff=50, right=Fals
         n_eigs = n - 2
         logger.warning("Instead, calculating %d Eigenvectors." % n_eigs)
 
-    # if we want the left eigenvectors, take the transpose
-    if not right:
-        t_matrix = t_matrix.transpose()
+    # get the left eigenvectors
+    t_matrix = t_matrix.transpose()
 
     if scipy.sparse.issparse(t_matrix):
         values, vectors = scipy.sparse.linalg.eigs(t_matrix.tocsr(), n_eigs, which="LR", maxiter=100000,tol=tol)
@@ -187,12 +229,23 @@ def get_eigenvectors(t_matrix, n_eigs, epsilon=.001, dense_cutoff=50, right=Fals
 
     order = np.argsort(-np.real(values))
     e_lambda = values[order]
-    e_vectors = vectors[:, order]
+    left_vectors = vectors[:, order]
 
     check_for_bad_eigenvalues(e_lambda, cutoff_value=1 - epsilon)  # this is bad IMO --TJL
 
     # normalize the first eigenvector (populations)
-    e_vectors[:, 0] /= sum(e_vectors[:, 0])
+    left_vectors[:, 0] /= sum(left_vectors[:, 0])
+
+    if normalized:
+        lengths = np.sum(left_vectors * left_vectors / left_vectors[:, 0:1], axis=0, keepdims=True)
+        left_vectors = left_vectors / np.sqrt(lengths)
+
+    if right:
+        right_vectors = left_vectors / left_vectors[:, 0:1]
+        e_vectors = right_vectors
+
+    else:
+        e_vectors = left_vectors
 
     e_lambda = np.real(e_lambda[0: n_eigs])
     e_vectors = np.real(e_vectors[:, 0: n_eigs])
