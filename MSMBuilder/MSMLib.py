@@ -1235,6 +1235,6 @@ class __Reversible_MLE_Estimator__():
         logger.info("BFGS likelihood maximization terminated after %d function calls.  Initial and final log likelihoods: %f, %f." %
                     (info_dict["funcalls"], initial_log_likelihood, final_log_likelihood))
         if info_dict["warnflag"] != 0:
-            logger.warn("Abnormal termination of BFGS likelihood maximization.  Error code %d" %
+            logger.warning("Abnormal termination of BFGS likelihood maximization.  Error code %d" %
                         info_dict["warnflag"])
         return X
