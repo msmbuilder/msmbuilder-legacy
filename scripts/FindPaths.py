@@ -19,8 +19,6 @@
 
 # TJL 2011, PANDE GROUP
 
-import os
-import sys
 import numpy as np
 import logging
 import scipy.io
@@ -31,7 +29,7 @@ logger = logging.getLogger('msmbuilder.scripts.FindPaths')
 
 
 parser = arglib.ArgumentParser(description=
-                               """Finds the highest flux paths through an MSM.
+"""Finds the highest flux paths through an MSM.
 Returns: an HDF5 file (default: Paths.h5), which contains three items:
 (1) The highest flux pathways (a list of ints)
 (2) The bottlenecks in these pathways (a list of 2-tuples)
@@ -52,7 +50,7 @@ parser.add_argument('output', default='Paths.h5')
 
 def run(tprob, A, B, n):
 
-    (Paths, Bottlenecks, Fluxes) = tpt.find_top_paths(A, B, tprob, num_paths=n)
+    Paths, Bottlenecks, Fluxes = tpt.find_top_paths(A, B, tprob, num_paths=n)
 
     # We have to pad the paths with -1s to make a square array
     maxi = 0  # the maximum path length
@@ -88,8 +86,7 @@ def entry_point():
     arglib.die_if_path_exists(args.output)
     paths, bottlenecks, fluxes = run(tprob, U, F, args.number)
 
-    msmbuilder.io.saveh(
-        args.output, Paths=paths, Bottlenecks=bottlenecks, fluxes=fluxes)
+    io.saveh(args.output, Paths=paths, Bottlenecks=bottlenecks, fluxes=fluxes)
     logger.info('Saved output to %s', args.output)
 
 if __name__ == "__main__":
