@@ -1,0 +1,28 @@
+
+HUB SCORE REFERENCE DATA FOR UNIT TEST
+--------------------------------------
+
+Data provided by Alex Dickson, deposted by TJL (9.14.12). Here is his msg
+regarding the format of the data.
+
+"Here's a test case.  It is a 11-node network with cuu = 0.5.
+
+node_1.csv and edge_1.csv are data files to plot the network,
+hub_msm_1.dat has the hub scores (format:  "node weight hubscore"),
+hub_msm_data_1.dat has the h_c values  (format:  "node from to fraction"),
+ratemat_1.dat is the rate matrix (column index = "to", row index = "from").
+
+(for the purposes of the paper, index 0 is the "folded" state)
+
+Let me know if you have any problems, or if everything turns out well :)
+
+-Alex"
+
+TJL renamed the following files:
+
+hub_msm_1.dat      --> hub_scores.dat
+hub_msm_data_1.dat --> fraction_visited.dat
+
+which is a little clearer in his mind.
+
+
