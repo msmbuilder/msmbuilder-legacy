@@ -40,7 +40,7 @@ def entry_point():
     sampled_traj = project.get_random_confs_from_states(
         assignments, state_traj, 1)
     traj = sampled_traj[0]
-    traj["XYZList"] = np.array([t["XYZList"][0] for t in sampled_traj])
+    traj = traj.join(sampled_traj[1:])
     traj.save(args.output)
 
 if __name__ == '__main__':
