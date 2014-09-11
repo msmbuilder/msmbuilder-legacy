@@ -18,7 +18,7 @@ import tempfile
 import shutil
 import subprocess
 from glob import glob
-from distutils.version import StrictVersion
+from distutils.version import LooseVersion
 from distutils.command.build_scripts import build_scripts
 from setuptools import setup
 PY3 = sys.version_info >= (3,0)
@@ -46,7 +46,7 @@ def warn_on_version(module_name, minimum=None, package_name=None, recommend_cond
                 v = package.version.short_version
             except AttributeError:
                 v = package.__version__
-            if StrictVersion(v) < StrictVersion(minimum):
+            if LooseVersion(v) < LooseVersion(minimum):
                 raise VersionError
     except ImportError:
         if minimum is None:
