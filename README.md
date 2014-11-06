@@ -1,6 +1,6 @@
 ## MSMBuilder: Extensible Software for Building Markov State Models for Biomolecular Conformational Dynamics
 
-[![Build Status](https://travis-ci.org/SimTk/msmbuilder.png)](https://travis-ci.org/SimTk/msmbuilder)
+[![Build Status](https://travis-ci.org/pandegroup/msmbuilder.png)](https://travis-ci.org/pandegroup/msmbuilder)
 
 Usage
 -----
@@ -29,7 +29,7 @@ Have you found a bug? Do you have an idea for a great new feature, or a gripe ab
 one? Have you written some code that you'd like to contribute to MSMBuilder? Awesome! We'd love
 to have your contribution! 
 
-MSMBuilder is [hosted](https://github.com/SimTk/msmbuilder) on GitHub. Filing an issue such as a
+MSMBuilder is [hosted](https://github.com/pandegroup/msmbuilder) on GitHub. Filing an issue such as a
 bug report or feature request is easy and will contribute to the future development of MSMBuilder.
 Contributing code is easy too, just fork the repository and then submit a pull request.
 A few guidelines on contributing can be found [here](http://msmbuilder.org/developer.html). 
