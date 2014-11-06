@@ -38,6 +38,7 @@ References
        Chem. Phys. 130, 205102 (2009).
 """
 from __future__ import print_function, division, absolute_import
+from mdtraj.utils.six.moves import xrange
 import numpy as np
 import scipy.sparse
 
