@@ -33,9 +33,7 @@ parser = arglib.ArgumentParser(description=
 Returns: an HDF5 file (default: Paths.h5), which contains three items:
 (1) The highest flux pathways (a list of ints)
 (2) The bottlenecks in these pathways (a list of 2-tuples)
-(3) The flux of each pathway
-
-Paths.h5 can be read by RenderPaths.py which generates a .dot file capturing these paths.""")
+(3) The flux of each pathway""")
 
 parser.add_argument('number', help='''Number of pathways you want
     to retreive''', type=int)
