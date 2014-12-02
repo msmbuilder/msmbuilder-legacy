@@ -19,5 +19,5 @@ for dirpath, dirnames, filenames in os.walk(root):
         fn = os.path.join(dirpath, filename)
         print 'Uploading', fn, '...'
         k = Key(bucket)
-        k.key = os.path.relpath(fn, root)
+        k.key = os.path.join('legacy', os.path.relpath(fn, root))
         k.set_contents_from_filename(fn)
