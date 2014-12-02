@@ -30,6 +30,6 @@ script:
     - python setup.py -q install
     - pydir=$(which python); $(dirname $pydir)/nosetests -vv
 
-after_success:
-  - echo "after_success"
-  - bash tools/ci/after_sucess.sh
+#after_success:
+#  - echo "after_success"
+#  - bash tools/ci/after_sucess.sh
