@@ -1,10 +1,10 @@
 ## MSMBuilder: Extensible Software for Building Markov State Models for Biomolecular Conformational Dynamics
 
-[![Build Status](https://travis-ci.org/pandegroup/msmbuilder.png)](https://travis-ci.org/pandegroup/msmbuilder)
+[![Build Status](https://travis-ci.org/msmbuilder/msmbuilder-legacy.png)](https://travis-ci.org/msmbuilder/msmbuilder-legacy)
 
-Usage
------
-See [msmbuilder.org](http://www.msmbuilder.org) for complete installation and usage instructions.
+Notice
+------
+MSMBuilder 2.0 is now deprecated. New features and bugfixes will not be implemented here. You can find MSMBuilder 3.0 at [github.com](http://www.github.com/msmbuilder/msmbuilder).
 
 Installation
 ------------
