@@ -32,4 +32,5 @@ script:
 
 after_success:
   - echo "after_success"
+  - pip install msmb_theme
   - bash tools/ci/after_sucess.sh
