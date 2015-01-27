@@ -126,7 +126,7 @@ class tICA(AbstractDimReduction):
 
         self.size = size
         if not self.size is None:
-            self.initialze(size)
+            self.initialize(size)
 
         # containers for the solutions:
         self.timelag_corr_mat = None
