@@ -7,6 +7,7 @@ import numpy as np
 import tables
 import warnings
 from mdtraj import io
+from msmbuilder import MSMLib as msmlib
 import logging
 logger = logging.getLogger(__name__)
 
@@ -240,3 +241,53 @@ def streaming_assign_with_checkpoint(metric, project, generators, assignments_pa
                    "-- this function is deprecated"), DeprecationWarning)
     assign_with_checkpoint(metric, project, generators, assignments_path,
                            distances_path, chunk_size, atom_indices_to_load)
+
+
+def outer_product_assignment(assign1, assign2):
+    """Combine the results of two clusterings.
+
+    Specifically, if a conformation is in state i after clustering
+    with metric 1, and it is in state j after clustering with metric 2,
+    we assign it to a new state (ij)
+
+    This is a naive way of combining two metrics to give a singular
+    assignment of states.
+
+    Parameters
+    ----------
+    assign1 : np.ndarray
+        Assignment array 1
+    assign2 : np.ndarray
+        Assignment array 2
+
+    Returns
+    ----------
+    new_assign : np.ndarray
+        New assignments array, renumbered from 0 ... N-1, N <= n1 * n2
+    """
+
+    assert assign1.shape == assign2.shape, """Assignments must be
+        for the same set of trajectories."""
+    new_assign = -1 * np.ones_like(assign1, dtype=np.int)
+
+    nstates1 = np.max(assign1) + 1
+    nstates2 = np.max(assign2) + 1
+
+    translations = np.reshape(np.arange(nstates1 * nstates2),
+                              (nstates1, nstates2))
+
+    ass_shape = assign1.shape
+    for i in xrange(ass_shape[0]):
+        for j in xrange(ass_shape[1]):
+            # TODO: vectorize this loop
+            if assign1[i, j] == -1:
+                # No assignment here
+                assert assign2[i, j] == -1, """Assignments must be for
+                    the same set of trajectories."""
+            else:
+                new_assign[i, j] = translations[assign1[i, j], assign2[i, j]]
+
+    # Renumber states in place
+    msmlib.renumber_states(new_assign)
+    return new_assign
+

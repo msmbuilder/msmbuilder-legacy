@@ -20,6 +20,7 @@
 __all__ = [
  'Assign',
  'AssignHierarchical',
+ 'AssignOuter',
  'BACE_Coarse_Graining',
  'BuildMSM',
  'CalculateClusterRadii',

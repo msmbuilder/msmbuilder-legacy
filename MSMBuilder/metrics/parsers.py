@@ -10,7 +10,7 @@ from msmbuilder.reduce import tICA
 from msmbuilder.metrics import (RMSD, Dihedral, BooleanContact,
                                 AtomPairs, ContinuousContact,
                                 AbstractDistanceMetric, Vectorized,
-                                RedDimPNorm, Positions)
+                                RedDimPNorm, Positions, SolventFp)
 
 
 def add_argument(group, *args, **kwargs):
@@ -21,8 +21,6 @@ def add_argument(group, *args, **kwargs):
         else:
             kwargs['help'] = d
     group.add_argument(*args, **kwargs)
-
-################################################################################
 
 
 def locate_metric_plugins(name):
@@ -39,7 +37,7 @@ def add_metric_parsers(parser):
 
     metric_subparser = parser.add_subparsers(dest='metric', description='Available metrics to use.')
 
-    #metrics_parsers = parser.add_subparsers(description='Available metrics to use.',dest='metric')
+    # metrics_parsers = parser.add_subparsers(description='Available metrics to use.',dest='metric')
     rmsd = metric_subparser.add_parser('rmsd',
                                        description='''RMSD: Root mean square deviation over a set of user defined atoms
         (typically backbone heavy atoms or alpha carbons). To evaluate the distance
@@ -80,7 +78,7 @@ def add_metric_parsers(parser):
         Furthermore, the sense in which the distance between two residues is computed can be
         either specified as "CA", "closest", or "closest-heavy", which will respectively compute
         ("CA") the distance between the residues' alpha carbons, ("closest"), the closest distance between any pair of
-        atoms i and j such that i belongs to one residue and j to the other residue, ("closest-heavy"), 
+        atoms i and j such that i belongs to one residue and j to the other residue, ("closest-heavy"),
         or the closest distance between any pair of NON-HYDROGEN atoms i and j such that i belongs to
         one residue and j to the other residue. This code is executed in parallel on multiple cores (but
         not multiple boxes) using OMP.''')
@@ -106,6 +104,21 @@ def add_metric_parsers(parser):
                  help='which distance metric', choices=AtomPairs.allowable_scipy_metrics)
     metric_parser_list.append(atompairs)
 
+    solventfp = metric_subparser.add_parser('solventfp', description="""SOLVENTFP: For each frame
+        calculate a 'solvent fingerprint' by considering the weighted pairwise distances
+        between solute and solvent atoms as in as in Gu et al. BMC Bioinformatics 2013, 14(Suppl 2):S8.""")
+    add_argument(solventfp, '-w', dest='solventfp_wateri', default='WaterIndices.dat',
+                help='Indices of the solvent (water) atoms')
+    add_argument(solventfp, '-v', dest='solventfp_proti', default='ProteinIndices.dat',
+                help='Indices of the solute (protein) atoms')
+    add_argument(solventfp, '-s', dest='solventfp_sigma', default=0.5,
+                 type=float, help='std. dev. of gaussian kernel')
+    add_argument(solventfp, '-p', dest='solventfp_p', default=2,
+                 help='p used for metric=minkowski (otherwise ignored)')
+    add_argument(solventfp, '-m', dest='solventfp_metric', default='euclidean',
+        help='which distance metric', choices=SolventFp.allowable_scipy_metrics)
+    metric_parser_list.append(solventfp)
+
     positions = metric_subparser.add_parser('positions', description="""POSITIONS: For each frame
         we represent the conformation as a vector of atom positions, where the atoms have been
         aligned to a target structure.""")
@@ -121,10 +134,10 @@ def add_metric_parsers(parser):
                  help='which distance metric', choices=Positions.allowable_scipy_metrics)
     metric_parser_list.append(positions)
 
-    tica = metric_subparser.add_parser( 'tica', description='''
+    tica = metric_subparser.add_parser('tica', description='''
         tICA: This metric is based on a variation of PCA which looks for the slowest d.o.f.
         in the simulation data. See (Schwantes, C.R., Pande, V.S. JCTC 2013, 9 (4), 2000-09.)
-        for more details. In addition to these options, you must provide an additional 
+        for more details. In addition to these options, you must provide an additional
         metric you used to prepare the trajectories in the training step.''')
 
     add_argument(tica, '-p', dest='p', help='p value for p-norm')
@@ -212,6 +225,15 @@ def construct_metric(args):
 
         metric = Positions(target, atom_indices=atom_indices, align_indices=align_indices,
                            metric=args.positions_metric, p=args.positions_p)
+
+    elif metric_name == 'solventfp':
+        proti = np.loadtxt(args.solventfp_proti, np.int)
+        wateri = np.loadtxt(args.solventfp_wateri, np.int)
+        metric = SolventFp(solute_indices=proti,
+                           solvent_indices=wateri,
+                           sigma=args.solventfp_sigma,
+                           metric=args.solventfp_metric,
+                           p=args.solventfp_p)
 
     elif metric_name == "tica":
         tica_obj = tICA.load(args.tica_fn)

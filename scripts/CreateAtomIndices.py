@@ -17,7 +17,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-from __future__ import print_function
 import sys
 import logging
 import numpy as np
@@ -26,21 +25,26 @@ import mdtraj as md
 logger = logging.getLogger('msmbuilder.scripts.CreateAtomIndices')
 
 
+
 parser = arglib.ArgumentParser(
     description="Creates an atom indices file for RMSD from a PDB.")
 parser.add_argument('pdb')
 parser.add_argument('output', default='AtomIndices.dat')
 parser.add_argument('atom_type', help='''Atoms to include in index file.
+
     One of four options: (1) minimal (CA, CB, C, N, O, recommended), (2) heavy,
-    (3) alpha (carbons), or (4) all.  Use "all" in cases where protein
-    nomenclature may be inapproprate, although you may want to define your own
-    indices in such situations.  Note that "heavy" keeps all heavy atoms that
+    (3) alpha (carbons), (4) water (water oxygens), or (5) all.  Use "all"
+    in cases where protein nomenclature may be inapproprate, although you
+    may want to define your own indices in such situations.
+    Note that "heavy" keeps all heavy atoms that
     are not symmetry equivalent.  By symmetry equivalent, we mean atoms
     identical under an exchange of labels.  For example, heavy will exclude
-    the two pairs of equivalent carbons (CD, CE) in a PHE ring.    
-    Note that AtomIndices.dat should be zero-indexed--that is, a 0 
+    the two pairs of equivalent carbons (CD, CE) in a PHE ring.
+    Note that AtomIndices.dat should be zero-indexed--that is, a 0
     in AtomIndices.dat corresponds to the first atom in your PDB''',
-                    choices=['minimal', 'heavy', 'alpha', 'all'], default='minimal')
+                    choices=['minimal', 'heavy', 'alpha', 'all', 'water'],
+                    default='minimal')
+
 
 
 def run(PDBfn, atomtype):
@@ -123,6 +127,7 @@ def run(PDBfn, atomtype):
         "CNLE": ["N", "CA", "CB", "C", "O", "CG", "CD", "CE"],
         "NNLE": ["N", "CA", "CB", "C", "O", "CG", "CD", "CE"],
         "SOL": [],
+        "HOH": [],
         "Cl-": [],
         "Na+": []
     }
@@ -136,6 +141,13 @@ def run(PDBfn, atomtype):
     elif atomtype == 'alpha':
         for key in toKeepDict.keys():
             toKeepDict[key] = ["CA"]
+    elif atomtype == 'water':
+        # Note: we only keep water oxygens
+        for key in toKeepDict.keys():
+            if key == "SOL" or key == 'HOH':
+                toKeepDict[key] = ["O"]
+            else:
+                toKeepDict[key] = []
     elif atomtype == "all":
         pass
     else:
@@ -152,6 +164,7 @@ def run(PDBfn, atomtype):
     indices = [a.index for a in pdb.topology.atoms if selector(a)]
     return np.array(indices)
 
+
 def entry_point():
     args = parser.parse_args()
     arglib.die_if_path_exists(args.output)
@@ -161,4 +174,3 @@ def entry_point():
 
 if __name__ == "__main__":
     entry_point()
-
