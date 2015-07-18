@@ -46,45 +46,35 @@ parser.add_argument('ending', help='''Vector of states in the
 parser.add_argument('output', default='Paths.h5')
 
 
-def run(tprob, A, B, n):
+def run(tprob, sources, sinks, num_paths):
 
-    Paths, Bottlenecks, Fluxes = tpt.find_top_paths(A, B, tprob, num_paths=n)
+    net_flux = tpt.calculate_net_fluxes(sources, sinks, tprob)
+
+    paths, fluxes = tpt.get_paths(sources, sinks, net_flux, num_paths=num_paths)
 
     # We have to pad the paths with -1s to make a square array
-    maxi = 0  # the maximum path length
-    for path in Paths:
-        if len(path) > maxi:
-            maxi = len(path)
-    PaddedPaths = -1 * np.ones((len(Paths), maxi))
-    for i, path in enumerate(Paths):
-        PaddedPaths[i, :len(path)] = np.array(path)
+    max_length = np.max([len(p) for p in paths])
 
-    return PaddedPaths, np.array(Bottlenecks), np.array(Fluxes)
+    padded_paths = -1 * np.ones((len(paths), max_length))
+    for i, path in enumerate(paths):
+        padded_paths[i, :len(path)] = np.array(path)
+
+    return padded_paths, np.array(fluxes)
 
 
 def entry_point():
     args = parser.parse_args()
 
-    F = np.loadtxt(args.ending).astype(int)
-    U = np.loadtxt(args.starting).astype(int)
+    sinks = np.loadtxt(args.ending).astype(int).reshape((-1,))
+    sources = np.loadtxt(args.starting).astype(int).reshape((-1,))
+    # .reshape((-1,)) ensures that a single number turns into an array with a shape
+
     tprob = scipy.io.mmread(args.tprob)
 
-    # deal with case where have single start or end state
-    # TJL note: this should be taken care of in library now... keeping it just
-    # in case
-    if F.shape == ():
-        tmp = np.zeros(1, dtype=int)
-        tmp[0] = int(F)
-        F = tmp.copy()
-    if U.shape == ():
-        tmp = np.zeros(1, dtype=int)
-        tmp[0] = int(U)
-        U = tmp.copy()
-
     arglib.die_if_path_exists(args.output)
-    paths, bottlenecks, fluxes = run(tprob, U, F, args.number)
+    paths, fluxes = run(tprob, sources, sinks, args.number)
 
-    io.saveh(args.output, Paths=paths, Bottlenecks=bottlenecks, fluxes=fluxes)
+    io.saveh(args.output, paths=paths, fluxes=fluxes)
     logger.info('Saved output to %s', args.output)
 
 if __name__ == "__main__":

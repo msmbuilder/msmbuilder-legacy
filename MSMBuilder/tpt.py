@@ -17,7 +17,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 """
-Functions for performing Transition Path Theory calculations.
+Functions for performing Transition Path Theory calculations. 
 
 Written and maintained by TJ Lane <tjlane@stanford.edu>
 Contributions from Kyle Beauchamp, Robert McGibbon, Vince Voelz,
@@ -30,8 +30,8 @@ that cover the same concepts.
 
 References
 ----------
-.. [1] Metzner, P., Schutte, C. & Vanden-Eijnden, E. Transition path theory 
-       for Markov jump processes. Multiscale Model. Simul. 7, 1192–1219 
+.. [1] Metzner, P., Schutte, C. & Vanden-Eijnden, E. Transition path theory
+       for Markov jump processes. Multiscale Model. Simul. 7, 1192-1219
        (2009).
 .. [2] Berezhkovskii, A., Hummer, G. & Szabo, A. Reactive flux and folding 
        pathways in network models of coarse-grained protein dynamics. J. 
@@ -45,6 +45,8 @@ import scipy.sparse
 from msmbuilder import MSMLib
 from msmbuilder import msm_analysis
 from msmbuilder.utils import deprecated
+import itertools
+import copy
 
 import logging
 logger = logging.getLogger(__name__)
@@ -65,13 +67,14 @@ def _ensure_iterable(arg):
     assert hasattr(arg, '__iter__')
     return arg
 
-
 def _check_sources_sinks(sources, sinks):
     sources = _ensure_iterable(sources)
     sinks = _ensure_iterable(sinks)
-    if np.any(sources == sinks):
-        raise ValueError("Sets `sources` and `sinks` must be disjoint "
-                         "to find paths between them")
+
+    for s in sources:
+        if s in sinks:
+            raise ValueError("sources and sinks are not disjoint")
+
     return sources, sinks
 
 
@@ -79,7 +82,275 @@ def _check_sources_sinks(sources, sinks):
 # Path Finding Functions
 #
 
-def find_top_paths(sources, sinks, tprob, num_paths=10, node_wipe=False, net_flux=None):
+def get_top_path_scipy(sources, sinks, net_flux):
+    """
+    Use the Dijkstra algorithm for finding the shortest path connecting
+    sources and sinks
+
+    Parameters
+    ----------
+    sources : array_like
+        nodes to define the source states
+    sinks : array_like
+        nodes to define the sink states
+    net_flux : scipy.sparse matrix
+        net flux of the MSM
+
+    Returns
+    -------
+    top_path : np.ndarray
+        array corresponding to the top path between sources and sinks
+    
+    """
+
+    _check_sources_sinks(sources, sinks)
+
+    if not scipy.sparse.issparse(net_flux):
+        logger.warn("only sparse matrices are currently supported.")
+        net_flux = scipy.sparse.lil_matrix(net_flux)
+
+    net_flux = net_flux.tolil()
+    n_states = net_flux.shape[0]
+
+    sources = np.array(sources, dtype=np.int).flatten()
+    sinks = np.array(sinks, dtype=np.int).flatten()
+
+    Q = list(sources) # nodes to check (the "queue")
+                      # going to use list.pop method so I can't keep it as an array
+
+def get_top_path(sources, sinks, net_flux):
+    """
+    Use the Dijkstra algorithm for finding the shortest path connecting
+    sources and sinks
+
+    Parameters
+    ----------
+    sources : array_like
+        nodes to define the source states
+    sinks : array_like
+        nodes to define the sink states
+    net_flux : scipy.sparse matrix
+        net flux of the MSM
+
+    Returns
+    -------
+    top_path : np.ndarray
+        array corresponding to the top path between sources and sinks
+    
+    """
+
+    _check_sources_sinks(sources, sinks)
+
+    if not scipy.sparse.issparse(net_flux):
+        logger.warn("only sparse matrices are currently supported.")
+        net_flux = scipy.sparse.lil_matrix(net_flux)
+
+    net_flux = net_flux.tolil()
+    n_states = net_flux.shape[0]
+
+    sources = np.array(sources, dtype=np.int).flatten()
+    sinks = np.array(sinks, dtype=np.int).flatten()
+
+    Q = list(sources) # nodes to check (the "queue")
+                      # going to use list.pop method so I can't keep it as an array
+    visited = np.zeros(n_states).astype(np.bool) # have we already checked this node?
+    previous_node = np.ones(n_states).astype(np.int) * -1 # what node was found before finding this one
+    min_fluxes = np.ones(n_states) * -1 * np.inf # what is the flux of the highest flux path
+                                            # from this node to the source set.
+
+    min_fluxes[sources] = np.inf # source states are connected to the source
+                                 # so this distance is zero which means the flux is infinite
+    
+    while len(Q) > 0: # iterate until there's nothing to check anymore
+
+        test_node = Q.pop(min_fluxes[Q].argmax()) # find the node in the queue that has the 
+                                                  # highest flux path to it from the source set
+        visited[test_node] = True
+
+        if np.all(visited[sinks]):
+            # if we've visited all of the sink states, then we just have to choose
+            # the path that goes to the sink state that is closest to the source
+            break
+
+        #if test_node in sinks: # I *think* we want to break ... or are there paths we still 
+        #                       # need to check?
+        #    continue # I think if sinks is more than one state we have to check everything
+
+        # now update the distances for each neighbor of the test_node:
+        neighbors = np.where(net_flux[test_node, :].toarray() > 0)[1]
+        if len(neighbors) == 0:
+            continue
+        new_fluxes = net_flux[test_node, neighbors].toarray().flatten()
+            # flux from test_node to each neighbor
+
+        new_fluxes[np.where(new_fluxes > min_fluxes[test_node])] = min_fluxes[test_node]
+            # previous step to get to test_node was lower flux, so that is still the path flux
+
+        ind = np.where((1 - visited[neighbors]) & (new_fluxes > min_fluxes[neighbors]))
+        min_fluxes[neighbors[ind]] = new_fluxes[ind]
+
+        previous_node[neighbors[ind]] = test_node # each of these neighbors came from this test_node
+        # we don't want to update the nodes that have already been visited
+
+        Q.extend(neighbors[ind])
+
+    top_path = []
+    # populate the path in reverse
+    top_path.append(int(sinks[min_fluxes[sinks].argmax()]))
+    # find the closest sink state
+
+    while previous_node[top_path[-1]] != -1:
+        top_path.append(previous_node[top_path[-1]])
+
+    return np.array(top_path[::-1]), min_fluxes[top_path[0]]
+
+
+def get_paths(sources, sinks, net_flux, num_paths=np.inf, flux_cutoff=(1-1E-10)):
+    """
+    Get the top N paths by iteratively performing Dijkstra's
+    algorithm, but at each step modifying the net flux matrix
+    by subtracting the previously found path's flux from each
+    edge in that path.
+    
+    Parameters
+    ----------
+    sources : array_like
+        nodes to define the source states
+    sinks : array_like
+        nodes to define the sink states
+    net_flux : scipy.sparse matrix
+        net flux of the MSM
+    num_paths : int, optional
+        number of paths to find
+    flux_cutoff : float, optional
+        quit finding paths once the explained flux is greater
+        this cutoff (as a percentage of the total)
+    
+    Returns
+    -------
+    paths : np.ndarray
+        list of paths
+    fluxes : np.ndarray
+        flux of each path returned
+    """
+    
+    _check_sources_sinks(sources, sinks)
+    
+    if not scipy.sparse.issparse(net_flux):
+        logger.warn("only sparse matrices are currently supported")
+        net_flux = scipy.sparse.lil_matrix(net_flux)
+
+    net_flux = copy.deepcopy(net_flux.tolil())
+    
+    paths = []
+    fluxes = []
+    
+    total_flux = net_flux[sources, :].sum()
+    # total flux is the total flux coming from the sources (or going into the sinks)
+    
+    not_done = True
+    counter = 0
+    expl_flux = 0.0
+    while not_done:
+        path, flux = get_top_path(sources, sinks, net_flux)
+        if np.isinf(flux):
+            logger.info("no more paths exist")
+            break
+        
+        paths.append(path)
+        fluxes.append(flux)
+        
+        expl_flux += flux / total_flux
+        
+        counter += 1
+        logger.debug("Found next path (%d) with flux %.4e (%.2f%% of total)" % (counter, flux, expl_flux * 100))
+        
+        if counter >= num_paths or expl_flux >= flux_cutoff:
+            break
+
+        # modify the net_flux matrix
+        for k in xrange(len(path) - 1):
+            net_flux[path[k], path[k+1]] -= flux
+        # since flux is the bottleneck, this will never be negative
+        # though... this might lead to CLOS which is bad...
+        # I'll fix this (^^^^) later.. for now let's get it working
+
+    
+    max_len = np.max([len(p) for p in paths])
+    temp = np.ones((len(paths), max_len)) * -1
+    for i in range(len(paths)):
+        temp[i][:len(paths[i])] = paths[i]
+    
+    fluxes = np.array(fluxes)
+    
+    return temp, fluxes
+
+
+def _get_enumerated_paths(sources, sinks, net_flux, num_paths=1):
+    """
+    get all possible paths, sorted from highest to lowest flux
+
+    Parameters
+    ----------
+    sources : array_like
+        nodes to define the source states
+    sinks : array_like
+        nodes to define the sink states
+    net_flux : scipy.sparse matrix
+        net flux of the MSM
+
+    Returns
+    -------
+    paths : np.ndarray
+        list of paths
+    fluxes : np.ndarray
+        flux of each path returned
+    """
+
+    paths = []
+    edges = []
+    fluxes = []
+
+    temp_net_flux = copy.deepcopy(net_flux).tolil()
+
+    path, flux = get_top_path(sources, sinks, temp_net_flux)
+    paths.append(path)
+    edges.append([[path[i], path[i + 1]] for i in xrange(len(path) - 1)])
+    fluxes.append(flux)
+
+    for i in xrange(1, num_paths):
+        #print "found %s - %.4e" % (str(paths[-1]), fluxes[-1])
+        test_path = None
+        test_flux = - np.inf
+
+        edge_list = itertools.product(*edges)
+        # this is a list of sets of edges to remove from net flux
+
+        for edges_to_remove in edge_list:
+            temp_net_flux = copy.deepcopy(net_flux).tolil()
+            for edge in edges_to_remove:
+                temp_net_flux[edge[0], edge[1]] = 0.0
+
+            path, flux = get_top_path(sources, sinks, temp_net_flux)
+            if flux > test_flux:
+                test_path = path
+                test_flux = flux
+
+        paths.append(test_path)
+        edges.append([[test_path[i], test_path[i + 1]] for i in xrange(len(test_path) - 1)])
+        fluxes.append(test_flux)
+            
+    max_len = np.max([len(p) for p in paths])
+    temp = np.ones((len(paths), max_len)) * -1
+    for i in range(len(paths)):
+        temp[i][:len(paths[i])] = paths[i]
+
+    fluxes = np.array(fluxes)
+
+    return temp, fluxes
+
+
+def _find_top_paths_cut(sources, sinks, tprob, num_paths=10, node_wipe=False, net_flux=None):
     r"""
     Calls the Dijkstra algorithm to find the top 'NumPaths'.
 
@@ -122,7 +393,7 @@ def find_top_paths(sources, sinks, tprob, num_paths=10, node_wipe=False, net_flu
     References
     ----------
     .. [1] Dijkstra, E. W. (1959). "A note on two problems in connexion with 
-           graphs". Numerische Mathematik 1: 269–271. doi:10.1007/BF01386390.
+           graphs." Numerische Mathematik 1: 269-271. doi:10.1007/BF01386390.
     """
 
     # first, do some checking on the input, esp. `sources` and `sinks`
@@ -143,7 +414,7 @@ def find_top_paths(sources, sinks, tprob, num_paths=10, node_wipe=False, net_flu
         net_flux = net_flux.tolil()
 
     # run the initial Dijkstra pass
-    pi, b = Dijkstra(sources, sinks, net_flux)
+    pi, b = _Dijkstra(sources, sinks, net_flux)
 
     logger.info("Path Num | Path | Bottleneck | Flux")
 
@@ -195,7 +466,7 @@ def find_top_paths(sources, sinks, tprob, num_paths=10, node_wipe=False, net_flu
     return paths, bottlenecks, fluxes
 
 
-def Dijkstra(sources, sinks, net_flux):
+def _Dijkstra(sources, sinks, net_flux):
     r""" A modified Dijkstra algorithm that dynamically computes the cost
     of all paths from A to B, weighted by NFlux.
 
@@ -225,7 +496,7 @@ def Dijkstra(sources, sinks, net_flux):
      References
      ----------
      .. [1] Dijkstra, E. W. (1959). "A note on two problems in connexion with 
-            graphs". Numerische Mathematik 1: 269–271. doi:10.1007/BF01386390.
+            graphs." Numerische Mathematik 1: 269-271. doi:10.1007/BF01386390.
     """
 
     sources, sinks = _check_sources_sinks(sources, sinks)
@@ -421,7 +692,7 @@ def find_path_bottleneck(path, net_flux):
      References
      ----------
      .. [1] Metzner, P., Schutte, C. & Vanden-Eijnden, E. Transition path theory 
-            for Markov jump processes. Multiscale Model. Simul. 7, 1192–1219 
+            for Markov jump processes. Multiscale Model. Simul. 7, 1192-1219
             (2009).
      .. [2] Berezhkovskii, A., Hummer, G. & Szabo, A. Reactive flux and folding 
             pathways in network models of coarse-grained protein dynamics. J. 
@@ -472,7 +743,7 @@ def calculate_fluxes(sources, sinks, tprob, populations=None, committors=None):
     References
     ----------
     .. [1] Metzner, P., Schutte, C. & Vanden-Eijnden, E. Transition path theory 
-           for Markov jump processes. Multiscale Model. Simul. 7, 1192–1219 
+           for Markov jump processes. Multiscale Model. Simul. 7, 1192-1219
            (2009).
     .. [2] Berezhkovskii, A., Hummer, G. & Szabo, A. Reactive flux and folding 
            pathways in network models of coarse-grained protein dynamics. J. 
@@ -489,7 +760,7 @@ def calculate_fluxes(sources, sinks, tprob, populations=None, committors=None):
 
     # check if we got the populations
     if populations is None:
-        eigens = msm_analysis.get_eigenvectors(tprob, 1)
+        eigens = msm_analysis.get_eigenvectors(tprob, 5)
         if np.count_nonzero(np.imag(eigens[1][:, 0])) != 0:
             raise ValueError('First eigenvector has imaginary components')
         populations = np.real(eigens[1][:, 0])
@@ -557,7 +828,7 @@ def calculate_net_fluxes(sources, sinks, tprob, populations=None, committors=Non
     References
     ----------
     .. [1] Metzner, P., Schutte, C. & Vanden-Eijnden, E. Transition path theory 
-           for Markov jump processes. Multiscale Model. Simul. 7, 1192–1219 
+           for Markov jump processes. Multiscale Model. Simul. 7, 1192-1219
            (2009).
     .. [2] Berezhkovskii, A., Hummer, G. & Szabo, A. Reactive flux and folding 
            pathways in network models of coarse-grained protein dynamics. J. 
@@ -624,7 +895,7 @@ def calculate_ensemble_mfpt(sources, sinks, tprob, lag_time):
     References
     ----------
     .. [1] Metzner, P., Schutte, C. & Vanden-Eijnden, E. Transition path theory 
-           for Markov jump processes. Multiscale Model. Simul. 7, 1192–1219 
+           for Markov jump processes. Multiscale Model. Simul. 7, 1192-1219
            (2009).
     .. [2] Berezhkovskii, A., Hummer, G. & Szabo, A. Reactive flux and folding 
            pathways in network models of coarse-grained protein dynamics. J. 
@@ -674,7 +945,7 @@ def calculate_avg_TP_time(sources, sinks, tprob, lag_time):
     References
     ----------
     .. [1] Metzner, P., Schutte, C. & Vanden-Eijnden, E. Transition path theory 
-           for Markov jump processes. Multiscale Model. Simul. 7, 1192–1219 
+           for Markov jump processes. Multiscale Model. Simul. 7, 1192-1219 
            (2009).
     .. [2] Berezhkovskii, A., Hummer, G. & Szabo, A. Reactive flux and folding 
            pathways in network models of coarse-grained protein dynamics. J. 
@@ -742,7 +1013,7 @@ def calculate_mfpt(sinks, tprob, lag_time=1.):
     References
     ----------
     .. [1] Metzner, P., Schutte, C. & Vanden-Eijnden, E. Transition path theory 
-           for Markov jump processes. Multiscale Model. Simul. 7, 1192–1219 
+           for Markov jump processes. Multiscale Model. Simul. 7, 1192-1219 
            (2009).
     .. [2] Berezhkovskii, A., Hummer, G. & Szabo, A. Reactive flux and folding 
            pathways in network models of coarse-grained protein dynamics. J. 
@@ -809,7 +1080,7 @@ def calculate_all_to_all_mfpt(tprob, populations=None):
     References
     ----------
     .. [1] Metzner, P., Schutte, C. & Vanden-Eijnden, E. Transition path theory 
-           for Markov jump processes. Multiscale Model. Simul. 7, 1192–1219 
+           for Markov jump processes. Multiscale Model. Simul. 7, 1192-1219 
            (2009).
     .. [2] Berezhkovskii, A., Hummer, G. & Szabo, A. Reactive flux and folding 
            pathways in network models of coarse-grained protein dynamics. J. 
@@ -869,7 +1140,7 @@ def calculate_committors(sources, sinks, tprob):
     References
     ----------
     .. [1] Metzner, P., Schutte, C. & Vanden-Eijnden, E. Transition path theory 
-           for Markov jump processes. Multiscale Model. Simul. 7, 1192–1219 
+           for Markov jump processes. Multiscale Model. Simul. 7, 1192-1219 
            (2009).
     .. [2] Berezhkovskii, A., Hummer, G. & Szabo, A. Reactive flux and folding 
            pathways in network models of coarse-grained protein dynamics. J. 

@@ -281,17 +281,18 @@ def test_CalculateClusterRadii():
 
 
 def test_FindPaths():
-    tprob = get("transition_path_theory_reference/tProb.mtx")
-    sources = [0]
-    sinks = [70]
-    paths, bottlenecks, fluxes = FindPaths.run(tprob, sources, sinks, 10)
-    # paths are hard to test due to type issues, adding later --TJL
-    bottlenecks_ref = get(pjoin("transition_path_theory_reference",
-                           "dijkstra_bottlenecks.h5"))['Data']
-    fluxes_ref = get(pjoin("transition_path_theory_reference",
-                      "dijkstra_fluxes.h5"))['Data']
-    eq(bottlenecks, bottlenecks_ref)
+    tprob = get("tpt/tProb.mtx")
+    sources = np.reshape(get("tpt/U.dat"), (-1,)).astype(int)
+    sinks = np.reshape(get("tpt/F.dat"), (-1,)).astype(int)
+    paths, fluxes = FindPaths.run(tprob, sources, sinks, 10)
+
+    ref_data = get(pjoin("tpt", "paths.h5"))
+
+    paths_ref = ref_data['paths']
+    fluxes_ref = ref_data['fluxes']
+
     eq(fluxes, fluxes_ref)
+    eq(paths, paths_ref)
 
 
 class test_PCCA(WTempdir):
