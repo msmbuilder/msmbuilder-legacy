@@ -13,9 +13,9 @@ from __future__ import print_function, division, absolute_import
 from .baseclasses import AbstractDistanceMetric
 from .baseclasses import Vectorized
 from .rmsd import RMSD
+from .lprmsd import LPRMSD
 from .dihedral import Dihedral
 from .contact import BooleanContact, AtomPairs, ContinuousContact
 from .projection import RedDimPNorm
 from .hybrid import Hybrid, HybridPNorm
-from .projection import RedDimPNorm
 from .positions import Positions

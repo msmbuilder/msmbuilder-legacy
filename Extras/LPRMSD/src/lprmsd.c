@@ -25,7 +25,11 @@
 #include <stdio.h>
 #include "theobald_rmsd.h"
 #include "apc.h"
+
+#ifdef _OPENMP
 #include <omp.h>
+#endif
+
 #include <sys/time.h>
 
 #define CHECKARRAYFLOAT(ary,name) if (PyArray_TYPE(ary) != NPY_FLOAT32) { \

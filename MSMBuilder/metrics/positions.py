@@ -5,14 +5,8 @@ import logging
 logger = logging.getLogger(__name__)
 import mdtraj as md
 import numpy as np
-try:
-    import lprmsd
-except:
-    RuntimeError(
-        "Unable to import lprmsd. See msmbuilder/Extras/lprmsd for directions on installing")
 
 from .baseclasses import Vectorized, AbstractDistanceMetric
-
 
 class Positions(Vectorized, AbstractDistanceMetric):
 
@@ -64,11 +58,14 @@ class Positions(Vectorized, AbstractDistanceMetric):
         else:
             self.atom_indices = None
 
-        self.lprmsd = lprmsd.LPRMSD(atomindices=self.atom_indices,
-                                    altindices=self.align_indices)
-
         self.target = target
-        self.prep_target = self.lprmsd.prepare_trajectory(self.target)
+        self.target.center_coordinates()
+        if self.align_indices is None:
+            self._permute_groups = [[i] for i in xrange(self.target.n_atoms)]
+
+        else:
+            slf._permute_groups = [[i] for i in self.align_indices]
+
 
     def prepare_trajectory(self, trajectory, return_dist=False):
         """
@@ -93,16 +90,11 @@ class Positions(Vectorized, AbstractDistanceMetric):
             after alignment for each frame in trajectory
         """
 
-        # TODO: This method hasn't been updated yet (2013-11-22 mph)
-        lp_prep_trajectory = self.lprmsd.prepare_trajectory(trajectory)
-        aligned_distances, prep_trajectory = self.lprmsd._compute_one_to_all(
-            self.prep_target, lp_prep_trajectory, 0, b_xyzout=True)
+        t = md.Trajectory(trajectory.xyz.copy(), topology=trajectory.topology.copy())
 
-        if not self.atom_indices is None:
-            prep_trajectory = prep_trajectory[:, self.atom_indices]
-        prep_trajectory = np.reshape(prep_trajectory, (prep_trajectory.shape[0], -1))
+        distances = md.lprmsd(t, self.target, superpose=True, atom_indices=self.align_indices,
+                              permute_groups=self._permute_groups)
 
-        if return_dist:
-            return prep_trajectory, aligned_distances
-        else:
-            return prep_trajectory
+        prep_trajectory = t.xyz[:, self.atom_indices].reshape((len(t), -1))
+
+        return prep_trajectory
