@@ -21,63 +21,60 @@ import numpy as np
 import mdtraj as md
 from mdtraj import io
 from msmbuilder import Project, arglib
+import os
 import logging
 logger = logging.getLogger('msmbuilder.scripts.CalculateProjectSASA')
 
 parser = arglib.ArgumentParser(description="""Calculates the Solvent Accessible Surface Area
-of all atoms in a given trajectory, or for all trajectories in the project. The
-output is a hdf5 file which contains the SASA for each atom in each frame
-in each trajectory (or the single trajectory you passed in.""" )
+    of all atoms in a subset of the trajectories, or for all trajectories in the project. The
+    output is a hdf5 file which contains the SASA for each atom in each frame
+    in each trajectory (or the single trajectory you passed in.""" )
 parser.add_argument('project')
-parser.add_argument('atom_indices', help='Indices of atoms to calculate SASA',
-    default='all')
-parser.add_argument('output', help='''hdf5 file for output. Note this will
-    be THREE dimensional: ( trajectory, frame, atom ), unless you just ask for
-    one trajectory, in which case it will be shape (frame, atom).''',
-    default='SASA.h5')
-parser.add_argument('traj_fn', help='''Pass a trajectory file if you only
-    want to calclate the SASA for a single trajectory''', default='all' )
-        
+parser.add_argument('outdir', help=r"""Output directory to save .h5 files for each trajectory.
+    Each will be named sasa<index>.h5 where <index> corresponds to the project's index for that 
+    trajectory""", default='sasa')
+parser.add_argument('which', help="""which trajectories to calculate the SASA for.
+    This script saves a separate file for each trajectory.""", default=[0, np.inf],
+    nargs=2, type=int)
 
-def run(project, atom_indices=None, traj_fn = 'all'):
+def run(project, outdir, which):
+
+    which[0] = np.max([0, which[0]])
+    which[1] = np.min([project.n_trajs, which[1]])
 
     n_atoms = project.load_conf().n_atoms
 
-    if traj_fn.lower() == 'all':
-
-        SASA = np.ones((project.n_trajs, np.max(project.traj_lengths), n_atoms)) * -1
-
-        for traj_ind in xrange(project.n_trajs):
-            traj_asa = []
-            logger.info("Working on Trajectory %d", traj_ind)
-            traj_fn = project.traj_filename(traj_ind)
-            chunk_ind = 0
-            for traj_chunk in md.iterload(traj_fn, atom_indices=atom_indices, chunk=1000):
-                traj_asa.extend(md.shrake_rupley(traj_chunk))
-                chunk_ind += 1
-            SASA[traj_ind, 0:project.traj_lengths[traj_ind]] = traj_asa
-
-    else:
+    for traj_ind in xrange(*which):
+        logger.info("Working on Trajectory %d", traj_ind)
         traj_asa = []
-        for traj_chunk in Trajectory.enum_chunks_from_lhdf( traj_fn, AtomIndices=atom_indices ):
-            traj_asa.extend( asa.calculate_asa( traj_chunk ) )
+        out_fn = os.path.join(args.outdir, 'sasa%d.h5' % traj_ind)
+        if os.path.exists(out_fn):
+            logger.warn("!!!!! Path (%s) exists, so I am skipping this trajectory. Remove %s to recalculate" % (out_fn, out_fn))
+            continue
 
-        SASA = np.array(traj_asa)
+        traj_fn = project.traj_filename(traj_ind)
+        for traj_chunk in md.iterload(traj_fn, chunk=1000):
+            traj_asa.extend(md.shrake_rupley(traj_chunk))
 
-    return SASA
+        traj_asa = np.array(traj_asa)
+        io.saveh(out_fn, traj_asa)
+
+    return 
+
 
 def entry_point():
     args = parser.parse_args()
-    arglib.die_if_path_exists(args.output)
 
-    if args.atom_indices.lower() == 'all':
-        atom_indices = None
-    else:
-        atom_indices = np.loadtxt(args.atom_indices).astype(int)
+    if not os.path.exists(args.outdir):
+        os.mkdir(args.outdir)
+
+    if not os.path.isdir(args.outdir):
+        raise Exception("output directory (%s) exists but is not a directory!" % args.outdir)
 
     project = Project.load_from(args.project)
-    SASA = run(project, atom_indices, args.traj_fn)
-    io.saveh(args.output, SASA)
+    run(project, args.outdir, args.which)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     entry_point()
+

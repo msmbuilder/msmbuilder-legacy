@@ -1,0 +1,64 @@
+#!/usr/bin/env python
+"""MSMBuilder: Analyzing conformational dynamics via the construction of Markov state models.
+"""
+
+##############################################################################
+# Imports
+##############################################################################
+
+import re
+import os
+import sys
+import inspect
+import warnings
+import argparse
+from mdtraj.utils import import_
+from msmbuilder import scripts
+
+parser = argparse.ArgumentParser(description=__doc__, usage='msmb [subcommand]')
+
+##############################################################################
+# Code
+##############################################################################
+
+def main():
+    subparsers = parser.add_subparsers(dest="subparser_name")
+    scriptfiles = {}
+    argv = sys.argv[:]
+    if len(argv) == 1:
+        argv.append('-h')
+
+    for scriptname in scripts.__all__:
+        # get the name and first sentence of the description from each of the
+        # msmbuilder commands
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            script = import_('msmbuilder.scripts.%s' % scriptname)
+            scriptparser = getattr(script, 'parser', None)
+        scriptfiles[scriptname] = script.__file__
+
+        try:
+            description = scriptparser.description
+        except:
+            description = scriptparser.parser.description
+
+        # http://stackoverflow.com/a/17124446/1079728
+        first_sentence = ' '.join(' '.join(re.split(r'(?<=[.:;])\s', description)[:1]).split())
+        subparsers.add_parser(scriptname, help=first_sentence)
+
+    sys.argv = argv[0:2]
+    args = parser.parse_args()
+    scriptfile = scriptfiles[args.subparser_name]
+    if os.path.splitext(scriptfile)[1] == '.pyc':
+        scriptfile = os.path.splitext(scriptfile)[0] + '.py'
+
+    sys.argv = argv[1:]
+    if not os.path.exists(scriptfile):
+        raise IOError('Script not found')
+
+    return scriptfile
+
+if __name__ == '__main__':
+    __scriptfile__ = main()
+    with open(__scriptfile__, "r") as __fh__:
+        exec(__fh__.read(), globals(), locals())
