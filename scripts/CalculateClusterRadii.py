@@ -86,9 +86,8 @@ def main(assignments, distances):
         radii[s] = distances[trj, frame].mean()
 
     return radii
-
-
-if __name__ == "__main__":
+#add entry_point function
+def entry_point():
     args = parser.parse_args()
     arglib.die_if_path_exists(args.output)
 
@@ -103,3 +102,7 @@ if __name__ == "__main__":
 
     np.savetxt(args.output, radii)
     logger.info("Wrote: %s", args.output)
+
+if __name__ == "__main__":
+    entry_point()
+    
